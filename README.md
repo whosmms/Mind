@@ -7,14 +7,19 @@
 ## 当前状态：M0骨架可构建，团队验收尚未完成
 
 按原设计§12 M0与统一规范§4完成了纵向闭环代码（领域/文档/命令/服务/AI契约/主窗口/
-6个测试套件/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
-main已包含BUG-010/011修复。甲takagi（Takagi-gif）、乙LH（whosmms）、丙wbccaidapkc分别登记自己的环境和验证，不互相代签。
-最新环境与验证见 [docs/environment.md](docs/environment.md)，交接和当前待办见
-[docs/交接文档.md](docs/交接文档.md) 的 H-002。M0三机复现、人工交互及干净机器部署仍待验收。
+11个测试套件/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
+main已含R04最近文件、X03任务双向改名、外部修改检测、备份专用目录与AI基础设施（无真实联网）。
+标签[v0.1.0]（提交aef9432）为M0基线。甲takagi（Takagi-gif）、乙LH（whosmms）、丙wbccaidapkc
+分别登记自己的环境和验证，不互相代签。最新环境与验证见 [docs/environment.md](docs/environment.md)，
+交接和当前待办见 [docs/交接文档.md](docs/交接文档.md)（最新H-006）。
+
+M0门禁状态：三机同提交自动签收已闭合（4713a79，甲INT-023/乙INT-009/丙INT-010，各9套件105用例）；
+人工验收中输入法预编辑、DPI三档、完整人工保存重开由甲通过（H-006），坏文件拒绝与外部修改拒绝由乙通过；
+无Qt电脑跨机验证经团队决定暂缓（IF-005），如实标注未验收。团队验收（acceptance最终汇总与复核）尚未完成。
 
 仓库地址：[whosmms/Mind](https://github.com/whosmms/Mind)。甲使用 `feature/a/...`，
-乙使用 `feature/b/...`，丙使用 `feature/c/...`；本次启动修复分支为 `feature/a/M0-ui-acceptance`。
-甲的改动由非作者评审、乙负责合并；旧合并请求#1已关闭且未合并，旧错误分支已撤回。
+乙使用 `feature/b/...`，丙使用 `feature/c/...`；合并前非作者评审、main由乙操作合入，
+评审可走合并请求或团队直接协调（结论登记开发日志）。
 
 本机工具按“仓库父目录/.tools/Qt”和“.tools/formatter”布局时，用PowerShell 7执行：
 
