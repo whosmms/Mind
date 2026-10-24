@@ -42,6 +42,8 @@ add_library(lingya_appcore STATIC
     src/commands/CommandService.cpp
     src/commands/SnapshotCommand.h
     src/commands/SnapshotCommand.cpp
+    src/commands/TaskCommands.h
+    src/commands/TaskCommands.cpp
     src/ai/AiTypes.h
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
