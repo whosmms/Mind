@@ -19,6 +19,7 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Core Widgets Test)
 add_library(lingya_core STATIC
     src/domain/Domain.h
     src/domain/Limits.h
+    src/domain/TitleRules.h
     src/domain/ProjectFactory.h
     src/domain/ProjectFactory.cpp
     src/domain/ProjectValidator.h
@@ -52,6 +53,8 @@ add_library(lingya_appcore STATIC
     src/commands/SnapshotCommand.cpp
     src/commands/TaskCommands.h
     src/commands/TaskCommands.cpp
+    src/commands/NodeCommands.h
+    src/commands/NodeCommands.cpp
     src/ai/AiTypes.h
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
