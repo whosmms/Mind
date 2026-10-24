@@ -4,12 +4,25 @@
 **新成员与AI协助从这里开始：先读 [AGENTS.md](AGENTS.md)，再读
 [docs/三人协作开发统一规范.md](docs/三人协作开发统一规范.md)。**
 
-## 当前状态：M0代码骨架就绪，构建与测试未执行
+## 当前状态：本机冻结环境构建测试通过，M0仍有待验收项
 
 按原设计§12 M0与统一规范§4完成了纵向闭环代码（领域/文档/命令/服务/AI契约/主窗口/
 3个测试/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
-**本机尚未安装Qt 6与CMake，构建和测试未执行**——见 [docs/environment.md](docs/environment.md)，
-交接状态见 [docs/交接文档.md](docs/交接文档.md) 的 H-001（待接收验证）。
+2026年10月24日本机已按Qt6.8.3、MinGW13.1.0、CMake3.30.5、Ninja1.12.1复现Debug/Release，
+各3个CTest套件全部通过；Qt Creator20.0.2已能打开、配置、构建和启动现有程序。
+成员另两台电脑、完整GUI、真实AI和干净电脑部署仍待分别验证。详见
+[docs/environment.md](docs/environment.md)与[H-002交接](docs/交接文档.md)。
+
+本机工具放在源码父目录的`.tools`。PowerShell 7中可运行：
+
+```powershell
+. .\tools\进入开发环境.ps1
+.\tools\验证环境.ps1
+.\tools\打开QtCreator.ps1
+```
+
+环境脚本只改变当前终端，不改永久PATH。新成员按environment.md的冻结版本准备工具，
+不要照搬别人的绝对路径；源码、构建、部署和个人IDE设置必须分开。
 
 环境安装后执行（统一规范§19.2合并前最低检查）：
 

@@ -5,12 +5,17 @@
 
 ## M0 工程准备与纵向验证（当前阶段）
 
+最新本机复验：2026-10-24，DEV-20261024-007 / INT-20261024-001 / H-002。
+Qt6.8.3、MinGW13.1.0、CMake3.30.5、Ninja1.12.1实测一致；Debug与Release各3个CTest套件通过；
+Qt Creator可配置、构建并启动程序；七模块和本机TLS探针通过。
+M0仍未整体完成：另两机、完整人工交互、干净机器部署尚待验证；现有代码格式检查未通过。
+
 | 门禁产物 | 状态 | 证据 |
 |---|---|---|
 | 能启动的工程 | [x] | Debug与Release构建0错误；lingya.exe启动验证通过（运行4秒以上无崩溃）；环境冻结记录见environment.md |
 | 环境版本记录 | [x] | environment.md（含统一规范§5.2要求的完整清单框架与AI检测注记） |
 | 格式、换行、忽略配置 | [x] | .clang-format/.editorconfig/.gitattributes/.gitignore按统一规范§9逐字建立（静态核对） |
-| 通用构建预设 | [x] | CMakePresets.json按§5.3建立（静态核对；未运行） |
+| 通用构建预设 | [x] | 本机debug/release实际配置、构建、CTest通过，见INT-20261024-001 |
 | README | [x] | 根README.md（与代码、docs同步更新） |
 | AGENTS.md | [x] | 根AGENTS.md（AI协助与新人入口，统一规范§24） |
 | 最小.lingya样例 | [x] | tests/fixtures/minimal.lingya + bad-unknown-field + long-chinese（JSON静态解析通过，180字标题核对通过） |
@@ -20,8 +25,8 @@
 | 空窗口、资源、菜单连接 | [~] | MainWindow中文菜单、light.qss、NodeItem；exe启动验证通过；窗口内点击链路待人工复验 |
 | 任务日期校验与测试框架起步 | [x] | ProjectValidator日期/依赖/里程碑规则经16个域用例覆盖；CTest双配置全过 |
 | 纵向闭环（新建→改名→保存→关闭→重开） | [x] | m0VerticalSlice通过（保存→重开→校验一致）；真实点击链路待人工复验 |
-| Release最小部署与另一台电脑启动 | [ ] | 统一规范§4第10项；无Qt环境，未启动 |
-| 打包小验证 | [ ] | 同上；环境冻结后第一优先补做 |
+| Release最小部署与另一台电脑启动 | [~] | 本机staging/m0依赖收集和精简PATH启动通过；另一台无Qt机器未验收 |
+| 打包小验证 | [~] | 本机windeployqt已通过；正式安装器和干净机器测试仍待完成 |
 
 首轮构建与测试（2026-10-24第三段，DEV-20261024-003）：工具链安装（Qt6.8.3/MinGW13.1/
 CMake3.30.5/Ninja1.12.1，官方存档）；Debug与Release各39用例100%通过；lingya.exe启动验证；

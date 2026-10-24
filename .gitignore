@@ -4,6 +4,7 @@
 /.cache/
 /CMakeUserPresets.json
 /.qt/
+/.qtcreator/
 /.qtc_clangd/
 /.idea/
 /.vs/
