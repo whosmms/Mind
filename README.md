@@ -8,12 +8,12 @@
 
 按原设计§12 M0与统一规范§4完成了纵向闭环代码（领域/文档/命令/服务/AI契约/主窗口/
 4个测试套件/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
-main已包含BUG-010/011修复。甲takagi、乙LH分别登记自己的环境和验证，不互相代签。
+main已包含BUG-010/011修复。甲takagi（Takagi-gif）、乙LH（whosmms）、丙wbccaidapkc分别登记自己的环境和验证，不互相代签。
 最新环境与验证见 [docs/environment.md](docs/environment.md)，交接和当前待办见
 [docs/交接文档.md](docs/交接文档.md) 的 H-002。M0三机复现、人工交互及干净机器部署仍待验收。
 
 仓库地址：[whosmms/Mind](https://github.com/whosmms/Mind)。甲使用 `feature/a/...`，
-乙使用 `feature/b/...`；本次修正分支为 `feature/a/M0-role-environment-sync`。
+乙使用 `feature/b/...`，丙使用 `feature/c/...`；本次启动修复分支为 `feature/a/M0-ui-acceptance`。
 甲的改动由非作者评审、乙负责合并；旧合并请求#1已关闭且未合并，旧错误分支已撤回。
 
 本机工具按“仓库父目录/.tools/Qt”和“.tools/formatter”布局时，用PowerShell 7执行：
@@ -22,11 +22,13 @@ main已包含BUG-010/011修复。甲takagi、乙LH分别登记自己的环境和
 . .\tools\进入开发环境.ps1
 .\tools\验证环境.ps1
 .\tools\打开QtCreator.ps1
+# 构建、准备运行依赖并启动实际程序。
+.\tools\打开灵芽思维.ps1
 ```
 
 工具目录不同则给脚本传 `-ToolsRoot`，也可按下面命令手动设置Kit；配套MinGW/CMake/Ninja
 必须优先于其他软件附带工具。脚本仅修改当前进程，不修改永久PATH；Qt Creator使用独立个人配置。
-`D:/mind` 下两个CMD是甲电脑的便利入口，不作为其他成员的安装文件；仓库共享的是三个PS1脚本。
+`D:/mind` 下CMD是甲电脑的便利入口，不作为其他成员的安装文件；仓库共享的是tools中的PS1脚本。
 切换到不含这些脚本的分支前先备份入口依赖，避免本机双击入口失效。
 
 环境安装后执行（统一规范§19.2合并前最低检查）：
@@ -60,3 +62,19 @@ ctest --preset debug --no-tests=error
 - 业务代码放 `namespace lingya`；常量 k+PascalCase；错误码用规范§10.3统一表。
 - 每次合并前：`git diff --check` → Debug构建 → ctest 非零测试全过 → 非作者评审。
 - 未运行的命令与测试一律写“未执行”及原因；验收证据引用提交号与命令，不只写“正常”。
+
+
+## 启动提示缺少DLL或建议重新安装
+
+先使用`tools/打开灵芽思维.ps1`（PowerShell 7），或本机`D:/mind/打开灵芽思维.cmd`。
+入口按冻结Kit构建，调用Qt官方windeployqt准备依赖，再打开程序；已运行时保留现有窗口，不强制结束进程。
+验证环境脚本也会在构建后准备依赖。已有产物只需补依赖时，可运行：
+
+```powershell
+.\tools\准备运行依赖.ps1 -Configuration Both
+```
+
+程序依赖同目录的Qt/MinGW DLL和platforms插件，不能只移动一个lingya.exe。
+当前Kit中Debug构建也导入无d后缀的Qt库；部署脚本以PE导入为准，不根据Debug标签猜测插件类型。
+这项修复不重装Qt、不改永久PATH；构建目录全部忽略，正式分发仍由乙按M6制作完整部署目录或安装包。
+实际窗口证据与接收步骤见[H-004](docs/交接文档.md)。

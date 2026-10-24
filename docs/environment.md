@@ -1,6 +1,6 @@
 # 环境版本记录（统一规范§5、§22；原设计§12 M0）
 
-更新日期：2026年10月24日。适用范围：Windows x86_64三人开发环境；当前成员甲takagi、乙LH、丙未登记。
+更新日期：2026年10月24日。适用范围：Windows x86_64三人开发环境；当前成员甲takagi（Takagi-gif）、乙LH（whosmms）、丙wbccaidapkc（用户明确确认账号，真实姓名未提供）。
 
 ## 当前采用的基线与验证边界
 
@@ -112,3 +112,25 @@ DEV-20261024-010与`.tools/evidence/launcher-diagnosis/`。本次切分支已先
   第10项）待qttools补装后进行。
 - 本表冻结值需乙、丙在本机复现`cmake --preset debug`与`ctest --preset debug`后签字确认
   （统一规范§5.1“甲丙复现后冻结”）。
+
+
+## M0直接启动依赖修复（2026-10-24，H-004）
+
+修复前build/debug仅含编译产物，未带Qt6Core/Gui/Widgets、MinGW运行库及qwindows.dll。
+新增`tools/准备运行依赖.ps1`：用本Kit的objdump读取PE导入，再调用同Kit的windeployqt；
+从配套MinGW补齐运行库并核对核心DLL与Windows平台插件。当前应用两个配置都引用无d后缀Qt，部署选release Qt库，
+不是把C++ Debug构建改成Release。源码、JSON和系统PATH均不因此改变。
+
+新增`tools/打开灵芽思维.ps1`：配置构建→准备依赖→启动窗口；已在运行则保留现有窗口。
+本机CMD入口是`D:/mind/打开灵芽思维.cmd`，UTF-8无BOM、CRLF，PowerShell失败时返回非零；不进Git。
+`验证环境.ps1`构建后也调用部署。干净构建目录不会再因只编译未准备依赖而被误当作可独立运行的成品。
+
+本次INT-20261024-021：Debug/Release各4个CTest套件通过；精简PATH仅含Windows系统目录、移除Qt环境变量后，
+两个配置均运行3秒，stderr为空，随后只结束测试自建且未编辑的进程。实际桌面已见窗口、中心主题与F2中文改名生效；
+Release完整开发启动入口退出0，CMD的已有窗口分支退出0且stderr为空。
+
+证据：build/environment/validation.json、cleanpath-startup.json与本机.tools/evidence的启动依赖修复验证.log、
+灵芽启动入口Release.log、双击灵芽入口stdout/stderr；仅窗口截图进入docs/evidence，机器日志和DLL不上传。
+受限工具环境曾使windeployqt的qtpaths子进程返回0xC0000142，普通本机执行环境成功；此为执行环境限制，未改安全设置。
+首次按构建名传--debug还曾找不到平台插件，现通过PE实际导入选择类型，保留失败历史，不将失败记录写成成功。
+本机运行通过不代表其他两台电脑或无Qt电脑已验收。
