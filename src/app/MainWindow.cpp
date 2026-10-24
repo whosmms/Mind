@@ -9,6 +9,7 @@
 #include <QGraphicsView>
 #include <QInputDialog>
 #include <QLineEdit>
+#include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMouseEvent>
@@ -20,6 +21,7 @@
 #include "document/ProjectDocument.h"
 #include "graphics/NodeItem.h"
 #include "services/FileService.h"
+#include "services/SettingsService.h"
 
 namespace lingya {
 
@@ -61,6 +63,8 @@ void MainWindow::buildMenus() {
                         [this] { saveProject(false); });
     fileMenu->addAction(QStringLiteral("另存为(&A)..."), QKeySequence::SaveAs, this,
                         [this] { saveProject(true); });
+    m_recentMenu = fileMenu->addMenu(QStringLiteral("最近文件(&R)"));
+    rebuildRecentMenu();
     fileMenu->addSeparator();
     fileMenu->addAction(QStringLiteral("退出(&X)"), QKeySequence::Quit, this, &QWidget::close);
 
@@ -115,6 +119,8 @@ bool MainWindow::openFile(const QString& path) {
     }
     m_filePath = path;
     loadNewDocument(std::get<Project>(result));
+    SettingsService::addRecentFile(path);
+    rebuildRecentMenu();
     return true;
 }
 
@@ -142,6 +148,8 @@ bool MainWindow::saveProjectTo(const QString& path) {
     m_filePath = target;
     m_doc->setClean();
     m_doc->notifyChanged();       // 状态变更完成后统一通知（D-M0-13）
+    SettingsService::addRecentFile(target);
+    rebuildRecentMenu();
     return true;
 }
 
@@ -158,6 +166,33 @@ void MainWindow::renameRoot() {
     renameRootTo(title);
 }
 
+
+void MainWindow::rebuildRecentMenu() {
+    if (m_recentMenu == nullptr) return;
+    m_recentMenu->clear();
+    const QVector<QString> recents = SettingsService::recentFiles();
+    if (recents.isEmpty()) {
+        // 空状态给出文字说明而非仅禁用（统一规范§14）
+        QAction* empty = m_recentMenu->addAction(QStringLiteral("（暂无最近文件）"));
+        empty->setEnabled(false);
+        return;
+    }
+    for (const QString& path : recents)
+        m_recentMenu->addAction(path, this, [this, path] { openRecentFile(path); });
+}
+
+void MainWindow::openRecentFile(const QString& path) {
+    if (!confirmDiscard()) return;
+    if (!QFileInfo::exists(path)) {
+        // P01验收：文件缺失可移除记录，提示后不静默失败
+        SettingsService::removeRecentFile(path);
+        rebuildRecentMenu();
+        QMessageBox::information(this, QStringLiteral("最近文件"),
+                                 QStringLiteral("文件不存在，已从最近文件中移除：\n%1").arg(path));
+        return;
+    }
+    openFile(path);
+}
 
 bool MainWindow::renameRootTo(const QString& title) {
     const TreeSheet* sheet = activeTreeSheet();

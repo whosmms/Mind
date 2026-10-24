@@ -17,6 +17,9 @@ constexpr int kFirstTestNodes = 100;                         // 首次实现先�
 constexpr int kMaxSheets = 20;
 constexpr qint64 kMaxFileBytes = qint64(10) * 1024 * 1024;   // 10 MiB
 
+// 最近文件（原设计§8 P01；设计规范未定数量，M1登记为项目决定，改动需同步设置服务与测试）
+constexpr int kMaxRecentFiles = 10;
+
 // 文本长度，按Unicode码点计数（规范§4.3.8）
 constexpr int kTitleMinChars = 1;
 constexpr int kTitleMaxChars = 2000;

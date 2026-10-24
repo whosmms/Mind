@@ -27,6 +27,8 @@ add_library(lingya_core STATIC
     src/services/ProjectJson.cpp
     src/services/FileService.h
     src/services/FileService.cpp
+    src/services/SettingsService.h
+    src/services/SettingsService.cpp
     src/features/CheckService.h
     src/features/CheckService.cpp
     src/features/ReviewService.h
