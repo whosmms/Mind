@@ -174,8 +174,9 @@ bool MainWindow::adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info
                              std::get<AppError>(applied).message);
         return false;
     }
-    // 快照内容已被吸收：清除该工程的应用自建快照（规范§11.3）
-    RecoveryService::clear(m_recoveryRoot, info.projectId);
+    // 快照保留不删：采用后的内容尚未落盘（快照≠正式保存），此刻崩溃仍须可再次恢复；
+    // 30秒定时写盘与最新快照字节比对去重，不会产生重复；另存成功或用户放弃时才清理
+    // （规范§11.3快照保护未保存工作）
     // 快照≠正式保存（原设计§8）：不记录来源路径（路径不进入Project与持久材料），
     // 清空文件路径与外部戳；首次保存走“另存为”，保存成功前保持脏状态
     m_filePath.clear();

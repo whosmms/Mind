@@ -406,16 +406,34 @@ void TstUi::recoveryAdoptionGoesThroughCommandTransaction()
     QVERIFY(w.windowTitle().contains(QStringLiteral("恢复工程")));   // 无路径→标题栏显示工程标题
     QVERIFY(w.windowTitle().contains(QLatin1Char('*')));             // 保存前保持脏状态
 
-    // 采用是可撤销历史：撤销回到采用前的空白工程（证明走了命令栈而非replaceProject）
+    // 采用是可撤销历史：撤销回采用前的空白工程，重做再回恢复内容
+    // （证明走了命令栈而非replaceProject，撤销与重做都作用在同一事务上）
     QAction* undoAction = nullptr;
-    for (QAction* action : w.findChildren<QAction*>())
+    QAction* redoAction = nullptr;
+    for (QAction* action : w.findChildren<QAction*>()) {
         if (action->text().startsWith(QStringLiteral("撤销"))) undoAction = action;
+        if (action->text().startsWith(QStringLiteral("重做"))) redoAction = action;
+    }
     QVERIFY(undoAction != nullptr);
+    QVERIFY(redoAction != nullptr);
     QVERIFY(undoAction->isEnabled());
     undoAction->trigger();
     QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));
+    QVERIFY(redoAction->isEnabled());
+    redoAction->trigger();
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("恢复的根主题"));
 
-    // 采用后该工程的快照已清除（只清应用自建快照）
+    // 采用后快照保留：采用的内容尚未落盘，此刻崩溃须可再次恢复（无保障间隙）
+    snapshots = RecoveryService::list(root.path(), recovered.id);
+    QCOMPARE(snapshots.size(), 1);
+    // 30秒定时写盘对未变化内容去重：采用后不产生重复快照
+    QVERIFY(QMetaObject::invokeMethod(&w, "writeRecoverySnapshot"));
+    QCOMPARE(RecoveryService::list(root.path(), recovered.id).size(), 1);
+
+    // 另存成功后快照才清理（两种状态分离，§11.3）
+    QTemporaryDir saveDir;
+    QVERIFY(saveDir.isValid());
+    QVERIFY(w.saveProjectTo(saveDir.filePath(QStringLiteral("采用后另存.lingya"))));
     QVERIFY(RecoveryService::list(root.path(), recovered.id).isEmpty());
 }
 
@@ -449,7 +467,8 @@ void TstUi::recoveryOfferDialogAdoptAndIgnoreAll()
     QVERIFY(adoptButton->isEnabled());
     adoptButton->click();
     QCOMPARE(w.currentRootTitle(), QStringLiteral("待恢复的根主题"));
-    QVERIFY(RecoveryService::list(root.path(), pending.id).isEmpty());   // 采用后清除
+    // 采用后快照保留：采用的内容尚未另存，崩溃时仍可再次恢复（另存/放弃时才清理）
+    QVERIFY(!RecoveryService::list(root.path(), pending.id).isEmpty());
 
     // 另一份快照：选“全部不采用”→自建快照清除，当前文档不受影响
     const Project another =
