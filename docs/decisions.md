@@ -175,3 +175,19 @@
 此为D-M0-16要求的正常执行结果，不改变暂缓范围：仍只有无Qt电脑跨机项跳过、未验收通过。
 此前“当前待验”描述保留为决策时点历史，现行验收状态见acceptance与H-006；七图与版本边界见evidence/20261024-甲人工验收/README.md。
 仅关闭本次三项M0既有本机人工待办，不外推新S01/X03、未来版本、全中文终验或M6交付；不代替乙丙评审。
+
+## D-M0-17 ReviewSession 自评三档与状态映射（2026-10-24，PR #11 评审）
+
+- 背景：PR #11 评审指出 `ReviewGrade` 的 Again/Hard/Good/Easy 四档与 `ReviewCard.status`（new/review/mastered）及规范§7.1不一致；Hard/Good/Easy 行为相同，会把“四档评分”的语义固化到 UI 而无底层状态/算法，违反“不宣称间隔重复”的限制。
+- 决策：改为三档 `ReviewMark`，并明确到卡片状态的映射；不引入难度或间隔算法。
+
+| 标记 | 队列行为 | 卡片 status | 是否计完成 |
+|---|---|---|---|
+| `Again` | 回到队尾 | 保持原值（不降级） | 否 |
+| `Reviewed` | 移出队列 | `review` | 是 |
+| `Mastered` | 移出队列 | `mastered` | 是 |
+
+- 出口：`grade(ReviewMark)` 返回 `std::variant<GradeOutcome, AppError>`（`GradeOutcome{cardId, mark}`），供界面/命令写回卡片状态；`ReviewSession` 仍是 `lingya_core` 纯逻辑，不修改 Project。
+- 每张卡最多完成一次；`completedCount` 不超过 `totalCount`。
+- 影响：`ReviewSession.h/.cpp`、`tst_review` 接口同步；`ReviewService` 与 Domain 不变。
+- 回退：本批只改会话层与测试，删除即可恢复原四档；不涉及持久化格式。
