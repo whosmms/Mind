@@ -1,5 +1,6 @@
 #include <QtTest>
 
+#include <QAbstractButton>
 #include <QAction>
 #include <QFile>
 #include <QMenu>
@@ -10,6 +11,7 @@
 
 #include "app/MainWindow.h"
 #include "services/FileService.h"
+#include "services/SettingsService.h"
 
 using namespace lingya;
 
@@ -27,6 +29,7 @@ private slots:
     void openFileFailureKeepsProject();
     void recentFilesMenuOpensEntry();
     void recentFilesMissingEntryRemoved();
+    void recentFilesCancelKeepsUnsavedContentAndEntry();
 
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
@@ -198,6 +201,56 @@ void TstUi::recentFilesMissingEntryRemoved() {
     for (QAction* action : recent->actions())
         stillListed = stillListed || action->text() == QFileInfo(path).absoluteFilePath();
     QVERIFY(!stillListed);   // P01：文件缺失可移除记录
+}
+
+void TstUi::recentFilesCancelKeepsUnsavedContentAndEntry()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("取消打开验证.lingya"));
+
+    MainWindow window;
+    QVERIFY(window.saveProjectTo(path));
+    QVERIFY(window.renameRootTo(QStringLiteral("必须保留的未保存内容")));
+    QVERIFY(QFile::remove(path)); // 仅删除受控临时文件，模拟最近文件已失效
+
+    QMenu *recent = findRecentMenu(window);
+    QVERIFY(recent != nullptr);
+    QAction *entry = nullptr;
+    for (QAction *action : recent->actions())
+    {
+        if (action->text() == QFileInfo(path).absoluteFilePath())
+            entry = action;
+    }
+    QVERIFY(entry != nullptr);
+    const QString beforeTitle = window.windowTitle();
+    const auto beforeRecents = SettingsService::recentFiles();
+
+    bool cancelDialogSeen = false;
+    QTimer::singleShot(0, &window, [&cancelDialogSeen] {
+        for (QWidget *top : QApplication::topLevelWidgets())
+        {
+            if (auto *box = qobject_cast<QMessageBox *>(top))
+            {
+                if (QAbstractButton *cancel = box->button(QMessageBox::Cancel))
+                {
+                    cancelDialogSeen = true;
+                    cancel->click();
+                }
+                else
+                {
+                    box->close(); // 错误路径也结束模态框，使测试失败而非挂起
+                }
+            }
+        }
+    });
+    entry->trigger();
+
+    QVERIFY(cancelDialogSeen);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("必须保留的未保存内容"));
+    QCOMPARE(window.windowTitle(), beforeTitle);
+    QVERIFY(window.windowTitle().contains(QLatin1Char('*')));
+    QCOMPARE(SettingsService::recentFiles(), beforeRecents);
 }
 
 QTEST_MAIN(TstUi)
