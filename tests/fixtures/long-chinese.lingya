@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "c1000000-0000-4000-8000-000000000001",
+  "activeSheetId": "c1000000-0000-4000-8000-000000000002",
+  "title": "长文本样例",
+  "revision": 2,
+  "createdAt": "2026-10-13T08:00:00.000Z",
+  "updatedAt": "2026-10-24T08:00:00.000Z",
+  "sheets": [
+    {
+      "kind": "mindmap",
+      "id": "c1000000-0000-4000-8000-000000000002",
+      "name": "长文本工作表",
+      "themeId": "mint",
+      "viewport": {"x": 0, "y": 0, "zoom": 1},
+      "defaultNodeStyle": {
+        "fill": "#FFFFFF",
+        "color": "#243A34",
+        "borderColor": "#DDE6DF",
+        "fontSize": 16,
+        "fontFamily": "system",
+        "bold": false,
+        "shape": "roundRect",
+        "borderWidth": 1.5
+      },
+      "defaultEdgeStyle": {"color": "#247A62", "width": 1.5, "dashed": false},
+      "layout": "bilateral",
+      "rootId": "c1000000-0000-4000-8000-000000000003",
+      "nodes": {
+        "c1000000-0000-4000-8000-000000000003": {
+          "id": "c1000000-0000-4000-8000-000000000003",
+          "title": "思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。思维导图长文本验证。",
+          "note": "第一行备注：用于验证长中文文本的保存与重开。\n第二行备注：包含中文标点，、。！以及换行。\n第三行备注：结束。",
+          "iconId": null,
+          "link": null,
+          "tags": ["长文本", "中文"],
+          "contentRevision": 3,
+          "parentId": null,
+          "order": 0,
+          "collapsed": false,
+          "side": "auto"
+        },
+        "c1000000-0000-4000-8000-000000000004": {
+          "id": "c1000000-0000-4000-8000-000000000004",
+          "title": "子主题甲",
+          "note": "",
+          "iconId": null,
+          "link": null,
+          "tags": [],
+          "contentRevision": 1,
+          "parentId": "c1000000-0000-4000-8000-000000000003",
+          "order": 0,
+          "collapsed": false,
+          "side": "auto"
+        }
+      },
+      "relations": [],
+      "annotations": [],
+      "comments": []
+    }
+  ],
+  "tasks": [],
+  "cards": [],
+  "routes": [],
+  "drafts": []
+}

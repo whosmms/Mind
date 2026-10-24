@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "a1000000-0000-4000-8000-000000000001",
+  "activeSheetId": "a1000000-0000-4000-8000-000000000002",
+  "title": "最小样例",
+  "revision": 5,
+  "createdAt": "2026-10-13T08:00:00.000Z",
+  "updatedAt": "2026-10-24T08:00:00.000Z",
+  "sheets": [
+    {
+      "kind": "mindmap",
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "工作表 1",
+      "themeId": "mint",
+      "viewport": {"x": 0, "y": 0, "zoom": 1},
+      "defaultNodeStyle": {
+        "fill": "#FFFFFF",
+        "color": "#243A34",
+        "borderColor": "#DDE6DF",
+        "fontSize": 16,
+        "fontFamily": "system",
+        "bold": false,
+        "shape": "roundRect",
+        "borderWidth": 1.5
+      },
+      "defaultEdgeStyle": {"color": "#247A62", "width": 1.5, "dashed": false},
+      "layout": "bilateral",
+      "rootId": "a1000000-0000-4000-8000-000000000003",
+      "nodes": {
+        "a1000000-0000-4000-8000-000000000003": {
+          "id": "a1000000-0000-4000-8000-000000000003",
+          "title": "中心主题",
+          "note": "",
+          "iconId": null,
+          "link": null,
+          "tags": [],
+          "contentRevision": 1,
+          "parentId": null,
+          "order": 0,
+          "collapsed": false,
+          "side": "auto"
+        }
+      },
+      "relations": [],
+      "annotations": [],
+      "comments": []
+    }
+  ],
+  "tasks": [],
+  "cards": [],
+  "routes": [],
+  "drafts": []
+}
