@@ -7,7 +7,7 @@
 ## 当前状态：M0骨架可构建，团队验收尚未完成
 
 按原设计§12 M0与统一规范§4完成了纵向闭环代码（领域/文档/命令/服务/AI契约/主窗口/
-4个测试套件/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
+6个测试套件/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
 main已包含BUG-010/011修复。甲takagi（Takagi-gif）、乙LH（whosmms）、丙wbccaidapkc分别登记自己的环境和验证，不互相代签。
 最新环境与验证见 [docs/environment.md](docs/environment.md)，交接和当前待办见
 [docs/交接文档.md](docs/交接文档.md) 的 H-002。M0三机复现、人工交互及干净机器部署仍待验收。
@@ -47,7 +47,7 @@ ctest --preset debug --no-tests=error
 - `src/services` ProjectJson 严格序列化、FileService 原子保存与备份
 - `src/ai` AiTypes 契约、IAiProvider 接口、FakeAiProvider 假响应（真实 DeepSeekClient 随 M5）
 - `src/app`、`src/graphics` 主窗口与画布图元　`src/controllers|layout|charts|features|ui` 待 M1-M4 充实
-- `tests/` tst_domain / tst_projectjson（链接lingya_core）、tst_commands（链接lingya_appcore）、tst_ui及fixtures
+- `tests/` tst_domain / tst_projectjson（链接lingya_core）、tst_commands/tst_tasks（链接lingya_appcore）、tst_ui、tst_check及fixtures
 - `resources/` QSS 主题与 AI 提示词模板　`packaging/` Inno Setup占位（M6）　`tools/` 环境、验证和IDE启动脚本
 - `docs/` 统一规范、设计规范、交接文档、开发日志（仓库主本）及 environment / decisions /
   acceptance / third-party 与 templates/ 三个模板
