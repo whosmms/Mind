@@ -26,6 +26,13 @@ if(MSVC)
 endif()
 add_test(NAME tst_tasks COMMAND tst_tasks)
 
+add_executable(tst_charts tst_charts.cpp)
+target_link_libraries(tst_charts PRIVATE lingya_appcore Qt6::Test)
+if(MSVC)
+    target_compile_options(tst_charts PRIVATE /utf-8)
+endif()
+add_test(NAME tst_charts COMMAND tst_charts)
+
 add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindow.h
     ${CMAKE_SOURCE_DIR}/src/app/MainWindow.cpp
