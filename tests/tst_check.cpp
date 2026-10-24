@@ -18,6 +18,10 @@ private slots:
     void flagsChangedCard();
     void flagsLowContrast();
     void sortedBySeverity();
+    void flagsOrphanNode();
+    void flagsRelationEndpoint();
+    void flagsFlowIsolated();
+    void flagsDecisionWithoutBranches();
 };
 
 namespace {
@@ -109,6 +113,71 @@ void TstCheck::sortedBySeverity() {
     const QVector<Issue> issues = CheckService::checkProject(p);
     QVERIFY(!issues.isEmpty());
     QCOMPARE(issues.first().severity, IssueSeverity::Error);   // 错误排在最前
+}
+
+void TstCheck::flagsOrphanNode() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("孤儿检查"));
+    TreeSheet& sheet = std::get<TreeSheet>(p.sheets[0]);
+    TreeNode orphan;
+    orphan.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    orphan.title = QStringLiteral("孤儿");
+    orphan.parentId = QUuid::createUuid().toString(QUuid::WithoutBraces);   // 父级不存在
+    sheet.nodes.insert(orphan.id, orphan);
+    QVERIFY(hasRule(CheckService::checkProject(p), "C03"));
+}
+
+void TstCheck::flagsRelationEndpoint() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("关系检查"));
+    TreeSheet& sheet = std::get<TreeSheet>(p.sheets[0]);
+    Relation rel;
+    rel.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    rel.sourceId = sheet.rootId;
+    rel.targetId = QUuid::createUuid().toString(QUuid::WithoutBraces);   // 目标节点不存在
+    sheet.relations.append(rel);
+    QVERIFY(hasRule(CheckService::checkProject(p), "C03"));
+}
+
+void TstCheck::flagsFlowIsolated() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("流程检查"));
+    FlowSheet flow;
+    flow.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    flow.name = QStringLiteral("流程");
+    FlowNode node;
+    node.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    node.title = QStringLiteral("孤立节点");
+    node.role = QStringLiteral("process");
+    flow.nodes.insert(node.id, node);
+    p.sheets.push_back(Sheet(flow));
+    QVERIFY(hasRule(CheckService::checkProject(p), "C04"));
+}
+
+void TstCheck::flagsDecisionWithoutBranches() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("判断检查"));
+    FlowSheet flow;
+    flow.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    flow.name = QStringLiteral("流程");
+
+    FlowNode decision;
+    decision.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    decision.title = QStringLiteral("判断");
+    decision.role = QStringLiteral("decision");
+    flow.nodes.insert(decision.id, decision);
+
+    FlowNode process;
+    process.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    process.title = QStringLiteral("处理");
+    process.role = QStringLiteral("process");
+    flow.nodes.insert(process.id, process);
+
+    FlowEdge edge;   // 判断节点只有一条出边
+    edge.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    edge.sourceId = decision.id;
+    edge.targetId = process.id;
+    edge.label = QStringLiteral("是");
+    flow.edges.append(edge);
+
+    p.sheets.push_back(Sheet(flow));
+    QVERIFY(hasRule(CheckService::checkProject(p), "C05"));
 }
 
 QTEST_GUILESS_MAIN(TstCheck)
