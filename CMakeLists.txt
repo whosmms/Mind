@@ -56,10 +56,16 @@ add_library(lingya_appcore STATIC
     src/ai/FakeAiProvider.cpp
     src/ai/AiValidator.h
     src/ai/AiValidator.cpp
+    src/ai/SecretStore.h
+    src/ai/SecretStore.cpp
     src/charts/TaskTableModel.h
     src/charts/TaskTableModel.cpp
 )
 target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets)
+if(WIN32)
+    # SecretStore 使用 Windows 凭据管理器（CredWriteW/CredReadW/CredDeleteW）
+    target_link_libraries(lingya_appcore PUBLIC Advapi32)
+endif()
 if(MSVC)
     target_compile_options(lingya_appcore PUBLIC /utf-8)
 endif()

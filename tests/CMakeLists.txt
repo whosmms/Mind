@@ -40,6 +40,13 @@ if(MSVC)
 endif()
 add_test(NAME tst_ai COMMAND tst_ai)
 
+add_executable(tst_secret tst_secret.cpp)
+target_link_libraries(tst_secret PRIVATE lingya_appcore Qt6::Test)
+if(MSVC)
+    target_compile_options(tst_secret PRIVATE /utf-8)
+endif()
+add_test(NAME tst_secret COMMAND tst_secret)
+
 add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindow.h
     ${CMAKE_SOURCE_DIR}/src/app/MainWindow.cpp
