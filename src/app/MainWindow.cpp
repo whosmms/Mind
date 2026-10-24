@@ -65,8 +65,10 @@ void MainWindow::buildMenus() {
     QMenu* editMenu = menuBar()->addMenu(QStringLiteral("编辑(&E)"));
     m_undoAction = editMenu->addAction(QStringLiteral("撤销(&U)"), QKeySequence::Undo, this,
                                        [this] { m_commands->undo(); });
-    m_redoAction = editMenu->addAction(QStringLiteral("重做(&R)"), QKeySequence::Redo, this,
+    m_redoAction = editMenu->addAction(QStringLiteral("重做(&R)"), this,
                                        [this] { m_commands->redo(); });
+    // 统一规范§14.1：Ctrl+Shift+Z为主，Ctrl+Y为别名（Windows平台QKeySequence::Redo即Ctrl+Y）
+    m_redoAction->setShortcuts({QKeySequence::Redo, QKeySequence(QStringLiteral("Ctrl+Shift+Z"))});
     editMenu->addSeparator();
     editMenu->addAction(QStringLiteral("重命名根节点(&M)"), QKeySequence("F2"), this,
                         &MainWindow::renameRoot);
