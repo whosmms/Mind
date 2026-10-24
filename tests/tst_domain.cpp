@@ -25,6 +25,10 @@ private slots:
     void rejectsMilestoneSpanningDays();
     void rejectsTaskDependencyCycle();
     void rejectsTaskSourceMissing();
+    void rejectsTaskProgressOutOfRange();
+    void rejectsTaskPredecessorMissing();
+    void acceptsCrossMonthRange();
+    void acceptsCrossYearRange();
 
 private:
     static QString uuid() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
@@ -203,6 +207,57 @@ void TstDomain::rejectsTaskSourceMissing() {
     task.source = TaskSource{sheet.id, uuid()};
     p.tasks.push_back(task);
     QVERIFY(hasCode(ProjectValidator::validate(p), "TASK_SOURCE"));
+}
+
+void TstDomain::rejectsTaskProgressOutOfRange() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("进度边界"));
+    Task task;
+    task.id = uuid();
+    task.title = QStringLiteral("进度非法");
+    task.progress = -1;   // 低于下限
+    p.tasks.push_back(task);
+    QVERIFY(hasCode(ProjectValidator::validate(p), "TASK_PROGRESS"));
+
+    p.tasks[0].progress = 101;   // 高于上限
+    QVERIFY(hasCode(ProjectValidator::validate(p), "TASK_PROGRESS"));
+
+    p.tasks[0].progress = 0;   // 边界值 0 合法
+    QVERIFY(!hasCode(ProjectValidator::validate(p), "TASK_PROGRESS"));
+
+    p.tasks[0].progress = 100;   // 边界值 100 合法
+    QVERIFY(ProjectValidator::validate(p).isEmpty());
+}
+
+void TstDomain::rejectsTaskPredecessorMissing() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("前驱缺失"));
+    Task task;
+    task.id = uuid();
+    task.title = QStringLiteral("依赖不存在任务");
+    task.predecessorIds << uuid();   // 引用了不存在的任务ID
+    p.tasks.push_back(task);
+    QVERIFY(hasCode(ProjectValidator::validate(p), "TASK_PREDECESSOR"));
+}
+
+void TstDomain::acceptsCrossMonthRange() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("跨月排期"));
+    Task task;
+    task.id = uuid();
+    task.title = QStringLiteral("跨月任务");
+    task.startDate = QDate(2026, 1, 28);
+    task.endDate = QDate(2026, 2, 3);   // 跨 1 月→2 月，应合法
+    p.tasks.push_back(task);
+    QVERIFY(ProjectValidator::validate(p).isEmpty());
+}
+
+void TstDomain::acceptsCrossYearRange() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("跨年排期"));
+    Task task;
+    task.id = uuid();
+    task.title = QStringLiteral("跨年任务");
+    task.startDate = QDate(2026, 12, 28);
+    task.endDate = QDate(2027, 1, 3);   // 跨 2026→2027，应合法
+    p.tasks.push_back(task);
+    QVERIFY(ProjectValidator::validate(p).isEmpty());
 }
 
 QTEST_MAIN(TstDomain)

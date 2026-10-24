@@ -27,6 +27,8 @@ add_library(lingya_core STATIC
     src/services/ProjectJson.cpp
     src/services/FileService.h
     src/services/FileService.cpp
+    src/features/CheckService.h
+    src/features/CheckService.cpp
 )
 target_include_directories(lingya_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(lingya_core PUBLIC Qt6::Core)
@@ -42,6 +44,8 @@ add_library(lingya_appcore STATIC
     src/commands/CommandService.cpp
     src/commands/SnapshotCommand.h
     src/commands/SnapshotCommand.cpp
+    src/commands/TaskCommands.h
+    src/commands/TaskCommands.cpp
     src/ai/AiTypes.h
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
