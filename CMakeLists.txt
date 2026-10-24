@@ -64,6 +64,8 @@ add_library(lingya_appcore STATIC
     src/charts/TaskTableModel.cpp
     src/charts/GanttLayout.h
     src/charts/GanttLayout.cpp
+    src/charts/GanttView.h
+    src/charts/GanttView.cpp
 )
 target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets)
 if(WIN32)
