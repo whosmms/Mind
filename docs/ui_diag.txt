@@ -1,2 +1,0 @@
-撤销action: enabled=1 shortcuts空=0
-Ctrl+Z后 spy.count=1 标题=中心主题
