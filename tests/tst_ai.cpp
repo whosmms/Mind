@@ -1,7 +1,10 @@
 #include <QtTest>
 
+#include "ai/AiService.h"
 #include "ai/AiTypes.h"
 #include "ai/AiValidator.h"
+#include "ai/FakeAiProvider.h"
+#include "ai/SecretStore.h"
 
 using namespace lingya;
 
@@ -10,6 +13,7 @@ class TstAi : public QObject {
     Q_OBJECT
 
 private slots:
+    void initTestCase();
     void acceptsValidMap();
     void rejectsEmptyTitle();
     void rejectsTooManyNodes();
@@ -19,6 +23,11 @@ private slots:
     void rejectsDraftWithoutSections();
     void rejectsUnknownSourceNode();
     void rejectsEmptySection();
+    void serviceRequiresKey();
+    void serviceEmitsProposalOnSuccess();
+    void serviceRejectsConcurrentRequest();
+    void serviceCancelMovesToCanceled();
+    void serviceEmitsErrorOnProviderFailure();
 };
 
 namespace {
@@ -131,6 +140,93 @@ void TstAi::rejectsEmptySection() {
     const auto result = AiValidator::validateDraftProposal(proposal, {});
     QVERIFY(!result.ok);
     QCOMPARE(result.code, QStringLiteral("EMPTY_SECTION"));
+}
+
+void TstAi::initTestCase() {
+    registerAiMetaTypes();
+}
+
+void TstAi::serviceRequiresKey() {
+    FakeAiProvider provider;
+    SessionSecretStore store;
+    AiService service(&provider, &store);
+    QSignalSpy failedSpy(&service, &AiService::failed);
+
+    GenerateMapRequest request;
+    request.requestId = QStringLiteral("req-nokey");
+    request.text = QStringLiteral("材料");
+    QVERIFY(!service.generateMap(request));   // 无密钥 → 失败
+    QCOMPARE(failedSpy.count(), 1);
+    QCOMPARE(service.state(), AiService::State::Error);
+}
+
+void TstAi::serviceEmitsProposalOnSuccess() {
+    FakeAiProvider provider;
+    provider.setLatencyMs(5);
+    SessionSecretStore store;
+    store.setApiKey(QStringLiteral("sk-test"), false);
+    AiService service(&provider, &store);
+    QSignalSpy readySpy(&service, &AiService::mapProposalReady);
+
+    GenerateMapRequest request;
+    request.requestId = QStringLiteral("req-ok");
+    request.text = QStringLiteral("软件工程包括需求分析、设计、编码和测试。");
+    QVERIFY(service.generateMap(request));
+    QVERIFY(readySpy.wait(2000));
+    QCOMPARE(readySpy.count(), 1);
+    QCOMPARE(service.state(), AiService::State::Preview);
+    QVERIFY(!service.lastMapProposal().root.title.isEmpty());
+}
+
+void TstAi::serviceRejectsConcurrentRequest() {
+    FakeAiProvider provider;
+    provider.setLatencyMs(50);
+    SessionSecretStore store;
+    store.setApiKey(QStringLiteral("sk-test"), false);
+    AiService service(&provider, &store);
+
+    GenerateMapRequest first;
+    first.requestId = QStringLiteral("req-a");
+    first.text = QStringLiteral("材料");
+    QVERIFY(service.generateMap(first));
+
+    GenerateMapRequest second;
+    second.requestId = QStringLiteral("req-b");
+    second.text = QStringLiteral("材料");
+    QVERIFY(!service.generateMap(second));   // BUSY
+}
+
+void TstAi::serviceCancelMovesToCanceled() {
+    FakeAiProvider provider;
+    provider.setLatencyMs(200);
+    SessionSecretStore store;
+    store.setApiKey(QStringLiteral("sk-test"), false);
+    AiService service(&provider, &store);
+
+    GenerateMapRequest request;
+    request.requestId = QStringLiteral("req-cancel");
+    request.text = QStringLiteral("材料");
+    QVERIFY(service.generateMap(request));
+    service.cancel(QStringLiteral("req-cancel"));
+    QCOMPARE(service.state(), AiService::State::Canceled);
+}
+
+void TstAi::serviceEmitsErrorOnProviderFailure() {
+    FakeAiProvider provider;
+    provider.setLatencyMs(5);
+    provider.setFailureMode(FakeAiProvider::FailureMode::AuthFailed);
+    SessionSecretStore store;
+    store.setApiKey(QStringLiteral("sk-test"), false);
+    AiService service(&provider, &store);
+    QSignalSpy failedSpy(&service, &AiService::failed);
+
+    GenerateMapRequest request;
+    request.requestId = QStringLiteral("req-authfail");
+    request.text = QStringLiteral("材料");
+    QVERIFY(service.generateMap(request));
+    QVERIFY(failedSpy.wait(2000));
+    QCOMPARE(failedSpy.count(), 1);
+    QCOMPARE(service.state(), AiService::State::Error);
 }
 
 QTEST_GUILESS_MAIN(TstAi)

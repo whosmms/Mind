@@ -58,6 +58,8 @@ add_library(lingya_appcore STATIC
     src/ai/AiValidator.cpp
     src/ai/SecretStore.h
     src/ai/SecretStore.cpp
+    src/ai/AiService.h
+    src/ai/AiService.cpp
     src/charts/TaskTableModel.h
     src/charts/TaskTableModel.cpp
 )
