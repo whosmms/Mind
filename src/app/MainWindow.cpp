@@ -98,16 +98,20 @@ void MainWindow::openProject() {
         this, QStringLiteral("打开工程"), QString(),
         QStringLiteral("灵芽思维工程 (*.lingya)"));
     if (path.isEmpty()) return;
+    openFile(path);
+}
 
+bool MainWindow::openFile(const QString& path) {
     const auto result = FileService::load(path);
     if (std::holds_alternative<AppError>(result)) {
         // 坏文件不覆盖当前工作（R04）：原工程保持不变
         QMessageBox::critical(this, QStringLiteral("无法打开"),
                               std::get<AppError>(result).message);
-        return;
+        return false;
     }
     m_filePath = path;
     loadNewDocument(std::get<Project>(result));
+    return true;
 }
 
 bool MainWindow::saveProject(bool saveAs) {
@@ -172,6 +176,7 @@ bool MainWindow::confirmDiscard() {
 void MainWindow::loadNewDocument(Project project) {
     m_doc->replaceProject(std::move(project));
     m_commands->clearHistory();   // 打开新工程清空撤销历史（规范§5.1）
+    m_doc->setClean();            // 新建/打开后尚未编辑，应为干净状态（规范§8）
 }
 
 void MainWindow::rebuildCanvas() {

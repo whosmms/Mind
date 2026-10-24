@@ -25,6 +25,11 @@ int main(int argc, char* argv[]) {
         app.setStyleSheet(QString::fromUtf8(style.readAll()));
 
     lingya::MainWindow window;
+    // 支持“打开方式/命令行”传入.lingya路径（如资源管理器双击工程文件）：
+    // 用QCoreApplication::arguments()取宽字符命令行，正确处理中文路径（原设计§8路径中文必测）
+    const QStringList arguments = QApplication::arguments();
+    if (arguments.size() > 1)
+        window.openFile(arguments.at(1));   // 失败时窗口仍正常显示，保持初始工程
     window.show();
     return app.exec();
 }

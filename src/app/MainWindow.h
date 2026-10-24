@@ -26,6 +26,9 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget* parent = nullptr);
 
+    // 打开指定路径的工程（命令行参数/文件关联入口）；成功返回true，失败弹中文提示并保持原工程
+    bool openFile(const QString& path);
+
 protected:
     void closeEvent(QCloseEvent* event) override;
     bool eventFilter(QObject* watched, QEvent* event) override;
