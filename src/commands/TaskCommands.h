@@ -32,11 +32,14 @@ public:
     // 解除关联：保留两边当前标题，清除source
     std::variant<bool, AppError> unlinkTask(const ID& taskId);
 
-    // X03 双向改名：改节点标题，同时同步其关联任务标题（同一事务，可撤销）
+    // X03 双向改名：改节点标题，同时同步其关联任务标题（同一事务，可撤销）。
+    // 标题按TitleRules统一规范化；空标题转“未命名主题”；超长返回LIMIT_EXCEEDED。
+    // 规范化后标题未变化且无需修复关联任务时直接返回成功，不入历史、不改dirty与修订号。
     std::variant<bool, AppError> renameNode(const ID& sheetId, const ID& nodeId,
                                             const QString& title);
 
-    // X03 双向改名：改任务标题，同时同步其关联节点标题（同一事务，可撤销）
+    // X03 双向改名：改任务标题，同时同步其关联节点标题（同一事务，可撤销）。
+    // 与renameNode共用同一规范化与contentRevision规则；无操作时同样短路不入历史。
     std::variant<bool, AppError> renameTask(const ID& taskId, const QString& title);
 
     // X03 一致性检查：返回标题不一致的（taskId, nodeId）对；只读，不改数据
