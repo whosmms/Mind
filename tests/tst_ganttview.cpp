@@ -16,6 +16,8 @@ private slots:
     void milestoneDrawsOneItem();
     void skipsTaskWithInvalidDates();
     void sceneRectTracksRowsAndRange();
+    void dateForXHandlesNegativeX();
+    void setPixelsPerDayFallsBackToDefault();
 };
 
 namespace {
@@ -72,6 +74,20 @@ void TstGanttView::sceneRectTracksRowsAndRange() {
     QCOMPARE(rect.height(), 56.0);
     QCOMPARE(view.scene()->items().size(), 2);
     QCOMPARE(view.pixelsPerDay(), 10);
+}
+
+void TstGanttView::dateForXHandlesNegativeX() {
+    GanttLayout layout(24);
+    const QDate start(2026, 1, 1);
+    QCOMPARE(layout.dateForX(-1, start), QDate(2025, 12, 31));   // 不足一天向左回退一天
+    QCOMPARE(layout.dateForX(-24, start), QDate(2025, 12, 31));
+    QCOMPARE(layout.dateForX(-25, start), QDate(2025, 12, 30));
+}
+
+void TstGanttView::setPixelsPerDayFallsBackToDefault() {
+    GanttView view;
+    view.setPixelsPerDay(0);   // ≤0 回退默认值
+    QCOMPARE(view.pixelsPerDay(), GanttLayout::kDefaultPixelsPerDay);
 }
 
 QTEST_MAIN(TstGanttView)
