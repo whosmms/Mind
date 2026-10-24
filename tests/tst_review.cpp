@@ -18,6 +18,8 @@ private slots:
     void sourceStateOkThenChanged();
     void sourceStateMissingAfterRemove();
     void refreshKeepsIdAndStatus();
+    void keepCustomStopsSync();
+    void makeStandaloneAfterRemove();
 };
 
 namespace {
@@ -112,6 +114,40 @@ void TstReview::refreshKeepsIdAndStatus() {
     QCOMPARE(refreshed->id, card->id);            // 保留卡片 ID
     QCOMPARE(refreshed->status, QStringLiteral("review"));   // 保留学习状态
     QCOMPARE(refreshed->back, QStringLiteral("新答案"));     // 内容已刷新
+}
+
+void TstReview::keepCustomStopsSync() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("保留自定义"));
+    TreeSheet& sheet = std::get<TreeSheet>(p.sheets[0]);
+    sheet.nodes[sheet.rootId].note = QStringLiteral("原答案");
+
+    auto card = ReviewService::createCard(p, sheet.id, sheet.rootId);
+    QVERIFY(card.has_value());
+
+    sheet.nodes[sheet.rootId].note = QStringLiteral("新答案");
+    QCOMPARE(ReviewService::detectSourceState(*card, p), QStringLiteral("changed"));
+
+    ReviewService::keepCustom(*card);
+    QCOMPARE(card->mode, QStringLiteral("custom"));    // 不再跟随源
+    QCOMPARE(card->back, QStringLiteral("原答案"));      // 保留用户内容
+}
+
+void TstReview::makeStandaloneAfterRemove() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("转独立"));
+    TreeSheet& sheet = std::get<TreeSheet>(p.sheets[0]);
+    sheet.nodes[sheet.rootId].note = QStringLiteral("答案");
+
+    auto card = ReviewService::createCard(p, sheet.id, sheet.rootId);
+    QVERIFY(card.has_value());
+    const ID originalSheetId = card->sheetId;
+
+    sheet.nodes.remove(sheet.rootId);
+    QCOMPARE(ReviewService::detectSourceState(*card, p), QStringLiteral("missing"));
+
+    ReviewService::makeStandalone(*card);
+    QCOMPARE(card->mode, QStringLiteral("custom"));
+    QCOMPARE(card->sourceState, QStringLiteral("missing"));
+    QCOMPARE(card->sheetId, originalSheetId);   // 来源记录保留
 }
 
 QTEST_GUILESS_MAIN(TstReview)

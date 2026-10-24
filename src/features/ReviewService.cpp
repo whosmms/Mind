@@ -99,4 +99,13 @@ std::optional<ReviewCard> ReviewService::refreshCard(const ReviewCard& card, con
     return updated;
 }
 
+void ReviewService::keepCustom(ReviewCard& card) {
+    card.mode = QStringLiteral("custom");
+}
+
+void ReviewService::makeStandalone(ReviewCard& card) {
+    card.mode = QStringLiteral("custom");
+    card.sourceState = QStringLiteral("missing");
+}
+
 }  // namespace lingya

@@ -23,6 +23,12 @@ public:
 
     // 用户选择“更新卡片”时：按当前源重算正反面与哈希，保留卡片 ID 与学习状态。
     static std::optional<ReviewCard> refreshCard(const ReviewCard& card, const Project& project);
+
+    // 源变化后用户选择“保留自定义”：不再跟随源，mode 改为 custom。
+    static void keepCustom(ReviewCard& card);
+
+    // 源删除后用户选择“转独立卡片”：保留卡片与来源记录，标记为独立（custom + missing）。
+    static void makeStandalone(ReviewCard& card);
 };
 
 }  // namespace lingya
