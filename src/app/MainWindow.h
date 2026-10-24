@@ -29,6 +29,13 @@ public:
     // 打开指定路径的工程（命令行参数/文件关联入口）；成功返回true，失败弹中文提示并保持原工程
     bool openFile(const QString& path);
 
+    // 将当前活动工作表根节点改名为title（对话框入口与测试共用）；失败返回false并保持原值
+    bool renameRootTo(const QString& title);
+    // 保存到指定路径（另存为对话框入口与测试共用）；失败返回false并保持脏状态
+    bool saveProjectTo(const QString& path);
+    // 当前活动工作表根节点标题（测试与后续大纲视图共用）
+    QString currentRootTitle() const;
+
 protected:
     void closeEvent(QCloseEvent* event) override;
     bool eventFilter(QObject* watched, QEvent* event) override;

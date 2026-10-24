@@ -16,7 +16,7 @@
 | 最小.lingya样例 | [x] | tests/fixtures/minimal.lingya + bad-unknown-field + long-chinese（JSON静态解析通过，180字标题核对通过） |
 | 共享类型及假AI响应 | [x] | src/ai/AiTypes.h、IAiProvider.h、FakeAiProvider（§10.4响应外形+3种失败模式；仅静态自查） |
 | Domain最小子集、工厂、JSON | [x] | tst_domain 15用例+tst_projectjson 16用例全部通过（含全类型往返幂等、拒绝场景） |
-| 统一撤销命令最小闭环 | [x] | tst_commands 8用例通过（事务、撤销重做、失败不入栈、50步上限） |
+| 统一撤销命令最小闭环 | [x] | tst_commands 8用例+tst_ui快捷键用例通过（事务、撤销重做、失败不入栈、50步上限、QWindow按键路径）；修复BUG-010后快捷键真实验证 |
 | 空窗口、资源、菜单连接 | [~] | MainWindow中文菜单、light.qss、NodeItem；exe启动验证通过；窗口内点击链路待人工复验 |
 | 任务日期校验与测试框架起步 | [x] | ProjectValidator日期/依赖/里程碑规则经16个域用例覆盖；CTest双配置全过 |
 | 纵向闭环（新建→改名→保存→关闭→重开） | [x] | m0VerticalSlice通过（保存→重开→校验一致）；真实点击链路待人工复验 |
@@ -25,6 +25,7 @@
 
 首轮构建与测试（2026-10-24第三段，DEV-20261024-003）：工具链安装（Qt6.8.3/MinGW13.1/
 CMake3.30.5/Ninja1.12.1，官方存档）；Debug与Release各39用例100%通过；lingya.exe启动验证；
+第三段后续（DEV-20261024-007）：新增tst_ui（快捷键/文件打开），修复BUG-010/011，总计43用例；
 构建期修复7项缺陷（BUG-001至BUG-007：contentRevision读写不对称、测试悬空引用、
 颜色契约、qMin类型、using位置、maxSheets、QMap first顺序依赖）。
 

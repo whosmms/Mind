@@ -102,3 +102,15 @@
   BACKUP_FAILED与§10.3一致，保留。AI错误码清单不变（M5实现时沿用原设计§10.3）。
 - 影响：对外错误code为契约，tests断言同步更新（rejectsFutureVersion断言
   UNSUPPORTED_SCHEMA、rejectsGarbage断言INVALID_PROJECT、oversize断言LIMIT_EXCEEDED）。
+
+## D-M0-13 变更通知移出QUndoStack重放栈，由服务层完成后统一发出
+
+- 日期：2026-10-24
+- 背景：GUI实测发现改名成功后撤销/重做菜单仍禁用（BUG-010）。诊断证明：QUndoStack::push
+  的首次redo()重放栈内emit changed时，槽读到的canUndo/canRedo尚未就绪（命令入栈/索引
+  递增在redo返回后才对外可见），导致onDocumentChanged把撤销action设为禁用，快捷键失效。
+- 决策：ProjectDocument.applySnapshot与setClean只变更数据、不发信号；新增public
+  notifyChanged()作为变更通知唯一出口；CommandService在push/undo/redo完成后调用，
+  MainWindow在loadNewDocument与saveProjectTo完成后调用。
+- 影响：信号时序不再依赖QUndoStack内部实现；sessionRevision语义不变（仍每次数据变更递增）；
+  调用点收敛于CommandService三处与MainWindow两处，遗漏调用=界面不更新，由tst_ui守护。

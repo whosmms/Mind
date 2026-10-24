@@ -4,6 +4,7 @@
 #include <QCloseEvent>
 #include <QEvent>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QInputDialog>
@@ -123,18 +124,24 @@ bool MainWindow::saveProject(bool saveAs) {
         path = QFileDialog::getSaveFileName(this, QStringLiteral("另存为"), QString(),
                                             QStringLiteral("灵芽思维工程 (*.lingya)"));
         if (path.isEmpty()) return false;   // 取消是正常结果，不算失败
-        if (!path.endsWith(".lingya", Qt::CaseInsensitive)) path += ".lingya";
     }
+    return saveProjectTo(path);
+}
 
-    const auto result = FileService::save(path, m_doc->project());
+bool MainWindow::saveProjectTo(const QString& path) {
+    if (path.isEmpty()) return false;
+    QString target = path;
+    if (!target.endsWith(".lingya", Qt::CaseInsensitive)) target += ".lingya";
+    const auto result = FileService::save(target, m_doc->project());
     if (std::holds_alternative<AppError>(result)) {
         // 保存失败保持脏状态并显示中文提示（规范§8）
         QMessageBox::critical(this, QStringLiteral("保存失败"),
                               std::get<AppError>(result).message);
         return false;
     }
-    m_filePath = path;
+    m_filePath = target;
     m_doc->setClean();
+    m_doc->notifyChanged();       // 状态变更完成后统一通知（D-M0-13）
     return true;
 }
 
@@ -148,7 +155,20 @@ void MainWindow::renameRoot() {
         QInputDialog::getText(this, QStringLiteral("重命名根节点"), QStringLiteral("新的标题："),
                               QLineEdit::Normal, oldTitle, &ok);
     if (!ok) return;
+    renameRootTo(title);
+}
 
+
+namespace {
+void dbgTrace3(const QString& msg) {
+    QFile f(QStringLiteral("D:/mind/app/docs/chain_trace.txt"));
+    if (f.open(QIODevice::WriteOnly | QIODevice::Append))
+        f.write(msg.toUtf8());
+}
+}  // namespace
+bool MainWindow::renameRootTo(const QString& title) {
+    const TreeSheet* sheet = activeTreeSheet();
+    if (sheet == nullptr) return false;
     const ID sheetId = sheet->id;
     const ID nodeId = sheet->rootId;
     const auto result = m_commands->applyEdit(
@@ -162,9 +182,17 @@ void MainWindow::renameRoot() {
                 }
             }
         });
-    if (std::holds_alternative<AppError>(result))
+    if (std::holds_alternative<AppError>(result)) {
         QMessageBox::warning(this, QStringLiteral("无法重命名"),
                              std::get<AppError>(result).message);
+        return false;
+    }
+    return true;
+}
+
+QString MainWindow::currentRootTitle() const {
+    const TreeSheet* sheet = activeTreeSheet();
+    return sheet == nullptr ? QString() : sheet->nodes.value(sheet->rootId).title;
 }
 
 bool MainWindow::confirmDiscard() {
@@ -180,6 +208,7 @@ void MainWindow::loadNewDocument(Project project) {
     m_doc->replaceProject(std::move(project));
     m_commands->clearHistory();   // 打开新工程清空撤销历史（规范§5.1）
     m_doc->setClean();            // 新建/打开后尚未编辑，应为干净状态（规范§8）
+    m_doc->notifyChanged();       // 状态变更完成后统一通知（D-M0-13）
 }
 
 void MainWindow::rebuildCanvas() {
@@ -198,8 +227,13 @@ void MainWindow::onDocumentChanged() {
         m_doc->isModified() ? QStringLiteral("已修改") : QStringLiteral("已保存");
     statusBar()->showMessage(
         QStringLiteral("阶段M0纵向验证 · 修订 %1 · %2").arg(m_doc->sessionRevision()).arg(state));
+    // 标题栏显示文件基名（有路径时）或工程标题；打开文件后用户看到的是自己认识的文件名
+    // （工程标题M0无修改入口，固定“未命名导图”曾造成“打开未生效”的误解，见D-M0-12）
+    const QFileInfo info(m_filePath);
+    const QString display =
+        m_filePath.isEmpty() ? m_doc->project().title : info.completeBaseName();
     setWindowTitle(QStringLiteral("%1%2 - 灵芽思维")
-                       .arg(m_doc->project().title,
+                       .arg(display,
                             m_doc->isModified() ? QStringLiteral(" *") : QString()));
     m_undoAction->setEnabled(m_commands->canUndo());
     m_redoAction->setEnabled(m_commands->canRedo());

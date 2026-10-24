@@ -1,0 +1,18 @@
+F: applySnapshot发changed
+C: applyEdit进入
+D: 校验通过,即将push
+F: applySnapshot发changed
+E: push完成 count=1 canUndo=1 canRedo=0
+F: applySnapshot发changed
+F: applySnapshot发changed
+C: applyEdit进入
+D: 校验通过,即将push
+F: applySnapshot发changed
+E: push完成 count=1 canUndo=1 canRedo=0
+F: applySnapshot发changed
+F: applySnapshot发changed
+F: applySnapshot发changed
+C: applyEdit进入
+D: 校验通过,即将push
+F: applySnapshot发changed
+E: push完成 count=1 canUndo=1 canRedo=0

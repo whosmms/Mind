@@ -21,10 +21,14 @@ public:
     bool isModified() const;
 
     // 新建、打开、恢复后整体替换；调用方随后清空撤销历史（§5.1）
+    // 注意：只变更数据不发信号，完成后由调用方notifyChanged()统一通知（D-M0-13）
     void replaceProject(Project next);
 
-    // 保存成功后由保存流程调用；失败不能清除脏标记（§5.1）
+    // 保存成功后由保存流程调用；失败不能清除脏标记（§5.1）。不发信号，由调用方notifyChanged()
     void setClean();
+
+    // 变更通知唯一出口：在栈操作/保存完成后调用，保证槽内canUndo/canRedo已就绪（D-M0-13）
+    void notifyChanged();
 
 signals:
     void changed(qint64 sessionRevision);

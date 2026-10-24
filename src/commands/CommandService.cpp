@@ -3,6 +3,8 @@
 #include "document/ProjectDocument.h"
 #include "domain/Limits.h"
 #include "domain/ProjectValidator.h"
+#include <QDateTime>
+#include <QFile>
 
 namespace lingya {
 
@@ -14,6 +16,7 @@ CommandService::CommandService(ProjectDocument* document, QObject* parent)
     // M1补充：快照累计内存64MiB预算检查，压入前超预算则提示并清空旧撤销历史后继续（规范§5.1）
 }
 
+
 std::variant<bool, AppError> CommandService::applyEdit(const QString& label, Edit edit) {
     // 先基于当前Project产生候选副本，不在原文档上直接修改（规范§5.1）
     Project candidate = m_document->project();
@@ -23,8 +26,10 @@ std::variant<bool, AppError> CommandService::applyEdit(const QString& label, Edi
     if (!problems.isEmpty())
         return problems.first();   // 失败不压入命令，不改变原数据
 
-    // push自动调用第一次redo，由命令把after内容应用到文档（规范§5.1 [Q4]）
+    // push自动调用第一次redo，由命令把after内容应用到文档（规范§5.1 [Q4]）；
+    // 栈操作完成后统一发变更通知，保证槽内canUndo/canRedo已就绪（D-M0-13）
     m_stack.push(new SnapshotCommand(m_document, m_document->project(), candidate, label));
+    m_document->notifyChanged();
     return true;
 }
 
@@ -37,11 +42,17 @@ bool CommandService::canRedo() const {
 }
 
 void CommandService::undo() {
-    if (m_stack.canUndo()) m_stack.undo();
+    if (m_stack.canUndo()) {
+        m_stack.undo();   // 逐命令undo恢复数据（applySnapshot不发信号，D-M0-13）
+        m_document->notifyChanged();
+    }
 }
 
 void CommandService::redo() {
-    if (m_stack.canRedo()) m_stack.redo();
+    if (m_stack.canRedo()) {
+        m_stack.redo();
+        m_document->notifyChanged();
+    }
 }
 
 void CommandService::clearHistory() {
