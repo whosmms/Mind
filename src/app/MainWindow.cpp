@@ -13,6 +13,7 @@
 #include <QMouseEvent>
 #include <QStatusBar>
 
+
 #include "commands/CommandService.h"
 #include "domain/ProjectFactory.h"
 #include "document/ProjectDocument.h"
