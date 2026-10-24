@@ -92,6 +92,8 @@ DEV-20261024-010与`.tools/evidence/launcher-diagnosis/`。本次切分支已先
 - 证据：`build/environment/validation.json`（sourceCommit、versions、success字段）、`validation.log`；该目录在忽略清单，不入库。
 - 签字：乙确认本机工具与§5.1冻结基线一致；三机验收整体通过仍需丙在本机复现（统一规范§5.1）。
 - 全记录见开发日志[INT-20261024-005](开发日志.md)。
+- **最终统一签收（2026-10-24）**：main=`4713a79839abefab3112d332dabce68578328e42`精确检出，双配置9套件105用例全过
+  （Totals 19/16/13/10/16/8/7/7/9），退出码0；见开发日志[INT-20261024-009](开发日志.md)。
 
 ## 丙电脑的实际环境
 
