@@ -4,6 +4,8 @@
 #include <QAction>
 #include <QFile>
 #include <QMenu>
+#include <QStackedWidget>
+#include <QGraphicsView>
 #include <QMessageBox>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -29,6 +31,7 @@ private slots:
     void openFileFailureKeepsProject();
     void recentFilesMenuOpensEntry();
     void recentFilesMissingEntryRemoved();
+    void ganttHostSwitchAndAttach();
     void recentFilesCancelKeepsUnsavedContentAndEntry();
 
 private:
@@ -251,6 +254,44 @@ void TstUi::recentFilesCancelKeepsUnsavedContentAndEntry()
     QCOMPARE(window.windowTitle(), beforeTitle);
     QVERIFY(window.windowTitle().contains(QLatin1Char('*')));
     QCOMPARE(SettingsService::recentFiles(), beforeRecents);
+}
+
+void TstUi::ganttHostSwitchAndAttach()
+{
+    MainWindow w;
+    w.show();
+    QVERIFY(QTest::qWaitForWindowActive(&w));
+    auto* stack = qobject_cast<QStackedWidget*>(w.centralWidget());
+    QVERIFY(stack != nullptr);
+    QCOMPARE(stack->currentIndex(), 0);   // 默认思维导图页
+
+    // 视图菜单：切到甘特图占位页，再切回思维导图
+    QMenu* viewMenu = nullptr;
+    for (QMenu* menu : w.findChildren<QMenu*>())
+        if (menu->title().contains(QStringLiteral("视图"))) viewMenu = menu;
+    QVERIFY(viewMenu != nullptr);
+    QAction* ganttAction = nullptr;
+    QAction* mapAction = nullptr;
+    for (QAction* action : viewMenu->actions()) {
+        if (action->text().contains(QStringLiteral("甘特图"))) ganttAction = action;
+        if (action->text().contains(QStringLiteral("思维导图"))) mapAction = action;
+    }
+    QVERIFY(ganttAction != nullptr);
+    QVERIFY(mapAction != nullptr);
+    ganttAction->trigger();
+    QCOMPARE(stack->currentIndex(), 1);
+    mapAction->trigger();
+    QCOMPARE(stack->currentIndex(), 0);
+
+    // 丙的接入契约：setGanttView装入后占位页被替换并切到甘特页
+    auto* ganttView = new QGraphicsView();
+    w.setGanttView(ganttView);
+    QCOMPARE(stack->currentWidget(), qobject_cast<QWidget*>(ganttView));
+    mapAction->trigger();
+    QCOMPARE(stack->currentIndex(), 0);   // 思维导图页不受影响
+    ganttAction->trigger();
+    QCOMPARE(stack->currentWidget(), qobject_cast<QWidget*>(ganttView));
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));   // 甘特页切换不改工程
 }
 
 QTEST_MAIN(TstUi)

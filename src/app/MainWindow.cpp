@@ -13,7 +13,9 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QStackedWidget>
 #include <QStatusBar>
+#include <QLabel>
 
 
 #include "commands/CommandService.h"
@@ -45,7 +47,14 @@ MainWindow::MainWindow(QWidget* parent)
     m_view = new QGraphicsView(m_scene, this);
     m_view->setRenderHint(QPainter::Antialiasing);
     m_view->viewport()->installEventFilter(this);   // 双击画布节点重命名
-    setCentralWidget(m_view);
+    // 中央区两页：页0思维导图画布，页1甘特图（M3丙接入，见setGanttView）
+    m_centralStack = new QStackedWidget(this);
+    m_centralStack->addWidget(m_view);
+    auto* ganttPlaceholder = new QLabel(QStringLiteral("甘特图视图待接入（M3）：由丙经 setGanttView 装入"), this);
+    ganttPlaceholder->setAlignment(Qt::AlignCenter);
+    m_ganttPage = ganttPlaceholder;
+    m_centralStack->addWidget(m_ganttPage);
+    setCentralWidget(m_centralStack);
 
     buildMenus();
     connect(m_doc, &ProjectDocument::changed, this, &MainWindow::onDocumentChanged);
@@ -78,6 +87,21 @@ void MainWindow::buildMenus() {
     editMenu->addSeparator();
     editMenu->addAction(QStringLiteral("重命名根节点(&M)"), QKeySequence("F2"), this,
                         &MainWindow::renameRoot);
+
+    QMenu* viewMenu = menuBar()->addMenu(QStringLiteral("视图(&V)"));
+    viewMenu->addAction(QStringLiteral("思维导图(&M)"), this, [this] { m_centralStack->setCurrentIndex(0); });
+    viewMenu->addAction(QStringLiteral("甘特图(&G)"), this, [this] { m_centralStack->setCurrentIndex(1); });
+}
+
+void MainWindow::setGanttView(QGraphicsView* view) {
+    if (view == nullptr) return;
+    // 替换甘特页内容：移除旧页（占位或旧视图）后插入新视图，页序保持不变
+    const int ganttIndex = m_centralStack->indexOf(m_ganttPage);
+    m_centralStack->removeWidget(m_ganttPage);
+    m_ganttPage->deleteLater();
+    m_ganttPage = view;
+    m_centralStack->insertWidget(ganttIndex, view);
+    m_centralStack->setCurrentIndex(ganttIndex);   // 装入后直接切到甘特页
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event) {

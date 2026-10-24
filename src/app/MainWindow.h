@@ -9,6 +9,7 @@ class QAction;
 class QMenu;
 class QGraphicsScene;
 class QGraphicsView;
+class QStackedWidget;
 class QCloseEvent;
 class QEvent;
 class QObject;
@@ -31,6 +32,10 @@ public:
 
     // 打开指定路径的工程（命令行参数/文件关联入口）；成功返回true，失败弹中文提示并保持原工程
     bool openFile(const QString& path);
+
+    // 甘特图接入点（M3/R13，丙调用）：把甘特视图装入中央区第2页并切换过去；
+    // 重复调用替换旧视图；传nullptr为无操作
+    void setGanttView(QGraphicsView* view);
 
     // 将当前活动工作表根节点改名为title（对话框入口与测试共用）；失败返回false并保持原值
     bool renameRootTo(const QString& title);
@@ -61,6 +66,8 @@ private:
     CommandService* m_commands = nullptr;
     QGraphicsScene* m_scene = nullptr;
     QGraphicsView* m_view = nullptr;
+    QStackedWidget* m_centralStack = nullptr;  // 页0思维导图画布 / 页1甘特图（M3）
+    QWidget* m_ganttPage = nullptr;            // 甘特页当前内容（占位或丙的视图）
     QString m_filePath;             // 磁盘路径只存在本机会话（原设计§8）
     // 已加载文件的外部状态戳（§11.3外部修改检测）；新建未命名或另存新路径时为空
     std::optional<FileService::FileStamp> m_fileStamp;
