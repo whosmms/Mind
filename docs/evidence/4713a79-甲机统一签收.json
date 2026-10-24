@@ -1,0 +1,158 @@
+{
+  "sourceCommit": "4713a79839abefab3112d332dabce68578328e42",
+  "computer": "TAKAGI",
+  "dateUtc": "2026-10-24T13:40:52.024336+00:00",
+  "versions": {
+    "qt": "6.8.3",
+    "gcc": "13.1.0",
+    "cmake": "cmake version 3.30.5",
+    "ninja": "1.12.1",
+    "clangFormat": "clang-format version 19.1.7"
+  },
+  "configurations": [
+    {
+      "name": "debug",
+      "suites": 9,
+      "passed": 105,
+      "failed": 0,
+      "skipped": 0,
+      "details": [
+        {
+          "suite": "tst_domain",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_projectjson",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_check",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_review",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_fileservice",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_commands",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_tasks",
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_charts",
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_ui",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "release",
+      "suites": 9,
+      "passed": 105,
+      "failed": 0,
+      "skipped": 0,
+      "details": [
+        {
+          "suite": "tst_domain",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_projectjson",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_check",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_review",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_fileservice",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_commands",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_tasks",
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_charts",
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        {
+          "suite": "tst_ui",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        }
+      ]
+    }
+  ]
+}
