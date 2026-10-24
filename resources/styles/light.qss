@@ -1,0 +1,80 @@
+/* 灵芽思维 浅色主题（规范§9 设计变量）
+   页面底色#F6F8F5 卡片白色#FFFFFF 主色#247A62 主文字#243A34 次文字#63766E
+   边框#DDE6DF 薄荷辅助#DDF2E7 紫色辅助#EEE8FA 杏黄辅助#FFF0D0 危险色#A83636
+   注意：QSS只负责控件样式；画布上节点的颜色、圆角、连线必须在
+   NodeItem/EdgeItem的paint中自绘，不能期待QSS自动美化整个画布（规范§9.2）。 */
+
+QMainWindow, QDialog {
+  background-color: #F6F8F5;
+}
+
+QMenuBar {
+  background-color: #F6F8F5;
+  color: #243A34;
+}
+QMenuBar::item:selected {
+  background-color: #DDF2E7;
+  border-radius: 6px;
+}
+QMenu {
+  background-color: #FFFFFF;
+  color: #243A34;
+  border: 1px solid #DDE6DF;
+  border-radius: 12px;
+}
+QMenu::item {
+  padding: 6px 24px;
+  border-radius: 8px;
+}
+QMenu::item:selected {
+  background-color: #DDF2E7;
+  color: #247A62;
+}
+QMenu::item:disabled {
+  color: #63766E;
+}
+
+QPushButton {
+  background-color: #247A62;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 16px;
+  min-height: 36px;
+  font-size: 14px;
+}
+QPushButton:hover {
+  background-color: #DDF2E7;
+  color: #247A62;
+}
+QPushButton:pressed {
+  background-color: #247A62;
+  color: #FFFFFF;
+}
+
+QLineEdit {
+  background-color: #FFFFFF;
+  color: #243A34;
+  border: 1px solid #DDE6DF;
+  border-radius: 8px;
+  padding: 6px 10px;
+  selection-background-color: #DDF2E7;
+}
+
+QGraphicsView {
+  background-color: #F6F8F5;
+  border: 1px solid #DDE6DF;
+}
+
+QStatusBar {
+  background-color: #FFFFFF;
+  color: #63766E;
+  border-top: 1px solid #DDE6DF;
+}
+
+QToolTip {
+  background-color: #FFF0D0;
+  color: #243A34;
+  border: 1px solid #DDE6DF;
+  padding: 4px;
+}

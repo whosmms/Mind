@@ -1,0 +1,8 @@
+<!-- 资源索引（规范§3）：M0仅含QSS主题与AI提示词模板；图标资源随设计资产接入后补充 -->
+<RCC>
+  <qresource prefix="/lingya">
+    <file>styles/light.qss</file>
+    <file>prompts/map-v1.txt</file>
+    <file>prompts/draft-v1.txt</file>
+  </qresource>
+</RCC>
