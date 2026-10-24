@@ -19,6 +19,9 @@ private slots:
     void removeTaskCleansDependencies();
     void linkTaskEnforcesOneNodeOneTask();
     void unlinkTaskKeepsTitle();
+    void renameNodeSyncsTaskTitle();
+    void renameTaskSyncsNodeTitle();
+    void titleMismatchDetectsConflict();
 };
 
 void TstTasks::addTaskAppendsAndIsUndoable() {
@@ -110,6 +113,68 @@ void TstTasks::unlinkTaskKeepsTitle() {
     QVERIFY(std::holds_alternative<bool>(tasks.unlinkTask(taskId)));
     QVERIFY(!doc.project().tasks.first().source.has_value());
     QCOMPARE(doc.project().tasks.first().title, QStringLiteral("中心主题"));   // 保留标题
+}
+
+void TstTasks::renameNodeSyncsTaskTitle() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("双向改名")));
+    CommandService service(&doc);
+    TaskCommands tasks(&service, &doc);
+
+    const TreeSheet& sheet = std::get<TreeSheet>(doc.project().sheets.first());
+    const ID sheetId = sheet.id;
+    const ID nodeId = sheet.rootId;
+    QVERIFY(std::holds_alternative<ID>(tasks.linkTask(sheetId, nodeId)));
+
+    QVERIFY(std::holds_alternative<bool>(
+        tasks.renameNode(sheetId, nodeId, QStringLiteral("新标题"))));
+    QCOMPARE(std::get<TreeSheet>(doc.project().sheets.first()).nodes.value(nodeId).title,
+             QStringLiteral("新标题"));
+    QCOMPARE(doc.project().tasks.first().title, QStringLiteral("新标题"));
+
+    service.undo();   // 一个事务同时复原节点与任务标题
+    QCOMPARE(std::get<TreeSheet>(doc.project().sheets.first()).nodes.value(nodeId).title,
+             QStringLiteral("中心主题"));
+    QCOMPARE(doc.project().tasks.first().title, QStringLiteral("中心主题"));
+}
+
+void TstTasks::renameTaskSyncsNodeTitle() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("任务改名")));
+    CommandService service(&doc);
+    TaskCommands tasks(&service, &doc);
+
+    const TreeSheet& sheet = std::get<TreeSheet>(doc.project().sheets.first());
+    const ID sheetId = sheet.id;
+    const ID nodeId = sheet.rootId;
+    const ID taskId = std::get<ID>(tasks.linkTask(sheetId, nodeId));
+
+    QVERIFY(std::holds_alternative<bool>(tasks.renameTask(taskId, QStringLiteral("任务新名"))));
+    QCOMPARE(doc.project().tasks.first().title, QStringLiteral("任务新名"));
+    QCOMPARE(std::get<TreeSheet>(doc.project().sheets.first()).nodes.value(nodeId).title,
+             QStringLiteral("任务新名"));
+}
+
+void TstTasks::titleMismatchDetectsConflict() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("一致性")));
+    CommandService service(&doc);
+    TaskCommands tasks(&service, &doc);
+
+    const TreeSheet& sheet = std::get<TreeSheet>(doc.project().sheets.first());
+    const ID sheetId = sheet.id;
+    const ID nodeId = sheet.rootId;
+    QVERIFY(std::holds_alternative<ID>(tasks.linkTask(sheetId, nodeId)));
+
+    // 初始一致：无冲突
+    QVERIFY(TaskCommands::titleMismatches(doc.project()).isEmpty());
+
+    // 绕过命令直接改节点标题，模拟外部/旧文件造成的不一致
+    Project broken = doc.project();
+    std::get<TreeSheet>(broken.sheets.first()).nodes[nodeId].title = QStringLiteral("只改了节点");
+    const auto mismatches = TaskCommands::titleMismatches(broken);
+    QCOMPARE(mismatches.size(), 1);
+    QCOMPARE(mismatches.first().second, nodeId);
 }
 
 QTEST_MAIN(TstTasks)

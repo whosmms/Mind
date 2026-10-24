@@ -1,5 +1,7 @@
 #pragma once
 #include "domain/Domain.h"
+
+#include <QPair>
 #include <variant>
 
 namespace lingya {
@@ -29,6 +31,16 @@ public:
 
     // 解除关联：保留两边当前标题，清除source
     std::variant<bool, AppError> unlinkTask(const ID& taskId);
+
+    // X03 双向改名：改节点标题，同时同步其关联任务标题（同一事务，可撤销）
+    std::variant<bool, AppError> renameNode(const ID& sheetId, const ID& nodeId,
+                                            const QString& title);
+
+    // X03 双向改名：改任务标题，同时同步其关联节点标题（同一事务，可撤销）
+    std::variant<bool, AppError> renameTask(const ID& taskId, const QString& title);
+
+    // X03 一致性检查：返回标题不一致的（taskId, nodeId）对；只读，不改数据
+    static QVector<QPair<ID, ID>> titleMismatches(const Project& project);
 
 private:
     CommandService* m_commands;
