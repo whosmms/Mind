@@ -64,6 +64,8 @@ try {
         foreach ($taskConfig in $taskConfigs) {
             Invoke-CheckedTool 'cmake' @('--preset', $taskConfig)
             Invoke-CheckedTool 'cmake' @('--build', '--preset', $taskConfig, '--parallel', '2')
+            & (Join-Path $PSScriptRoot '准备运行依赖.ps1') -Configuration $taskConfig -ToolsRoot $ToolsRoot
+            if (-not $?) { throw '运行依赖准备失败。' }
             Invoke-CheckedTool 'ctest' @('--preset', $taskConfig, '--no-tests=error', '--verbose')
             $taskReport.configurations += [ordered]@{ name = $taskConfig; build = '通过'; tests = '通过' }
         }

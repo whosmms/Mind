@@ -159,13 +159,6 @@ void MainWindow::renameRoot() {
 }
 
 
-namespace {
-void dbgTrace3(const QString& msg) {
-    QFile f(QStringLiteral("D:/mind/app/docs/chain_trace.txt"));
-    if (f.open(QIODevice::WriteOnly | QIODevice::Append))
-        f.write(msg.toUtf8());
-}
-}  // namespace
 bool MainWindow::renameRootTo(const QString& title) {
     const TreeSheet* sheet = activeTreeSheet();
     if (sheet == nullptr) return false;

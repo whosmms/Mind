@@ -55,3 +55,15 @@ templates/、third-party.md、AGENTS.md）。
 - viewport/filter子对象补齐unknownKeys检查（已修复）；
 - 测试中lambda内QVERIFY与QMap::first顺序依赖（已修复）；
 - .gitignore曾全局忽略*.lingya导致fixtures无法入库（统一规范§9.4核对时发现，已按规范修正）。
+
+
+## 甲本机启动修复补充（2026-10-24）
+
+H-004 / INT-20261024-021：按79b6574基线及本批窗口清理/工具脚本，双配置构建、运行依赖准备、各4套件CTest通过。
+Debug和Release在不含Qt/MinGW的PATH中运行3秒、stderr为空；实际Windows窗口显示与F2中文改名通过，取消保存保留内容。
+本机CMD入口和Release开发启动入口已复验。完整人工保存重开、输入法预编辑、DPI、三机和无Qt电脑部署仍分别待验收。
+本记录不改变M1至M6门禁，不替乙丙签收。
+
+最终补充：合入main=c8ee59d后，以合并提交b3ffd3d5a97b64dd50c8107446d9c079e419be09重新验证，
+Debug/Release各6套件全过，脚本退出0；精简PATH与CMD首次启动再次通过，实际窗口已观察。
+上段4套件为本批早期79b6574基线结果，现以本次6套件作为最新甲本机结果；其余M0门禁状态不变。
