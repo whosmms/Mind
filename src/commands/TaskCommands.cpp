@@ -17,6 +17,28 @@ const Task* findTask(const Project& project, const ID& taskId) {
     return nullptr;
 }
 
+const TreeSheet* findTree(const Project& project, const ID& sheetId) {
+    for (const Sheet& sheet : project.sheets) {
+        if (const auto* tree = std::get_if<TreeSheet>(&sheet)) {
+            if (tree->id == sheetId) {
+                return tree;
+            }
+        }
+    }
+    return nullptr;
+}
+
+TreeSheet* findTree(Project& project, const ID& sheetId) {
+    for (Sheet& sheet : project.sheets) {
+        if (auto* tree = std::get_if<TreeSheet>(&sheet)) {
+            if (tree->id == sheetId) {
+                return tree;
+            }
+        }
+    }
+    return nullptr;
+}
+
 }  // namespace
 
 TaskCommands::TaskCommands(CommandService* commands, const ProjectDocument* document)
@@ -71,14 +93,7 @@ std::variant<bool, AppError> TaskCommands::removeTask(const ID& taskId) {
 }
 
 std::variant<ID, AppError> TaskCommands::linkTask(const ID& sheetId, const ID& nodeId) {
-    const TreeSheet* tree = nullptr;
-    for (const Sheet& sheet : m_document->project().sheets) {
-        if (const auto* candidate = std::get_if<TreeSheet>(&sheet);
-            candidate != nullptr && candidate->id == sheetId) {
-            tree = candidate;
-            break;
-        }
-    }
+    const TreeSheet* tree = findTree(m_document->project(), sheetId);
     if (tree == nullptr) {
         return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在：%1").arg(sheetId)};
     }
@@ -120,6 +135,72 @@ std::variant<bool, AppError> TaskCommands::unlinkTask(const ID& taskId) {
             }
         }
     });
+}
+
+std::variant<bool, AppError> TaskCommands::renameNode(const ID& sheetId, const ID& nodeId,
+                                                      const QString& title) {
+    const TreeSheet* tree = findTree(m_document->project(), sheetId);
+    if (tree == nullptr || !tree->nodes.contains(nodeId)) {
+        return AppError{"NOT_FOUND", QStringLiteral("节点不存在：%1").arg(nodeId)};
+    }
+    return m_commands->applyEdit(QStringLiteral("重命名节点"),
+                                 [sheetId, nodeId, title](Project& project) {
+                                     if (TreeSheet* target = findTree(project, sheetId)) {
+                                         if (target->nodes.contains(nodeId)) {
+                                             target->nodes[nodeId].title = title;
+                                         }
+                                     }
+                                     // X03：同步关联任务标题（导图→任务）
+                                     for (Task& task : project.tasks) {
+                                         if (task.source.has_value() &&
+                                             task.source->sheetId == sheetId &&
+                                             task.source->nodeId == nodeId) {
+                                             task.title = title;
+                                         }
+                                     }
+                                 });
+}
+
+std::variant<bool, AppError> TaskCommands::renameTask(const ID& taskId, const QString& title) {
+    if (findTask(m_document->project(), taskId) == nullptr) {
+        return AppError{"NOT_FOUND", QStringLiteral("任务不存在：%1").arg(taskId)};
+    }
+    return m_commands->applyEdit(QStringLiteral("重命名任务"),
+                                 [taskId, title](Project& project) {
+                                     for (Task& task : project.tasks) {
+                                         if (task.id != taskId) {
+                                             continue;
+                                         }
+                                         task.title = title;
+                                         // X03：同步关联节点标题（任务→导图）
+                                         if (task.source.has_value()) {
+                                             if (TreeSheet* tree =
+                                                     findTree(project, task.source->sheetId)) {
+                                                 if (tree->nodes.contains(task.source->nodeId)) {
+                                                     tree->nodes[task.source->nodeId].title = title;
+                                                 }
+                                             }
+                                         }
+                                         return;
+                                     }
+                                 });
+}
+
+QVector<QPair<ID, ID>> TaskCommands::titleMismatches(const Project& project) {
+    QVector<QPair<ID, ID>> result;
+    for (const Task& task : project.tasks) {
+        if (!task.source.has_value()) {
+            continue;
+        }
+        const TreeSheet* tree = findTree(project, task.source->sheetId);
+        if (tree == nullptr || !tree->nodes.contains(task.source->nodeId)) {
+            continue;
+        }
+        if (tree->nodes.value(task.source->nodeId).title != task.title) {
+            result.append({task.id, task.source->nodeId});
+        }
+    }
+    return result;
 }
 
 }  // namespace lingya
