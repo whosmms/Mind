@@ -27,6 +27,13 @@ private slots:
     void sessionFinishesWhenAllGraded();
     void gradeRequiresReveal();
     void progressCountsAreCorrect();
+    void emptySessionRejectsGrade();
+    void singleCardAgainDoesNotFinish();
+    void repeatedGradeWhileNotRevealedFails();
+    void againKeepsQueueOrder();
+    void completedCountNeverExceedsTotal();
+    void markMapsToCardStatus();
+    void gradeOutcomeMatchesCurrentCard();
 };
 
 namespace {
@@ -169,7 +176,8 @@ void TstReview::sessionStartsWithFirstCard() {
     ReviewSession session({makeCard(QStringLiteral("A"), QStringLiteral("a")),
                            makeCard(QStringLiteral("B"), QStringLiteral("b"))});
     QVERIFY(!session.isFinished());
-    QCOMPARE(session.currentCard().front, QStringLiteral("A"));
+    QVERIFY(session.currentCard() != nullptr);
+    QCOMPARE(session.currentCard()->front, QStringLiteral("A"));
     QCOMPARE(session.totalCount(), 2);
     QCOMPARE(session.remainingCount(), 2);
     QCOMPARE(session.completedCount(), 0);
@@ -181,9 +189,10 @@ void TstReview::revealThenGradeAdvances() {
                            makeCard(QStringLiteral("B"), QStringLiteral("b"))});
     QVERIFY(session.reveal());
     QVERIFY(session.isRevealed());
-    QVERIFY(session.grade(ReviewGrade::Good));
+    const auto outcome = session.grade(ReviewMark::Reviewed);
+    QVERIFY(std::holds_alternative<GradeOutcome>(outcome));
     QVERIFY(!session.isRevealed());   // 翻面状态复位
-    QCOMPARE(session.currentCard().front, QStringLiteral("B"));
+    QCOMPARE(session.currentCard()->front, QStringLiteral("B"));
     QCOMPARE(session.completedCount(), 1);
     QCOMPARE(session.remainingCount(), 1);
 }
@@ -192,14 +201,14 @@ void TstReview::againPutsCardAtBack() {
     ReviewSession session({makeCard(QStringLiteral("A"), QStringLiteral("a")),
                            makeCard(QStringLiteral("B"), QStringLiteral("b"))});
     QVERIFY(session.reveal());
-    QVERIFY(session.grade(ReviewGrade::Again));
-    QCOMPARE(session.currentCard().front, QStringLiteral("B"));   // A 回到队尾
+    QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Again)));
+    QCOMPARE(session.currentCard()->front, QStringLiteral("B"));   // A 回到队尾
     QCOMPARE(session.completedCount(), 0);                        // Again 不算完成
     QCOMPARE(session.remainingCount(), 2);
 
     QVERIFY(session.reveal());
-    QVERIFY(session.grade(ReviewGrade::Good));   // B 完成
-    QCOMPARE(session.currentCard().front, QStringLiteral("A"));   // 回到 A
+    QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Reviewed)));
+    QCOMPARE(session.currentCard()->front, QStringLiteral("A"));
 }
 
 void TstReview::sessionFinishesWhenAllGraded() {
@@ -207,19 +216,20 @@ void TstReview::sessionFinishesWhenAllGraded() {
                            makeCard(QStringLiteral("B"), QStringLiteral("b"))});
     while (!session.isFinished()) {
         QVERIFY(session.reveal());
-        QVERIFY(session.grade(ReviewGrade::Good));
+        QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Reviewed)));
     }
     QVERIFY(session.isFinished());
     QCOMPARE(session.completedCount(), 2);
     QCOMPARE(session.remainingCount(), 0);
-    QVERIFY(!session.reveal());   // 结束后不能再翻面
+    QVERIFY(!session.reveal());              // 结束后不能再翻面
+    QVERIFY(session.currentCard() == nullptr);
 }
 
 void TstReview::gradeRequiresReveal() {
     ReviewSession session({makeCard(QStringLiteral("A"), QStringLiteral("a"))});
-    QVERIFY(!session.grade(ReviewGrade::Good));   // 未翻面不能自评
+    QVERIFY(std::holds_alternative<AppError>(session.grade(ReviewMark::Reviewed)));
     QVERIFY(session.reveal());
-    QVERIFY(session.grade(ReviewGrade::Good));
+    QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Reviewed)));
 }
 
 void TstReview::progressCountsAreCorrect() {
@@ -227,14 +237,80 @@ void TstReview::progressCountsAreCorrect() {
                            makeCard(QStringLiteral("B"), QStringLiteral("b")),
                            makeCard(QStringLiteral("C"), QStringLiteral("c"))});
     QVERIFY(session.reveal());
-    QVERIFY(session.grade(ReviewGrade::Good));
+    QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Reviewed)));
     QCOMPARE(session.completedCount(), 1);
     QCOMPARE(session.remainingCount(), 2);
 
     QVERIFY(session.reveal());
-    QVERIFY(session.grade(ReviewGrade::Again));
+    QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Again)));
     QCOMPARE(session.completedCount(), 1);   // Again 不计入完成
-    QCOMPARE(session.remainingCount(), 2);   // B 回到队尾，队列仍是 [C, B]
+    QCOMPARE(session.remainingCount(), 2);   // B 回队尾，队列仍是 [C, B]
+}
+
+void TstReview::emptySessionRejectsGrade() {
+    ReviewSession session;   // 默认空会话
+    QVERIFY(session.isFinished());
+    QVERIFY(session.currentCard() == nullptr);
+    QVERIFY(!session.reveal());
+    QVERIFY(std::holds_alternative<AppError>(session.grade(ReviewMark::Reviewed)));
+}
+
+void TstReview::singleCardAgainDoesNotFinish() {
+    ReviewSession session({makeCard(QStringLiteral("A"), QStringLiteral("a"))});
+    QVERIFY(session.reveal());
+    QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Again)));
+    QVERIFY(!session.isFinished());
+    QCOMPARE(session.remainingCount(), 1);
+    QCOMPARE(session.completedCount(), 0);
+}
+
+void TstReview::repeatedGradeWhileNotRevealedFails() {
+    ReviewSession session({makeCard(QStringLiteral("A"), QStringLiteral("a"))});
+    QVERIFY(std::holds_alternative<AppError>(session.grade(ReviewMark::Reviewed)));
+    QVERIFY(std::holds_alternative<AppError>(session.grade(ReviewMark::Reviewed)));   // 仍失败
+    QCOMPARE(session.completedCount(), 0);
+    QCOMPARE(session.remainingCount(), 1);
+}
+
+void TstReview::againKeepsQueueOrder() {
+    ReviewSession session({makeCard(QStringLiteral("A"), QStringLiteral("a")),
+                           makeCard(QStringLiteral("B"), QStringLiteral("b")),
+                           makeCard(QStringLiteral("C"), QStringLiteral("c"))});
+    QVERIFY(session.reveal());
+    QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Again)));
+    QCOMPARE(session.currentCard()->front, QStringLiteral("B"));   // [B, C, A]
+
+    QVERIFY(session.reveal());
+    QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Reviewed)));
+    QCOMPARE(session.currentCard()->front, QStringLiteral("C"));   // [C, A]
+}
+
+void TstReview::completedCountNeverExceedsTotal() {
+    ReviewSession session({makeCard(QStringLiteral("A"), QStringLiteral("a")),
+                           makeCard(QStringLiteral("B"), QStringLiteral("b"))});
+    while (!session.isFinished()) {
+        QVERIFY(session.reveal());
+        QVERIFY(std::holds_alternative<GradeOutcome>(session.grade(ReviewMark::Mastered)));
+    }
+    QCOMPARE(session.completedCount(), 2);
+    QVERIFY(session.completedCount() <= session.totalCount());
+}
+
+void TstReview::markMapsToCardStatus() {
+    QCOMPARE(reviewStatusForMark(ReviewMark::Reviewed), QStringLiteral("review"));
+    QCOMPARE(reviewStatusForMark(ReviewMark::Mastered), QStringLiteral("mastered"));
+    QVERIFY(reviewStatusForMark(ReviewMark::Again).isEmpty());   // 调用方保持原值
+}
+
+void TstReview::gradeOutcomeMatchesCurrentCard() {
+    ReviewSession session({makeCard(QStringLiteral("A"), QStringLiteral("a")),
+                           makeCard(QStringLiteral("B"), QStringLiteral("b"))});
+    const ID firstId = session.currentCard()->id;
+    QVERIFY(session.reveal());
+    const auto outcome = session.grade(ReviewMark::Reviewed);
+    QVERIFY(std::holds_alternative<GradeOutcome>(outcome));
+    QCOMPARE(std::get<GradeOutcome>(outcome).cardId, firstId);
+    QVERIFY(std::get<GradeOutcome>(outcome).mark == ReviewMark::Reviewed);
 }
 
 QTEST_GUILESS_MAIN(TstReview)
