@@ -96,6 +96,7 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
 void MainWindow::newProject() {
     if (!confirmDiscard()) return;
     m_filePath.clear();
+    m_fileStamp.reset();   // 新建工程无已加载文件戳（§11.3）
     loadNewDocument(ProjectFactory::createMindmap(QStringLiteral("未命名导图")));
 }
 
@@ -119,6 +120,13 @@ bool MainWindow::openFile(const QString& path) {
     }
     m_filePath = path;
     loadNewDocument(std::get<Project>(result));
+    // 记录加载时外部状态戳（§11.3）：保存覆盖前比对，检测外部修改
+    if (const auto fileStamp = FileService::stamp(path);
+        std::holds_alternative<FileService::FileStamp>(fileStamp)) {
+        m_fileStamp = std::get<FileService::FileStamp>(fileStamp);
+    } else {
+        m_fileStamp.reset();
+    }
     SettingsService::addRecentFile(path);
     rebuildRecentMenu();
     return true;
@@ -138,7 +146,11 @@ bool MainWindow::saveProjectTo(const QString& path) {
     if (path.isEmpty()) return false;
     QString target = path;
     if (!target.endsWith(".lingya", Qt::CaseInsensitive)) target += ".lingya";
-    const auto result = FileService::save(target, m_doc->project());
+    // 覆盖已加载文件时带外部修改检测（§11.3）；另存新路径无外部覆盖风险
+    const auto result =
+        (target == m_filePath && m_fileStamp.has_value())
+            ? FileService::save(target, m_doc->project(), *m_fileStamp)
+            : FileService::save(target, m_doc->project());
     if (std::holds_alternative<AppError>(result)) {
         // 保存失败保持脏状态并显示中文提示（规范§8）
         QMessageBox::critical(this, QStringLiteral("保存失败"),
@@ -148,6 +160,12 @@ bool MainWindow::saveProjectTo(const QString& path) {
     m_filePath = target;
     m_doc->setClean();
     m_doc->notifyChanged();       // 状态变更完成后统一通知（D-M0-13）
+    if (const auto fileStamp = FileService::stamp(target);
+        std::holds_alternative<FileService::FileStamp>(fileStamp)) {
+        m_fileStamp = std::get<FileService::FileStamp>(fileStamp);
+    } else {
+        m_fileStamp.reset();
+    }
     SettingsService::addRecentFile(target);
     rebuildRecentMenu();
     return true;

@@ -30,6 +30,10 @@ class TstFileService : public QObject
     void saveRejectsUnwritablePath();
     void saveRejectsEmptyPath();
     void saveRejectsInvalidProject();
+    void stampReflectsContent();
+    void saveDetectsExternalModification();
+    void saveDetectsExternalDeletion();
+    void saveSucceedsWithMatchingStamp();
 
     void recentFilesMostRecentFirstAndDedup();
     void recentFilesTruncateToLimit();
@@ -272,6 +276,84 @@ void TstFileService::recentFilesChineseAndSpacesRoundtrip()
     const QVector<QString> recents = SettingsService::recentFiles(reloaded);
     QCOMPARE(recents.size(), 1);
     QCOMPARE(recents.first(), QFileInfo(path).absoluteFilePath());
+}
+
+void TstFileService::stampReflectsContent()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("戳.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, makeProject(QStringLiteral("内容一")))));
+
+    const auto first = FileService::stamp(path);
+    QVERIFY(std::holds_alternative<FileService::FileStamp>(first));
+    const FileService::FileStamp firstStamp = std::get<FileService::FileStamp>(first);
+    QVERIFY(!firstStamp.sha256.isEmpty());
+    QVERIFY(firstStamp.mtimeUtc.isValid());
+
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, makeProject(QStringLiteral("内容二")))));
+    const auto second = FileService::stamp(path);
+    QVERIFY(std::holds_alternative<FileService::FileStamp>(second));
+    // 内容不同则摘要不同（§11.3以摘要为准）
+    QVERIFY(std::get<FileService::FileStamp>(second).sha256 != firstStamp.sha256);
+}
+
+void TstFileService::saveDetectsExternalModification()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("外部修改.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, makeProject(QStringLiteral("加载时内容")))));
+    const auto loadedStamp = FileService::stamp(path);
+    QVERIFY(std::holds_alternative<FileService::FileStamp>(loadedStamp));
+
+    // 外部程序改动文件（模拟：直接写字节）
+    QFile external(path);
+    QVERIFY(external.open(QIODevice::WriteOnly));
+    external.write("{ 外部改动");
+    external.close();
+
+    // 带戳保存必须拒绝，且磁盘上的外部内容保留（§11.3不静默覆盖）
+    const auto saved = FileService::save(path, makeProject(QStringLiteral("覆盖尝试")),
+                                         std::get<FileService::FileStamp>(loadedStamp));
+    QVERIFY(std::holds_alternative<AppError>(saved));
+    QCOMPARE(std::get<AppError>(saved).code, QStringLiteral("EXTERNAL_MODIFICATION"));
+    QFile after(path);
+    QVERIFY(after.open(QIODevice::ReadOnly));
+    QCOMPARE(after.readAll(), QByteArray("{ 外部改动"));
+}
+
+void TstFileService::saveDetectsExternalDeletion()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("被删.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, makeProject(QStringLiteral("将被外部删除")))));
+    const auto loadedStamp = FileService::stamp(path);
+    QVERIFY(std::holds_alternative<FileService::FileStamp>(loadedStamp));
+    QVERIFY(QFile::remove(path));   // 外部删除
+
+    const auto saved = FileService::save(path, makeProject(QStringLiteral("重建尝试")),
+                                         std::get<FileService::FileStamp>(loadedStamp));
+    QVERIFY(std::holds_alternative<AppError>(saved));
+    QCOMPARE(std::get<AppError>(saved).code, QStringLiteral("EXTERNAL_MODIFICATION"));
+}
+
+void TstFileService::saveSucceedsWithMatchingStamp()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("正常覆盖.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, makeProject(QStringLiteral("第一版")))));
+    const auto loadedStamp = FileService::stamp(path);
+    QVERIFY(std::holds_alternative<FileService::FileStamp>(loadedStamp));
+
+    // 无外部改动：带戳保存正常成功
+    QVERIFY(std::holds_alternative<qint64>(
+        FileService::save(path, makeProject(QStringLiteral("第二版")), std::get<FileService::FileStamp>(loadedStamp))));
+    const auto reloaded = FileService::load(path);
+    QVERIFY(std::holds_alternative<Project>(reloaded));
+    QCOMPARE(std::get<Project>(reloaded).title, QStringLiteral("第二版"));
 }
 
 QTEST_MAIN(TstFileService)

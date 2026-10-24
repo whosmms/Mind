@@ -2,6 +2,7 @@
 #include "domain/ProjectValidator.h"
 #include "domain/Limits.h"
 #include "services/ProjectJson.h"
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -11,6 +12,39 @@ namespace lingya {
 
 
 namespace FileService {
+
+std::variant<FileStamp, AppError> stamp(const QString& path) {
+    const QFileInfo info(path);
+    if (!info.exists()) return AppError{"FILE_NOT_FOUND", QStringLiteral("文件不存在：%1").arg(path)};
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return AppError{"FILE_READ_FAILED", QStringLiteral("无法读取文件：%1").arg(file.errorString())};
+    FileStamp result;
+    result.sha256 =
+        QCryptographicHash::hash(file.readAll(), QCryptographicHash::Sha256).toHex();
+    result.mtimeUtc = info.lastModified().toUTC();
+    return result;
+}
+
+namespace {
+
+// 外部修改检测（§11.3）：磁盘当前内容与加载时摘要比对；文件被外部删除同样视为冲突，
+// 不静默重建覆盖用户在外部做的删除决定。
+std::variant<bool, AppError> checkExternalModification(const QString& path,
+                                                       const FileStamp& expectedStamp) {
+    const auto current = stamp(path);
+    if (std::holds_alternative<AppError>(current)) {
+        return AppError{"EXTERNAL_MODIFICATION",
+                        QStringLiteral("文件已在外部被删除或无法读取，请另存到其他位置：%1").arg(path)};
+    }
+    if (std::get<FileStamp>(current).sha256 != expectedStamp.sha256) {
+        return AppError{"EXTERNAL_MODIFICATION",
+                        QStringLiteral("文件已在外部被修改，为避免覆盖外部改动已取消保存，请另存或先处理外部修改：%1").arg(path)};
+    }
+    return true;
+}
+
+}  // namespace
 
 std::variant<qint64, AppError> save(const QString& path, const Project& project) {
     if (path.isEmpty()) return AppError{"INVALID_ARGUMENT", "保存路径为空"};
@@ -49,6 +83,14 @@ std::variant<qint64, AppError> save(const QString& path, const Project& project)
     if (!file.commit())
         return AppError{"FILE_WRITE_FAILED", "保存失败：" + file.errorString()};
     return project.revision;
+}
+
+std::variant<qint64, AppError> save(const QString& path, const Project& project,
+                                    const FileStamp& expectedStamp) {
+    // 覆盖已加载文件：先做外部修改检测，再走统一保存流程（§11.3）
+    const auto unchanged = checkExternalModification(path, expectedStamp);
+    if (std::holds_alternative<AppError>(unchanged)) return std::get<AppError>(unchanged);
+    return save(path, project);
 }
 
 std::variant<Project, AppError> load(const QString& path) {
