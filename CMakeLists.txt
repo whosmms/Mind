@@ -29,6 +29,8 @@ add_library(lingya_core STATIC
     src/services/FileService.cpp
     src/features/CheckService.h
     src/features/CheckService.cpp
+    src/features/ReviewService.h
+    src/features/ReviewService.cpp
 )
 target_include_directories(lingya_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(lingya_core PUBLIC Qt6::Core)
@@ -50,6 +52,8 @@ add_library(lingya_appcore STATIC
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
     src/ai/FakeAiProvider.cpp
+    src/charts/TaskTableModel.h
+    src/charts/TaskTableModel.cpp
 )
 target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets)
 if(MSVC)
