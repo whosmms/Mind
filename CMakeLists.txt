@@ -54,6 +54,8 @@ add_library(lingya_appcore STATIC
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
     src/ai/FakeAiProvider.cpp
+    src/ai/AiValidator.h
+    src/ai/AiValidator.cpp
     src/charts/TaskTableModel.h
     src/charts/TaskTableModel.cpp
 )
