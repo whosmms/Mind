@@ -1,0 +1,42 @@
+#pragma once
+#include <QObject>
+#include "domain/Domain.h"
+
+namespace lingya {
+
+
+class ProjectDocument;
+
+// 唯一正在编辑的工程数据源（规范§3）：ProjectDocument是唯一数据源，所有视图都读它。
+// M0范围：持有Project值、单调递增的sessionRevision、脏标记与changed信号。
+// M1补充：视口变化单独记录不触发内容历史（§5.1）；setClean的“保存期间无新编辑”修订比对。
+class ProjectDocument : public QObject {
+    Q_OBJECT
+public:
+    explicit ProjectDocument(QObject* parent = nullptr);
+
+    const Project& project() const;
+    Project snapshot() const;          // 值拷贝，不暴露可写引用（规范§11）
+    qint64 sessionRevision() const;    // 每次编辑、撤销、重做或替换工程都递增，不随历史回退（§5.1）
+    bool isModified() const;
+
+    // 新建、打开、恢复后整体替换；调用方随后清空撤销历史（§5.1）
+    void replaceProject(Project next);
+
+    // 保存成功后由保存流程调用；失败不能清除脏标记（§5.1）
+    void setClean();
+
+signals:
+    void changed(qint64 sessionRevision);
+
+private:
+    friend class SnapshotCommand;
+    // 仅由SnapshotCommand（undo/redo）与replaceProject使用：替换内容并递增会话修订
+    void applySnapshot(Project next);
+
+    Project m_project;
+    qint64 m_sessionRevision = 0;
+    bool m_dirty = false;
+};
+
+}  // namespace lingya
