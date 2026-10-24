@@ -4,12 +4,30 @@
 **新成员与AI协助从这里开始：先读 [AGENTS.md](AGENTS.md)，再读
 [docs/三人协作开发统一规范.md](docs/三人协作开发统一规范.md)。**
 
-## 当前状态：M0代码骨架就绪，构建与测试未执行
+## 当前状态：M0骨架可构建，团队验收尚未完成
 
 按原设计§12 M0与统一规范§4完成了纵向闭环代码（领域/文档/命令/服务/AI契约/主窗口/
-3个测试/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
-**本机尚未安装Qt 6与CMake，构建和测试未执行**——见 [docs/environment.md](docs/environment.md)，
-交接状态见 [docs/交接文档.md](docs/交接文档.md) 的 H-001（待接收验证）。
+4个测试套件/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
+main已包含BUG-010/011修复。甲takagi、乙LH分别登记自己的环境和验证，不互相代签。
+最新环境与验证见 [docs/environment.md](docs/environment.md)，交接和当前待办见
+[docs/交接文档.md](docs/交接文档.md) 的 H-002。M0三机复现、人工交互及干净机器部署仍待验收。
+
+仓库地址：[whosmms/Mind](https://github.com/whosmms/Mind)。甲使用 `feature/a/...`，
+乙使用 `feature/b/...`；本次修正分支为 `feature/a/M0-role-environment-sync`。
+甲的改动由非作者评审、乙负责合并；旧合并请求#1已关闭且未合并，旧错误分支已撤回。
+
+本机工具按“仓库父目录/.tools/Qt”和“.tools/formatter”布局时，用PowerShell 7执行：
+
+```powershell
+. .\tools\进入开发环境.ps1
+.\tools\验证环境.ps1
+.\tools\打开QtCreator.ps1
+```
+
+工具目录不同则给脚本传 `-ToolsRoot`，也可按下面命令手动设置Kit；配套MinGW/CMake/Ninja
+必须优先于其他软件附带工具。脚本仅修改当前进程，不修改永久PATH；Qt Creator使用独立个人配置。
+`D:/mind` 下两个CMD是甲电脑的便利入口，不作为其他成员的安装文件；仓库共享的是三个PS1脚本。
+切换到不含这些脚本的分支前先备份入口依赖，避免本机双击入口失效。
 
 环境安装后执行（统一规范§19.2合并前最低检查）：
 
@@ -27,8 +45,8 @@ ctest --preset debug --no-tests=error
 - `src/services` ProjectJson 严格序列化、FileService 原子保存与备份
 - `src/ai` AiTypes 契约、IAiProvider 接口、FakeAiProvider 假响应（真实 DeepSeekClient 随 M5）
 - `src/app`、`src/graphics` 主窗口与画布图元　`src/controllers|layout|charts|features|ui` 待 M1-M4 充实
-- `tests/` tst_domain / tst_projectjson（链接lingya_core）、tst_commands（链接lingya_appcore）及fixtures
-- `resources/` QSS 主题与 AI 提示词模板　`packaging/` Inno Setup 脚本（M6）　`tools/` 验证脚本（M6前）
+- `tests/` tst_domain / tst_projectjson（链接lingya_core）、tst_commands（链接lingya_appcore）、tst_ui及fixtures
+- `resources/` QSS 主题与 AI 提示词模板　`packaging/` Inno Setup占位（M6）　`tools/` 环境、验证和IDE启动脚本
 - `docs/` 统一规范、设计规范、交接文档、开发日志（仓库主本）及 environment / decisions /
   acceptance / third-party 与 templates/ 三个模板
 
