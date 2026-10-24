@@ -292,6 +292,20 @@ void TstUi::ganttHostSwitchAndAttach()
     ganttAction->trigger();
     QCOMPARE(stack->currentWidget(), qobject_cast<QWidget*>(ganttView));
     QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));   // 甘特页切换不改工程
+
+    // 同一指针重复调用：无操作且无悬空（评审发现的缺陷回归）
+    w.setGanttView(ganttView);
+    w.setGanttView(ganttView);
+    QCOMPARE(stack->currentWidget(), qobject_cast<QWidget*>(ganttView));
+    ganttAction->trigger();
+    QCOMPARE(stack->currentWidget(), qobject_cast<QWidget*>(ganttView));
+
+    // 误传画布视图与nullptr：无操作，画布仍是页0
+    w.setGanttView(nullptr);
+    auto* canvas = stack->widget(0);
+    w.setGanttView(qobject_cast<QGraphicsView*>(canvas));
+    QCOMPARE(stack->currentWidget(), qobject_cast<QWidget*>(ganttView));
+    QVERIFY(stack->indexOf(canvas) == 0);   // 画布未被移出
 }
 
 QTEST_MAIN(TstUi)

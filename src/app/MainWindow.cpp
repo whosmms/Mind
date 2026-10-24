@@ -94,7 +94,8 @@ void MainWindow::buildMenus() {
 }
 
 void MainWindow::setGanttView(QGraphicsView* view) {
-    if (view == nullptr) return;
+    // 同一指针重复调用或误传画布/空指针：无操作（评审指出重复调用会deleteLater后悬空）
+    if (view == nullptr || view == m_ganttPage || view == m_view) return;
     // 替换甘特页内容：移除旧页（占位或旧视图）后插入新视图，页序保持不变
     const int ganttIndex = m_centralStack->indexOf(m_ganttPage);
     m_centralStack->removeWidget(m_ganttPage);
