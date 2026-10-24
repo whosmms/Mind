@@ -1,7 +1,7 @@
 # 单元测试（统一规范§19.1、原设计§3）：测试链接对应层，不把窗口代码塞进核心库。
 # tst_domain与tst_projectjson只依赖lingya_core；tst_commands依赖lingya_appcore（QUndoStack）；
 # tst_ui为UI层测试（快捷键与文件打开行为），链接窗口与图元源文件；tst_layout、tst_ai随M2-M5补充。
-foreach(tst_name tst_domain tst_projectjson)
+foreach(tst_name tst_domain tst_projectjson tst_check)
     add_executable(${tst_name} ${tst_name}.cpp)
     target_link_libraries(${tst_name} PRIVATE lingya_core Qt6::Test)
     target_compile_definitions(${tst_name} PRIVATE
@@ -18,6 +18,13 @@ if(MSVC)
     target_compile_options(tst_commands PRIVATE /utf-8)
 endif()
 add_test(NAME tst_commands COMMAND tst_commands)
+
+add_executable(tst_tasks tst_tasks.cpp)
+target_link_libraries(tst_tasks PRIVATE lingya_appcore Qt6::Test)
+if(MSVC)
+    target_compile_options(tst_tasks PRIVATE /utf-8)
+endif()
+add_test(NAME tst_tasks COMMAND tst_tasks)
 
 add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindow.h
