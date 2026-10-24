@@ -165,21 +165,27 @@ bool MainWindow::adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info
         return false;
     }
     const Project recovered = std::get<Project>(loaded);
+    // 路径等会话状态先于changed更新，避免采用时仍显示原文件名；失败则完整还原。
+    const QString previousPath = m_filePath;
+    const auto previousStamp = m_fileStamp;
+    const QString previousNote = m_recoveryNote;
+    m_filePath.clear();
+    m_fileStamp.reset();
+    m_recoveryNote.clear();
     // 恢复采用走命令事务（统一规范§7.1/§12）：整工程替换作为一条可撤销历史压入唯一文档，
     // 不绕过CommandService直接replaceProject；采用后可撤销回采用前状态
     const auto applied = m_commands->applyEdit(
         QStringLiteral("恢复快照"), [recovered](Project& project) { project = recovered; });
     if (std::holds_alternative<AppError>(applied)) {
+        m_filePath = previousPath;
+        m_fileStamp = previousStamp;
+        m_recoveryNote = previousNote;
         QMessageBox::warning(this, QStringLiteral("无法采用快照"),
                              std::get<AppError>(applied).message);
         return false;
     }
-    // 快照内容已被吸收：清除该工程的应用自建快照（规范§11.3）
-    RecoveryService::clear(m_recoveryRoot, info.projectId);
-    // 快照≠正式保存（原设计§8）：不记录来源路径（路径不进入Project与持久材料），
-    // 清空文件路径与外部戳；首次保存走“另存为”，保存成功前保持脏状态
-    m_filePath.clear();
-    m_fileStamp.reset();
+    // 采用只写入内存，不清理磁盘副本；否则另存前再次崩溃会失去恢复保障。
+    // 正式保存成功或用户明确放弃后再清理；取消保存、保存失败和撤销均保留副本。
     return true;   // applyEdit内部已notifyChanged，画布与标题栏已按恢复内容刷新
 }
 
@@ -381,6 +387,7 @@ bool MainWindow::confirmDiscard() {
 }
 
 void MainWindow::loadNewDocument(Project project) {
+    m_recoveryNote.clear();   // 新建/打开不能沿用上一工程的快照时间或失败状态
     m_doc->replaceProject(std::move(project));
     m_commands->clearHistory();   // 打开新工程清空撤销历史（规范§5.1）
     m_doc->setClean();            // 新建/打开后尚未编辑，应为干净状态（规范§8）

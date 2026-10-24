@@ -9,6 +9,8 @@
 #include <QGraphicsView>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStatusBar>
+#include <QDir>
 #include <QTemporaryDir>
 #include <QTimer>
 
@@ -42,6 +44,9 @@ private slots:
     void recoverySnapshotWrittenOnlyForDirtyChangedContent();
     void recoveryAdoptionGoesThroughCommandTransaction();
     void recoveryOfferDialogAdoptAndIgnoreAll();
+    void recoveryAdoptionFromOpenedFileRefreshesTitle();
+    void recoveryAdoptionSurvivesRestartAndFailedSave();
+    void recoveryOpeningAnotherProjectClearsSnapshotStatus();
 
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
@@ -415,8 +420,8 @@ void TstUi::recoveryAdoptionGoesThroughCommandTransaction()
     undoAction->trigger();
     QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));
 
-    // 采用后该工程的快照已清除（只清应用自建快照）
-    QVERIFY(RecoveryService::list(root.path(), recovered.id).isEmpty());
+    // 采用不等于正式保存：撤销后原始磁盘副本仍保护恢复内容。
+    QCOMPARE(RecoveryService::list(root.path(), recovered.id).size(), 1);
 }
 
 void TstUi::recoveryOfferDialogAdoptAndIgnoreAll()
@@ -449,7 +454,7 @@ void TstUi::recoveryOfferDialogAdoptAndIgnoreAll()
     QVERIFY(adoptButton->isEnabled());
     adoptButton->click();
     QCOMPARE(w.currentRootTitle(), QStringLiteral("待恢复的根主题"));
-    QVERIFY(RecoveryService::list(root.path(), pending.id).isEmpty());   // 采用后清除
+    QCOMPARE(RecoveryService::list(root.path(), pending.id).size(), 1);   // 正式保存前保留
 
     // 另一份快照：选“全部不采用”→自建快照清除，当前文档不受影响
     const Project another =
@@ -463,7 +468,83 @@ void TstUi::recoveryOfferDialogAdoptAndIgnoreAll()
     QVERIFY(ignoreButton != nullptr);
     ignoreButton->click();
     QVERIFY(RecoveryService::list(root.path(), another.id).isEmpty());
-    QCOMPARE(w.currentRootTitle(), QStringLiteral("待恢复的根主题"));   // 文档不被误改
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("待恢复的根主题")); // 文档不被误改
+}
+
+void TstUi::recoveryAdoptionFromOpenedFileRefreshesTitle()
+{
+    QTemporaryDir root;
+    QTemporaryDir files;
+    QVERIFY(root.isValid());
+    QVERIFY(files.isValid());
+    MainWindow::setRecoveryRootForTest(root.path());
+    const Project recovered =
+        makeRecoveredProject(QStringLiteral("恢复后的工程"), QStringLiteral("恢复后的主题"));
+    QVERIFY(std::holds_alternative<RecoveryService::SnapshotWrite>(
+        RecoveryService::writeSnapshot(root.path(), recovered)));
+    MainWindow window;
+    QVERIFY(window.saveProjectTo(files.filePath(QStringLiteral("原先打开的文件.lingya"))));
+    QVERIFY(window.windowTitle().contains(QStringLiteral("原先打开的文件")));
+    QVERIFY(window.adoptRecoverySnapshot(RecoveryService::list(root.path(), recovered.id).first()));
+    QCOMPARE(window.windowTitle(), QStringLiteral("恢复后的工程 * - 灵芽思维"));
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("恢复后的主题"));
+}
+
+void TstUi::recoveryAdoptionSurvivesRestartAndFailedSave()
+{
+    QTemporaryDir root;
+    QTemporaryDir files;
+    QVERIFY(root.isValid());
+    QVERIFY(files.isValid());
+    MainWindow::setRecoveryRootForTest(root.path());
+    const Project recovered =
+        makeRecoveredProject(QStringLiteral("再次启动恢复"), QStringLiteral("不能只保存在内存"));
+    QVERIFY(std::holds_alternative<RecoveryService::SnapshotWrite>(
+        RecoveryService::writeSnapshot(root.path(), recovered)));
+    const auto snapshot = RecoveryService::list(root.path(), recovered.id).first();
+    {
+        MainWindow first;
+        QVERIFY(first.adoptRecoverySnapshot(snapshot));
+        // 不发送正常关闭事件、不触发下一次定时写盘，模拟内存实例直接消失后的磁盘状态。
+        QCOMPARE(RecoveryService::list(root.path(), recovered.id).size(), 1);
+    }
+    MainWindow restarted;
+    const auto pending = RecoveryService::list(root.path(), recovered.id);
+    QCOMPARE(pending.size(), 1);
+    QVERIFY(restarted.adoptRecoverySnapshot(pending.first()));
+    QCOMPARE(restarted.currentRootTitle(), QStringLiteral("不能只保存在内存"));
+
+    const QString blocked = files.filePath(QStringLiteral("同名目录.lingya"));
+    QVERIFY(QDir().mkpath(blocked));
+    autoCloseMessageBoxes();
+    QVERIFY(!restarted.saveProjectTo(blocked));
+    QCOMPARE(RecoveryService::list(root.path(), recovered.id).size(), 1);
+    QVERIFY(restarted.windowTitle().contains(QLatin1Char('*')));
+
+    const QString saved = files.filePath(QStringLiteral("正式保存.lingya"));
+    QVERIFY(restarted.saveProjectTo(saved));
+    QVERIFY(RecoveryService::list(root.path(), recovered.id).isEmpty());
+    const auto loaded = FileService::load(saved);
+    QVERIFY(std::holds_alternative<Project>(loaded));
+    QCOMPARE(std::get<Project>(loaded).id, recovered.id);
+}
+
+void TstUi::recoveryOpeningAnotherProjectClearsSnapshotStatus()
+{
+    QTemporaryDir root;
+    QTemporaryDir files;
+    QVERIFY(root.isValid());
+    QVERIFY(files.isValid());
+    MainWindow::setRecoveryRootForTest(root.path());
+    MainWindow window;
+    QVERIFY(window.renameRootTo(QStringLiteral("上一工程的未保存主题")));
+    QVERIFY(QMetaObject::invokeMethod(&window, "writeRecoverySnapshot"));
+    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("恢复快照")));
+    const QString another = files.filePath(QStringLiteral("另一工程.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(
+        FileService::save(another, ProjectFactory::createMindmap(QStringLiteral("另一工程")))));
+    QVERIFY(window.openFile(another));
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("恢复快照")));
 }
 
 QTEST_MAIN(TstUi)

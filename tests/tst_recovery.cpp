@@ -8,6 +8,7 @@
 #include "domain/Domain.h"
 #include "domain/Limits.h"
 #include "domain/ProjectFactory.h"
+#include "services/ProjectJson.h"
 #include "services/RecoveryService.h"
 
 using namespace lingya;
@@ -28,6 +29,10 @@ class TstRecovery : public QObject
     void clearRemovesOnlyOwnSnapshots();
     void rejectsUnsafeIdentifiers();
     void listEmptyForUnknownProjectOrRoot();
+    void prunePreservesOlderCorruptSnapshot();
+    void loadRejectsMismatchedProject();
+    void loadRejectsOversizedSnapshot();
+    void loadRejectsEmptyRoot();
 
   private:
     // 生成一个合法工程；suffix拼入标题用于区分内容（内容不同才不会被去重跳过）
@@ -236,6 +241,75 @@ void TstRecovery::listEmptyForUnknownProjectOrRoot()
     QVERIFY(RecoveryService::list(dir.path(), QStringLiteral("从未写过的工程")).isEmpty());
     QVERIFY(RecoveryService::listAll(dir.path()).isEmpty());
     QVERIFY(RecoveryService::listAll(dir.filePath(QStringLiteral("不存在"))).isEmpty());
+}
+
+void TstRecovery::prunePreservesOlderCorruptSnapshot()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    Project project = makeProject(QStringLiteral("修剪保留坏文件"));
+    QVERIFY(writeOk(root.path(), project));
+    const QString corruptPath =
+        root.path() + QLatin1Char('/') + project.id + QStringLiteral("/1.lingya");
+    QFile corrupt(corruptPath);
+    QVERIFY(corrupt.open(QIODevice::WriteOnly));
+    const QByteArray damaged("{not-json");
+    QCOMPARE(corrupt.write(damaged), damaged.size());
+    corrupt.close();
+    for (int i = 0; i < 6; ++i)
+    {
+        renameRoot(project, QStringLiteral("新增版本%1").arg(i));
+        QVERIFY(writeOk(root.path(), project));
+    }
+    QCOMPARE(RecoveryService::list(root.path(), project.id).size(), Limits::kMaxRecoverySnapshots);
+    QVERIFY(corrupt.open(QIODevice::ReadOnly));
+    QCOMPARE(corrupt.readAll(), damaged);
+}
+
+void TstRecovery::loadRejectsMismatchedProject()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const Project first = makeProject(QStringLiteral("目录所属工程"));
+    const Project another = makeProject(QStringLiteral("误放到目录的工程"));
+    const auto written = RecoveryService::writeSnapshot(root.path(), first);
+    QVERIFY(std::holds_alternative<RecoveryService::SnapshotWrite>(written));
+    const QString id = std::get<RecoveryService::SnapshotWrite>(written).snapshotId;
+    QFile replaced(root.path() + QLatin1Char('/') + first.id + QLatin1Char('/') + id +
+                   QStringLiteral(".lingya"));
+    QVERIFY(replaced.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    const QByteArray bytes = ProjectJson::toBytes(another);
+    QCOMPARE(replaced.write(bytes), bytes.size());
+    replaced.close();
+    QVERIFY(RecoveryService::list(root.path(), first.id).isEmpty());
+    const auto loaded = RecoveryService::load(root.path(), first.id, id);
+    QVERIFY(std::holds_alternative<AppError>(loaded));
+    QCOMPARE(std::get<AppError>(loaded).code, QStringLiteral("CONFLICT"));
+}
+
+void TstRecovery::loadRejectsOversizedSnapshot()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const Project project = makeProject(QStringLiteral("超大快照"));
+    const QString directory = root.path() + QLatin1Char('/') + project.id;
+    QVERIFY(QDir().mkpath(directory));
+    QFile huge(directory + QStringLiteral("/123.lingya"));
+    QVERIFY(huge.open(QIODevice::WriteOnly));
+    const QByteArray bytes(Limits::kMaxFileBytes + 1, 'x');
+    QCOMPARE(huge.write(bytes), bytes.size());
+    huge.close();
+    const auto loaded = RecoveryService::load(root.path(), project.id, QStringLiteral("123"));
+    QVERIFY(std::holds_alternative<AppError>(loaded));
+    QCOMPARE(std::get<AppError>(loaded).code, QStringLiteral("LIMIT_EXCEEDED"));
+}
+
+void TstRecovery::loadRejectsEmptyRoot()
+{
+    const auto loaded =
+        RecoveryService::load(QString(), QStringLiteral("工程"), QStringLiteral("123"));
+    QVERIFY(std::holds_alternative<AppError>(loaded));
+    QCOMPARE(std::get<AppError>(loaded).code, QStringLiteral("INVALID_ARGUMENT"));
 }
 
 QTEST_MAIN(TstRecovery)

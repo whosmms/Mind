@@ -70,7 +70,8 @@ QByteArray readAllBytes(const QString &path)
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
         return QByteArray();
-    return file.readAll();
+    // 最多读取上限加1字节，超限交由parseSnapshot拒绝，避免先分配整个超大文件。
+    return file.read(Limits::kMaxFileBytes + 1);
 }
 
 // 完整校验一份快照字节：体积→JSON严格解析→ProjectValidator（与FileService::load同序，规范§8）
@@ -98,14 +99,10 @@ void pruneSnapshots(const QString &root, const QString &projectId)
     const QVector<qint64> stems = snapshotStems(dirPath);
     for (const qint64 stem : stems)
     {
-        if (kept < Limits::kMaxRecoverySnapshots &&
-            std::holds_alternative<Project>(
-                parseSnapshot(readAllBytes(snapshotPath(root, projectId, stem)))))
-        {
-            ++kept;
+        // 损坏、不可读或工程ID不符的文件始终保留，不因已数满5份就误删。
+        if (!std::holds_alternative<Project>(load(root, projectId, QString::number(stem))))
             continue;
-        }
-        if (kept >= Limits::kMaxRecoverySnapshots)
+        if (++kept > Limits::kMaxRecoverySnapshots)
             QFile::remove(snapshotPath(root, projectId, stem));
     }
 }
@@ -123,7 +120,7 @@ QString defaultRoot()
 QVector<SnapshotInfo> list(const QString &root, const QString &projectId)
 {
     QVector<SnapshotInfo> result;
-    if (!isSafeComponent(projectId))
+    if (root.isEmpty() || !isSafeComponent(projectId))
         return result;
     for (const qint64 stem : snapshotStems(projectDirPath(root, projectId)))
     {
@@ -166,13 +163,17 @@ QVector<SnapshotInfo> listAll(const QString &root)
 std::variant<Project, AppError> load(const QString &root, const QString &projectId,
                                      const QString &snapshotId)
 {
-    if (!isSafeComponent(projectId) || !isSafeComponent(snapshotId))
+    if (root.isEmpty() || !isSafeComponent(projectId) || !isSafeComponent(snapshotId))
         return AppError{"INVALID_ARGUMENT", "快照标识无效"};
     const QByteArray bytes = readAllBytes(projectDirPath(root, projectId) + QLatin1Char('/') +
                                           snapshotId + QStringLiteral(".lingya"));
     if (bytes.isEmpty())
         return AppError{"FILE_NOT_FOUND", "快照不存在或无法读取"};
-    return parseSnapshot(bytes);
+    const auto parsed = parseSnapshot(bytes);
+    if (const auto *project = std::get_if<Project>(&parsed);
+        project != nullptr && project->id != projectId)
+        return AppError{"CONFLICT", "快照工程与所选工程不一致，请重新选择快照"};
+    return parsed;
 }
 
 std::variant<SnapshotWrite, AppError> writeSnapshot(const QString &root, const Project &project)
@@ -225,7 +226,7 @@ std::variant<SnapshotWrite, AppError> writeSnapshot(const QString &root, const P
 
 void clear(const QString &root, const QString &projectId)
 {
-    if (!isSafeComponent(projectId))
+    if (root.isEmpty() || !isSafeComponent(projectId))
         return;
     const QString dirPath = projectDirPath(root, projectId);
     // 只删除本服务创建的快照文件；目录里其他名称的文件保留（规范§11.3不自伤用户文件）
