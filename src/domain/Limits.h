@@ -20,6 +20,10 @@ constexpr qint64 kMaxFileBytes = qint64(10) * 1024 * 1024;   // 10 MiB
 // 最近文件（原设计§8 P01；设计规范未定数量，M1登记为项目决定，改动需同步设置服务与测试）
 constexpr int kMaxRecentFiles = 10;
 
+// 恢复快照（规范§11.2上限表、§11.3；原设计§8：内容变化时约30秒写一份，每工程保留最近5份）
+constexpr int kMaxRecoverySnapshots = 5;
+constexpr int kRecoverySnapshotIntervalMs = 30 * 1000;
+
 // 文本长度，按Unicode码点计数（规范§4.3.8）
 constexpr int kTitleMinChars = 1;
 constexpr int kTitleMaxChars = 2000;

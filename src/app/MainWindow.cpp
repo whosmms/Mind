@@ -2,6 +2,7 @@
 
 #include <QAction>
 #include <QCloseEvent>
+#include <QDateTime>
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -16,13 +17,17 @@
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QLabel>
+#include <QTimer>
 
 
+#include "app/RecoveryDialog.h"
 #include "commands/CommandService.h"
 #include "domain/ProjectFactory.h"
+#include "domain/Limits.h"
 #include "document/ProjectDocument.h"
 #include "graphics/NodeItem.h"
 #include "services/FileService.h"
+#include "services/RecoveryService.h"
 #include "services/SettingsService.h"
 
 namespace lingya {
@@ -35,6 +40,12 @@ QFont canvasFont() {
     return font;
 }
 }  // namespace
+
+QString MainWindow::s_recoveryRootForTest;
+
+void MainWindow::setRecoveryRootForTest(const QString& path) {
+    s_recoveryRootForTest = path;   // 空=恢复默认QStandardPaths路径（构造时生效）
+}
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),
@@ -59,7 +70,20 @@ MainWindow::MainWindow(QWidget* parent)
     buildMenus();
     connect(m_doc, &ProjectDocument::changed, this, &MainWindow::onDocumentChanged);
 
+    // 恢复快照（规范§11.3、原设计§8）：30秒定时，仅脏文档且内容变化时写一份；
+    // 每工程保留最近5份成功快照由RecoveryService写入后修剪
+    m_recoveryRoot = s_recoveryRootForTest.isEmpty() ? RecoveryService::defaultRoot()
+                                                     : s_recoveryRootForTest;
+    m_recoveryTimer = new QTimer(this);
+    m_recoveryTimer->setInterval(Limits::kRecoverySnapshotIntervalMs);
+    connect(m_recoveryTimer, &QTimer::timeout, this, &MainWindow::writeRecoverySnapshot);
+    m_recoveryTimer->start();
+
     loadNewDocument(ProjectFactory::createMindmap(QStringLiteral("未命名导图")));
+
+    // 启动发现快照先预览，由用户决定采用（规范§11.3）；延后到事件循环，
+    // 命令行打开（main.cpp在show前调用openFile）完成后窗口已装配再询问
+    QTimer::singleShot(0, this, &MainWindow::offerRecoverySnapshots);
 }
 
 void MainWindow::buildMenus() {
@@ -103,6 +127,78 @@ void MainWindow::setGanttView(QGraphicsView* view) {
     m_ganttPage = view;
     m_centralStack->insertWidget(ganttIndex, view);
     m_centralStack->setCurrentIndex(ganttIndex);   // 装入后直接切到甘特页
+}
+
+void MainWindow::offerRecoverySnapshots() {
+    if (m_recoveryDialog != nullptr) return;   // 已在询问，不叠加对话框
+    // 启动扫描全部工程的快照：未命名工程也有UUID，同样可恢复（原设计§8）
+    const QVector<RecoveryService::SnapshotInfo> snapshots = RecoveryService::listAll(m_recoveryRoot);
+    if (snapshots.isEmpty()) return;
+    m_recoveryDialog = new RecoveryDialog(m_recoveryRoot, snapshots, this);
+    connect(m_recoveryDialog, &QDialog::finished, this, [this](int) {
+        // 只处理当前对话框的finished；deleteLater前仍存活的旧对话框再次发信号时忽略
+        RecoveryDialog* dialog = m_recoveryDialog;
+        m_recoveryDialog = nullptr;
+        if (dialog == nullptr || dialog != sender()) return;
+        const RecoveryDialog::Decision decision = dialog->decision();
+        RecoveryService::SnapshotInfo info;
+        const bool hasSelection = dialog->selectedSnapshot(&info);
+        const QVector<RecoveryService::SnapshotInfo> listed = dialog->snapshots();
+        dialog->deleteLater();
+        if (decision == RecoveryDialog::Decision::Adopt && hasSelection) {
+            adoptRecoverySnapshot(info);
+        } else if (decision == RecoveryDialog::Decision::IgnoreAll) {
+            // 用户明确放弃全部未保存副本：只清理应用自建的快照（规范§11.3）
+            for (const RecoveryService::SnapshotInfo& snapshot : listed)
+                RecoveryService::clear(m_recoveryRoot, snapshot.projectId);
+        }
+        // Cancel（稍后再问）：快照原样保留在磁盘，下次启动再询问
+    });
+    m_recoveryDialog->open();   // 模态但不阻塞启动事件流（区别于exec()）
+}
+
+bool MainWindow::adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info) {
+    const auto loaded = RecoveryService::load(m_recoveryRoot, info.projectId, info.snapshotId);
+    if (std::holds_alternative<AppError>(loaded)) {
+        QMessageBox::critical(this, QStringLiteral("无法采用快照"),
+                              std::get<AppError>(loaded).message);
+        return false;
+    }
+    const Project recovered = std::get<Project>(loaded);
+    // 恢复采用走命令事务（统一规范§7.1/§12）：整工程替换作为一条可撤销历史压入唯一文档，
+    // 不绕过CommandService直接replaceProject；采用后可撤销回采用前状态
+    const auto applied = m_commands->applyEdit(
+        QStringLiteral("恢复快照"), [recovered](Project& project) { project = recovered; });
+    if (std::holds_alternative<AppError>(applied)) {
+        QMessageBox::warning(this, QStringLiteral("无法采用快照"),
+                             std::get<AppError>(applied).message);
+        return false;
+    }
+    // 快照保留不删：采用后的内容尚未落盘（快照≠正式保存），此刻崩溃仍须可再次恢复；
+    // 30秒定时写盘与最新快照字节比对去重，不会产生重复；另存成功或用户放弃时才清理
+    // （规范§11.3快照保护未保存工作）
+    // 快照≠正式保存（原设计§8）：不记录来源路径（路径不进入Project与持久材料），
+    // 清空文件路径与外部戳；首次保存走“另存为”，保存成功前保持脏状态
+    m_filePath.clear();
+    m_fileStamp.reset();
+    return true;   // applyEdit内部已notifyChanged，画布与标题栏已按恢复内容刷新
+}
+
+void MainWindow::writeRecoverySnapshot() {
+    // 干净状态无需快照：磁盘已有正式文件或工程刚打开未编辑（快照保护的是未保存工作）
+    if (!m_doc->isModified() || m_doc->project().id.isEmpty()) return;
+    const auto result = RecoveryService::writeSnapshot(m_recoveryRoot, m_doc->project());
+    if (std::holds_alternative<RecoveryService::SnapshotWrite>(result)) {
+        const auto& write = std::get<RecoveryService::SnapshotWrite>(result);
+        if (write.written)   // 内容未变化被跳过时备注保持上一次的时间
+            m_recoveryNote = QStringLiteral("恢复快照 %1")
+                                 .arg(QDateTime::currentDateTime().toString(
+                                     QStringLiteral("HH:mm:ss")));
+    } else {
+        // 自动保存失败不弹窗打断编辑，状态栏提示；下一周期内容变化时重试
+        m_recoveryNote = QStringLiteral("恢复快照写入失败");
+    }
+    updateStatusLine();
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
@@ -184,6 +280,10 @@ bool MainWindow::saveProjectTo(const QString& path) {
     }
     m_filePath = target;
     m_doc->setClean();
+    // 正式保存成功后，快照捕获的未保存状态已落盘：清除该工程的应用自建快照
+    // （恢复快照与正式保存是不同状态，规范§11.3）；保存失败时快照保留继续保护
+    RecoveryService::clear(m_recoveryRoot, m_doc->project().id);
+    m_recoveryNote.clear();
     m_doc->notifyChanged();       // 状态变更完成后统一通知（D-M0-13）
     if (const auto fileStamp = FileService::stamp(target);
         std::holds_alternative<FileService::FileStamp>(fileStamp)) {
@@ -272,7 +372,13 @@ bool MainWindow::confirmDiscard() {
         this, QStringLiteral("未保存的修改"), QStringLiteral("当前工程已修改，是否保存？"),
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
     if (choice == QMessageBox::Save) return saveProject(false);
-    return choice != QMessageBox::Cancel;
+    if (choice == QMessageBox::Discard) {
+        // 用户明确放弃未保存修改：清除该工程的应用自建恢复快照（规范§11.3），
+        // 快照目录里只删本服务创建的文件，不触碰用户任何正式文件
+        RecoveryService::clear(m_recoveryRoot, m_doc->project().id);
+        return true;
+    }
+    return false;   // 取消：不换工程、不清理快照
 }
 
 void MainWindow::loadNewDocument(Project project) {
@@ -294,12 +400,10 @@ void MainWindow::rebuildCanvas() {
 
 void MainWindow::onDocumentChanged() {
     rebuildCanvas();
-    const QString state =
-        m_doc->isModified() ? QStringLiteral("已修改") : QStringLiteral("已保存");
-    statusBar()->showMessage(
-        QStringLiteral("阶段M0纵向验证 · 修订 %1 · %2").arg(m_doc->sessionRevision()).arg(state));
+    updateStatusLine();
     // 标题栏显示文件基名（有路径时）或工程标题；打开文件后用户看到的是自己认识的文件名
     // （工程标题M0无修改入口，固定“未命名导图”曾造成“打开未生效”的误解，见D-M0-12）
+    // 恢复快照采用后路径清空（快照≠正式保存），标题栏同样显示工程标题
     const QFileInfo info(m_filePath);
     const QString display =
         m_filePath.isEmpty() ? m_doc->project().title : info.completeBaseName();
@@ -308,6 +412,21 @@ void MainWindow::onDocumentChanged() {
                             m_doc->isModified() ? QStringLiteral(" *") : QString()));
     m_undoAction->setEnabled(m_commands->canUndo());
     m_redoAction->setEnabled(m_commands->canRedo());
+}
+
+void MainWindow::updateStatusLine() {
+    const QString state =
+        m_doc->isModified() ? QStringLiteral("已修改") : QStringLiteral("已保存");
+    QString line = QStringLiteral("阶段M0纵向验证 · 修订 %1 · %2")
+                       .arg(m_doc->sessionRevision())
+                       .arg(state);
+    // 恢复快照与正式保存分别显示状态（原设计§8）：备注为最近一次快照写入时间或失败提示
+    if (!m_recoveryNote.isEmpty()) line += QStringLiteral(" · ") + m_recoveryNote;
+    statusBar()->showMessage(line);
+}
+
+QString MainWindow::currentProjectId() const {
+    return m_doc->project().id;
 }
 
 const TreeSheet* MainWindow::activeTreeSheet() const {
