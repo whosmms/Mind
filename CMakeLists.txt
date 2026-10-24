@@ -27,6 +27,8 @@ add_library(lingya_core STATIC
     src/services/ProjectJson.cpp
     src/services/FileService.h
     src/services/FileService.cpp
+    src/services/RecoveryService.h
+    src/services/RecoveryService.cpp
     src/services/SettingsService.h
     src/services/SettingsService.cpp
     src/features/CheckService.h
@@ -77,6 +79,8 @@ add_executable(lingya
     src/main.cpp
     src/app/MainWindow.h
     src/app/MainWindow.cpp
+    src/app/RecoveryDialog.h
+    src/app/RecoveryDialog.cpp
     src/graphics/NodeItem.h
     src/graphics/NodeItem.cpp
     resources/resources.qrc

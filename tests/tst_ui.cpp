@@ -3,6 +3,7 @@
 #include <QAbstractButton>
 #include <QAction>
 #include <QFile>
+#include <QListWidget>
 #include <QMenu>
 #include <QStackedWidget>
 #include <QGraphicsView>
@@ -12,7 +13,11 @@
 #include <QTimer>
 
 #include "app/MainWindow.h"
+#include "app/RecoveryDialog.h"
+#include "domain/Domain.h"
+#include "domain/ProjectFactory.h"
 #include "services/FileService.h"
+#include "services/RecoveryService.h"
 #include "services/SettingsService.h"
 
 using namespace lingya;
@@ -33,9 +38,14 @@ private slots:
     void recentFilesMissingEntryRemoved();
     void ganttHostSwitchAndAttach();
     void recentFilesCancelKeepsUnsavedContentAndEntry();
+    // 恢复快照（规范§11.3、原设计§8）——放最后：前序测试在隔离空恢复根目录下不受影响
+    void recoverySnapshotWrittenOnlyForDirtyChangedContent();
+    void recoveryAdoptionGoesThroughCommandTransaction();
+    void recoveryOfferDialogAdoptAndIgnoreAll();
 
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
+    QTemporaryDir m_recoveryDir;   // 恢复快照重定向目录（initTestCase设置，成员保活）
 
     static void autoCloseMessageBoxes() {
         // openFile失败路径会弹模态错误框，测试中定时自动关闭（close对QMessageBox等同取消）
@@ -51,6 +61,31 @@ private:
             if (menu->title().contains(QStringLiteral("最近文件"))) return menu;
         return nullptr;
     }
+    // 当前顶层恢复预览对话框（offerRecoverySnapshots用open()显示，非阻塞）。
+    // 只认可见实例：已finish但deleteLater尚未执行的旧对话框保持隐藏，不应误认
+    static RecoveryDialog* findRecoveryDialog() {
+        for (QWidget* top : QApplication::topLevelWidgets())
+            if (auto* dialog = qobject_cast<RecoveryDialog*>(top); dialog != nullptr && dialog->isVisible())
+                return dialog;
+        return nullptr;
+    }
+    // 按文字前缀找按钮（如“采用(&A)”）
+    static QAbstractButton* findButton(const QWidget& parent, const QString& prefix) {
+        const auto buttons = parent.findChildren<QAbstractButton*>();
+        for (QAbstractButton* button : buttons)
+            if (button->text().startsWith(prefix)) return button;
+        return nullptr;
+    }
+    // 生成一份快照内容：工厂工程+根主题改名（测试夹具直接构造值，非运行时行为）
+    static Project makeRecoveredProject(const QString& projectTitle, const QString& rootTitle) {
+        Project project = ProjectFactory::createMindmap(projectTitle);
+        for (Sheet& sheet : project.sheets)
+            if (auto* tree = std::get_if<TreeSheet>(&sheet)) {
+                tree->nodes[tree->rootId].title = rootTitle;
+                ++tree->nodes[tree->rootId].contentRevision;
+            }
+        return project;
+    }
 };
 
 void TstUi::initTestCase() {
@@ -60,6 +95,9 @@ void TstUi::initTestCase() {
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
     qApp->setOrganizationName(QStringLiteral("lingya-selftest"));
     qApp->setApplicationName(QStringLiteral("lingya-tst-ui"));
+    // 恢复快照同样重定向到空临时目录：真实AppLocalData中的遗留快照不会弹预览对话框
+    QVERIFY(m_recoveryDir.isValid());
+    MainWindow::setRecoveryRootForTest(m_recoveryDir.path());
 }
 
 void TstUi::undoRedoDisabledBeforeAnyEdit() {
@@ -306,6 +344,126 @@ void TstUi::ganttHostSwitchAndAttach()
     w.setGanttView(qobject_cast<QGraphicsView*>(canvas));
     QCOMPARE(stack->currentWidget(), qobject_cast<QWidget*>(ganttView));
     QVERIFY(stack->indexOf(canvas) == 0);   // 画布未被移出
+}
+
+void TstUi::recoverySnapshotWrittenOnlyForDirtyChangedContent()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setRecoveryRootForTest(root.path());
+
+    QTemporaryDir saveDir;   // 正式保存目标另放一处，不混入恢复根目录
+    QVERIFY(saveDir.isValid());
+
+    MainWindow w;
+    QVERIFY(!w.currentProjectId().isEmpty());
+
+    // 干净文档不写快照（快照保护的是未保存工作，§11.3）
+    QVERIFY(QMetaObject::invokeMethod(&w, "writeRecoverySnapshot"));
+    QVERIFY(RecoveryService::list(root.path(), w.currentProjectId()).isEmpty());
+
+    // 编辑后30秒定时回调会写快照（测试直接调用同一私有槽验证行为）
+    QVERIFY(w.renameRootTo(QStringLiteral("快照内容一")));
+    QVERIFY(QMetaObject::invokeMethod(&w, "writeRecoverySnapshot"));
+    QVector<RecoveryService::SnapshotInfo> snapshots =
+        RecoveryService::list(root.path(), w.currentProjectId());
+    QCOMPARE(snapshots.size(), 1);
+
+    // 内容未变化不重复写一份（§11.3“仅当内容变化时写一份”）
+    QVERIFY(QMetaObject::invokeMethod(&w, "writeRecoverySnapshot"));
+    snapshots = RecoveryService::list(root.path(), w.currentProjectId());
+    QCOMPARE(snapshots.size(), 1);
+
+    // 快照可读回且内容一致
+    const auto loaded =
+        RecoveryService::load(root.path(), snapshots.first().projectId, snapshots.first().snapshotId);
+    QVERIFY(std::holds_alternative<Project>(loaded));
+
+    // 正式保存成功后清除该工程的自建快照（两种状态分离，§11.3）
+    QVERIFY(w.saveProjectTo(saveDir.filePath(QStringLiteral("已保存.lingya"))));
+    QCOMPARE(RecoveryService::list(root.path(), w.currentProjectId()).size(), 0);
+}
+
+void TstUi::recoveryAdoptionGoesThroughCommandTransaction()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setRecoveryRootForTest(root.path());
+
+    const Project recovered =
+        makeRecoveredProject(QStringLiteral("恢复工程"), QStringLiteral("恢复的根主题"));
+    QVERIFY(std::holds_alternative<RecoveryService::SnapshotWrite>(
+        RecoveryService::writeSnapshot(root.path(), recovered)));
+
+    MainWindow w;
+    QVector<RecoveryService::SnapshotInfo> snapshots =
+        RecoveryService::list(root.path(), recovered.id);
+    QCOMPARE(snapshots.size(), 1);
+
+    // 采用：整工程经CommandService事务写入唯一文档，路径与外部戳清空
+    QVERIFY(w.adoptRecoverySnapshot(snapshots.first()));
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("恢复的根主题"));
+    QVERIFY(w.windowTitle().contains(QStringLiteral("恢复工程")));   // 无路径→标题栏显示工程标题
+    QVERIFY(w.windowTitle().contains(QLatin1Char('*')));             // 保存前保持脏状态
+
+    // 采用是可撤销历史：撤销回到采用前的空白工程（证明走了命令栈而非replaceProject）
+    QAction* undoAction = nullptr;
+    for (QAction* action : w.findChildren<QAction*>())
+        if (action->text().startsWith(QStringLiteral("撤销"))) undoAction = action;
+    QVERIFY(undoAction != nullptr);
+    QVERIFY(undoAction->isEnabled());
+    undoAction->trigger();
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));
+
+    // 采用后该工程的快照已清除（只清应用自建快照）
+    QVERIFY(RecoveryService::list(root.path(), recovered.id).isEmpty());
+}
+
+void TstUi::recoveryOfferDialogAdoptAndIgnoreAll()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setRecoveryRootForTest(root.path());
+
+    MainWindow w;
+    // 无快照：启动询问不出现任何界面
+    w.offerRecoverySnapshots();
+    QVERIFY(findRecoveryDialog() == nullptr);
+
+    // 有快照：弹出预览对话框，未选中时采用按钮禁用
+    const Project pending =
+        makeRecoveredProject(QStringLiteral("待恢复工程"), QStringLiteral("待恢复的根主题"));
+    QVERIFY(std::holds_alternative<RecoveryService::SnapshotWrite>(
+        RecoveryService::writeSnapshot(root.path(), pending)));
+    w.offerRecoverySnapshots();
+    RecoveryDialog* dialog = findRecoveryDialog();
+    QVERIFY(dialog != nullptr);   // open()模态但非阻塞，测试可继续驱动
+    QAbstractButton* adoptButton = findButton(*dialog, QStringLiteral("采用"));
+    QVERIFY(adoptButton != nullptr);
+    QVERIFY(!adoptButton->isEnabled());
+
+    // 选中第一条：预览加载通过校验，采用可用；点击采用→经事务写入当前文档
+    auto* list = dialog->findChild<QListWidget*>();
+    QVERIFY(list != nullptr);
+    list->setCurrentRow(0);
+    QVERIFY(adoptButton->isEnabled());
+    adoptButton->click();
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("待恢复的根主题"));
+    QVERIFY(RecoveryService::list(root.path(), pending.id).isEmpty());   // 采用后清除
+
+    // 另一份快照：选“全部不采用”→自建快照清除，当前文档不受影响
+    const Project another =
+        makeRecoveredProject(QStringLiteral("另一工程"), QStringLiteral("另一根主题"));
+    QVERIFY(std::holds_alternative<RecoveryService::SnapshotWrite>(
+        RecoveryService::writeSnapshot(root.path(), another)));
+    w.offerRecoverySnapshots();
+    dialog = findRecoveryDialog();
+    QVERIFY(dialog != nullptr);
+    QAbstractButton* ignoreButton = findButton(*dialog, QStringLiteral("全部不采用"));
+    QVERIFY(ignoreButton != nullptr);
+    ignoreButton->click();
+    QVERIFY(RecoveryService::list(root.path(), another.id).isEmpty());
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("待恢复的根主题"));   // 文档不被误改
 }
 
 QTEST_MAIN(TstUi)
