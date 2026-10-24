@@ -8,7 +8,7 @@ Qt **6.8.3 win64_mingw**、MinGW **13.1.0**、CMake **3.30.5**、Ninja **1.12.1*
 与首次试点及用户提供图片一致。clang-format固定 **19.1.7**。每人必须按同一源码提交复现，
 三机全部通过后才记为团队环境验收通过；单机结果不能代签。IDE版本记录在各自环境，编译用Kit保持一致。
 
-本文件现含**甲、乙两机的登记段**：甲段由甲takagi登记，乙段由乙LH登记，互不代签。
+本文件现含**甲、乙、丙三机的登记段**：甲段由甲takagi登记，乙段由乙LH登记，丙段由丙wbccaidapkc登记，互不代签。
 此前未合入的错误分支把甲电脑写成乙电脑，现按H-002与DEV-20261024-011更正。
 下文首次试点中的 `D:/Qt` 即乙本机安装路径；甲使用 `D:/mind/.tools/Qt`，二者不能混写为同一安装。
 
@@ -92,6 +92,32 @@ DEV-20261024-010与`.tools/evidence/launcher-diagnosis/`。本次切分支已先
 - 证据：`build/environment/validation.json`（sourceCommit、versions、success字段）、`validation.log`；该目录在忽略清单，不入库。
 - 签字：乙确认本机工具与§5.1冻结基线一致；三机验收整体通过仍需丙在本机复现（统一规范§5.1）。
 - 全记录见开发日志[INT-20261024-005](开发日志.md)。
+
+## 丙电脑的实际环境
+
+登记日期：2026年10月24日。登记人：丙wbccaidapkc（本机执行，命令由AI协助）。
+
+| 项目 | 丙本机实际值 | 验证或边界 |
+|---|---|---|
+| Windows | Windows 11 x86_64（计算机名LAPTOP-RPV0EDEV，内核10.0.26200） | 本机运行环境 |
+| Qt / Kit | 6.8.3 / win64_mingw，安装于`D:\Qt` | 官方存档（经aqtinstall取得） |
+| Qt模块 | Core、Gui、Widgets、Test（qtbase）；Network/Svg随默认集提供 | 应用链接以CMake声明为准 |
+| MinGW / g++ | 13.1.0（`D:\Qt\Tools\mingw1310_64`） | 官方配套工具 |
+| CMake / Ninja | 3.30.5 / 1.12.1（`D:\Qt\Tools`） | 与冻结值一致 |
+| Qt Creator | 未安装 | 本机以命令行与脚本开发；安装后回填 |
+| Git | 2.55.0.windows.4 | 官方安装（比甲/乙的2.51.0略新，不影响构建） |
+| clang-format | 19.1.7（`D:\formatter\clang_format\data\bin`） | PyPI固定版本wheel，2026-10-24补装，不改全局Python |
+| PowerShell | 7.6.8（官方安装于`C:\Program Files\PowerShell\7`） | 用于运行环境脚本 |
+| TLS | 未单独探测 | 本机M5联网前补探测 |
+
+### 丙本机同提交复验与冻结签字（2026-10-24）
+
+- 源码提交：main=`1aabab9`，工作区干净。
+- 命令：`tools/验证环境.ps1 -ToolsRoot D:\`（pwsh 7.6.8执行；脚本dot-source进入开发环境.ps1，校验五项冻结工具后双配置构建与非零CTest）。
+- 结果：debug与release各8套件86用例全部通过，退出码0（QtTest Totals：19/16/13/10/8/7/7/6）。
+- 证据：`build/environment/validation.json`（sourceCommit、versions、success字段）、`validation.log`；该目录在忽略清单，不入库。
+- 另：同一脚本在`feature/b/R04-file-management`（4618cfb）复跑为9套件全过，见该分支复核记录。
+- 签字：丙确认本机工具与§5.1冻结基线一致；三机验收整体通过需甲、乙、丙在同一最终提交复验。
 
 ## 首次试点历史（保留原结果）
 
