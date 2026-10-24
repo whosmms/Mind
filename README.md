@@ -7,8 +7,9 @@
 ## 当前状态：M0已完成（v0.1.0已发布），M1开发进行中
 
 按原设计§12 M0与统一规范§4完成了纵向闭环代码（领域/文档/命令/服务/AI契约/主窗口/
-11个测试套件/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
-main已含R04最近文件、X03任务双向改名、外部修改检测、备份专用目录与AI基础设施（无真实联网）。
+12个测试套件/fixtures），并按统一规范完成配置、分层、命名与错误码对齐。
+main已含R04最近文件、X03任务双向改名、外部修改检测、备份专用目录、恢复快照
+（30秒变更写盘、每工程5份、启动预览采用走命令事务）与AI基础设施（无真实联网）。
 标签[v0.1.0]（提交aef9432）为M0基线。甲takagi（Takagi-gif）、乙LH（whosmms）、丙wbccaidapkc
 分别登记自己的环境和验证，不互相代签。最新环境与验证见 [docs/environment.md](docs/environment.md)，
 交接和当前待办见 [docs/交接文档.md](docs/交接文档.md)（最新H-006）。
@@ -49,7 +50,7 @@ ctest --preset debug --no-tests=error
 
 - `src/domain` Domain.h 领域值类型（原设计§4.2）、Limits.h 上限常量（k前缀）、工厂与校验器
 - `src/document` ProjectDocument 唯一数据源　`src/commands` CommandService 快照命令与撤销
-- `src/services` ProjectJson 严格序列化、FileService 原子保存与备份
+- `src/services` ProjectJson 严格序列化、FileService 原子保存与备份、RecoveryService 恢复快照
 - `src/ai` AiTypes 契约、IAiProvider 接口、FakeAiProvider 假响应（真实 DeepSeekClient 随 M5）
 - `src/app`、`src/graphics` 主窗口与画布图元　`src/controllers|layout|charts|features|ui` 待 M1-M4 充实
 - `tests/` tst_domain / tst_projectjson（链接lingya_core）、tst_commands/tst_tasks（链接lingya_appcore）、tst_ui、tst_check及fixtures
