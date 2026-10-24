@@ -1,12 +1,4 @@
 #include "document/ProjectDocument.h"
-#include <QFile>
-namespace {
-void dbgTrace3(const QString& msg) {
-    QFile f(QStringLiteral("D:/mind/app/docs/chain_trace.txt"));
-    if (f.open(QIODevice::WriteOnly | QIODevice::Append))
-        f.write(msg.toUtf8());
-}
-}  // namespace
 
 namespace lingya {
 

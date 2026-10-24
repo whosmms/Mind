@@ -4,6 +4,7 @@
 
 // Qt类前向声明必须位于全局作用域，不能进入lingya命名空间
 class QAction;
+class QMenu;
 class QGraphicsScene;
 class QGraphicsView;
 class QCloseEvent;
@@ -42,6 +43,8 @@ protected:
 
 private:
     void buildMenus();
+    void rebuildRecentMenu();       // 重建“最近文件”子菜单（R04，数据来自SettingsService）
+    void openRecentFile(const QString& path);
     void newProject();
     void openProject();
     bool saveProject(bool saveAs);
@@ -57,6 +60,7 @@ private:
     QGraphicsScene* m_scene = nullptr;
     QGraphicsView* m_view = nullptr;
     QString m_filePath;             // 磁盘路径只存在本机会话（原设计§8）
+    QMenu* m_recentMenu = nullptr;  // 文件菜单内“最近文件”子菜单（R04）
     QAction* m_undoAction = nullptr;
     QAction* m_redoAction = nullptr;
 };
