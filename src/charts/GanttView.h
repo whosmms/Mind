@@ -1,4 +1,5 @@
 #pragma once
+#include "charts/GanttLayout.h"
 #include "domain/Domain.h"
 
 #include <QGraphicsView>
@@ -6,7 +7,7 @@
 
 namespace lingya {
 
-// 甘特时间轴视图（R13，AI规范§9.2）：用 GanttLayout 计算坐标并绘制任务条与里程碑。
+// 甘特时间轴视图（R13，AI规范§6.4）：用 GanttLayout 计算坐标并绘制任务条与里程碑。
 // 甲通过 MainWindow::setGanttView 装入中央区；本类只读展示，不修改 Project。
 class GanttView : public QGraphicsView {
     Q_OBJECT
@@ -23,7 +24,7 @@ private:
     void rebuild();
 
     QVector<Task> m_tasks;
-    int m_pixelsPerDay = 24;
+    int m_pixelsPerDay = GanttLayout::kDefaultPixelsPerDay;
 };
 
 }  // namespace lingya

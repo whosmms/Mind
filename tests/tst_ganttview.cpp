@@ -1,11 +1,12 @@
 #include <QtTest>
 
+#include "charts/GanttLayout.h"
 #include "charts/GanttView.h"
 #include "domain/Domain.h"
 
 using namespace lingya;
 
-// 甘特视图测试（R13，AI规范§9.2）：任务条/里程碑绘制与空场景。
+// 甘特视图测试（R13，AI规范§6.4）：任务条/里程碑绘制、几何、空场景与无效日期。
 class TstGanttView : public QObject {
     Q_OBJECT
 
@@ -13,6 +14,8 @@ private slots:
     void emptySceneHasNoItems();
     void drawsBarsForDatedTasks();
     void milestoneDrawsOneItem();
+    void skipsTaskWithInvalidDates();
+    void sceneRectTracksRowsAndRange();
 };
 
 namespace {
@@ -48,6 +51,27 @@ void TstGanttView::milestoneDrawsOneItem() {
     view.setTasks(
         {makeTask(QStringLiteral("M"), QDate(2026, 1, 1), QDate(2026, 1, 1), true)});
     QCOMPARE(view.scene()->items().size(), 1);
+}
+
+void TstGanttView::skipsTaskWithInvalidDates() {
+    GanttView view;
+    // optional 内是无效 QDate：不参与范围、不画条
+    view.setTasks({makeTask(QStringLiteral("X"), QDate(), QDate())});
+    QCOMPARE(view.scene()->items().size(), 0);
+}
+
+void TstGanttView::sceneRectTracksRowsAndRange() {
+    GanttView view;
+    view.setPixelsPerDay(10);
+    view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 1, 1), QDate(2026, 1, 3)),
+                   makeTask(QStringLiteral("B"), QDate(2026, 1, 10), QDate(2026, 1, 12))});
+
+    // 行数 2 × 行高 28 = 56；日期范围 1/1..1/12 = 12 天 × 10px = 120
+    const QRectF rect = view.scene()->sceneRect();
+    QCOMPARE(rect.width(), 120.0);
+    QCOMPARE(rect.height(), 56.0);
+    QCOMPARE(view.scene()->items().size(), 2);
+    QCOMPARE(view.pixelsPerDay(), 10);
 }
 
 QTEST_MAIN(TstGanttView)

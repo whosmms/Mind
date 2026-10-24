@@ -17,12 +17,17 @@ constexpr int kRowHeight = 28;
 constexpr int kBarMargin = 4;
 constexpr int kMilestoneRadius = 8;
 
-QColor barFill() {
-    return QColor(0xD6, 0xE4, 0xFF);
+// 统一规范§14 色值（与 resources/styles/light.qss 一致，不另造颜色）
+QColor pageBackground() {
+    return QColor(0xF6, 0xF8, 0xF5);  // 页面底色
 }
 
-QColor barStroke() {
-    return QColor(0x2F, 0x6F, 0xED);
+QColor primaryColor() {
+    return QColor(0x24, 0x7A, 0x62);  // 主色
+}
+
+QColor mintAccent() {
+    return QColor(0xDD, 0xF2, 0xE7);  // 薄荷辅助（任务条填充）
 }
 
 }  // namespace
@@ -30,7 +35,7 @@ QColor barStroke() {
 GanttView::GanttView(QWidget* parent) : QGraphicsView(parent) {
     setScene(new QGraphicsScene(this));
     setRenderHint(QPainter::Antialiasing, true);
-    setBackgroundBrush(QColor(0xFF, 0xFF, 0xFF));
+    setBackgroundBrush(pageBackground());
 }
 
 void GanttView::setTasks(const QVector<Task>& tasks) {
@@ -43,7 +48,8 @@ const QVector<Task>& GanttView::tasks() const {
 }
 
 void GanttView::setPixelsPerDay(int pixelsPerDay) {
-    m_pixelsPerDay = pixelsPerDay > 0 ? pixelsPerDay : 24;
+    m_pixelsPerDay =
+        pixelsPerDay > 0 ? pixelsPerDay : GanttLayout::kDefaultPixelsPerDay;
     rebuild();
 }
 
@@ -57,7 +63,7 @@ void GanttView::rebuild() {
 
     GanttLayout layout(m_pixelsPerDay);
     const GanttLayoutResult result = layout.compute(m_tasks);
-    const QPen stroke(barStroke());
+    const QPen stroke(primaryColor());
 
     for (const GanttBar& bar : result.bars) {
         if (!bar.hasDates) {
@@ -72,10 +78,10 @@ void GanttView::rebuild() {
                     << QPointF(cx + kMilestoneRadius, cy)
                     << QPointF(cx, cy + kMilestoneRadius)
                     << QPointF(cx - kMilestoneRadius, cy);
-            target->addPolygon(diamond, stroke, QBrush(barStroke()));
+            target->addPolygon(diamond, stroke, QBrush(primaryColor()));
         } else {
             target->addRect(QRectF(bar.startX, top, bar.width, kRowHeight - 2 * kBarMargin),
-                            stroke, QBrush(barFill()));
+                            stroke, QBrush(mintAccent()));
         }
     }
     target->setSceneRect(0, 0, result.totalWidth, result.rowCount * kRowHeight);
