@@ -1,7 +1,6 @@
 #include <QtTest>
 
 #include <QFile>
-#include <QSignalSpy>
 #include <QAction>
 #include <QMessageBox>
 #include <QTemporaryDir>
@@ -59,25 +58,8 @@ void TstUi::undoRedoViaShortcuts() {
     QWindow* win = w.windowHandle();
     QVERIFY(win != nullptr);
 
-    // 诊断：定位撤销action，监听triggered与ShortcutOverride
-    QAction* undoAct = nullptr;
-    for (QAction* a : w.findChildren<QAction*>())
-        if (a->text() == QStringLiteral("撤销(&U)")) undoAct = a;
-    QVERIFY(undoAct != nullptr);
-    QFile dbg(QStringLiteral("D:/mind/app/docs/ui_diag.txt"));
-    QVERIFY(dbg.open(QIODevice::WriteOnly | QIODevice::Text));
-    dbg.write(QString("撤销action: enabled=%1 shortcuts空=%2\n")
-                  .arg(undoAct->isEnabled() ? "1" : "0",
-                       undoAct->shortcuts().isEmpty() ? "1" : "0")
-                  .toUtf8());
-    QSignalSpy spy(undoAct, &QAction::triggered);
-
     // Ctrl+Z撤销：回“中心主题”
     QTest::keyClick(win, Qt::Key_Z, Qt::ControlModifier);
-    dbg.write(QString("Ctrl+Z后 spy.count=%1 标题=%2\n")
-                  .arg(spy.count())
-                  .arg(w.currentRootTitle())
-                  .toUtf8());
     QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));
 
     // Ctrl+Y重做
