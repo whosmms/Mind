@@ -8,7 +8,8 @@
 
 using namespace lingya;
 
-// AI 响应校验测试（AI规范§10.6）：结构、数量、深度、origin 枚举与来源引用。
+// AI 响应校验与状态机测试（AI规范§10.6、§10.4）：
+// 结构/数量/深度/origin/来源引用；信号契约与 BUSY/取消/KEY_MISSING。
 class TstAi : public QObject {
     Q_OBJECT
 
@@ -55,6 +56,10 @@ DraftSourceNode makeSourceNode(const ID& id) {
 
 }  // namespace
 
+void TstAi::initTestCase() {
+    registerAiMetaTypes();
+}
+
 void TstAi::acceptsValidMap() {
     GeneratedNode root = makeNode(QStringLiteral("根"));
     root.children = {makeNode(QStringLiteral("子1")), makeNode(QStringLiteral("子2"))};
@@ -66,7 +71,8 @@ void TstAi::acceptsValidMap() {
 void TstAi::rejectsEmptyTitle() {
     const auto result = AiValidator::validateMapProposal(makeMap(makeNode(QString())));
     QVERIFY(!result.ok);
-    QCOMPARE(result.code, QStringLiteral("EMPTY_TITLE"));
+    QCOMPARE(result.code, QStringLiteral("SCHEMA_INVALID"));
+    QVERIFY(result.message.contains(QStringLiteral("标题为空")));
 }
 
 void TstAi::rejectsTooManyNodes() {
@@ -76,7 +82,8 @@ void TstAi::rejectsTooManyNodes() {
     }
     const auto result = AiValidator::validateMapProposal(makeMap(root), 50, 4);
     QVERIFY(!result.ok);
-    QCOMPARE(result.code, QStringLiteral("TOO_MANY_NODES"));
+    QCOMPARE(result.code, QStringLiteral("SCHEMA_INVALID"));
+    QVERIFY(result.message.contains(QStringLiteral("节点数")));
 }
 
 void TstAi::rejectsTooDeep() {
@@ -88,14 +95,16 @@ void TstAi::rejectsTooDeep() {
     }
     const auto result = AiValidator::validateMapProposal(makeMap(root), 50, 4);
     QVERIFY(!result.ok);
-    QCOMPARE(result.code, QStringLiteral("TOO_DEEP"));
+    QCOMPARE(result.code, QStringLiteral("SCHEMA_INVALID"));
+    QVERIFY(result.message.contains(QStringLiteral("深度")));
 }
 
 void TstAi::rejectsBadOrigin() {
     const auto result = AiValidator::validateMapProposal(
         makeMap(makeNode(QStringLiteral("根"), QStringLiteral("inferred"))));
     QVERIFY(!result.ok);
-    QCOMPARE(result.code, QStringLiteral("BAD_ORIGIN"));
+    QCOMPARE(result.code, QStringLiteral("SCHEMA_INVALID"));
+    QVERIFY(result.message.contains(QStringLiteral("origin")));
 }
 
 void TstAi::acceptsValidDraft() {
@@ -130,7 +139,8 @@ void TstAi::rejectsUnknownSourceNode() {
 
     const auto result = AiValidator::validateDraftProposal(proposal, {});
     QVERIFY(!result.ok);
-    QCOMPARE(result.code, QStringLiteral("UNKNOWN_SOURCE"));
+    QCOMPARE(result.code, QStringLiteral("SCHEMA_INVALID"));
+    QVERIFY(result.message.contains(QStringLiteral("来源节点")));
 }
 
 void TstAi::rejectsEmptySection() {
@@ -139,11 +149,8 @@ void TstAi::rejectsEmptySection() {
     proposal.sections = {DraftSection{}};
     const auto result = AiValidator::validateDraftProposal(proposal, {});
     QVERIFY(!result.ok);
-    QCOMPARE(result.code, QStringLiteral("EMPTY_SECTION"));
-}
-
-void TstAi::initTestCase() {
-    registerAiMetaTypes();
+    QCOMPARE(result.code, QStringLiteral("SCHEMA_INVALID"));
+    QVERIFY(!result.message.isEmpty());
 }
 
 void TstAi::serviceRequiresKey() {
@@ -157,6 +164,7 @@ void TstAi::serviceRequiresKey() {
     request.text = QStringLiteral("材料");
     QVERIFY(!service.generateMap(request));   // 无密钥 → 失败
     QCOMPARE(failedSpy.count(), 1);
+    QCOMPARE(failedSpy.first().at(0).value<AiError>().code, QStringLiteral("KEY_MISSING"));
     QCOMPARE(service.state(), AiService::State::Error);
 }
 
@@ -166,7 +174,7 @@ void TstAi::serviceEmitsProposalOnSuccess() {
     SessionSecretStore store;
     store.setApiKey(QStringLiteral("sk-test"), false);
     AiService service(&provider, &store);
-    QSignalSpy readySpy(&service, &AiService::mapProposalReady);
+    QSignalSpy readySpy(&service, &AiService::mapReady);
 
     GenerateMapRequest request;
     request.requestId = QStringLiteral("req-ok");
@@ -174,6 +182,7 @@ void TstAi::serviceEmitsProposalOnSuccess() {
     QVERIFY(service.generateMap(request));
     QVERIFY(readySpy.wait(2000));
     QCOMPARE(readySpy.count(), 1);
+    QCOMPARE(readySpy.first().at(0).toString(), QStringLiteral("req-ok"));   // 携带 requestId
     QCOMPARE(service.state(), AiService::State::Preview);
     QVERIFY(!service.lastMapProposal().root.title.isEmpty());
 }
@@ -202,6 +211,7 @@ void TstAi::serviceCancelMovesToCanceled() {
     SessionSecretStore store;
     store.setApiKey(QStringLiteral("sk-test"), false);
     AiService service(&provider, &store);
+    QSignalSpy cancelSpy(&service, &AiService::canceled);
 
     GenerateMapRequest request;
     request.requestId = QStringLiteral("req-cancel");
@@ -209,6 +219,8 @@ void TstAi::serviceCancelMovesToCanceled() {
     QVERIFY(service.generateMap(request));
     service.cancel(QStringLiteral("req-cancel"));
     QCOMPARE(service.state(), AiService::State::Canceled);
+    QCOMPARE(cancelSpy.count(), 1);   // 取消发终态信号
+    QCOMPARE(cancelSpy.first().at(0).toString(), QStringLiteral("req-cancel"));
 }
 
 void TstAi::serviceEmitsErrorOnProviderFailure() {
@@ -226,6 +238,7 @@ void TstAi::serviceEmitsErrorOnProviderFailure() {
     QVERIFY(service.generateMap(request));
     QVERIFY(failedSpy.wait(2000));
     QCOMPARE(failedSpy.count(), 1);
+    QCOMPARE(failedSpy.first().at(0).value<AiError>().code, QStringLiteral("AUTH_FAILED"));
     QCOMPARE(service.state(), AiService::State::Error);
 }
 

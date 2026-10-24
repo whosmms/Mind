@@ -11,8 +11,7 @@ namespace lingya {
 // 纯逻辑，不联网、不解析JSON（JSON→DTO 由响应解析层负责）。
 struct AiValidationResult {
     bool ok = false;
-    // SCHEMA_INVALID / EMPTY_TITLE / BAD_ORIGIN / TOO_MANY_NODES / TOO_DEEP /
-    // EMPTY_SECTION / UNKNOWN_SOURCE
+    // 失败统一为 SCHEMA_INVALID（规范§10.3）；具体原因见 message
     QString code;
     QString message;  // 中文说明，供界面显示
     QStringList warnings;

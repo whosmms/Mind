@@ -126,6 +126,16 @@ QJsonObject buildDraftBody(const GenerateDraftRequest& request) {
          QJsonObject{{QStringLiteral("type"), QStringLiteral("json_object")}}}};
 }
 
+QJsonObject buildConnectionBody() {
+    const QJsonObject user{
+        {QStringLiteral("role"), QStringLiteral("user")},
+        {QStringLiteral("content"), QStringLiteral("ping")}};
+    return QJsonObject{
+        {QStringLiteral("model"), QString::fromLatin1(kModel)},
+        {QStringLiteral("messages"), QJsonArray{user}},
+        {QStringLiteral("max_tokens"), 8}};
+}
+
 }  // namespace
 
 AiService::AiService(IAiProvider* provider, SecretStore* secretStore, QObject* parent)
@@ -148,44 +158,49 @@ bool AiService::setKey(const QString& key, bool remember) {
     if (m_secretStore == nullptr) {
         return false;
     }
-    const bool ok = m_secretStore->setApiKey(key, remember);
-    emit statusChanged(status());
-    return ok;
+    return m_secretStore->setApiKey(key, remember);
 }
 
 void AiService::clearKey() {
     if (m_secretStore != nullptr) {
         m_secretStore->clearApiKey();
     }
-    emit statusChanged(status());
 }
 
 bool AiService::generateMap(const GenerateMapRequest& request) {
-    if (!beginRequest(request.requestId, true)) {
+    if (!beginRequest(request.requestId, RequestKind::Map)) {
         return false;
     }
-    if (m_secretStore == nullptr || m_secretStore->apiKey().isEmpty()) {
-        fail(QStringLiteral("AUTH_FAILED"), QStringLiteral("未配置密钥"), request.requestId);
+    if (!ensureKey(request.requestId)) {
         return false;
     }
     setState(State::Requesting);
     m_provider->start(request.requestId, buildMapBody(request));
-    emit statusChanged(status());
     return true;
 }
 
 bool AiService::generateDraft(const GenerateDraftRequest& request) {
-    if (!beginRequest(request.requestId, false)) {
+    if (!beginRequest(request.requestId, RequestKind::Draft)) {
         return false;
     }
-    if (m_secretStore == nullptr || m_secretStore->apiKey().isEmpty()) {
-        fail(QStringLiteral("AUTH_FAILED"), QStringLiteral("未配置密钥"), request.requestId);
+    if (!ensureKey(request.requestId)) {
         return false;
     }
     m_draftSource = request.source;
     setState(State::Requesting);
     m_provider->start(request.requestId, buildDraftBody(request));
-    emit statusChanged(status());
+    return true;
+}
+
+bool AiService::testConnection(const QString& requestId) {
+    if (!beginRequest(requestId, RequestKind::Connection)) {
+        return false;
+    }
+    if (!ensureKey(requestId)) {
+        return false;
+    }
+    setState(State::Requesting);
+    m_provider->start(requestId, buildConnectionBody());
     return true;
 }
 
@@ -194,9 +209,9 @@ void AiService::cancel(const QString& requestId) {
         m_provider->cancel(requestId);
     }
     if (requestId == m_currentRequestId) {
-        setState(State::Canceled);
+        setState(State::Canceled);  // stateChanged(requestId, Canceled)
         m_currentRequestId.clear();
-        emit statusChanged(status());
+        emit canceled(requestId);
     }
 }
 
@@ -217,10 +232,16 @@ void AiService::onProviderCompleted(const QString& requestId, const QJsonObject&
         return;  // 迟到响应丢弃
     }
     setState(State::ValidatingResponse);
-    if (m_isMap) {
+    switch (m_kind) {
+    case RequestKind::Map:
         handleMapResponse(response, requestId);
-    } else {
+        break;
+    case RequestKind::Draft:
         handleDraftResponse(response, requestId);
+        break;
+    case RequestKind::Connection:
+        handleConnectionResponse(response, requestId);
+        break;
     }
 }
 
@@ -231,7 +252,6 @@ void AiService::onProviderFailed(const AiError& error) {
     setState(State::Error);
     m_currentRequestId.clear();
     emit failed(error);
-    emit statusChanged(status());
 }
 
 void AiService::handleMapResponse(const QJsonObject& response, const QString& requestId) {
@@ -253,10 +273,9 @@ void AiService::handleMapResponse(const QJsonObject& response, const QString& re
         return;
     }
     m_lastMap = proposal;
+    setState(State::Preview);  // stateChanged(requestId, Preview)
     m_currentRequestId.clear();
-    setState(State::Preview);
-    emit mapProposalReady(proposal);
-    emit statusChanged(status());
+    emit mapReady(requestId, proposal);
 }
 
 void AiService::handleDraftResponse(const QJsonObject& response, const QString& requestId) {
@@ -272,24 +291,29 @@ void AiService::handleDraftResponse(const QJsonObject& response, const QString& 
         return;
     }
     const DraftProposal proposal = parseDraftProposal(document.object());
-    const AiValidationResult validation =
-        AiValidator::validateDraftProposal(proposal, m_draftSource);
+    const AiValidationResult validation = AiValidator::validateDraftProposal(proposal, m_draftSource);
     if (!validation.ok) {
         fail(validation.code, validation.message, requestId);
         return;
     }
     m_lastDraft = proposal;
-    m_currentRequestId.clear();
     setState(State::Preview);
-    emit draftProposalReady(proposal);
-    emit statusChanged(status());
+    m_currentRequestId.clear();
+    emit draftReady(requestId, proposal);
+}
+
+void AiService::handleConnectionResponse(const QJsonObject& response, const QString& requestId) {
+    const QString model =
+        response.value(QStringLiteral("model")).toString(QString::fromLatin1(kModel));
+    setState(State::Done);
+    m_currentRequestId.clear();
+    emit connectionReady(requestId, model);
 }
 
 void AiService::fail(const QString& code, const QString& message, const QString& requestId) {
+    setState(State::Error);  // stateChanged(requestId, Error)
     m_currentRequestId.clear();
-    setState(State::Error);
     emit failed(AiError{code, message, requestId, false});
-    emit statusChanged(status());
 }
 
 void AiService::setState(State state) {
@@ -297,7 +321,7 @@ void AiService::setState(State state) {
         return;
     }
     m_state = state;
-    emit stateChanged(state);
+    emit stateChanged(m_currentRequestId, state);
 }
 
 bool AiService::busy() const {
@@ -305,14 +329,22 @@ bool AiService::busy() const {
            m_state == State::ValidatingResponse || m_state == State::Applying;
 }
 
-bool AiService::beginRequest(const QString& requestId, bool isMap) {
+bool AiService::beginRequest(const QString& requestId, RequestKind kind) {
     if (requestId.isEmpty() || busy() || requestId == m_currentRequestId) {
-        return false;  // 非法/并发/同一 requestId 重复
+        return false;  // 非法 / 并发 / 同一 requestId 重复
     }
     m_currentRequestId = requestId;
-    m_isMap = isMap;
+    m_kind = kind;
     setState(State::Validating);
     return true;
+}
+
+bool AiService::ensureKey(const QString& requestId) {
+    if (m_secretStore != nullptr && !m_secretStore->apiKey().isEmpty()) {
+        return true;
+    }
+    fail(QStringLiteral("KEY_MISSING"), QStringLiteral("未配置密钥"), requestId);
+    return false;
 }
 
 }  // namespace lingya
