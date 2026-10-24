@@ -128,8 +128,8 @@ void TstFileService::saveCreatesBackupWithPreviousContent()
     Project second = makeProject(QStringLiteral("第二版"));
     QVERIFY(std::holds_alternative<qint64>(FileService::save(path, second)));
 
-    QFile backup(path + QStringLiteral(".bak"));
-    QVERIFY(backup.exists()); // 旧文件先备份（规范§11.3）
+    QFile backup(dir.filePath(QStringLiteral("灵芽备份/备份验证.lingya.bak")));
+    QVERIFY(backup.exists()); // 旧文件先备份到专用子目录（规范§11.3、2026-10-24统一规则）
     QCOMPARE(readAllBytes(backup.fileName()), firstBytes);
     QCOMPARE(readAllBytes(path) == firstBytes, false);
 }
@@ -144,8 +144,9 @@ void TstFileService::backupFailureKeepsOriginalFile()
     const QByteArray originalBytes = readAllBytes(path);
     QVERIFY(!originalBytes.isEmpty());
 
-    // 用同名目录占住.bak路径，使备份复制失败
-    QVERIFY(QDir().mkpath(path + QStringLiteral(".bak")));
+    // 用普通文件占住"灵芽备份"专用目录路径，使备份目录/复制失败
+    QVERIFY(QFile(path.section(QLatin1Char('/'), 0, -2) + QStringLiteral("/灵芽备份"))
+                .open(QIODevice::WriteOnly));
 
     Project second = makeProject(QStringLiteral("不应写入"));
     const auto saved = FileService::save(path, second);

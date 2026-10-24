@@ -62,9 +62,13 @@ std::variant<qint64, AppError> save(const QString& path, const Project& project)
     const QFileInfo info(path);
     QDir().mkpath(info.absolutePath());
 
-    // 旧文件存在时先创建独立.bak副本；备份失败提示另存或取消，不移动或删除唯一原文件（规范§8）
+    // 旧文件存在时先备份到专用子目录"灵芽备份"（不再在原目录留散落.bak）；
+    // 首次保存（目标不存在）无旧内容可备份；备份失败提示另存或取消，不移动或删除唯一原文件（规范§8/§11.3）
     if (info.exists()) {
-        const QString backup = path + ".bak";
+        const QString backupDir = info.dir().filePath(QStringLiteral("灵芽备份"));
+        if (!QDir().mkpath(backupDir))
+            return AppError{"BACKUP_FAILED", "无法创建备份目录，请另存到其他位置"};
+        const QString backup = backupDir + QLatin1Char('/') + info.fileName() + QStringLiteral(".bak");
         QFile::remove(backup);
         if (!QFile::copy(path, backup))
             return AppError{"BACKUP_FAILED", "无法创建备份副本，请另存到其他位置"};

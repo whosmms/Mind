@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTemporaryDir>
+#include <QFileInfo>
 #include <QTimeZone>
 
 #include "domain/Domain.h"
@@ -402,7 +403,9 @@ void TstProjectJson::fileServiceCreatesBackup() {
     ++p.revision;
     QVERIFY(std::holds_alternative<qint64>(FileService::save(path, p)));
 
-    QFile bak(path + ".bak");
+    // 备份在专用子目录"灵芽备份"（2026-10-24统一规则，不再在原目录留.bak）
+    QFile bak(path.section('/', 0, -2) + QStringLiteral("/灵芽备份/") +
+              QFileInfo(path).fileName() + QStringLiteral(".bak"));
     QVERIFY(bak.exists());
     QVERIFY(bak.open(QIODevice::ReadOnly));
     QCOMPARE(bak.readAll(), first);   // 备份保留上一版内容

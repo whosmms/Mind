@@ -24,8 +24,9 @@ struct FileStamp {
 // 读取当前文件戳；文件不存在或不可读时返回AppError
 std::variant<FileStamp, AppError> stamp(const QString& path);
 
-// 保存：先校验 → 序列化为UTF-8 JSON → 10MiB上限 → 旧文件先备份.bak →
+// 保存：先校验 → 序列化为UTF-8 JSON → 10MiB上限 → 旧文件先备份到同目录"灵芽备份"专用子目录 →
 //       QSaveFile同目录临时文件+原子替换；显式关闭directWriteFallback。
+//       首次保存（目标不存在）无旧内容可备份；覆盖已有文件时必有备份（2026-10-24按乙指示统一规则）。
 // 成功返回savedRevision；任何失败保持调用方脏状态，返回AppError。
 std::variant<qint64, AppError> save(const QString& path, const Project& project);
 
