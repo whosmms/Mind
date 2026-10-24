@@ -19,6 +19,7 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Core Widgets Test)
 add_library(lingya_core STATIC
     src/domain/Domain.h
     src/domain/Limits.h
+    src/domain/TitleRules.h
     src/domain/ProjectFactory.h
     src/domain/ProjectFactory.cpp
     src/domain/ProjectValidator.h
@@ -35,6 +36,8 @@ add_library(lingya_core STATIC
     src/features/CheckService.cpp
     src/features/ReviewService.h
     src/features/ReviewService.cpp
+    src/features/ReviewSession.h
+    src/features/ReviewSession.cpp
 )
 target_include_directories(lingya_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(lingya_core PUBLIC Qt6::Core)
@@ -52,6 +55,8 @@ add_library(lingya_appcore STATIC
     src/commands/SnapshotCommand.cpp
     src/commands/TaskCommands.h
     src/commands/TaskCommands.cpp
+    src/commands/NodeCommands.h
+    src/commands/NodeCommands.cpp
     src/ai/AiTypes.h
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
@@ -64,6 +69,10 @@ add_library(lingya_appcore STATIC
     src/ai/AiService.cpp
     src/charts/TaskTableModel.h
     src/charts/TaskTableModel.cpp
+    src/charts/GanttLayout.h
+    src/charts/GanttLayout.cpp
+    src/charts/GanttView.h
+    src/charts/GanttView.cpp
 )
 target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets)
 if(WIN32)

@@ -2,6 +2,7 @@
 #include <QSignalSpy>
 #include <QUuid>
 
+#include "charts/GanttLayout.h"
 #include "charts/TaskTableModel.h"
 #include "domain/Domain.h"
 
@@ -17,6 +18,12 @@ private slots:
     void formatsDatesAndProgress();
     void marksMilestone();
     void editRequestedCarriesTaskIdAndColumn();
+    void computesBarForSingleTask();
+    void handlesCrossMonthRange();
+    void handlesCrossYearRange();
+    void milestoneIsOneDay();
+    void skipsTasksWithoutDates();
+    void dateConversionsRoundByDay();
 };
 
 namespace {
@@ -88,6 +95,75 @@ void TstCharts::editRequestedCarriesTaskIdAndColumn() {
     QCOMPARE(args.at(0).toString(), task.id);
     QCOMPARE(args.at(1).toInt(), static_cast<int>(TaskTableModel::ProgressColumn));
     QCOMPARE(args.at(2).toInt(), 50);
+}
+
+void TstCharts::computesBarForSingleTask() {
+    GanttLayout layout(20);
+    const QVector<Task> tasks{
+        makeTask(QStringLiteral("任务"), QString(), QDate(2026, 1, 1), QDate(2026, 1, 3), 0)};
+    const GanttLayoutResult result = layout.compute(tasks);
+
+    QCOMPARE(result.rowCount, 1);
+    QCOMPARE(result.totalWidth, 3 * 20);   // 1/1 到 1/3 含首尾 3 天
+    QCOMPARE(result.bars.size(), 1);
+    QCOMPARE(result.bars.first().startX, 0);
+    QCOMPARE(result.bars.first().width, 3 * 20);
+    QVERIFY(result.bars.first().hasDates);
+    QVERIFY(!result.bars.first().milestone);
+}
+
+void TstCharts::handlesCrossMonthRange() {
+    GanttLayout layout(10);
+    const QVector<Task> tasks{
+        makeTask(QStringLiteral("A"), QString(), QDate(2026, 1, 30), QDate(2026, 2, 2), 0)};
+    const GanttLayoutResult result = layout.compute(tasks);
+    // 1/30、1/31、2/1、2/2 = 4 天
+    QCOMPARE(result.totalWidth, 4 * 10);
+    QCOMPARE(result.bars.first().width, 4 * 10);
+}
+
+void TstCharts::handlesCrossYearRange() {
+    GanttLayout layout(10);
+    const QVector<Task> tasks{
+        makeTask(QStringLiteral("A"), QString(), QDate(2026, 12, 30), QDate(2027, 1, 2), 0)};
+    const GanttLayoutResult result = layout.compute(tasks);
+    // 2026/12/30、12/31、2027/1/1、1/2 = 4 天（跨年不断裂）
+    QCOMPARE(result.bars.first().width, 4 * 10);
+    QCOMPARE(result.totalWidth, 4 * 10);
+}
+
+void TstCharts::milestoneIsOneDay() {
+    GanttLayout layout(20);
+    const QVector<Task> tasks{makeTask(QStringLiteral("发布"), QString(), QDate(2026, 3, 1),
+                                       QDate(2026, 3, 1), 100, true)};
+    const GanttLayoutResult result = layout.compute(tasks);
+    QCOMPARE(result.bars.first().width, 20);   // 里程碑占 1 天
+    QVERIFY(result.bars.first().milestone);
+}
+
+void TstCharts::skipsTasksWithoutDates() {
+    GanttLayout layout(20);
+    const QVector<Task> tasks{
+        makeTask(QStringLiteral("无日期"), QString(), QDate(), QDate(), 0),
+        makeTask(QStringLiteral("有日期"), QString(), QDate(2026, 1, 1), QDate(2026, 1, 2), 0)};
+    const GanttLayoutResult result = layout.compute(tasks);
+    QCOMPARE(result.rowCount, 2);
+    QCOMPARE(result.bars.size(), 2);
+    QVERIFY(!result.bars.at(0).hasDates);
+    QVERIFY(result.bars.at(1).hasDates);
+    // 日期范围只取有效日期的任务
+    QCOMPARE(result.totalWidth, 2 * 20);
+    QCOMPARE(result.bars.at(1).startX, 0);
+}
+
+void TstCharts::dateConversionsRoundByDay() {
+    GanttLayout layout(24);
+    const QDate start(2026, 1, 1);
+    QCOMPARE(layout.xForDate(QDate(2026, 1, 3), start), 2 * 24);
+    QCOMPARE(layout.dateForX(0, start), QDate(2026, 1, 1));
+    QCOMPARE(layout.dateForX(23, start), QDate(2026, 1, 1));   // 不足一天向下取整
+    QCOMPARE(layout.dateForX(24, start), QDate(2026, 1, 2));
+    QCOMPARE(layout.dateForX(48, start), QDate(2026, 1, 3));
 }
 
 QTEST_GUILESS_MAIN(TstCharts)
