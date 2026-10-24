@@ -56,6 +56,8 @@ add_library(lingya_appcore STATIC
     src/ai/FakeAiProvider.cpp
     src/charts/TaskTableModel.h
     src/charts/TaskTableModel.cpp
+    src/charts/GanttLayout.h
+    src/charts/GanttLayout.cpp
 )
 target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets)
 if(MSVC)
