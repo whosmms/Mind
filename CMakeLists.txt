@@ -33,6 +33,8 @@ add_library(lingya_core STATIC
     src/features/CheckService.cpp
     src/features/ReviewService.h
     src/features/ReviewService.cpp
+    src/features/ReviewSession.h
+    src/features/ReviewSession.cpp
 )
 target_include_directories(lingya_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(lingya_core PUBLIC Qt6::Core)
