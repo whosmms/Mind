@@ -15,6 +15,10 @@ Windows 桌面思维导图课程软件。仓库根目录即本文件所在目录
 
 ## 当前状态（以交接文档为准）
 
+- H-015独立合流预演已完成并上传feature/a/M1-R10-merge-preview：甲9a41b3b与乙main34c8475普通合流928b17a，仅日志冲突，源码无手工改动；Debug/Release各15套件253项通过，0失败0跳过（UI32项/layout25项）。
+  组合报告与说明在该预演分支docs/reviews/H-015-M1与R10合流预演.md及对应evidence；供乙按原门禁条件接收参考，不另建重复的M1整包PR，未合main/PR17，未代签真人或丙。
+  原D:/mind/app待验源码及两配置程序不变；同一SHA没有新问题时不要反复预演。后续源代码变化才重跑相应检查，原真人待办不扩大。
+
 - 2026-10-25每小时检查已完成独立P3按钮API清理，草稿PR #18：https://github.com/whosmms/Mind/pull/18。
   分支fix/a/M1-button-api位于同仓库独立工作区D:/mind/.worktrees/button-api；被测4dba123，Debug/Release各15套件246项通过，0失败0跳过，当前弃用诊断消除。
   PR18以PR17分支为基线仅展示后续差异，不提前合入待验PR17；PR17按原流程集成后，再同步/改目标到main并复核。源码、原待验Debug/Release程序SHA-256本轮均未变化。
