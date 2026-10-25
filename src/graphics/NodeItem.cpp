@@ -39,8 +39,10 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
         m_style.borderColor = QStringLiteral("#DDE6DF");
     const QFontMetricsF fm(font);
     const qreal iconSpace = m_icon.isNull() ? 0 : kIconSize + kIconGap;
-    const qreal width =
-        qBound(kWidthMin, fm.horizontalAdvance(m_title) + kNodePadding * 2 + iconSpace, kWidthMax);
+    // 粗体墨迹边界可能宽于字距；向上取整并留一个逻辑像素，避免短标题的尾字意外换行。
+    const qreal titleWidth =
+        std::ceil(qMax(fm.horizontalAdvance(m_title), fm.boundingRect(m_title).width())) + 1;
+    const qreal width = qBound(kWidthMin, titleWidth + kNodePadding * 2 + iconSpace, kWidthMax);
     const int flags = Qt::AlignCenter | Qt::TextWrapAnywhere;
     const QRectF text =
         fm.boundingRect(QRectF(0, 0, width - kNodePadding * 2 - iconSpace, 100000), flags, m_title);

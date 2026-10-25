@@ -2463,6 +2463,17 @@ void TstUi::nodeStyleShapes()
         item.nodeRect().right() - (shapeCode == QStringLiteral("parallelogram") ? 12 : 0);
     QCOMPARE(item.horizontalAnchor(true), QPointF(expected, 0));
     QCOMPARE(item.horizontalAnchor(false), QPointF(-expected, 0));
+    // 短中文标题按实际粗体宽度留余量，不能因小数像素取整把最后一个字挤到第二行。
+    NodeStyle shortStyle = resolved;
+    shortStyle.fontSize = 28;
+    shortStyle.bold = true;
+    const QFont shortFont = NodeItem::styledFont(fallback, shortStyle);
+    const NodeItem shortItem(QStringLiteral("中心主题"), shortFont, nullptr, QString(), shortStyle);
+    const QFontMetricsF metrics(shortFont);
+    const QRectF singleLine = metrics.boundingRect(QRectF(0, 0, 10000, 10000),
+                                                    Qt::AlignCenter | Qt::TextWrapAnywhere,
+                                                    QStringLiteral("中心主题"));
+    QVERIFY(shortItem.textRect().height() <= singleLine.height() + 0.01);
 }
 
 void TstUi::nodeStyleEditUndoAndRoundTrip()
