@@ -1,0 +1,23 @@
+{
+  "method": "隔离目录无QtSvg DLL/插件；qt.conf与PATH限制搜索；格式探针有png无svg/svgz；标签六行+图标资源1行+初始化/清理各9项",
+  "sourceCommit": "462fa032a5c57c7f1d408d2ba552ed41a2a4543c",
+  "boundary": "与全量340分开计数；本机自动验证，不代签真人/三机",
+  "configurations": [
+    {
+      "formats": "formats=bmp,pbm,pgm,png,ppm,xbm,xpm",
+      "svgFileCount": 0,
+      "name": "debug",
+      "passed": 9,
+      "skipped": 0,
+      "failed": 0
+    },
+    {
+      "formats": "formats=bmp,pbm,pgm,png,ppm,xbm,xpm",
+      "svgFileCount": 0,
+      "name": "release",
+      "passed": 9,
+      "skipped": 0,
+      "failed": 0
+    }
+  ]
+}
