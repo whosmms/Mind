@@ -106,6 +106,18 @@ private slots:
     void deleteSubtreeRejectsRoot();
     void deleteSubtreeBumpsParentRevision();
     void deleteSubtreeUndoRestoresEverythingInOneStep();
+
+    void updateMetaNoteSetsAndUndoes();
+    void updateMetaNoteRejectsOverlong();
+    void updateMetaIconSetsAndClears();
+    void updateMetaLinkValidatesProtocol();
+    void updateMetaTagsReplaceTrimAndLimits();
+    void updateMetaNoOpShortCircuits();
+    void updateMetaRejectsMissingNode();
+    void setStyleAppliesAndUndoes();
+    void setStyleClearsOverride();
+    void setStyleRejectsInvalidValues();
+    void setStyleNoOpShortCircuits();
 };
 
 void TstNodeCommands::addChildToRootCreatesAndUndoes() {
@@ -776,6 +788,245 @@ void TstNodeCommands::deleteSubtreeUndoRestoresEverythingInOneStep() {
     QCOMPARE(doc.project().tasks.size(), 1);
     QVERIFY(doc.project().tasks.first().source.has_value());
     QCOMPARE(doc.project().cards.first().sourceState, QStringLiteral("ok"));
+}
+
+void TstNodeCommands::updateMetaNoteSetsAndUndoes() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("备注命令")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+    const qint64 revision = tree.nodes.value(tree.rootId).contentRevision;
+
+    NodeMetaUpdate update;
+    update.note = QStringLiteral("第一条备注");
+    QVERIFY(std::get<bool>(nodes.updateNodeMeta(tree.id, tree.rootId, update)));
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).note, QStringLiteral("第一条备注"));
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).contentRevision, revision + 1);
+
+    // 空串=清空备注（当前非空，是真实修改，可撤销）
+    NodeMetaUpdate clear;
+    clear.note = QString();
+    QVERIFY(std::get<bool>(nodes.updateNodeMeta(tree.id, tree.rootId, clear)));
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).note, QString());
+    QVERIFY(service.canUndo());
+
+    service.undo();   // 撤销清空→回到第一条备注
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).note, QStringLiteral("第一条备注"));
+}
+
+void TstNodeCommands::updateMetaNoteRejectsOverlong() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("备注超长")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    NodeMetaUpdate update;
+    update.note = QString(Limits::kNoteMaxChars + 1, QLatin1Char('备'));
+    const auto result = nodes.updateNodeMeta(tree.id, tree.rootId, update);
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("LIMIT_EXCEEDED"));
+    QVERIFY(treeOf(doc.project()).nodes.value(tree.rootId).note.isEmpty());
+    QVERIFY(!service.canUndo());
+}
+
+void TstNodeCommands::updateMetaIconSetsAndClears() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("图标命令")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    NodeMetaUpdate set;
+    set.iconId = QStringLiteral(" sprout ");
+    QVERIFY(std::get<bool>(nodes.updateNodeMeta(tree.id, tree.rootId, set)));
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).iconId.value_or(QString()),
+             QStringLiteral("sprout"));   // 去首尾空白
+
+    NodeMetaUpdate clear;
+    clear.iconId = QStringLiteral("   ");
+    QVERIFY(std::get<bool>(nodes.updateNodeMeta(tree.id, tree.rootId, clear)));
+    QVERIFY(!treeOf(doc.project()).nodes.value(tree.rootId).iconId.has_value());   // 空白=清除
+
+    service.undo();   // 撤销清除→恢复图标
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).iconId.value_or(QString()),
+             QStringLiteral("sprout"));
+}
+
+void TstNodeCommands::updateMetaLinkValidatesProtocol() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("链接命令")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    NodeMetaUpdate set;
+    set.link = QStringLiteral("https://example.org/中文 页面");
+    QVERIFY(std::get<bool>(nodes.updateNodeMeta(tree.id, tree.rootId, set)));
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).link.value_or(QString()),
+             QStringLiteral("https://example.org/中文 页面"));
+
+    NodeMetaUpdate bad;
+    bad.link = QStringLiteral("javascript:alert(1)");
+    const auto rejected = nodes.updateNodeMeta(tree.id, tree.rootId, bad);
+    QVERIFY(std::holds_alternative<AppError>(rejected));
+    QCOMPARE(std::get<AppError>(rejected).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    NodeMetaUpdate clear;
+    clear.link = QString();
+    QVERIFY(std::get<bool>(nodes.updateNodeMeta(tree.id, tree.rootId, clear)));
+    QVERIFY(!treeOf(doc.project()).nodes.value(tree.rootId).link.has_value());
+}
+
+void TstNodeCommands::updateMetaTagsReplaceTrimAndLimits() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("标签命令")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    NodeMetaUpdate set;
+    set.tags = QStringList{QStringLiteral(" 重点 "), QStringLiteral("M2")};
+    QVERIFY(std::get<bool>(nodes.updateNodeMeta(tree.id, tree.rootId, set)));
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).tags,
+             QStringList({QStringLiteral("重点"), QStringLiteral("M2")}));   // 每项去空白
+
+    NodeMetaUpdate tooMany;
+    tooMany.tags = QStringList();
+    for (int i = 0; i <= Limits::kMaxTags; ++i) tooMany.tags->append(QString::number(i));
+    const auto rejected = nodes.updateNodeMeta(tree.id, tree.rootId, tooMany);
+    QVERIFY(std::holds_alternative<AppError>(rejected));
+    QCOMPARE(std::get<AppError>(rejected).code, QStringLiteral("LIMIT_EXCEEDED"));
+
+    NodeMetaUpdate tooLong;
+    tooLong.tags = QStringList{QString(Limits::kTagMaxChars + 1, QLatin1Char('标'))};
+    QVERIFY(std::holds_alternative<AppError>(nodes.updateNodeMeta(tree.id, tree.rootId, tooLong)));
+
+    NodeMetaUpdate blank;
+    blank.tags = QStringList{QStringLiteral("  ")};
+    const auto blankRejected = nodes.updateNodeMeta(tree.id, tree.rootId, blank);
+    QVERIFY(std::holds_alternative<AppError>(blankRejected));
+    QCOMPARE(std::get<AppError>(blankRejected).code, QStringLiteral("INVALID_ARGUMENT"));
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).tags.size(), 2);   // 原值保持
+}
+
+void TstNodeCommands::updateMetaNoOpShortCircuits() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("无操作短路")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    NodeMetaUpdate same;
+    same.note = QString();   // 当前备注即为空
+    QVERIFY(std::get<bool>(nodes.updateNodeMeta(tree.id, tree.rootId, same)));
+    QVERIFY(!service.canUndo());   // 无修改不入历史（D-M1-02）
+}
+
+void TstNodeCommands::updateMetaRejectsMissingNode() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("缺节点")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    NodeMetaUpdate update;
+    update.note = QStringLiteral("x");
+    const auto result = nodes.updateNodeMeta(tree.id, QStringLiteral("ghost"), update);
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("NOT_FOUND"));
+}
+
+void TstNodeCommands::setStyleAppliesAndUndoes() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("样式命令")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+    const qint64 revision = tree.nodes.value(tree.rootId).contentRevision;
+
+    NodeStyleOverride first;
+    first.fill = QStringLiteral("#DDF2E7");
+    first.fontSize = 20;
+    first.bold = true;
+    QVERIFY(std::get<bool>(nodes.setStyle(tree.id, tree.rootId, first)));
+    const TreeNode& applied = treeOf(doc.project()).nodes.value(tree.rootId);
+    QCOMPARE(applied.style.fill.value_or(QString()), QStringLiteral("#DDF2E7"));
+    QCOMPARE(applied.style.fontSize.value_or(0), 20);
+    QVERIFY(applied.style.bold.value_or(false));
+    QCOMPARE(applied.contentRevision, revision + 1);
+
+    NodeStyleOverride second;   // 整值替换：未设置的字段清除
+    second.color = QStringLiteral("#243A34");
+    QVERIFY(std::get<bool>(nodes.setStyle(tree.id, tree.rootId, second)));
+    const TreeNode& replaced = treeOf(doc.project()).nodes.value(tree.rootId);
+    QVERIFY(!replaced.style.fill.has_value());
+    QCOMPARE(replaced.style.color.value_or(QString()), QStringLiteral("#243A34"));
+
+    service.undo();   // 回到first
+    const TreeNode& restored = treeOf(doc.project()).nodes.value(tree.rootId);
+    QCOMPARE(restored.style.fill.value_or(QString()), QStringLiteral("#DDF2E7"));
+    QVERIFY(!restored.style.color.has_value());
+    QCOMPARE(restored.contentRevision, revision + 1);   // 撤销恢复到第一次修改后的修订号
+}
+
+void TstNodeCommands::setStyleClearsOverride() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("清除样式")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    NodeStyleOverride styled;
+    styled.borderColor = QStringLiteral("#A83636");
+    QVERIFY(std::get<bool>(nodes.setStyle(tree.id, tree.rootId, styled)));
+
+    QVERIFY(std::get<bool>(nodes.setStyle(tree.id, tree.rootId, NodeStyleOverride{})));   // 空override=清除
+    const TreeNode& cleared = treeOf(doc.project()).nodes.value(tree.rootId);
+    QVERIFY(!cleared.style.borderColor.has_value());
+
+    service.undo();
+    QCOMPARE(treeOf(doc.project()).nodes.value(tree.rootId).style.borderColor.value_or(QString()),
+             QStringLiteral("#A83636"));
+}
+
+void TstNodeCommands::setStyleRejectsInvalidValues() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("样式拒绝")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    NodeStyleOverride badColor;
+    badColor.fill = QStringLiteral("red");
+    QVERIFY(std::holds_alternative<AppError>(nodes.setStyle(tree.id, tree.rootId, badColor)));
+
+    NodeStyleOverride badShape;
+    badShape.shape = QStringLiteral("hexagon");
+    QVERIFY(std::holds_alternative<AppError>(nodes.setStyle(tree.id, tree.rootId, badShape)));
+
+    NodeStyleOverride badSize;
+    badSize.fontSize = Limits::kFontSizeMax + 1;
+    QVERIFY(std::holds_alternative<AppError>(nodes.setStyle(tree.id, tree.rootId, badSize)));
+
+    NodeStyleOverride badWidth;
+    badWidth.borderWidth = 0.0;
+    QVERIFY(std::holds_alternative<AppError>(nodes.setStyle(tree.id, tree.rootId, badWidth)));
+
+    QVERIFY(!service.canUndo());   // 全部失败不入历史
+    QVERIFY(!treeOf(doc.project()).nodes.value(tree.rootId).style.fill.has_value());
+}
+
+void TstNodeCommands::setStyleNoOpShortCircuits() {
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("样式短路")));
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const TreeSheet& tree = treeOf(doc.project());
+
+    QVERIFY(std::get<bool>(nodes.setStyle(tree.id, tree.rootId, NodeStyleOverride{})));   // 当前即为空
+    QVERIFY(!service.canUndo());   // 无修改不入历史（D-M1-02）
 }
 
 QTEST_GUILESS_MAIN(TstNodeCommands)

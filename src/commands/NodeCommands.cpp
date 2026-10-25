@@ -5,8 +5,12 @@
 
 #include <QSet>
 
+#include <QRegularExpression>
+#include <QUrl>
 #include <QUuid>
+
 #include <algorithm>
+#include <cmath>
 
 namespace lingya {
 
@@ -32,6 +36,28 @@ TreeSheet* findTree(Project& project, const ID& sheetId) {
         }
     }
     return nullptr;
+}
+
+// 文本字段语义：去首尾空白；空白=清除（返回nullopt），否则返回原值
+std::optional<QString> optionalFromText(const QString& raw) {
+    const QString trimmed = raw.trimmed();
+    return trimmed.isEmpty() ? std::optional<QString>{} : trimmed;
+}
+
+bool isHttpLink(const QString& raw) {
+    const QUrl url(raw.trimmed());
+    return url.scheme() == QStringLiteral("http") || url.scheme() == QStringLiteral("https");
+}
+
+bool isHexColor(const QString& raw) {
+    static const QRegularExpression pattern(QStringLiteral("^#[0-9A-Fa-f]{6}$"));
+    return pattern.match(raw).hasMatch();
+}
+
+bool sameOverride(const NodeStyleOverride& a, const NodeStyleOverride& b) {
+    return a.fill == b.fill && a.color == b.color && a.borderColor == b.borderColor &&
+           a.fontSize == b.fontSize && a.fontFamily == b.fontFamily && a.shape == b.shape &&
+           a.bold == b.bold && a.borderWidth == b.borderWidth;
 }
 
 int totalNodeCount(const Project& project) {
@@ -303,6 +329,132 @@ std::variant<bool, AppError> NodeCommands::deleteSubtree(const ID& sheetId, cons
             for (const ID& id : subtree) target->nodes.remove(id);
             if (!parentId.isEmpty() && target->nodes.contains(parentId))
                 ++target->nodes[parentId].contentRevision;
+        });
+    if (const auto* error = std::get_if<AppError>(&result)) {
+        return *error;
+    }
+    return true;
+}
+
+std::variant<bool, AppError> NodeCommands::updateNodeMeta(const ID& sheetId, const ID& nodeId,
+                                                          const NodeMetaUpdate& update) {
+    if (sheetId.isEmpty() || nodeId.isEmpty()) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("工作表ID与节点ID不能为空")};
+    }
+    const TreeSheet* tree = findTree(m_document->project(), sheetId);
+    if (tree == nullptr) {
+        return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在：%1").arg(sheetId)};
+    }
+    const auto node = tree->nodes.constFind(nodeId);
+    if (node == tree->nodes.constEnd()) {
+        return AppError{"NOT_FOUND", QStringLiteral("节点不存在：%1").arg(nodeId)};
+    }
+
+    // 字段级预检（D-M1-04：命令层基础码；标签数量/长度与校验器规则一致）
+    if (update.note.has_value() &&
+        TitleRules::codePointCount(*update.note) > Limits::kNoteMaxChars) {
+        return AppError{"LIMIT_EXCEEDED",
+                        QStringLiteral("节点备注超过%1个字符").arg(Limits::kNoteMaxChars)};
+    }
+    if (update.link.has_value() && !update.link->trimmed().isEmpty() && !isHttpLink(*update.link)) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("链接只允许http/https协议")};
+    }
+    QStringList tags;
+    if (update.tags.has_value()) {
+        for (const QString& raw : *update.tags) {
+            const QString trimmed = raw.trimmed();
+            if (trimmed.isEmpty()) {
+                return AppError{"INVALID_ARGUMENT", QStringLiteral("标签不能为空白")};
+            }
+            tags.append(trimmed);
+        }
+        if (tags.size() > Limits::kMaxTags) {
+            return AppError{"LIMIT_EXCEEDED",
+                            QStringLiteral("节点标签最多%1个").arg(Limits::kMaxTags)};
+        }
+        for (const QString& tag : tags) {
+            if (TitleRules::codePointCount(tag) > Limits::kTagMaxChars) {
+                return AppError{"LIMIT_EXCEEDED",
+                                QStringLiteral("单个标签不超过%1个字符").arg(Limits::kTagMaxChars)};
+            }
+        }
+    }
+
+    // 无操作短路（D-M1-02）：补丁产生的值与当前完全相同→成功但不入历史
+    const bool unchanged =
+        (!update.note.has_value() || *update.note == node->note) &&
+        (!update.iconId.has_value() || optionalFromText(*update.iconId) == node->iconId) &&
+        (!update.link.has_value() || optionalFromText(*update.link) == node->link) &&
+        (!update.tags.has_value() || tags == node->tags);
+    if (unchanged) return true;
+
+    const auto result = m_commands->applyEdit(
+        QStringLiteral("更新节点信息"), [sheetId, nodeId, update, tags](Project& project) {
+            TreeSheet* target = findTree(project, sheetId);
+            if (target == nullptr) return;
+            const auto it = target->nodes.find(nodeId);
+            if (it == target->nodes.end()) return;
+            if (update.note.has_value()) it->note = *update.note;
+            if (update.iconId.has_value()) it->iconId = optionalFromText(*update.iconId);
+            if (update.link.has_value()) it->link = optionalFromText(*update.link);
+            if (update.tags.has_value()) it->tags = tags;
+            ++it->contentRevision;
+        });
+    if (const auto* error = std::get_if<AppError>(&result)) {
+        return *error;
+    }
+    return true;
+}
+
+std::variant<bool, AppError> NodeCommands::setStyle(const ID& sheetId, const ID& nodeId,
+                                                    const NodeStyleOverride& style) {
+    if (sheetId.isEmpty() || nodeId.isEmpty()) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("工作表ID与节点ID不能为空")};
+    }
+    const TreeSheet* tree = findTree(m_document->project(), sheetId);
+    if (tree == nullptr) {
+        return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在：%1").arg(sheetId)};
+    }
+    const auto node = tree->nodes.constFind(nodeId);
+    if (node == tree->nodes.constEnd()) {
+        return AppError{"NOT_FOUND", QStringLiteral("节点不存在：%1").arg(nodeId)};
+    }
+
+    // 预检与ProjectJson读写规则一致（颜色#RRGGBB、shape五枚举、字号范围、边宽正数）
+    const auto validColor = [](const std::optional<QString>& color) {
+        return !color.has_value() || isHexColor(*color);
+    };
+    if (!validColor(style.fill) || !validColor(style.color) || !validColor(style.borderColor)) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("颜色必须为#RRGGBB格式")};
+    }
+    if (style.shape.has_value() &&
+        *style.shape != QStringLiteral("roundRect") && *style.shape != QStringLiteral("rect") &&
+        *style.shape != QStringLiteral("ellipse") && *style.shape != QStringLiteral("diamond") &&
+        *style.shape != QStringLiteral("parallelogram")) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("节点形状不在支持列表内")};
+    }
+    if (style.fontSize.has_value() &&
+        (*style.fontSize < Limits::kFontSizeMin || *style.fontSize > Limits::kFontSizeMax)) {
+        return AppError{"LIMIT_EXCEEDED",
+                        QStringLiteral("字号必须在%1至%2之间")
+                            .arg(Limits::kFontSizeMin)
+                            .arg(Limits::kFontSizeMax)};
+    }
+    if (style.borderWidth.has_value() &&
+        (!std::isfinite(*style.borderWidth) || *style.borderWidth <= 0.0)) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("边框宽度必须为正数")};
+    }
+
+    if (sameOverride(style, node->style)) return true;   // 无操作短路（D-M1-02）
+
+    const auto result = m_commands->applyEdit(
+        QStringLiteral("设置节点样式"), [sheetId, nodeId, style](Project& project) {
+            TreeSheet* target = findTree(project, sheetId);
+            if (target == nullptr) return;
+            const auto it = target->nodes.find(nodeId);
+            if (it == target->nodes.end()) return;
+            it->style = style;
+            ++it->contentRevision;
         });
     if (const auto* error = std::get_if<AppError>(&result)) {
         return *error;
