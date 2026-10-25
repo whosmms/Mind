@@ -34,6 +34,8 @@ git diff --check
 作为PR #17后续的独立P3草稿增量审阅，不提前合入待验分支。待PR #17按原约定完成丙评审和甲本人补验、由乙集成后，再把本增量同步/改目标到main并按正常规则复核合并。
 本轮不改PR #17源码，不自行关闭M1门禁，也不重复催促已知真人待办。
 
+远程交付：[草稿PR #18](https://github.com/whosmms/Mind/pull/18)，目标暂为feature/a/M1-editor-integration，仅展示P3增量。当前未合并；原待验分支仅补充交付/合流说明，原src/tests/CMake及两配置程序哈希均核对未变。
+
 ## 当前主线合流准备
 
 2026-10-25只读git merge-tree核对PR17=3a090ce与main=34c8475：当前冲突仅docs/开发日志.md，业务源码自动合并，无分支、索引或工作区修改。
