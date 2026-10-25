@@ -1,5 +1,7 @@
 #include "layout/TreeLayout.h"
 #include "domain/Limits.h"
+#include <QSet>
+
 #include <algorithm>
 #include <functional>
 
@@ -159,81 +161,230 @@ std::variant<QVector<NodePosition>, AppError> layout(const TreeSheet &sheet,
         levelX[d] = levelX[d - 1] + levelMaxWidth[d - 1] / 2.0 + Limits::kLevelSpacingX +
                     levelMaxWidth[d] / 2.0;
 
-    // 根的可见子节点分侧：side强制left/right，auto按序交替（首子右侧）；
-    // layout="right"时全部右侧（TreeSheet.layout枚举：bilateral/right/fishbone，fishbone按bilateral处理）
-    const bool rightOnly = sheet.layout == QStringLiteral("right");
-    QVector<int> rightChildren, leftChildren;
-    int autoIndex = 0;
-    for (int child : items.at(rootIndex).children)
+    // ---- R10均衡布局（§6.1）：按子树实际高度分侧与紧凑排布 ----
+    // 子树布局结果：offsets为子树内各节点y相对子树根中心的偏移；top/bottom为每深度轮廓。
+    // H(n)=max(节点高, ΣH(子)+24×(子数−1))在轮廓恒为满矩形时退化为该公式；
+    // 高父超出子块等情形由逐深度轮廓直接涵盖，无需§6.1的事后冲突扩张循环。
+    struct SubtreeResult
     {
-        const QString side = sheet.nodes.constFind(items.at(child).id).value().side;
-        if (rightOnly || side == QStringLiteral("right"))
-            rightChildren.append(child);
-        else if (side == QStringLiteral("left"))
-            leftChildren.append(child);
-        else if (autoIndex % 2 == 0)
-            rightChildren.append(child);
-        else
-            leftChildren.append(child);
-        ++autoIndex;
-    }
-
-    // 纵向排布（每侧独立）：叶子占自身高度；父中心=首末子中心均值，子树高=子块高与自身高的较大者；
-    // 兄弟之间留kSiblingSpacingY。返回子树占据的高度。
-    const std::function<double(int, double)> assignY = [&](int idx, double top) -> double
+        QVector<QPair<ID, double>> offsets;
+        QVector<double> top;
+        QVector<double> bottom;
+    };
+    // 把子树轮廓并入累计轮廓（center为子树根中心相对累计原点的偏移）
+    const auto mergeInto = [&](QVector<double> &accTop, QVector<double> &accBottom, double center,
+                               const QVector<double> &childTop, const QVector<double> &childBottom)
     {
-        Item &node = items[idx];
+        const qsizetype depth = qMax(accTop.size(), childTop.size());
+        QVector<double> nextTop(depth), nextBottom(depth);
+        for (int d = 0; d < depth; ++d)
+        {
+            const bool hasAcc = d < accTop.size();
+            const bool hasChild = d < childTop.size();
+            if (hasAcc && hasChild)
+            {
+                nextTop[d] = std::min(accTop.at(d), center + childTop.at(d));
+                nextBottom[d] = std::max(accBottom.at(d), center + childBottom.at(d));
+            }
+            else if (hasChild)
+            {
+                nextTop[d] = center + childTop.at(d);
+                nextBottom[d] = center + childBottom.at(d);
+            }
+            else
+            {
+                nextTop[d] = accTop.at(d);
+                nextBottom[d] = accBottom.at(d);
+            }
+        }
+        accTop = nextTop;
+        accBottom = nextBottom;
+    };
+    // 递归构建子树：兄弟子树按每深度轮廓紧凑堆放（最小满足top(d)≥累计bottom(d)+间距），
+    // 父居中于首末子中心均值（保持M1语义），最后平移使子树根中心为0
+    const std::function<SubtreeResult(int)> buildSubtree = [&](int idx) -> SubtreeResult
+    {
+        const Item &node = items.at(idx);
         if (node.collapsed || node.children.isEmpty())
         {
-            node.y = top + node.height / 2.0;
-            return node.height;
+            SubtreeResult leaf;
+            leaf.offsets.append({node.id, 0.0});
+            leaf.top.append(-node.height / 2.0);
+            leaf.bottom.append(node.height / 2.0);
+            return leaf;
         }
-        double cursor = top;
-        for (int i = 0; i < node.children.size(); ++i)
+        QVector<double> accTop, accBottom;
+        QHash<int, double> centers;
+        QHash<int, SubtreeResult> childResults;
+        for (int child : node.children)
         {
-            if (i > 0)
-                cursor += Limits::kSiblingSpacingY;
-            cursor += assignY(node.children.at(i), cursor);
+            SubtreeResult sub = buildSubtree(child);
+            double center = 0.0;
+            const qsizetype shared = qMin(accBottom.size(), sub.top.size());
+            for (int d = 0; d < shared; ++d)
+                center =
+                    std::max(center, accBottom.at(d) + Limits::kSiblingSpacingY - sub.top.at(d));
+            centers.insert(child, center);
+            childResults.insert(child, sub);
+            mergeInto(accTop, accBottom, center, sub.top, sub.bottom);
         }
-        node.y = (items[node.children.first()].y + items[node.children.last()].y) / 2.0;
-        return std::max(cursor - top, node.height);
+        const double parentShift =
+            -(centers.value(node.children.first()) + centers.value(node.children.last())) / 2.0;
+        SubtreeResult result;
+        result.offsets.append({node.id, 0.0});
+        int deepest = 0;
+        for (int child : node.children)
+            deepest = std::max(deepest, static_cast<int>(childResults.value(child).top.size()));
+        result.top.resize(deepest + 1);
+        result.bottom.resize(deepest + 1);
+        result.top[0] = -node.height / 2.0;
+        result.bottom[0] = node.height / 2.0;
+        for (int d = 1; d <= deepest; ++d)
+        {
+            double topAt = 0.0, bottomAt = 0.0;
+            bool any = false;
+            for (int child : node.children)
+            {
+                const SubtreeResult &sub = childResults.value(child);
+                if (d - 1 >= sub.top.size())
+                    continue;
+                const double offset = centers.value(child) + parentShift;
+                const double t = offset + sub.top.at(d - 1);
+                const double b = offset + sub.bottom.at(d - 1);
+                if (!any)
+                {
+                    topAt = t;
+                    bottomAt = b;
+                    any = true;
+                }
+                else
+                {
+                    topAt = std::min(topAt, t);
+                    bottomAt = std::max(bottomAt, b);
+                }
+            }
+            if (any)
+            {
+                result.top[d] = topAt;
+                result.bottom[d] = bottomAt;
+            }
+        }
+        for (int child : node.children)
+        {
+            const SubtreeResult &sub = childResults.value(child);
+            const double offset = centers.value(child) + parentShift;
+            for (const auto &pair : sub.offsets)
+                result.offsets.append({pair.first, pair.second + offset});
+        }
+        return result;
     };
-    // 每侧自上而下顺序铺开：游标依次推进，兄弟之间留kSiblingSpacingY
+
+    // R10根直属分支分侧（§6.1）：已明确side的先固定；auto按树顺序依次放入累计子树高度
+    // 较小的一侧，累计相等放右侧（确定性平局，保持"首分支在右"惯例）；
+    // layout="right"时全部右侧（枚举：bilateral/right/fishbone，fishbone按bilateral处理）。
+    // 分侧完成后各侧仍按(order, ID)原序排布。
+    const bool rightOnly = sheet.layout == QStringLiteral("right");
+    QVector<int> rightChildren, leftChildren;
+    QHash<int, SubtreeResult> subtreeOf;
+    if (rightOnly)
+    {
+        rightChildren = items.at(rootIndex).children;
+    }
+    else
+    {
+        for (int child : items.at(rootIndex).children)
+            subtreeOf.insert(child, buildSubtree(child));
+        const auto subtreeHeight = [&](int child)
+        {
+            const SubtreeResult &sub = subtreeOf.value(child);
+            double top = 0.0, bottom = 0.0;
+            for (int d = 0; d < sub.top.size(); ++d)
+            {
+                top = std::min(top, sub.top.at(d));
+                bottom = std::max(bottom, sub.bottom.at(d));
+            }
+            return bottom - top;
+        };
+        double accRight = 0.0, accLeft = 0.0;
+        QSet<int> rightSet, leftSet;
+        for (int child : items.at(rootIndex).children)
+        {
+            const QString side = sheet.nodes.constFind(items.at(child).id).value().side;
+            if (side == QStringLiteral("left"))
+            {
+                leftSet.insert(child);
+                accLeft += subtreeHeight(child);
+            }
+            else if (side == QStringLiteral("right"))
+            {
+                rightSet.insert(child);
+                accRight += subtreeHeight(child);
+            }
+        }
+        for (int child : items.at(rootIndex).children)
+        {
+            const QString side = sheet.nodes.constFind(items.at(child).id).value().side;
+            if (side == QStringLiteral("left") || side == QStringLiteral("right"))
+                continue;
+            if (accLeft < accRight)
+            {
+                leftSet.insert(child);
+                accLeft += subtreeHeight(child);
+            }
+            else
+            {
+                rightSet.insert(child);
+                accRight += subtreeHeight(child);
+            }
+        }
+        for (int child : items.at(rootIndex).children)
+        {
+            if (rightSet.contains(child))
+                rightChildren.append(child);
+            else if (leftSet.contains(child))
+                leftChildren.append(child);
+        }
+    }
+
+    // 每侧自上而下轮廓紧凑堆放（同子树内部规则），整块按累计轮廓跨度居中于根轴
+    // （§6.1"左右各自将子树按累计高度居中排布，避免只按节点个数平均"）；根固定在y=0
+    QHash<ID, double> yById;
+    yById.insert(sheet.rootId, 0.0);
     const auto layoutSide = [&](const QVector<int> &sideChildren)
     {
-        double cursor = 0.0;
-        for (int i = 0; i < sideChildren.size(); ++i)
+        if (sideChildren.isEmpty())
+            return;
+        QVector<double> accTop, accBottom;
+        QHash<int, double> centers;
+        for (int child : sideChildren)
         {
-            if (i > 0)
-                cursor += Limits::kSiblingSpacingY;
-            cursor += assignY(sideChildren.at(i), cursor);
+            if (!subtreeOf.contains(child))
+                subtreeOf.insert(child, buildSubtree(child));
+            const SubtreeResult &sub = subtreeOf.value(child);
+            double center = 0.0;
+            const qsizetype shared = qMin(accBottom.size(), sub.top.size());
+            for (int d = 0; d < shared; ++d)
+                center =
+                    std::max(center, accBottom.at(d) + Limits::kSiblingSpacingY - sub.top.at(d));
+            centers.insert(child, center);
+            mergeInto(accTop, accBottom, center, sub.top, sub.bottom);
+        }
+        double top = 0.0, bottom = 0.0;
+        for (int d = 0; d < accTop.size(); ++d)
+        {
+            top = std::min(top, accTop.at(d));
+            bottom = std::max(bottom, accBottom.at(d));
+        }
+        const double shift = -(top + bottom) / 2.0;
+        for (int child : sideChildren)
+        {
+            const double finalY = centers.value(child) + shift;
+            for (const auto &pair : subtreeOf.value(child).offsets)
+                yById.insert(pair.first, pair.second + finalY);
         }
     };
     layoutSide(rightChildren);
     layoutSide(leftChildren);
-
-    // 根的y：有可见子时取全部根子（两侧合并）首末中心均值，否则取自身半高
-    if (items[rootIndex].collapsed || items.at(rootIndex).children.isEmpty())
-    {
-        items[rootIndex].y = items[rootIndex].height / 2.0;
-    }
-    else
-    {
-        double firstY = 0.0, lastY = 0.0;
-        bool haveVisible = false;
-        for (int child : items.at(rootIndex).children)
-        {
-            if (!items[child].visible)
-                continue;
-            if (!haveVisible)
-            {
-                firstY = items[child].y;
-                haveVisible = true;
-            }
-            lastY = items[child].y;
-        }
-        items[rootIndex].y = haveVisible ? (firstY + lastY) / 2.0 : items[rootIndex].height / 2.0;
-    }
 
     // 侧向落位：右侧子树全右（正x），左侧子树全左（负x镜像）
     const auto markSide = [&](const QVector<int> &sideChildren, bool isRight)
@@ -258,8 +409,7 @@ std::variant<QVector<NodePosition>, AppError> layout(const TreeSheet &sheet,
         if (item.visible)
             ++visibleCount;
     result.reserve(visibleCount);
-    const double rootY = items[rootIndex].y;
-    result.append(NodePosition{sheet.rootId, 0.0, items[rootIndex].y - rootY});
+    result.append(NodePosition{sheet.rootId, 0.0, 0.0});
     const auto appendSide = [&](const QVector<int> &sideChildren)
     {
         QVector<int> stack;
@@ -270,7 +420,7 @@ std::variant<QVector<NodePosition>, AppError> layout(const TreeSheet &sheet,
             const int current = stack.takeLast();
             const Item &node = items.at(current);
             if (node.visible)
-                result.append(NodePosition{node.id, node.x, node.y - rootY});
+                result.append(NodePosition{node.id, node.x, yById.value(node.id, 0.0)});
             for (int i = node.children.size() - 1; i >= 0; --i)
                 stack.append(node.children.at(i));
         }
