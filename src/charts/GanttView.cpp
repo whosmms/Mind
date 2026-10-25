@@ -66,9 +66,11 @@ const GanttBar* findBar(const QVector<GanttBar>& bars, const ID& taskId) {
 
 // FS 依赖：前置结束点 → 后继开始点右拐折线 + 箭头
 void addDependency(QGraphicsScene* scene, const GanttBar& pred, const GanttBar& succ) {
-    const qreal x1 = pred.startX + pred.width;
+    const qreal x1 = pred.milestone ? pred.startX + pred.width / 2.0 + kMilestoneRadius
+                                    : pred.startX + pred.width;
     const qreal y1 = rowCenter(pred.row);
-    const qreal x2 = succ.startX;
+    const qreal x2 =
+        succ.milestone ? succ.startX + succ.width / 2.0 - kMilestoneRadius : succ.startX;
     const qreal y2 = rowCenter(succ.row);
     const qreal midX = (x1 + x2) / 2.0;
 
@@ -156,13 +158,18 @@ void GanttView::rebuild() {
         for (int i = 0; i < totalDays; ++i) {
             const QDate day = result.rangeStart.addDays(i);
             const qreal x = i * m_pixelsPerDay;
-            if (day.day() == 1) {
+            const bool monthLabel = i == 0 || day.day() == 1;
+            if (monthLabel)
+            {
                 target->addLine(x, 0, x, sceneHeight, QPen(primaryColor(), 1.0));
                 auto* label = target->addText(day.toString(QStringLiteral("yyyy-MM")), monthFont);
                 label->setDefaultTextColor(primaryColor());
                 label->setPos(x + 3, 0);
-            } else if (m_pixelsPerDay >= 16) {
-                target->addLine(x, kAxisHeight - 4, x, sceneHeight, QPen(borderColor(), 0.6));
+            }
+            if (day.day() != 1 && m_pixelsPerDay >= 16)
+            {
+                if (!monthLabel)
+                    target->addLine(x, kAxisHeight - 4, x, sceneHeight, QPen(borderColor(), 0.6));
                 auto* label = target->addText(QString::number(day.day()), dayFont);
                 label->setDefaultTextColor(secondaryTextColor());
                 label->setPos(x + 2, kAxisHeight - 16);
@@ -231,6 +238,15 @@ void GanttView::rebuild() {
         label->setDefaultTextColor(secondaryTextColor());
         label->setPos(4, kAxisHeight + rows * kRowHeight + 4);
     }
+
+    // 日期宽度不是文字宽度：把年月和未排期列表纳入滚动范围，保留日期坐标与行高。
+    QRectF visibleBounds(0, 0, sceneWidth, sceneHeight);
+    for (QGraphicsItem *item : target->items())
+    {
+        if (item->type() == QGraphicsTextItem::Type)
+            visibleBounds = visibleBounds.united(item->sceneBoundingRect());
+    }
+    target->setSceneRect(visibleBounds);
 }
 
 }  // namespace lingya
