@@ -3,6 +3,8 @@
 #include "document/ProjectDocument.h"
 #include "domain/TitleRules.h"
 
+#include <QSet>
+
 #include <QUuid>
 #include <algorithm>
 
@@ -64,6 +66,26 @@ void normalizeSiblings(TreeSheet& tree, const ID& parentId) {
     }
 }
 
+// 收集某父节点的兄弟ID序列，按(order, ID)稳定排序（D-M1-03：先规范化再定位）
+QVector<ID> siblingSequence(const TreeSheet& tree, const ID& parentId) {
+    QVector<QPair<int, ID>> siblings;
+    for (auto it = tree.nodes.constBegin(); it != tree.nodes.constEnd(); ++it) {
+        if (it.value().parentId.has_value() && *it.value().parentId == parentId) {
+            siblings.append({it.value().order, it.key()});
+        }
+    }
+    std::sort(siblings.begin(), siblings.end(),
+              [](const QPair<int, ID>& left, const QPair<int, ID>& right) {
+                  if (left.first != right.first) {
+                      return left.first < right.first;
+                  }
+                  return left.second < right.second;
+              });
+    QVector<ID> sequence;
+    for (const auto& pair : siblings) sequence.append(pair.second);
+    return sequence;
+}
+
 }  // namespace
 
 NodeCommands::NodeCommands(CommandService* commands, const ProjectDocument* document)
@@ -123,6 +145,169 @@ std::variant<ID, AppError> NodeCommands::addChild(const ID& sheetId, const ID& p
         return *error;
     }
     return newId;
+}
+
+std::variant<ID, AppError> NodeCommands::addSibling(const ID& sheetId, const ID& referenceId,
+                                                    const QString& title) {
+    if (sheetId.isEmpty() || referenceId.isEmpty()) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("工作表ID与参照节点ID不能为空")};
+    }
+    const TreeSheet* tree = findTree(m_document->project(), sheetId);
+    if (tree == nullptr) {
+        return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在：%1").arg(sheetId)};
+    }
+    const auto reference = tree->nodes.constFind(referenceId);
+    if (reference == tree->nodes.constEnd()) {
+        return AppError{"NOT_FOUND", QStringLiteral("参照节点不存在：%1").arg(referenceId)};
+    }
+    if (referenceId == tree->rootId || !reference->parentId.has_value()) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("根节点没有同级主题")};
+    }
+    if (totalNodeCount(m_document->project()) >= Limits::kMaxNodes) {
+        return AppError{"LIMIT_EXCEEDED",
+                        QStringLiteral("工程节点数量已达上限%1").arg(Limits::kMaxNodes)};
+    }
+    const QString normalizedTitle = TitleRules::normalize(title);
+    if (TitleRules::exceedsTitleLimit(normalizedTitle)) {
+        return AppError{"LIMIT_EXCEEDED",
+                        QStringLiteral("节点标题超过%1个字符").arg(Limits::kTitleMaxChars)};
+    }
+
+    const ID newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    const auto result = m_commands->applyEdit(QStringLiteral("新增同级主题"),
+                                              [sheetId, referenceId, newId, normalizedTitle](
+                                                  Project& project) {
+        TreeSheet* target = findTree(project, sheetId);
+        if (target == nullptr || !target->nodes.contains(referenceId)) return;
+        const TreeNode& referenceNode = target->nodes[referenceId];
+        if (!referenceNode.parentId.has_value()) return;
+        const ID parentId = *referenceNode.parentId;
+
+        // D-M1-03：先按(order,ID)形成兄弟序列，在参照之后插入，再写回连续order
+        const QVector<ID> sequence = siblingSequence(*target, parentId);
+        const int at = sequence.indexOf(referenceId);
+        if (at < 0) return;
+        QVector<ID> ordered = sequence;
+        ordered.insert(at + 1, newId);
+
+        TreeNode node;
+        node.id = newId;
+        node.parentId = parentId;
+        node.title = normalizedTitle;
+        node.contentRevision = 1;
+        target->nodes.insert(newId, node);
+        for (int i = 0; i < ordered.size(); ++i) target->nodes[ordered.at(i)].order = i;
+        ++target->nodes[parentId].contentRevision;
+    });
+    if (const auto* error = std::get_if<AppError>(&result)) {
+        return *error;
+    }
+    return newId;
+}
+
+std::variant<bool, AppError> NodeCommands::deleteSubtree(const ID& sheetId, const ID& nodeId,
+                                                         TaskDeletePolicy policy) {
+    if (sheetId.isEmpty() || nodeId.isEmpty()) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("工作表ID与节点ID不能为空")};
+    }
+    const TreeSheet* tree = findTree(m_document->project(), sheetId);
+    if (tree == nullptr) {
+        return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在：%1").arg(sheetId)};
+    }
+    const auto targetNode = tree->nodes.constFind(nodeId);
+    if (targetNode == tree->nodes.constEnd()) {
+        return AppError{"NOT_FOUND", QStringLiteral("节点不存在：%1").arg(nodeId)};
+    }
+    if (nodeId == tree->rootId) {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("根节点不能删除")};
+    }
+
+    const auto result = m_commands->applyEdit(
+        QStringLiteral("删除子树"), [sheetId, nodeId, policy](Project& project) {
+            TreeSheet* target = findTree(project, sheetId);
+            if (target == nullptr || !target->nodes.contains(nodeId)) return;
+            const ID parentId = target->nodes[nodeId].parentId.value_or(ID{});
+
+            // 收集子树（沿parentId向下）
+            QSet<ID> subtree;
+            QVector<ID> stack{nodeId};
+            while (!stack.isEmpty()) {
+                const ID current = stack.takeLast();
+                if (!subtree.contains(current)) subtree.insert(current);
+                for (auto it = target->nodes.constBegin(); it != target->nodes.constEnd(); ++it) {
+                    if (it.value().parentId.has_value() && *it.value().parentId == current &&
+                        !subtree.contains(it.key()))
+                        stack.append(it.key());
+                }
+            }
+
+            // 关系线：任一端点在子树内即删（校验器规则7：端点必须存在）
+            QVector<Relation> keptRelations;
+            for (const Relation& rel : target->relations) {
+                if (!subtree.contains(rel.sourceId) && !subtree.contains(rel.targetId))
+                    keptRelations.append(rel);
+            }
+            target->relations = keptRelations;
+
+            // 分组注释：父级或任一成员在子树内即删（校验器规则6/7）
+            QVector<GroupAnnotation> keptAnnotations;
+            for (const GroupAnnotation& ga : target->annotations) {
+                bool touches = subtree.contains(ga.parentId);
+                for (const ID& member : ga.memberIds)
+                    if (subtree.contains(member)) touches = true;
+                if (!touches) keptAnnotations.append(ga);
+            }
+            target->annotations = keptAnnotations;
+
+            // 批注：指向子树节点即删（校验器：批注节点必须存在）
+            QVector<Comment> keptComments;
+            for (const Comment& c : target->comments) {
+                if (!subtree.contains(c.nodeId)) keptComments.append(c);
+            }
+            target->comments = keptComments;
+
+            // 任务联动（D-M1-05）：默认清除source保留独立任务；DeleteTogether连任务一起删
+            // 并清理其他任务对被删任务的前置依赖（同一事务，规范§12）
+            QVector<ID> removedTaskIds;
+            for (Task& task : project.tasks) {
+                if (!task.source.has_value() || task.source->sheetId != sheetId) continue;
+                if (!subtree.contains(task.source->nodeId)) continue;
+                if (policy == TaskDeletePolicy::DeleteTogether) {
+                    removedTaskIds.append(task.id);
+                } else {
+                    task.source.reset();
+                }
+            }
+            if (policy == TaskDeletePolicy::DeleteTogether && !removedTaskIds.isEmpty()) {
+                const QSet<ID> removed(removedTaskIds.cbegin(), removedTaskIds.cend());
+                QVector<Task> keptTasks;
+                for (const Task& task : project.tasks)
+                    if (!removed.contains(task.id)) keptTasks.append(task);
+                for (Task& task : keptTasks) {
+                    if (task.predecessorIds.isEmpty()) continue;
+                    QVector<ID> keptPreds;
+                    for (const ID& pred : task.predecessorIds)
+                        if (!removed.contains(pred)) keptPreds.append(pred);
+                    task.predecessorIds = keptPreds;
+                }
+                project.tasks = keptTasks;
+            }
+
+            // 复习卡片：源节点被删保留卡片并置missing（D-M1-05、§7.1运行时处理）
+            for (ReviewCard& card : project.cards) {
+                if (card.sheetId == sheetId && subtree.contains(card.nodeId))
+                    card.sourceState = QStringLiteral("missing");
+            }
+            // 讲解路线与文稿不自动改写（D-M1-05：运行时重校验提示跳过）
+
+            for (const ID& id : subtree) target->nodes.remove(id);
+            if (!parentId.isEmpty() && target->nodes.contains(parentId))
+                ++target->nodes[parentId].contentRevision;
+        });
+    if (const auto* error = std::get_if<AppError>(&result)) {
+        return *error;
+    }
+    return true;
 }
 
 }  // namespace lingya
