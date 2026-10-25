@@ -4,6 +4,16 @@
 **新成员与AI协助从这里开始：先读 [AGENTS.md](AGENTS.md)，再读
 [docs/三人协作开发统一规范.md](docs/三人协作开发统一规范.md)。**
 
+## H-020最新追加：未编辑字体覆盖保留（2026-10-25）
+
+- 本轮fetch main仍ca132b1；PR20/22/23均开放草稿，无新评审意见或检查。仅PR23分支追加修正，不改原PR20/22 tip，不自批合main，仍先接收PR20后同步本批。
+- 甲自查三个合法fontFamily值（显式空串、纯空白、首尾空白）：严格保存/重开成功，不编辑直接应用却产生1次changed，三个数据行实测失败。原因是甲窗口trim未编辑值，不归责乙JSON/命令。原失败XML已留证。
+- MainWindow保留初始显示与原optional值，未编辑字体原样交给乙setStyle；修改其他样式也保持字体。“恢复为工作表样式”显式清除，原空串也可清除；新增编辑仍按既定trim规则。仅MainWindow.cpp/tst_ui.cpp，无Domain/JSON/命令/CMake/Kit变动。
+- 最终被测275b57d：冻结Debug/Release构建/CTest各16/16通过；32份XML实测各16套件324项通过、0失败0跳过（含初始化/清理与数据行）；新增3行还覆盖其他字段编辑不改字体、单次撤销与恢复继承/撤销。无Svg隔离各1个UI套件16项通过、0失败0跳过，格式探针有png无svg/svgz，专项与全量不相加。
+- 证据evidence/20261025-甲未编辑字体覆盖复验；原始build/node-style-font-preserve-evidence、build/font-preserve-no-svg-runtime-evidence及node-style-font-preserve-validation-console.log。旧388290d/321和旧无Svg13只对应旧快照，旧截图未冒充275b57d。
+- 新固定候选D:\mind\人工验收\局部样式字体保留_20261025_203150，18份运行文件+qt.conf逐项哈希核验，无Svg；旧候选与原app程序保留。原样式增量步骤仅更新候选，不新增真人检查项，未代签或重开旧验收。此修正不改变完整R05/M2仍未签收的边界。
+## 以下为此前H-020交接快照（数字及等待仅对应原时点）
+
 ## 当前甲增量：H-020节点局部样式
 
 草稿PR23：https://github.com/whosmms/Mind/pull/23（以PR20分支为基线，待非作者复核，未合main）。
