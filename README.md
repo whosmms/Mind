@@ -6,6 +6,8 @@
 
 ## 当前状态：甲M1与按钮API清理已集成，M1操作核查继续
 
+最新PR19组合f1f5c7b已普通同步乙BUG-013/e965245，Debug/Release各16套件292项通过、0失败0跳过，32XML；乙原修正不记甲贡献，未混入独立PR20或PR21，旧真人待办不重开。以下291/271为对应旧组合快照。
+
 乙已将甲M1编辑器合入main（7b3a27f），并接收H-016两项元数据兼容测试（282c2af）；按钮API清理由乙普通合并df18ded进入main。GitHub [PR17](https://github.com/whosmms/Mind/pull/17)已合并；[PR18](https://github.com/whosmms/Mind/pull/18)已关闭，其代码已集成。五条旧远程分支已清理，不再以它们作为当前同步入口。
 
 乙INT-20261025-006/007登记合后Debug/Release各15套件266项通过；丙评审与授权代验结果均为乙回执来源。最新main=033441c追加甲本人Ctrl+Y复核通过（乙转达）、H-011～H-016门槛闭合；旧三项不再作为待办。本轮甲另补焦点/别名与另存为链路自动核查，见[H-017说明](docs/reviews/H-017-M1集成回执与操作核查.md)及[草稿PR19](https://github.com/whosmms/Mind/pull/19)。M2属性面板和样式绘制尚未交付。
