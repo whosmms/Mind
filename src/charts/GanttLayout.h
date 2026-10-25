@@ -23,6 +23,7 @@ struct GanttLayoutResult {
     QVector<GanttBar> bars;
     int rowCount = 0;   // 行数（= 任务数）
     int totalWidth = 0; // 时间轴总宽（像素）
+    QDate rangeStart;   // 时间轴起点日期；无有效日期时无效，可用于画刻度
 };
 
 class GanttLayout {

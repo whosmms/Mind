@@ -1,21 +1,26 @@
 #include "charts/GanttView.h"
 
-#include "charts/GanttLayout.h"
-
 #include <QBrush>
 #include <QColor>
+#include <QFont>
 #include <QGraphicsScene>
+#include <QGraphicsTextItem>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
 #include <QPolygonF>
+#include <QStringList>
 
 namespace lingya {
 
 namespace {
 
+constexpr int kAxisHeight = 30;    // 时间轴高度
 constexpr int kRowHeight = 28;
 constexpr int kBarMargin = 4;
 constexpr int kMilestoneRadius = 8;
+constexpr int kArrowSize = 5;
+constexpr int kUnscheduledHeight = 26;
 
 // 统一规范§14 色值（与 resources/styles/light.qss 一致，不另造颜色）
 QColor pageBackground() {
@@ -28,6 +33,57 @@ QColor primaryColor() {
 
 QColor mintAccent() {
     return QColor(0xDD, 0xF2, 0xE7);  // 薄荷辅助（任务条填充）
+}
+
+QColor borderColor() {
+    return QColor(0xDD, 0xE6, 0xDF);  // 边框
+}
+
+QColor textColor() {
+    return QColor(0x24, 0x3A, 0x34);  // 主文字
+}
+
+QColor secondaryTextColor() {
+    return QColor(0x63, 0x76, 0x6E);  // 次文字
+}
+
+qreal rowTop(int row) {
+    return kAxisHeight + row * kRowHeight + kBarMargin;
+}
+
+qreal rowCenter(int row) {
+    return kAxisHeight + row * kRowHeight + kRowHeight / 2.0;
+}
+
+const GanttBar* findBar(const QVector<GanttBar>& bars, const ID& taskId) {
+    for (const GanttBar& bar : bars) {
+        if (bar.taskId == taskId) {
+            return &bar;
+        }
+    }
+    return nullptr;
+}
+
+// FS 依赖：前置结束点 → 后继开始点右拐折线 + 箭头
+void addDependency(QGraphicsScene* scene, const GanttBar& pred, const GanttBar& succ) {
+    const qreal x1 = pred.startX + pred.width;
+    const qreal y1 = rowCenter(pred.row);
+    const qreal x2 = succ.startX;
+    const qreal y2 = rowCenter(succ.row);
+    const qreal midX = (x1 + x2) / 2.0;
+
+    QPainterPath path;
+    path.moveTo(x1, y1);
+    path.lineTo(midX, y1);
+    path.lineTo(midX, y2);
+    path.lineTo(x2, y2);
+    scene->addPath(path, QPen(primaryColor(), 1.0, Qt::DashLine));
+
+    const qreal direction = (x2 >= midX) ? 1.0 : -1.0;
+    QPolygonF head;
+    head << QPointF(x2, y2) << QPointF(x2 - direction * kArrowSize, y2 - kArrowSize * 0.6)
+         << QPointF(x2 - direction * kArrowSize, y2 + kArrowSize * 0.6);
+    scene->addPolygon(head, Qt::NoPen, QBrush(primaryColor()));
 }
 
 }  // namespace
@@ -48,13 +104,21 @@ const QVector<Task>& GanttView::tasks() const {
 }
 
 void GanttView::setPixelsPerDay(int pixelsPerDay) {
-    m_pixelsPerDay =
-        pixelsPerDay > 0 ? pixelsPerDay : GanttLayout::kDefaultPixelsPerDay;
+    m_pixelsPerDay = pixelsPerDay > 0 ? pixelsPerDay : GanttLayout::kDefaultPixelsPerDay;
     rebuild();
 }
 
 int GanttView::pixelsPerDay() const {
     return m_pixelsPerDay;
+}
+
+int GanttView::rowForTask(const ID& taskId) const {
+    for (int row = 0; row < m_tasks.size(); ++row) {
+        if (m_tasks.at(row).id == taskId) {
+            return row;
+        }
+    }
+    return -1;
 }
 
 void GanttView::rebuild() {
@@ -63,28 +127,110 @@ void GanttView::rebuild() {
 
     GanttLayout layout(m_pixelsPerDay);
     const GanttLayoutResult result = layout.compute(m_tasks);
-    const QPen stroke(primaryColor());
 
-    for (const GanttBar& bar : result.bars) {
-        if (!bar.hasDates) {
-            continue;  // 未排期任务不画条
-        }
-        const qreal top = bar.row * kRowHeight + kBarMargin;
-        if (bar.milestone) {
-            const qreal cx = bar.startX + bar.width / 2.0;
-            const qreal cy = top + (kRowHeight - 2 * kBarMargin) / 2.0;
-            QPolygonF diamond;
-            diamond << QPointF(cx, cy - kMilestoneRadius)
-                    << QPointF(cx + kMilestoneRadius, cy)
-                    << QPointF(cx, cy + kMilestoneRadius)
-                    << QPointF(cx - kMilestoneRadius, cy);
-            target->addPolygon(diamond, stroke, QBrush(primaryColor()));
-        } else {
-            target->addRect(QRectF(bar.startX, top, bar.width, kRowHeight - 2 * kBarMargin),
-                            stroke, QBrush(mintAccent()));
+    // 未排期任务：不画条，单独列在底部
+    QStringList unscheduled;
+    for (const Task& task : m_tasks) {
+        const bool hasDates = task.startDate.has_value() && task.startDate->isValid() &&
+                              task.endDate.has_value() && task.endDate->isValid();
+        if (!hasDates) {
+            unscheduled << task.title;
         }
     }
-    target->setSceneRect(0, 0, result.totalWidth, result.rowCount * kRowHeight);
+
+    const int rows = result.rowCount;
+    const int unscheduledHeight = unscheduled.isEmpty() ? 0 : kUnscheduledHeight;
+    const qreal sceneWidth = qMax(result.totalWidth, 1);
+    const qreal sceneHeight = kAxisHeight + rows * kRowHeight + unscheduledHeight;
+    target->setSceneRect(0, 0, sceneWidth, sceneHeight);
+
+    // 时间轴刻度：每月边界画主线+年月，按天画浅色分隔线与日号
+    if (result.rangeStart.isValid() && result.totalWidth > 0) {
+        QFont dayFont;
+        dayFont.setPointSize(7);
+        QFont monthFont;
+        monthFont.setPointSize(8);
+        monthFont.setBold(true);
+
+        const int totalDays = result.totalWidth / m_pixelsPerDay;
+        for (int i = 0; i < totalDays; ++i) {
+            const QDate day = result.rangeStart.addDays(i);
+            const qreal x = i * m_pixelsPerDay;
+            if (day.day() == 1) {
+                target->addLine(x, 0, x, sceneHeight, QPen(primaryColor(), 1.0));
+                auto* label = target->addText(day.toString(QStringLiteral("yyyy-MM")), monthFont);
+                label->setDefaultTextColor(primaryColor());
+                label->setPos(x + 3, 1);
+            } else if (m_pixelsPerDay >= 16) {
+                target->addLine(x, kAxisHeight - 8, x, sceneHeight, QPen(borderColor(), 0.6));
+                auto* label = target->addText(QString::number(day.day()), dayFont);
+                label->setDefaultTextColor(secondaryTextColor());
+                label->setPos(x + 2, kAxisHeight - 20);
+            }
+        }
+    }
+
+    const QPen stroke(primaryColor());
+
+    // 任务条 + 进度填充 + 里程碑
+    for (const GanttBar& bar : result.bars) {
+        if (!bar.hasDates) {
+            continue;
+        }
+        const Task* task = nullptr;
+        for (const Task& candidate : m_tasks) {
+            if (candidate.id == bar.taskId) {
+                task = &candidate;
+                break;
+            }
+        }
+        if (bar.milestone) {
+            const qreal cx = bar.startX + bar.width / 2.0;
+            const qreal cy = rowCenter(bar.row);
+            QPolygonF diamond;
+            diamond << QPointF(cx, cy - kMilestoneRadius) << QPointF(cx + kMilestoneRadius, cy)
+                    << QPointF(cx, cy + kMilestoneRadius) << QPointF(cx - kMilestoneRadius, cy);
+            auto* item = target->addPolygon(diamond, stroke, QBrush(primaryColor()));
+            item->setData(kBarDataRole, bar.taskId);
+            continue;
+        }
+
+        const QRectF barRect(bar.startX, rowTop(bar.row), bar.width,
+                             kRowHeight - 2 * kBarMargin);
+        auto* item = target->addRect(barRect, stroke, QBrush(mintAccent()));
+        item->setData(kBarDataRole, bar.taskId);
+
+        const int progress = task != nullptr ? qBound(0, task->progress, 100) : 0;
+        if (progress > 0) {
+            const QRectF fillRect(barRect.x(), barRect.y(),
+                                  barRect.width() * progress / 100.0, barRect.height());
+            target->addRect(fillRect, Qt::NoPen, QBrush(primaryColor()));
+        }
+    }
+
+    // FS 依赖连线：前置结束 → 后继开始
+    for (const Task& task : m_tasks) {
+        const GanttBar* successor = findBar(result.bars, task.id);
+        if (successor == nullptr || !successor->hasDates) {
+            continue;
+        }
+        for (const ID& predecessorId : task.predecessorIds) {
+            const GanttBar* predecessor = findBar(result.bars, predecessorId);
+            if (predecessor != nullptr && predecessor->hasDates) {
+                addDependency(target, *predecessor, *successor);
+            }
+        }
+    }
+
+    // 未排期列表
+    if (!unscheduled.isEmpty()) {
+        QFont font;
+        font.setPointSize(8);
+        auto* label = target->addText(
+            QStringLiteral("未排期：") + unscheduled.join(QStringLiteral("、")), font);
+        label->setDefaultTextColor(secondaryTextColor());
+        label->setPos(4, kAxisHeight + rows * kRowHeight + 4);
+    }
 }
 
 }  // namespace lingya
