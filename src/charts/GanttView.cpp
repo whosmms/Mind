@@ -15,7 +15,7 @@ namespace lingya {
 
 namespace {
 
-constexpr int kAxisHeight = 30;    // 时间轴高度
+constexpr int kAxisHeight = 34;    // 时间轴高度（容纳月份+日号两行）
 constexpr int kRowHeight = 28;
 constexpr int kBarMargin = 4;
 constexpr int kMilestoneRadius = 8;
@@ -160,12 +160,12 @@ void GanttView::rebuild() {
                 target->addLine(x, 0, x, sceneHeight, QPen(primaryColor(), 1.0));
                 auto* label = target->addText(day.toString(QStringLiteral("yyyy-MM")), monthFont);
                 label->setDefaultTextColor(primaryColor());
-                label->setPos(x + 3, 1);
+                label->setPos(x + 3, 0);
             } else if (m_pixelsPerDay >= 16) {
-                target->addLine(x, kAxisHeight - 8, x, sceneHeight, QPen(borderColor(), 0.6));
+                target->addLine(x, kAxisHeight - 4, x, sceneHeight, QPen(borderColor(), 0.6));
                 auto* label = target->addText(QString::number(day.day()), dayFont);
                 label->setDefaultTextColor(secondaryTextColor());
-                label->setPos(x + 2, kAxisHeight - 20);
+                label->setPos(x + 2, kAxisHeight - 16);
             }
         }
     }

@@ -101,10 +101,10 @@ void TstGanttView::sceneRectTracksRowsAndRange() {
     view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 1, 1), QDate(2026, 1, 3)),
                    makeTask(QStringLiteral("B"), QDate(2026, 1, 10), QDate(2026, 1, 12))});
 
-    // 日期范围 1/1..1/12 = 12 天 × 10px = 120；高度 = 时间轴 30 + 2 行 × 28 = 86
+    // 日期范围 1/1..1/12 = 12 天 × 10px = 120；高度 = 时间轴 34 + 2 行 × 28 = 90
     const QRectF rect = view.scene()->sceneRect();
     QCOMPARE(rect.width(), 120.0);
-    QCOMPARE(rect.height(), 86.0);
+    QCOMPARE(rect.height(), 90.0);
     QCOMPARE(barItemCount(view), 2);
 }
 
