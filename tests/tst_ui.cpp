@@ -106,6 +106,7 @@ private slots:
     void loginDialogValidationRegistrationAndCancel();
     void ownedListPreservesRepeatedExtension();
     void ownedSaveRejectsEmptyNameForDotFile();
+    void loggedInOpensFileLooseInUsersRoot();
 
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
@@ -1943,6 +1944,23 @@ void TstUi::ownedSaveRejectsEmptyNameForDotFile()
     QVERIFY(!window.saveProjectToOwned(QString()));
     QVERIFY(document->isModified());
     QCOMPARE(ProjectJson::toJson(document->project()), before);
+}
+
+void TstUi::loggedInOpensFileLooseInUsersRoot()
+{
+    // BUG-013复现：未登录把文件存进users根（不在任何用户子文件夹），登录后应能打开
+    QTemporaryDir sessionRoot;
+    QVERIFY(sessionRoot.isValid());
+    MainWindow::setSessionRootForTest(sessionRoot.path());
+    const QString loosePath = sessionRoot.filePath(QStringLiteral("users/散置工程.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(
+        loosePath, ProjectFactory::createMindmap(QStringLiteral("散置内容")))));
+
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        sessionRoot.path(), QStringLiteral("测试甲"), QStringLiteral("abc123"))));
+    MainWindow w;
+    QVERIFY(w.loginSession(QStringLiteral("测试甲"), QStringLiteral("abc123")));
+    QVERIFY(w.openFile(loosePath)); // 修复前：被误判Others拒绝
 }
 
 QTEST_MAIN(TstUi)
