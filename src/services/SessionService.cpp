@@ -1,6 +1,7 @@
 #include "services/SessionService.h"
 #include "domain/Limits.h"
 #include "domain/TitleRules.h"
+#include "services/LocalNameRules.h"
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -70,7 +71,7 @@ std::variant<QVector<AccountRecord>, AppError> loadAccounts(const QString &root)
         record.hash = user.value(QStringLiteral("hash")).toString();
         record.createdAt = QDateTime::fromString(user.value(QStringLiteral("createdAt")).toString(),
                                                  Qt::ISODateWithMs);
-        if (record.name.isEmpty() || record.salt.isEmpty() || record.hash.isEmpty())
+        if (!validUserName(record.name) || record.salt.isEmpty() || record.hash.isEmpty())
             return AppError{"INVALID_PROJECT", QStringLiteral("账号库存在不完整记录，拒绝加载")};
         for (const AccountRecord &existing : records)
             if (existing.name.compare(record.name, Qt::CaseInsensitive) == 0)
@@ -115,15 +116,7 @@ bool validUserName(const QString &userName)
     const QString name = normalizeUserName(userName);
     if (TitleRules::codePointCount(name) < 2 || TitleRules::codePointCount(name) > 32)
         return false;
-    static const QString forbidden = QStringLiteral("/\\:*?\"<>|");
-    for (const QChar &ch : name)
-    {
-        if (ch.category() == QChar::Other_Control)
-            return false;
-        if (forbidden.contains(ch))
-            return false;
-    }
-    return name != QStringLiteral(".") && name != QStringLiteral("..");
+    return LocalNameRules::validComponent(name);
 }
 
 std::variant<bool, AppError> createAccount(const QString &root, const QString &userName,

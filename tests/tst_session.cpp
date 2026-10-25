@@ -38,6 +38,9 @@ class TstSession : public QObject
     void accountNamesCannotShareDirectoryIdentity();
     void malformedUsersCollectionKeepsAccountStore();
     void duplicateDirectoryIdentityRejectedOnLoad();
+    void windowsAccountNamesRejected_data();
+    void windowsAccountNamesRejected();
+    void ownedNameRejectsStreamBeforeCreatingFolder();
 
   private:
     static Project makeProject(const QString &title)
@@ -306,6 +309,36 @@ void TstSession::duplicateDirectoryIdentityRejectedOnLoad()
     QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_PROJECT"));
     QVERIFY(file.open(QIODevice::ReadOnly));
     QCOMPARE(file.readAll(), broken);
+}
+
+void TstSession::windowsAccountNamesRejected_data()
+{
+    QTest::addColumn<QString>("name");
+    QTest::newRow("尾点目录别名") << QStringLiteral("同学.");
+    QTest::newRow("保留设备名") << QStringLiteral("NUL");
+    QTest::newRow("设备名带扩展") << QStringLiteral("con.notes");
+    QTest::newRow("串行设备名") << QStringLiteral("COM1");
+    QTest::newRow("上标设备名") << QStringLiteral("LPT²");
+    QTest::newRow("冒号流名") << QStringLiteral("同学:附加");
+}
+
+void TstSession::windowsAccountNamesRejected()
+{
+    QFETCH(QString, name);
+    // 纯校验，不尝试打开Windows设备。
+    QVERIFY(!SessionService::validUserName(name));
+}
+
+void TstSession::ownedNameRejectsStreamBeforeCreatingFolder()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const QString user = QStringLiteral("复核同学");
+    const auto result = UserFileService::saveOwned(root.path(), user, QStringLiteral("提纲:附加"),
+                                                   makeProject(QStringLiteral("测试工程")));
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_ARGUMENT"));
+    QVERIFY(!QDir(UserFileService::userDir(root.path(), user)).exists());
 }
 
 QTEST_MAIN(TstSession)
