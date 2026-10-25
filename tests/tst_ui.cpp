@@ -75,6 +75,7 @@ private slots:
     void deletionPoliciesAndUndo_data();
     void deletionPoliciesAndUndo();
     void exportManualFixtures();
+    void unsavedPromptButtonsAreChineseAndCancelKeepsContent();
     // 恢复快照（规范§11.3、原设计§8）——放最后：前序测试在隔离空恢复根目录下不受影响
     void recoverySnapshotWrittenOnlyForDirtyChangedContent();
     void recoveryAdoptionGoesThroughCommandTransaction();
@@ -1403,6 +1404,37 @@ void TstUi::exportManualFixtures()
         QCOMPARE(ProjectJson::toJson(std::get<Project>(reloaded)),
                  ProjectJson::toJson(sample.second));
     }
+}
+
+void TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent()
+{
+    MainWindow window;
+    QVERIFY(window.renameRootTo(QStringLiteral("必须保留的内容")));
+    bool chinese = false;
+    QTimer::singleShot(
+        0,
+        [&]
+        {
+            for (QWidget *top : QApplication::topLevelWidgets())
+            {
+                if (auto *box = qobject_cast<QMessageBox *>(top))
+                {
+                    chinese = box->buttonText(QMessageBox::Save) == QStringLiteral("保存") &&
+                              box->buttonText(QMessageBox::Discard) == QStringLiteral("放弃修改") &&
+                              box->buttonText(QMessageBox::Cancel) == QStringLiteral("取消");
+                    box->button(QMessageBox::Cancel)->click();
+                }
+            }
+        });
+    QAction *create = nullptr;
+    for (QAction *action : window.findChildren<QAction *>())
+        if (action->text().startsWith(QStringLiteral("新建")))
+            create = action;
+    QVERIFY(create != nullptr);
+    create->trigger();
+    QVERIFY(chinese);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("必须保留的内容"));
+    QVERIFY(window.findChild<ProjectDocument *>()->isModified());
 }
 
 QTEST_MAIN(TstUi)

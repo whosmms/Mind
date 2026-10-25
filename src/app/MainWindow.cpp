@@ -51,6 +51,13 @@ namespace lingya {
 
 
 namespace {
+void showNotice(QWidget *parent, QMessageBox::Icon icon, const QString &title, const QString &text)
+{
+    QMessageBox box(icon, title, text, QMessageBox::Ok, parent);
+    box.setButtonText(QMessageBox::Ok, QStringLiteral("确定"));
+    box.exec();
+}
+
 // 标准Qt多行输入框：预编辑期间不把Enter当成提交，Shift+Enter保留换行。
 class NodeTitleDialog final : public QInputDialog
 {
@@ -318,8 +325,8 @@ void MainWindow::offerRecoverySnapshots() {
 bool MainWindow::adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info) {
     const auto loaded = RecoveryService::load(m_recoveryRoot, info.projectId, info.snapshotId);
     if (std::holds_alternative<AppError>(loaded)) {
-        QMessageBox::critical(this, QStringLiteral("无法采用快照"),
-                              std::get<AppError>(loaded).message);
+        showNotice(this, QMessageBox::Critical, QStringLiteral("无法采用快照"),
+                   std::get<AppError>(loaded).message);
         return false;
     }
     const Project recovered = std::get<Project>(loaded);
@@ -338,8 +345,8 @@ bool MainWindow::adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info
         m_filePath = previousPath;
         m_fileStamp = previousStamp;
         m_recoveryNote = previousNote;
-        QMessageBox::warning(this, QStringLiteral("无法采用快照"),
-                             std::get<AppError>(applied).message);
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法采用快照"),
+                   std::get<AppError>(applied).message);
         return false;
     }
     // 采用只写入内存，不清理磁盘副本；否则另存前再次崩溃会失去恢复保障。
@@ -446,8 +453,8 @@ bool MainWindow::openFile(const QString& path) {
     const auto result = FileService::load(path);
     if (std::holds_alternative<AppError>(result)) {
         // 坏文件不覆盖当前工作（R04）：原工程保持不变
-        QMessageBox::critical(this, QStringLiteral("无法打开"),
-                              std::get<AppError>(result).message);
+        showNotice(this, QMessageBox::Critical, QStringLiteral("无法打开"),
+                   std::get<AppError>(result).message);
         return false;
     }
     m_filePath = path;
@@ -485,8 +492,8 @@ bool MainWindow::saveProjectTo(const QString& path) {
             : FileService::save(target, m_doc->project());
     if (std::holds_alternative<AppError>(result)) {
         // 保存失败保持脏状态并显示中文提示（规范§8）
-        QMessageBox::critical(this, QStringLiteral("保存失败"),
-                              std::get<AppError>(result).message);
+        showNotice(this, QMessageBox::Critical, QStringLiteral("保存失败"),
+                   std::get<AppError>(result).message);
         return false;
     }
     m_filePath = target;
@@ -523,7 +530,7 @@ void MainWindow::renameSelectedNode()
     TaskCommands tasks(m_commands, m_doc);
     const auto result = tasks.renameNode(sheetId, nodeId, title);
     if (const auto *error = std::get_if<AppError>(&result))
-        QMessageBox::warning(this, QStringLiteral("无法重命名"), error->message);
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法重命名"), error->message);
 }
 
 void MainWindow::addChildToSelection()
@@ -541,7 +548,7 @@ void MainWindow::addChildToSelection()
     const auto result = nodes.addChild(sheetId, parentId, title);
     if (const auto *error = std::get_if<AppError>(&result))
     {
-        QMessageBox::warning(this, QStringLiteral("无法新增"), error->message);
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法新增"), error->message);
         return;
     }
     selectNode(std::get<ID>(result));
@@ -563,7 +570,7 @@ void MainWindow::addSiblingToSelection()
     const auto result = nodes.addSibling(sheetId, referenceId, dialog.textValue());
     if (const auto *error = std::get_if<AppError>(&result))
     {
-        QMessageBox::warning(this, QStringLiteral("无法新增同级主题"), error->message);
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法新增同级主题"), error->message);
         return;
     }
     selectNode(std::get<ID>(result));
@@ -655,7 +662,7 @@ void MainWindow::deleteSelection()
     if (const auto *error = std::get_if<AppError>(&result))
     {
         selectNode(nodeId);
-        QMessageBox::warning(this, QStringLiteral("无法删除"), error->message);
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法删除"), error->message);
         return;
     }
     focusSelectedNode();
@@ -681,8 +688,8 @@ void MainWindow::openRecentFile(const QString& path) {
         // P01验收：文件缺失可移除记录，提示后不静默失败
         SettingsService::removeRecentFile(path);
         rebuildRecentMenu();
-        QMessageBox::information(this, QStringLiteral("最近文件"),
-                                 QStringLiteral("文件不存在，已从最近文件中移除：\n%1").arg(path));
+        showNotice(this, QMessageBox::Information, QStringLiteral("最近文件"),
+                   QStringLiteral("文件不存在，已从最近文件中移除：\n%1").arg(path));
         return;
     }
     openFile(path);
@@ -696,8 +703,8 @@ bool MainWindow::renameRootTo(const QString& title) {
     TaskCommands tasks(m_commands, m_doc);
     const auto result = tasks.renameNode(sheetId, nodeId, title);
     if (std::holds_alternative<AppError>(result)) {
-        QMessageBox::warning(this, QStringLiteral("无法重命名"),
-                             std::get<AppError>(result).message);
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法重命名"),
+                   std::get<AppError>(result).message);
         return false;
     }
     return true;
@@ -710,9 +717,16 @@ QString MainWindow::currentRootTitle() const {
 
 bool MainWindow::confirmDiscard() {
     if (!m_doc->isModified()) return true;
-    const QMessageBox::StandardButton choice = QMessageBox::warning(
-        this, QStringLiteral("未保存的修改"), QStringLiteral("当前工程已修改，是否保存？"),
-        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+    QMessageBox question(QMessageBox::Warning, QStringLiteral("未保存的修改"),
+                         QStringLiteral("当前工程已修改，是否保存？"),
+                         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this);
+    question.setButtonText(QMessageBox::Save, QStringLiteral("保存"));
+    question.setButtonText(QMessageBox::Discard, QStringLiteral("放弃修改"));
+    question.setButtonText(QMessageBox::Cancel, QStringLiteral("取消"));
+    question.setDefaultButton(QMessageBox::Cancel);
+    question.setEscapeButton(QMessageBox::Cancel);
+    question.exec();
+    const auto choice = question.standardButton(question.clickedButton());
     if (choice == QMessageBox::Save) return saveProject(false);
     if (choice == QMessageBox::Discard) {
         // 用户明确放弃未保存修改：清除该工程的应用自建恢复快照（规范§11.3），
