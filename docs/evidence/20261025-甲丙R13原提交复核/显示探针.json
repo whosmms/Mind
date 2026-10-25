@@ -1,0 +1,26 @@
+[
+    {
+        "case": "midmonth",
+        "firstMonthVisible": false,
+        "horizontalScrollMaximum": 0,
+        "itemsWidth": 73,
+        "pendingInsideScene": true,
+        "sceneWidth": 72
+    },
+    {
+        "case": "unscheduled",
+        "firstMonthVisible": false,
+        "horizontalScrollMaximum": 0,
+        "itemsWidth": 1240,
+        "pendingInsideScene": false,
+        "sceneWidth": 1
+    },
+    {
+        "case": "mixed",
+        "firstMonthVisible": false,
+        "horizontalScrollMaximum": 0,
+        "itemsWidth": 1244.5,
+        "pendingInsideScene": false,
+        "sceneWidth": 264
+    }
+]

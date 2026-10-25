@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstGanttView">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.1782"/>
+  </TestFunction>
+  <TestFunction name="midMonthRangeShowsYearAndMonth">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ganttview.cpp" line="211">
+      <Description><![CDATA['found' returned FALSE. ()]]></Description>
+    </Incident>
+    <Duration msecs="3.6234"/>
+  </TestFunction>
+  <TestFunction name="longUnscheduledNamesRemainScrollable">
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ganttview.cpp" line="239">
+      <DataTag><![CDATA[only-unscheduled]]></DataTag>
+      <Description><![CDATA['view.sceneRect().contains(text->sceneBoundingRect())' returned FALSE. ()]]></Description>
+    </Incident>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ganttview.cpp" line="239">
+      <DataTag><![CDATA[mixed]]></DataTag>
+      <Description><![CDATA['view.sceneRect().contains(text->sceneBoundingRect())' returned FALSE. ()]]></Description>
+    </Incident>
+    <Duration msecs="2.8686"/>
+  </TestFunction>
+  <TestFunction name="milestoneDependenciesReachMarkers">
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ganttview.cpp" line="274">
+      <DataTag><![CDATA[default-day-width]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (QPointF(first.x, first.y))                           : QPointF(24,48)
+   Expected (QPointF(predBounds.right(), predBounds.center().y())): QPointF(20,48)]]></Description>
+    </Incident>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ganttview.cpp" line="274">
+      <DataTag><![CDATA[wide-day]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (QPointF(first.x, first.y))                           : QPointF(80,48)
+   Expected (QPointF(predBounds.right(), predBounds.center().y())): QPointF(48,48)]]></Description>
+    </Incident>
+    <Duration msecs="0.7989"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0078"/>
+  </TestFunction>
+  <Duration msecs="9.7311"/>
+</TestCase>
