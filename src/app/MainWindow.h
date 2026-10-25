@@ -48,7 +48,8 @@ public:
 
     // 采用一份快照：经CommandService事务写入唯一文档（统一规范§7.1/§12），可撤销；
     // 采用成功后保留磁盘快照直至正式保存或明确放弃，并清空文件路径与外部戳
-    // （快照≠正式保存，原设计§8：不记录来源路径，首次保存走“另存为”）。失败返回false并保持原状
+    // （快照≠正式保存，原设计§8：不记录来源路径，首次保存走“另存为”）：
+    // 采用后的内容尚未落盘，此刻崩溃仍须可再次恢复。失败返回false并保持原状
     bool adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info);
 
     // 测试注入恢复根目录（规范§19.1隔离，同QSettings重定向模式）；传空恢复默认QStandardPaths路径

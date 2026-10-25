@@ -176,6 +176,84 @@
 此前“当前待验”描述保留为决策时点历史，现行验收状态见acceptance与H-006；七图与版本边界见evidence/20261024-甲人工验收/README.md。
 仅关闭本次三项M0既有本机人工待办，不外推新S01/X03、未来版本、全中文终验或M6交付；不代替乙丙评审。
 
+## D-M0-17 ReviewSession 自评三档与状态映射（2026-10-24，PR #11 评审）
+
+- 背景：PR #11 评审指出 `ReviewGrade` 的 Again/Hard/Good/Easy 四档与 `ReviewCard.status`（new/review/mastered）及规范§7.1不一致；Hard/Good/Easy 行为相同，会把“四档评分”的语义固化到 UI 而无底层状态/算法，违反“不宣称间隔重复”的限制。
+- 决策：改为三档 `ReviewMark`，并明确到卡片状态的映射；不引入难度或间隔算法。
+
+| 标记 | 队列行为 | 卡片 status | 是否计完成 |
+|---|---|---|---|
+| `Again` | 回到队尾 | 保持原值（不降级） | 否 |
+| `Reviewed` | 移出队列 | `review` | 是 |
+| `Mastered` | 移出队列 | `mastered` | 是 |
+
+- 出口：`grade(ReviewMark)` 返回 `std::variant<GradeOutcome, AppError>`（`GradeOutcome{cardId, mark}`），供界面/命令写回卡片状态；`ReviewSession` 仍是 `lingya_core` 纯逻辑，不修改 Project。
+- 每张卡最多完成一次；`completedCount` 不超过 `totalCount`。
+- 影响：`ReviewSession.h/.cpp`、`tst_review` 接口同步；`ReviewService` 与 Domain 不变。
+- 回退：本批只改会话层与测试，删除即可恢复原四档；不涉及持久化格式。
+
+## D-M1-01 标题规范化与双向改名统一（renameNode / renameTask）
+
+- 日期：2026-10-24；提出：甲契约修正；落地：乙。
+- 背景：节点改名与任务改名原为两套实现，空标题、长度与修订号规则可能不一致。
+- 决策：两者共用`domain/TitleRules.h`：`trimmed()`后空白转“未命名主题”，长度按Unicode码点计数，
+  超过`Limits::kTitleMaxChars`返回`LIMIT_EXCEEDED`；`contentRevision`只在节点标题实际变化时`+1`，
+  仅修复关联任务标题、节点标题未变时不改节点修订号。
+- 影响：`TaskCommands::renameNode/.renameTask`；`NodeCommands`不提供第二个改名入口。
+  TaskCommands归丙维护，本次改动需丙复核（按§2.2共享文件规则登记）。
+
+## D-M1-02 无操作改名短路（“一次有效修改一次applyEdit”的显式例外）
+
+- 日期：2026-10-24；来源：甲明确要求。
+- 决策：规范化后节点标题与关联任务标题都已是目标值时，直接返回成功`true`，
+  **不调用**`applyEdit`：不入撤销历史、不改变dirty、不递增`sessionRevision`与`contentRevision`。
+- 有效修改（含仅修复另一侧标题不一致）仍只调用一次`applyEdit`，产生一条历史。
+- 证据：`tests/tst_nodecommands.cpp`的`renameNodeNoOpKeepsHistoryClean`、
+  `renameTaskNoOpKeepsHistoryClean`、`renameNodeRepairsMismatchedTask`。
+
+## D-M1-03 同级插入先规范化再定位
+
+- 日期：2026-10-24；来源：甲契约修正。
+- 决策：`addChild`/`addSibling`先把父节点现有子节点按`(order, ID)`稳定排序形成兄弟序列，
+  再在目标位置插入，最后写回连续`0..n-1`；不使用`reference.order + 1`直接定位。
+- 理由：既有数据可能出现重复或不连续order，直接加一会使插入位置与显示顺序不一致。
+- 状态：`addChild`第一批已实现并测试；`addSibling`第二批按同一规则实现（当前未执行）。
+
+## D-M1-04 错误码分层：命令预检基础码，校验器专用码兼容透传
+
+- 日期：2026-10-24；来源：甲指出的契约矛盾。
+- 决策：命令层预检使用§10.3基础码（`INVALID_ARGUMENT`、`NOT_FOUND`、`CONFLICT`、
+  `LIMIT_EXCEEDED`）；`ProjectValidator`既有专用码（如`TITLE_LENGTH`、`TREE_ORDER`）
+  经`applyEdit`原样透传，保持打开既有工程与既有测试行为。
+- 边界：本批不重构校验器，也不把专用码改写成基础码；契约同时声明两条规则，
+  不再表述为“只使用基础错误码”。
+
+## D-M1-05 deleteSubtree引用处理与删除策略（第二批，当前未实现）
+
+- 日期：2026-10-24；来源：甲接受的`TaskDeletePolicy`方案。
+- 决策：`deleteSubtree`增加`TaskDeletePolicy`：默认`KeepAsStandalone`清除`Task.source`保留任务；
+  `DeleteTogether`在同一事务内删除任务并清理其他任务的前置依赖。
+  关系线、批注、分组注释按校验器要求清理；`ReviewCard`保留并置`sourceState="missing"`；
+  讲解路线与文稿不自动改写；root拒绝删除。
+- 状态：**设计登记，未编码、未测试**；第二批交付时补实现与用例。
+
+## D-M1-06 最小布局接口与推进批次
+
+- 日期：2026-10-24；来源：甲要求补充布局交接。
+- 接口（纯数据，不操纵页面）：
+  - 输入：`NodeSize { id, width, height }`（甲按实际字体测量后提供）；
+  - 输出：`NodePosition { id, x, y }`（乙计算，坐标不存为业务数据）。
+- 批次：M1先交付简化树布局，支持多节点展示；完整均衡布局（R10）按M2推进。
+- 边界：布局接口独立于节点命令交付，不阻断第一批；本批不实现布局代码。
+
+## D-M1-07 DEV-030恢复快照豁免本轮非作者评审（团队决定，工期约束）
+
+- 日期：2026-10-25；来源：乙合并流程复核时提出，团队协调人转达**甲、丙同意豁免**本轮评审（工期约束，持续流转复核时间不允许）；豁免决定本身由团队承担，未产生、不代签任何“甲复核通过/丙评审通过”记录。
+- 决策：`origin/feature/b/M1-recovery-snapshot`（最终`6236870`）按默认“main合并由乙操作”规则以`--no-ff`普通合并合入main；**本决定仅覆盖DEV-030本批，不构成今后豁免惯例**，后续批次仍按§17.1非作者评审执行。
+- 补偿措施：①进程级崩溃恢复E2E（`tst_ui::recoveryProcessCrashEndToEnd`，`6236870`：子进程真实写快照后`_exit(1)`硬退出模拟崩溃，新实例走发现→预览→采用→核对→撤销→重做→另存→关闭重开全链）；②合入后双配置全量CTest回归；③§4.4已消除“采用后立即清快照”的恢复保障间隙并留更正记录。
+- 已知风险：MainWindow接线与RecoveryDialog未经独立人工复核；如后续复核发现问题按普通更正提交处理，不改写已共享历史；人工C3崩溃链路建议甲在后续版本窗口补做登记。
+- 回退：对合并提交正常`git revert`（非强推）。
+
 ## D-REC-001 采用恢复快照后保留磁盘副本（甲复核修正，待乙丙复核）
 
 日期：2026-10-25；提出与实现：甲takagi（AI协助），关联DEV-030、DEV-20261025-001、H-010。
@@ -189,3 +267,9 @@
 
 2026-10-25甲本人明确确认真实两轮崩溃恢复、采用撤销重做、取消另存及保存重开全部通过，五图归档。
 此结果支持本分支采用后保留磁盘副本的实际交互，但不替代乙丙对实现及决定的独立评审；对应恢复交接现为H-010。
+
+### D-REC-001乙复核回执（2026-10-25，随合并登记）
+
+乙复核通过：采用≠落盘，保留副本至正式保存或明确放弃是正确取舍；与乙在main的7250824（同一P1的独立修复）策略一致，互为交叉验证。
+分支另含5项main缺口修复（采用时标题栏时序、loadNewDocument备注残留、修剪误删损坏快照、load工程ID校验CONFLICT、空根/超大文件防护），逐条比对确认实现正确、测试可复现。
+本地试合并（6处冲突按H-010乙复核与合并回执解决）后双配置14套件199项全过，已普通merge合入main。丙独立评审仍待完成（H-010承诺项）。

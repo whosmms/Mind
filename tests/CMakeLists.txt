@@ -26,6 +26,13 @@ if(MSVC)
 endif()
 add_test(NAME tst_tasks COMMAND tst_tasks)
 
+add_executable(tst_nodecommands tst_nodecommands.cpp)
+target_link_libraries(tst_nodecommands PRIVATE lingya_appcore Qt6::Test)
+if(MSVC)
+    target_compile_options(tst_nodecommands PRIVATE /utf-8)
+endif()
+add_test(NAME tst_nodecommands COMMAND tst_nodecommands)
+
 add_executable(tst_charts tst_charts.cpp)
 target_link_libraries(tst_charts PRIVATE lingya_appcore Qt6::Test)
 if(MSVC)
@@ -46,6 +53,14 @@ if(MSVC)
     target_compile_options(tst_secret PRIVATE /utf-8)
 endif()
 add_test(NAME tst_secret COMMAND tst_secret)
+
+# 甘特视图依赖 QGraphicsView（Qt Widgets），单独链接 Widgets
+add_executable(tst_ganttview tst_ganttview.cpp)
+target_link_libraries(tst_ganttview PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
+if(MSVC)
+    target_compile_options(tst_ganttview PRIVATE /utf-8)
+endif()
+add_test(NAME tst_ganttview COMMAND tst_ganttview)
 
 add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindow.h

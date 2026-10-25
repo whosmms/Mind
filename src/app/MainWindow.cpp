@@ -185,7 +185,9 @@ bool MainWindow::adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info
         return false;
     }
     // 采用只写入内存，不清理磁盘副本；否则另存前再次崩溃会失去恢复保障。
-    // 正式保存成功或用户明确放弃后再清理；取消保存、保存失败和撤销均保留副本。
+    // 采用后的内容尚未落盘（快照≠正式保存），此刻崩溃仍须可再次恢复；
+    // 30秒定时写盘与最新快照字节比对去重，不会产生重复；另存成功或用户放弃时才清理
+    // （规范§11.3快照保护未保存工作）；取消保存、保存失败和撤销均保留副本。
     return true;   // applyEdit内部已notifyChanged，画布与标题栏已按恢复内容刷新
 }
 

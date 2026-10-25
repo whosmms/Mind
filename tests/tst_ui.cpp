@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QListWidget>
 #include <QMenu>
+#include <QProcess>
 #include <QStackedWidget>
 #include <QGraphicsView>
 #include <QMessageBox>
@@ -13,6 +14,9 @@
 #include <QDir>
 #include <QTemporaryDir>
 #include <QTimer>
+
+#include <cstdio>
+#include <cstdlib>
 
 #include "app/MainWindow.h"
 #include "app/RecoveryDialog.h"
@@ -47,10 +51,15 @@ private slots:
     void recoveryAdoptionFromOpenedFileRefreshesTitle();
     void recoveryAdoptionSurvivesRestartAndFailedSave();
     void recoveryOpeningAnotherProjectClearsSnapshotStatus();
+    void recoveryProcessCrashEndToEnd();
 
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
     QTemporaryDir m_recoveryDir;   // 恢复快照重定向目录（initTestCase设置，成员保活）
+
+    // 进程级崩溃E2E子进程阶段（initTestCase识别LINGYA_E2E_PHASE=1进入）：
+    // 写快照后不带任何清理地硬退出，模拟真实崩溃；失败以退出码2报告
+    void runCrashPhaseChildAndExit();
 
     static void autoCloseMessageBoxes() {
         // openFile失败路径会弹模态错误框，测试中定时自动关闭（close对QMessageBox等同取消）
@@ -103,6 +112,26 @@ void TstUi::initTestCase() {
     // 恢复快照同样重定向到空临时目录：真实AppLocalData中的遗留快照不会弹预览对话框
     QVERIFY(m_recoveryDir.isValid());
     MainWindow::setRecoveryRootForTest(m_recoveryDir.path());
+    // 进程级崩溃E2E的子进程分支：完成快照写入后硬退出，不再执行任何测试槽
+    if (qEnvironmentVariable("LINGYA_E2E_PHASE") == QStringLiteral("1"))
+        runCrashPhaseChildAndExit();
+}
+
+void TstUi::runCrashPhaseChildAndExit() {
+    const QString root = qEnvironmentVariable("LINGYA_E2E_ROOT");
+    if (root.isEmpty()) _exit(2);
+    MainWindow::setRecoveryRootForTest(root);
+    MainWindow window;
+    if (!window.renameRootTo(QStringLiteral("崩溃链路内容"))) _exit(2);
+    // 30秒定时回调直接调用：脏文档且内容变化，应写一份快照
+    if (!QMetaObject::invokeMethod(&window, "writeRecoverySnapshot")) _exit(2);
+    const QVector<RecoveryService::SnapshotInfo> snapshots =
+        RecoveryService::list(root, window.currentProjectId());
+    if (snapshots.size() != 1) _exit(2);
+    fprintf(stdout, "LINGYA_E2E_PROJECT=%s\n", qPrintable(window.currentProjectId()));
+    fflush(stdout);
+    // 模拟崩溃：不执行析构、不清理快照、不做任何保存，直接终止进程
+    _exit(1);
 }
 
 void TstUi::undoRedoDisabledBeforeAnyEdit() {
@@ -411,17 +440,35 @@ void TstUi::recoveryAdoptionGoesThroughCommandTransaction()
     QVERIFY(w.windowTitle().contains(QStringLiteral("恢复工程")));   // 无路径→标题栏显示工程标题
     QVERIFY(w.windowTitle().contains(QLatin1Char('*')));             // 保存前保持脏状态
 
-    // 采用是可撤销历史：撤销回到采用前的空白工程（证明走了命令栈而非replaceProject）
+    // 采用是可撤销历史：撤销回采用前的空白工程，重做再回恢复内容
+    // （证明走了命令栈而非replaceProject，撤销与重做都作用在同一事务上）
     QAction* undoAction = nullptr;
-    for (QAction* action : w.findChildren<QAction*>())
+    QAction* redoAction = nullptr;
+    for (QAction* action : w.findChildren<QAction*>()) {
         if (action->text().startsWith(QStringLiteral("撤销"))) undoAction = action;
+        if (action->text().startsWith(QStringLiteral("重做"))) redoAction = action;
+    }
     QVERIFY(undoAction != nullptr);
+    QVERIFY(redoAction != nullptr);
     QVERIFY(undoAction->isEnabled());
     undoAction->trigger();
     QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));
+    QVERIFY(redoAction->isEnabled());
+    redoAction->trigger();
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("恢复的根主题"));
 
-    // 采用不等于正式保存：撤销后原始磁盘副本仍保护恢复内容。
+    // 采用后快照保留：采用的内容尚未落盘，此刻崩溃须可再次恢复（无保障间隙）
+    snapshots = RecoveryService::list(root.path(), recovered.id);
+    QCOMPARE(snapshots.size(), 1);
+    // 采用不等于正式保存：撤销后原始磁盘副本仍保护恢复内容（30秒写盘对未变化内容去重）
+    QVERIFY(QMetaObject::invokeMethod(&w, "writeRecoverySnapshot"));
     QCOMPARE(RecoveryService::list(root.path(), recovered.id).size(), 1);
+
+    // 另存成功后快照才清理（两种状态分离，§11.3）
+    QTemporaryDir saveDir;
+    QVERIFY(saveDir.isValid());
+    QVERIFY(w.saveProjectTo(saveDir.filePath(QStringLiteral("采用后另存.lingya"))));
+    QVERIFY(RecoveryService::list(root.path(), recovered.id).isEmpty());
 }
 
 void TstUi::recoveryOfferDialogAdoptAndIgnoreAll()
@@ -454,6 +501,7 @@ void TstUi::recoveryOfferDialogAdoptAndIgnoreAll()
     QVERIFY(adoptButton->isEnabled());
     adoptButton->click();
     QCOMPARE(w.currentRootTitle(), QStringLiteral("待恢复的根主题"));
+    // 采用后快照保留：采用的内容尚未另存，崩溃时仍可再次恢复（另存/放弃时才清理）
     QCOMPARE(RecoveryService::list(root.path(), pending.id).size(), 1);   // 正式保存前保留
 
     // 另一份快照：选“全部不采用”→自建快照清除，当前文档不受影响
@@ -545,6 +593,72 @@ void TstUi::recoveryOpeningAnotherProjectClearsSnapshotStatus()
         FileService::save(another, ProjectFactory::createMindmap(QStringLiteral("另一工程")))));
     QVERIFY(window.openFile(another));
     QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("恢复快照")));
+}
+
+void TstUi::recoveryProcessCrashEndToEnd()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setRecoveryRootForTest(root.path());
+
+    // 子进程阶段：真实进程编辑→写快照→硬退出（模拟崩溃，无析构无保存）
+    QProcess child;
+    child.setProgram(QCoreApplication::applicationFilePath());
+    QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+    environment.insert(QStringLiteral("LINGYA_E2E_PHASE"), QStringLiteral("1"));
+    environment.insert(QStringLiteral("LINGYA_E2E_ROOT"), root.path());
+    child.setProcessEnvironment(environment);
+    child.start();
+    QVERIFY(child.waitForStarted(10000));
+    QVERIFY(child.waitForFinished(60000));
+    QCOMPARE(child.exitCode(), 1);   // 约定的“崩溃”退出码；2=子阶段自检失败
+    const QString output = QString::fromUtf8(child.readAllStandardOutput());
+    const QString marker = QStringLiteral("LINGYA_E2E_PROJECT=");
+    const int at = output.indexOf(marker);
+    QVERIFY(at >= 0);
+    const QString projectId =
+        output.mid(at + marker.size()).section(QLatin1Char('\n'), 0, 0).trimmed();
+    QVERIFY(!projectId.isEmpty());
+
+    // 父阶段：重启后的新实例发现快照，预览并采用
+    MainWindow window;
+    QCOMPARE(RecoveryService::list(root.path(), projectId).size(), 1);
+    window.offerRecoverySnapshots();
+    RecoveryDialog* dialog = findRecoveryDialog();
+    QVERIFY(dialog != nullptr);
+    auto* list = dialog->findChild<QListWidget*>();
+    QVERIFY(list != nullptr);
+    list->setCurrentRow(0);
+    QAbstractButton* adoptButton = findButton(*dialog, QStringLiteral("采用"));
+    QVERIFY(adoptButton != nullptr);
+    adoptButton->click();
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("崩溃链路内容"));
+    QVERIFY(window.windowTitle().contains(QLatin1Char('*')));   // 保存前保持脏状态
+
+    // 采用是可撤销事务：撤销回空白，重做回恢复内容（§4.4-C3补重做）
+    QAction* undoAction = nullptr;
+    QAction* redoAction = nullptr;
+    for (QAction* action : window.findChildren<QAction*>()) {
+        if (action->text().startsWith(QStringLiteral("撤销"))) undoAction = action;
+        if (action->text().startsWith(QStringLiteral("重做"))) redoAction = action;
+    }
+    QVERIFY(undoAction != nullptr && redoAction != nullptr);
+    undoAction->trigger();
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("中心主题"));
+    redoAction->trigger();
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("崩溃链路内容"));
+
+    // C1：采用后未另存时快照保留，此刻崩溃仍可再次恢复
+    QCOMPARE(RecoveryService::list(root.path(), projectId).size(), 1);
+
+    // 另存为落盘后快照清除；关闭重开核对最终内容一致
+    QTemporaryDir saveDir;
+    QVERIFY(saveDir.isValid());
+    QVERIFY(window.saveProjectTo(saveDir.filePath(QStringLiteral("崩溃恢复落盘.lingya"))));
+    QVERIFY(RecoveryService::list(root.path(), projectId).isEmpty());
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(saveDir.filePath(QStringLiteral("崩溃恢复落盘.lingya"))));
+    QCOMPARE(reopened.currentRootTitle(), QStringLiteral("崩溃链路内容"));
 }
 
 QTEST_MAIN(TstUi)
