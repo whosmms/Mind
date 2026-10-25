@@ -4,8 +4,8 @@
     <file>styles/light.qss</file>
     <file>prompts/map-v1.txt</file>
     <file>prompts/draft-v1.txt</file>
-    <file>icons/idea.svg</file>
-    <file>icons/star.svg</file>
-    <file>icons/check.svg</file>
+    <file>icons/idea.png</file>
+    <file>icons/star.png</file>
+    <file>icons/check.png</file>
   </qresource>
 </RCC>

@@ -1505,6 +1505,13 @@ void TstUi::nodeIconResourcesAndMeasurement()
     const QStringList ids{QStringLiteral("idea"), QStringLiteral("star"), QStringLiteral("check")};
     for (const QString &id : ids)
     {
+        // 运行资源必须能用Qt内置PNG解码，不依赖团队未统一安装的Svg插件。
+        QFile resource(QStringLiteral(":/lingya/icons/%1.png").arg(id));
+        QVERIFY(resource.open(QIODevice::ReadOnly));
+        const QByteArray bytes = resource.readAll();
+        QVERIFY(bytes.startsWith(QByteArray::fromHex("89504e470d0a1a0a")));
+        const QImage raster = QImage::fromData(bytes, "PNG");
+        QCOMPARE(raster.size(), QSize(64, 64));
         const auto icon = NodeItem::iconForId(id);
         QVERIFY(!icon.isNull());
         const auto pixmap = icon.pixmap(20, 20);
