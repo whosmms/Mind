@@ -82,6 +82,8 @@ private:
     bool saveProject(bool saveAs);
     void renameSelectedNode();
     void addChildToSelection();
+    void addSiblingToSelection();
+    void deleteSelection();
     void rebuildOutline();
     void showGanttView();
     void setCanvasZoom(qreal zoom);
@@ -112,6 +114,8 @@ private:
     QMenu* m_recentMenu = nullptr;  // 文件菜单内“最近文件”子菜单（R04）
     QAction* m_undoAction = nullptr;
     QAction* m_redoAction = nullptr;
+    QAction *m_siblingAction = nullptr;
+    QAction *m_deleteAction = nullptr;
     QTimer* m_recoveryTimer = nullptr;     // 30秒恢复快照定时器（仅脏文档生效）
     QString m_recoveryRoot;                // 恢复快照根目录（测试可注入）
     QString m_recoveryNote;                // 状态栏恢复快照备注（最近写入时间/失败）

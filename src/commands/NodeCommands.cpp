@@ -301,6 +301,7 @@ std::variant<bool, AppError> NodeCommands::deleteSubtree(const ID& sheetId, cons
             // 讲解路线与文稿不自动改写（D-M1-05：运行时重校验提示跳过）
 
             for (const ID& id : subtree) target->nodes.remove(id);
+            normalizeSiblings(*target, parentId); // 删除中间节点后，同级order仍须连续
             if (!parentId.isEmpty() && target->nodes.contains(parentId))
                 ++target->nodes[parentId].contentRevision;
         });

@@ -22,6 +22,7 @@
 #include <QMouseEvent>
 #include <QPainterPath>
 #include <QPlainTextEdit>
+#include <QPushButton>
 #include <QSet>
 #include <QSignalBlocker>
 #include <QStackedWidget>
@@ -203,11 +204,19 @@ void MainWindow::buildMenus() {
     auto *childAction = editMenu->addAction(QStringLiteral("新增子主题(&C)"), this,
                                             &MainWindow::addChildToSelection);
     childAction->setObjectName(QStringLiteral("addChildTopic"));
+    m_siblingAction = editMenu->addAction(QStringLiteral("新增同级主题"), this,
+                                          &MainWindow::addSiblingToSelection);
+    m_siblingAction->setObjectName(QStringLiteral("addSiblingTopic"));
+    m_deleteAction =
+        editMenu->addAction(QStringLiteral("删除主题及子主题"), this, &MainWindow::deleteSelection);
+    m_deleteAction->setObjectName(QStringLiteral("deleteTopic"));
     auto *toolbar = addToolBar(QStringLiteral("主题编辑"));
     toolbar->setObjectName(QStringLiteral("editorToolbar"));
     toolbar->setMovable(false);
     toolbar->addAction(childAction);
+    toolbar->addAction(m_siblingAction);
     toolbar->addAction(renameAction);
+    toolbar->addAction(m_deleteAction);
 
     QMenu* viewMenu = menuBar()->addMenu(QStringLiteral("视图(&V)"));
     viewMenu->addAction(QStringLiteral("思维导图(&M)"), this, [this] { m_centralStack->setCurrentIndex(0); });
@@ -391,10 +400,17 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
         }
         const TreeSheet *sheet = activeTreeSheet();
         if ((key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter) &&
-            key->modifiers() == Qt::NoModifier && sheet != nullptr &&
-            m_selectedNodeId == sheet->rootId)
+            (key->modifiers() & ~Qt::KeypadModifier) == Qt::NoModifier && sheet != nullptr)
         {
-            addChildToSelection();
+            if (m_selectedNodeId == sheet->rootId)
+                addChildToSelection();
+            else
+                addSiblingToSelection();
+            return true;
+        }
+        if (key->key() == Qt::Key_Delete && key->modifiers() == Qt::NoModifier)
+        {
+            deleteSelection();
             return true;
         }
     }
@@ -529,6 +545,120 @@ void MainWindow::addChildToSelection()
         return;
     }
     selectNode(std::get<ID>(result));
+}
+
+void MainWindow::addSiblingToSelection()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+        return;
+    if (m_selectedNodeId == sheet->rootId)
+        return;
+    const ID sheetId = sheet->id;
+    const ID referenceId = m_selectedNodeId;
+    NodeTitleDialog dialog(QStringLiteral("新增同级主题"), QStringLiteral("未命名主题"), this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    NodeCommands nodes(m_commands, m_doc);
+    const auto result = nodes.addSibling(sheetId, referenceId, dialog.textValue());
+    if (const auto *error = std::get_if<AppError>(&result))
+    {
+        QMessageBox::warning(this, QStringLiteral("无法新增同级主题"), error->message);
+        return;
+    }
+    selectNode(std::get<ID>(result));
+}
+
+void MainWindow::deleteSelection()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+        return;
+    if (m_selectedNodeId == sheet->rootId)
+    {
+        statusBar()->showMessage(QStringLiteral("根主题不能删除。请选择要删除的分支主题。"));
+        return;
+    }
+    const ID sheetId = sheet->id;
+    const ID nodeId = m_selectedNodeId;
+    const ID parentId = sheet->nodes.value(nodeId).parentId.value_or(sheet->rootId);
+    // 这里只读统计影响；实际清理统一交给乙的deleteSubtree事务。
+    QSet<ID> subtree;
+    QVector<ID> pending{nodeId};
+    while (!pending.isEmpty())
+    {
+        const ID current = pending.takeLast();
+        if (subtree.contains(current))
+            continue;
+        subtree.insert(current);
+        for (const TreeNode &node : sheet->nodes)
+            if (node.parentId.has_value() && *node.parentId == current)
+                pending.append(node.id);
+    }
+    int taskCount = 0, relationCount = 0, annotationCount = 0, commentCount = 0, cardCount = 0;
+    for (const Task &task : m_doc->project().tasks)
+        if (task.source.has_value() && task.source->sheetId == sheetId &&
+            subtree.contains(task.source->nodeId))
+            ++taskCount;
+    for (const Relation &relation : sheet->relations)
+        if (subtree.contains(relation.sourceId) || subtree.contains(relation.targetId))
+            ++relationCount;
+    for (const GroupAnnotation &annotation : sheet->annotations)
+    {
+        bool affected = subtree.contains(annotation.parentId);
+        for (const ID &member : annotation.memberIds)
+            affected |= subtree.contains(member);
+        if (affected)
+            ++annotationCount;
+    }
+    for (const Comment &comment : sheet->comments)
+        if (subtree.contains(comment.nodeId))
+            ++commentCount;
+    for (const ReviewCard &card : m_doc->project().cards)
+        if (card.sheetId == sheetId && subtree.contains(card.nodeId))
+            ++cardCount;
+    QString summary = QStringLiteral("将删除“%1”及其后代，共%2个主题。可用Ctrl+Z撤销。\n\n"
+                                     "同时清理：%3条关系、%4项外框/概要、%5条批注。\n"
+                                     "%6张复习卡片将保留并标记来源缺失。\n"
+                                     "讲解路线和文稿保留，使用时需重新检查来源。")
+                          .arg(sheet->nodes.value(nodeId).title.simplified().left(60))
+                          .arg(subtree.size())
+                          .arg(relationCount)
+                          .arg(annotationCount)
+                          .arg(commentCount)
+                          .arg(cardCount);
+    if (taskCount > 0)
+        summary += QStringLiteral("\n\n另有关联任务%1项，请选择任务处置方式。").arg(taskCount);
+    QMessageBox confirmation(QMessageBox::Warning, QStringLiteral("确认删除子树"), summary,
+                             QMessageBox::NoButton, this);
+    confirmation.setObjectName(QStringLiteral("deleteSubtreeConfirmation"));
+    auto *keep = confirmation.addButton(taskCount > 0 ? QStringLiteral("保留任务并删除主题")
+                                                      : QStringLiteral("删除主题"),
+                                        QMessageBox::DestructiveRole);
+    QPushButton *together = nullptr;
+    if (taskCount > 0)
+        together = confirmation.addButton(QStringLiteral("连同任务一起删除"),
+                                          QMessageBox::DestructiveRole);
+    auto *cancel = confirmation.addButton(QStringLiteral("取消"), QMessageBox::RejectRole);
+    confirmation.setDefaultButton(cancel);
+    confirmation.setEscapeButton(cancel);
+    confirmation.exec();
+    if (confirmation.clickedButton() != keep &&
+        (together == nullptr || confirmation.clickedButton() != together))
+        return;
+    const auto policy = confirmation.clickedButton() == together
+                            ? NodeCommands::TaskDeletePolicy::DeleteTogether
+                            : NodeCommands::TaskDeletePolicy::KeepAsStandalone;
+    m_selectedNodeId = parentId;
+    NodeCommands nodes(m_commands, m_doc);
+    const auto result = nodes.deleteSubtree(sheetId, nodeId, policy);
+    if (const auto *error = std::get_if<AppError>(&result))
+    {
+        selectNode(nodeId);
+        QMessageBox::warning(this, QStringLiteral("无法删除"), error->message);
+        return;
+    }
+    focusSelectedNode();
 }
 
 void MainWindow::rebuildRecentMenu() {
@@ -680,6 +810,11 @@ void MainWindow::syncCanvasSelection()
 {
     for (auto it = m_nodeItems.constBegin(); it != m_nodeItems.constEnd(); ++it)
         it.value()->setSelected(it.key() == m_selectedNodeId);
+    const TreeSheet *sheet = activeTreeSheet();
+    const bool nonRoot = sheet != nullptr && sheet->nodes.contains(m_selectedNodeId) &&
+                         m_selectedNodeId != sheet->rootId;
+    m_siblingAction->setEnabled(nonRoot);
+    m_deleteAction->setEnabled(nonRoot);
 }
 
 void MainWindow::focusSelectedNode()
