@@ -44,7 +44,9 @@
 #include "domain/ProjectFactory.h"
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
+#include "services/SessionService.h"
 #include "services/SettingsService.h"
+#include "services/UserFileService.h"
 
 using namespace lingya;
 
@@ -92,10 +94,16 @@ private slots:
     void recoveryAdoptionSurvivesRestartAndFailedSave();
     void recoveryOpeningAnotherProjectClearsSnapshotStatus();
     void recoveryProcessCrashEndToEnd();
+    // 登录会话（D-M2-02）——放最后：前序测试在未登录现状下不受影响
+    void loggedInSaveNamesIntoOwnedFolderOnly();
+    void loggedInOpenRejectsOthersButAllowsPublicAndOwn();
+    void loginSessionRejectsWrongPassword();
+    void loggedOutOpensAnyFileUnchanged();
 
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
     QTemporaryDir m_recoveryDir;   // 恢复快照重定向目录（initTestCase设置，成员保活）
+    QTemporaryDir m_sessionDir;    // 会话根重定向目录（D-M2-02登录功能隔离）
 
     static QMap<ID, NodeItem *> canvasNodes(QGraphicsView *view)
     {
@@ -320,6 +328,8 @@ void TstUi::initTestCase() {
     // 恢复快照同样重定向到空临时目录：真实AppLocalData中的遗留快照不会弹预览对话框
     QVERIFY(m_recoveryDir.isValid());
     MainWindow::setRecoveryRootForTest(m_recoveryDir.path());
+    QVERIFY(m_sessionDir.isValid());
+    MainWindow::setSessionRootForTest(m_sessionDir.path());
     // 进程级崩溃E2E的子进程分支：完成快照写入后硬退出，不再执行任何测试槽
     if (qEnvironmentVariable("LINGYA_E2E_PHASE") == QStringLiteral("1"))
         runCrashPhaseChildAndExit();
@@ -1712,6 +1722,100 @@ void TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent()
     QVERIFY(chinese);
     QCOMPARE(window.currentRootTitle(), QStringLiteral("必须保留的内容"));
     QVERIFY(window.findChild<ProjectDocument *>()->isModified());
+}
+
+
+void TstUi::loggedInSaveNamesIntoOwnedFolderOnly()
+{
+    QTemporaryDir sessionRoot;
+    QVERIFY(sessionRoot.isValid());
+    MainWindow::setSessionRootForTest(sessionRoot.path());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        sessionRoot.path(), QStringLiteral("测试用户"), QStringLiteral("abc123"))));
+
+    MainWindow w;
+    QVERIFY(w.loginSession(QStringLiteral("测试用户"), QStringLiteral("abc123")));
+    QVERIFY(w.isLoggedIn());
+    QVERIFY(w.renameRootTo(QStringLiteral("登录态保存内容")));
+    QVERIFY(w.saveProjectToOwned(QStringLiteral(" 我的工程 ")));   // 命名去空白
+
+    const QString ownedPath = UserFileService::userDir(sessionRoot.path(), QStringLiteral("测试用户")) +
+                              QStringLiteral("/我的工程.lingya");
+    QVERIFY(QFile::exists(ownedPath));
+    // 保存后状态干净（正式保存语义）
+    QVERIFY(!w.windowTitle().contains(QLatin1Char('*')));
+
+    // 同名再保存=原位覆盖（我的文件内的Ctrl+S不弹命名）
+    QVERIFY(w.renameRootTo(QStringLiteral("第二版内容")));
+    QVERIFY(w.saveProjectToOwned(QStringLiteral("我的工程")));
+    MainWindow reader;
+    QVERIFY(reader.openFile(ownedPath));
+    QCOMPARE(reader.currentRootTitle(), QStringLiteral("第二版内容"));
+}
+
+void TstUi::loggedInOpenRejectsOthersButAllowsPublicAndOwn()
+{
+    QTemporaryDir sessionRoot;
+    QVERIFY(sessionRoot.isValid());
+    MainWindow::setSessionRootForTest(sessionRoot.path());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        sessionRoot.path(), QStringLiteral("甲同学"), QStringLiteral("abc123"))));
+
+    // 其他用户目录里放一个文件（直接经FileService落盘，模拟既有他人文件）
+    const QString othersPath = UserFileService::userDir(sessionRoot.path(), QStringLiteral("乙同学")) +
+                               QStringLiteral("/她的工程.lingya");
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(
+        othersPath, ProjectFactory::createMindmap(QStringLiteral("乙的内容")))));
+
+    MainWindow w;
+    QVERIFY(w.loginSession(QStringLiteral("甲同学"), QStringLiteral("abc123")));
+    QVERIFY(w.renameRootTo(QStringLiteral("甲的当前内容")));
+
+    // 他人的文件：拒绝打开，当前工程保持
+    autoCloseMessageBoxes();
+    QVERIFY(!w.openFile(othersPath));
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("甲的当前内容"));
+
+    // 公有文件：照常打开
+    QTemporaryDir publicDir;
+    const QString publicPath = publicDir.filePath(QStringLiteral("公开工程.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(
+        publicPath, ProjectFactory::createMindmap(QStringLiteral("公开内容")))));
+    QVERIFY(w.openFile(publicPath));
+    QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));   // 工厂默认根标题
+
+    // 自己的文件：通过“我的文件”按名打开
+    QVERIFY(w.saveProjectToOwned(QStringLiteral("甲的工程")));
+    QVERIFY(w.openOwnedFile(QStringLiteral("甲的工程")));
+}
+
+void TstUi::loginSessionRejectsWrongPassword()
+{
+    QTemporaryDir sessionRoot;
+    QVERIFY(sessionRoot.isValid());
+    MainWindow::setSessionRootForTest(sessionRoot.path());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        sessionRoot.path(), QStringLiteral("丙同学"), QStringLiteral("abc123"))));
+
+    MainWindow w;
+    autoCloseMessageBoxes();   // 失败提示自动关闭
+    QVERIFY(!w.loginSession(QStringLiteral("丙同学"), QStringLiteral("错误口令")));
+    QVERIFY(!w.isLoggedIn());
+}
+
+void TstUi::loggedOutOpensAnyFileUnchanged()
+{
+    QTemporaryDir sessionRoot;
+    QVERIFY(sessionRoot.isValid());
+    MainWindow::setSessionRootForTest(sessionRoot.path());
+    const QString othersPath = UserFileService::userDir(sessionRoot.path(), QStringLiteral("乙同学")) +
+                               QStringLiteral("/她的工程.lingya");
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(
+        othersPath, ProjectFactory::createMindmap(QStringLiteral("乙的内容")))));
+
+    MainWindow w;   // 未登录：现状不变，任何文件可开
+    QVERIFY(w.openFile(othersPath));
+    QVERIFY(!w.isLoggedIn());
 }
 
 QTEST_MAIN(TstUi)
