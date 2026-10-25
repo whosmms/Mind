@@ -102,6 +102,7 @@ private:
     bool saveProject(bool saveAs);
     void renameSelectedNode();
     void editSelectedNodeProperties();
+    void editSelectedNodeStyle();
     void openSelectedNodeLink();
     void addChildToSelection();
     void addSiblingToSelection();
@@ -142,6 +143,7 @@ private:
     QAction *m_siblingAction = nullptr;
     QAction *m_deleteAction = nullptr;
     QAction *m_propertiesAction = nullptr;
+    QAction *m_styleAction = nullptr;
     QAction *m_openLinkAction = nullptr;
     QTimer* m_recoveryTimer = nullptr;     // 30秒恢复快照定时器（仅脏文档生效）
     QString m_recoveryRoot;                // 恢复快照根目录（测试可注入）
