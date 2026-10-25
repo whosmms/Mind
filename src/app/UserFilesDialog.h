@@ -19,7 +19,7 @@ class UserFilesDialog : public QDialog
     explicit UserFilesDialog(const QString &sessionRoot, const QString &userName,
                              QWidget *parent = nullptr);
 
-    // 已通过校验、可打开的文件名（不含.lingya；Accepted时有效）
+    // 已通过校验的完整文件名（含.lingya，避免重复扩展名歧义；Accepted时有效）
     QString selectedFileName() const;
 
   private slots:

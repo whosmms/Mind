@@ -68,7 +68,7 @@ void UserFilesDialog::refreshList()
             QStringLiteral("%1 · %2").arg(
                 info.name, info.modified.toString(QStringLiteral("yyyy-MM-dd HH:mm"))),
             m_list);
-        item->setData(Qt::UserRole, info.name);
+        item->setData(Qt::UserRole, info.name + QStringLiteral(".lingya"));
     }
     m_list->setCurrentRow(0);
 }

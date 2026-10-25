@@ -104,6 +104,8 @@ private slots:
     void ownedListUsesStableFileIdentity_data();
     void ownedListUsesStableFileIdentity();
     void loginDialogValidationRegistrationAndCancel();
+    void ownedListPreservesRepeatedExtension();
+    void ownedSaveRejectsEmptyNameForDotFile();
 
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
@@ -1814,7 +1816,7 @@ void TstUi::ownedListUsesStableFileIdentity()
                             [](const QLabel *label) { return !label->text().isEmpty(); }));
     }
     else
-        QCOMPARE(dialog.selectedFileName(), QStringLiteral("原选中"));
+        QCOMPARE(dialog.selectedFileName(), QStringLiteral("原选中.lingya"));
 }
 
 void TstUi::loginDialogValidationRegistrationAndCancel()
@@ -1868,6 +1870,79 @@ void TstUi::loginDialogValidationRegistrationAndCancel()
     QVERIFY(cancelled.loggedInUserName().isEmpty());
     QVERIFY(accounts.open(QIODevice::ReadOnly));
     QCOMPARE(accounts.readAll(), before);
+}
+
+void TstUi::ownedListPreservesRepeatedExtension()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const QString user = QStringLiteral("复核同学");
+    MainWindow::setSessionRootForTest(root.path());
+    QVERIFY(std::holds_alternative<bool>(
+        SessionService::createAccount(root.path(), user, QStringLiteral("test-only-one"))));
+    QVERIFY(std::holds_alternative<QString>(UserFileService::saveOwned(
+        root.path(), user, QStringLiteral("复验.lingya"),
+        makeRecoveredProject(QStringLiteral("原文件"), QStringLiteral("原文件主题")))));
+    QVERIFY(std::holds_alternative<QString>(UserFileService::saveOwned(
+        root.path(), user, QStringLiteral("复验.lingya.lingya"),
+        makeRecoveredProject(QStringLiteral("重复扩展"), QStringLiteral("应打开的主题")))));
+    UserFilesDialog dialog(root.path(), user);
+    auto *list = dialog.findChild<QListWidget *>();
+    QVERIFY(list);
+    bool found = false;
+    for (int i = 0; i < list->count(); ++i)
+        if (list->item(i)->text().startsWith(QStringLiteral("复验.lingya · ")))
+        {
+            list->setCurrentRow(i);
+            found = true;
+        }
+    QVERIFY(found);
+    auto *open = findButton(dialog, QStringLiteral("打开"));
+    QVERIFY(open);
+    open->click();
+    QCOMPARE(dialog.selectedFileName(), QStringLiteral("复验.lingya.lingya"));
+    const auto loaded = UserFileService::openOwned(root.path(), user, dialog.selectedFileName());
+    QVERIFY(std::holds_alternative<Project>(loaded));
+    const auto &sheet = std::get<TreeSheet>(std::get<Project>(loaded).sheets.first());
+    QCOMPARE(sheet.nodes.value(sheet.rootId).title, QStringLiteral("应打开的主题"));
+    MainWindow window;
+    QVERIFY(window.loginSession(user, QStringLiteral("test-only-one")));
+    QVERIFY(window.openOwnedFile(dialog.selectedFileName()));
+    QVERIFY(window.renameRootTo(QStringLiteral("正确原位保存")));
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QTest::keyClick(window.windowHandle(), Qt::Key_S, Qt::ControlModifier);
+    QVERIFY(!window.findChild<ProjectDocument *>()->isModified());
+    const auto original =
+        UserFileService::openOwned(root.path(), user, QStringLiteral("复验.lingya"));
+    const auto changed =
+        UserFileService::openOwned(root.path(), user, QStringLiteral("复验.lingya.lingya"));
+    QVERIFY(std::holds_alternative<Project>(original));
+    QVERIFY(std::holds_alternative<Project>(changed));
+    const auto &originalSheet = std::get<TreeSheet>(std::get<Project>(original).sheets.first());
+    const auto &changedSheet = std::get<TreeSheet>(std::get<Project>(changed).sheets.first());
+    QCOMPARE(originalSheet.nodes.value(originalSheet.rootId).title, QStringLiteral("原文件主题"));
+    QCOMPARE(changedSheet.nodes.value(changedSheet.rootId).title, QStringLiteral("正确原位保存"));
+}
+
+void TstUi::ownedSaveRejectsEmptyNameForDotFile()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setSessionRootForTest(root.path());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        root.path(), QStringLiteral("复核同学"), QStringLiteral("test-only-one"))));
+    MainWindow window;
+    QVERIFY(window.loginSession(QStringLiteral("复核同学"), QStringLiteral("test-only-one")));
+    QVERIFY(window.saveProjectToOwned(QStringLiteral(".lingya")));
+    QVERIFY(window.renameRootTo(QStringLiteral("不应保存的修改")));
+    auto *document = window.findChild<ProjectDocument *>();
+    QVERIFY(document);
+    const auto before = ProjectJson::toJson(document->project());
+    autoCloseMessageBoxes();
+    QVERIFY(!window.saveProjectToOwned(QString()));
+    QVERIFY(document->isModified());
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
 }
 
 QTEST_MAIN(TstUi)

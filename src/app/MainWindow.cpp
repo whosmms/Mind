@@ -49,6 +49,7 @@
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
 #include "services/SessionService.h"
+#include "services/LocalNameRules.h"
 #include "services/SettingsService.h"
 #include "services/UserFileService.h"
 
@@ -502,11 +503,11 @@ bool MainWindow::saveProject(bool saveAs) {
         if (!saveAs && !m_filePath.isEmpty() &&
             UserFileService::classify(m_sessionRoot, m_sessionUser, m_filePath) ==
                 UserFileService::Access::Own) {
-            name = QFileInfo(m_filePath).completeBaseName();   // 我的文件原文件名保存
+            return saveProjectTo(m_filePath);   // 原位保存确切路径，保留完整文件名与文件戳
         } else {
             const QString fallback = m_filePath.isEmpty()
                                          ? m_doc->project().title
-                                         : QFileInfo(m_filePath).completeBaseName();
+                                         : QFileInfo(m_filePath).fileName();
             bool ok = false;
             name = QInputDialog::getText(this, QStringLiteral("保存到我的文件"),
                                          QStringLiteral("文件名称："), QLineEdit::Normal,
@@ -1034,6 +1035,12 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
     if (m_sessionUser.isEmpty()) {
         showNotice(this, QMessageBox::Warning, QStringLiteral("未登录"),
                    QStringLiteral("登录后才能保存到我的文件"));
+        return false;
+    }
+    if (!LocalNameRules::validComponent(name.trimmed()))
+    {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("文件名无效"),
+                   QStringLiteral("文件名不能为空，且不能使用Windows保留名称或非法字符"));
         return false;
     }
     QString targetName = name.trimmed();
