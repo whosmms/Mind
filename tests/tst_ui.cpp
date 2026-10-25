@@ -2,6 +2,7 @@
 
 #include "charts/GanttView.h"
 #include "commands/CommandService.h"
+#include "commands/NodeCommands.h"
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
 #include "features/ReviewService.h"
@@ -64,6 +65,8 @@ private slots:
     void outlineEditingRoundTrip();
     void outlineCancelAndUndoSelection();
     void rootRenameUsesSharedRulesAndTaskLinkage();
+    void nodeMetadataSurvivesEditorAndFileRoundTrip();
+    void nodeMetadataNoOpKeepsWindowClean();
     void ganttLazyLoadRefreshAndUndo();
     void previewZoomAndLongTitle();
     void treeCanvasNodesEdgesSelectionAndRename();
@@ -966,6 +969,133 @@ void TstUi::rootRenameUsesSharedRulesAndTaskLinkage()
     autoCloseMessageBoxes();
     QVERIFY(!window.renameRootTo(QString(2001, QChar(0x4e2d))));
     QCOMPARE(document->project().tasks.first().title, QStringLiteral("同步中文标题"));
+}
+
+void TstUi::nodeMetadataSurvivesEditorAndFileRoundTrip()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *add = window.findChild<QAction *>(QStringLiteral("addChildTopic"));
+    QVERIFY(document && commands && outline && add);
+    const auto initialSheet = std::get<TreeSheet>(document->project().sheets.first());
+    const ID sheetId = initialSheet.id;
+    const ID rootId = initialSheet.rootId;
+    NodeCommands nodes(commands, document);
+    NodeMetaUpdate metadata;
+    metadata.note = QStringLiteral("编辑后仍需保留的多行备注\n第二行中文");
+    metadata.iconId = QStringLiteral("idea");
+    metadata.link = QStringLiteral("https://example.org/course");
+    metadata.tags = QStringList{QStringLiteral("课程"), QStringLiteral("待复习")};
+    QVERIFY(std::holds_alternative<bool>(nodes.updateNodeMeta(sheetId, rootId, metadata)));
+    NodeStyleOverride style;
+    style.fill = QStringLiteral("#247A62");
+    style.fontSize = 24;
+    style.bold = true;
+    QVERIFY(std::holds_alternative<bool>(nodes.setStyle(sheetId, rootId, style)));
+
+    // 通过既有窗口入口改名、撤销重做及新增撤销，验证消费者不重建或丢弃其它字段。
+    const QString originalTitle = window.currentRootTitle();
+    QVERIFY(window.renameRootTo(QStringLiteral("带元数据的主题")));
+    commands->undo();
+    QCOMPARE(window.currentRootTitle(), originalTitle);
+    commands->redo();
+    QCOMPARE(outline->currentItem()->text(0), QStringLiteral("带元数据的主题"));
+    answerTitleDialog(QStringLiteral("临时子主题"));
+    add->trigger();
+    QCOMPARE(outline->currentItem()->parent()->data(0, Qt::UserRole).toString(), rootId);
+    commands->undo();
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), rootId);
+    QCOMPARE(outline->topLevelItem(0)->childCount(), 0);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("元数据兼容.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    const auto loaded = FileService::load(path);
+    QVERIFY(std::holds_alternative<Project>(loaded));
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(loaded)),
+             ProjectJson::toJson(document->project()));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    auto *reopenedDocument = reopened.findChild<ProjectDocument *>();
+    auto *view = reopened.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QVERIFY(reopenedDocument && view);
+    QCOMPARE(ProjectJson::toJson(reopenedDocument->project()),
+             ProjectJson::toJson(document->project()));
+    const auto root =
+        std::get<TreeSheet>(reopenedDocument->project().sheets.first()).nodes.value(rootId);
+    QCOMPARE(root.title, QStringLiteral("带元数据的主题"));
+    QCOMPARE(root.note, *metadata.note);
+    QVERIFY(root.iconId == metadata.iconId);
+    QVERIFY(root.link == metadata.link);
+    QCOMPARE(root.tags, *metadata.tags);
+    QVERIFY(root.style.fill == style.fill);
+    QVERIFY(root.style.fontSize == style.fontSize);
+    QVERIFY(root.style.bold == style.bold);
+    QCOMPARE(canvasNodes(view).size(), 1);
+    QVERIFY(canvasNodes(view).contains(rootId));
+    // 此处仅验证数据保留与M1画布仍可用，不断言尚未接线的M2样式绘制。
+}
+
+void TstUi::nodeMetadataNoOpKeepsWindowClean()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QVERIFY(document && commands && outline && view);
+    const auto initialSheet = std::get<TreeSheet>(document->project().sheets.first());
+    const ID sheetId = initialSheet.id;
+    const ID rootId = initialSheet.rootId;
+    NodeCommands nodes(commands, document);
+    NodeMetaUpdate metadata;
+    metadata.note = QStringLiteral("原有备注");
+    metadata.tags = QStringList{QStringLiteral("保留标签")};
+    QVERIFY(std::holds_alternative<bool>(nodes.updateNodeMeta(sheetId, rootId, metadata)));
+    NodeStyleOverride style;
+    style.fill = QStringLiteral("#247A62");
+    QVERIFY(std::holds_alternative<bool>(nodes.setStyle(sheetId, rootId, style)));
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    QVERIFY(window.saveProjectTo(dir.filePath(QStringLiteral("无操作基线.lingya"))));
+    const auto saved = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changed(document, &ProjectDocument::changed);
+    NodeItem *const visibleRoot = canvasNodes(view).value(rootId);
+    QVERIFY(visibleRoot);
+    QVERIFY(std::holds_alternative<bool>(nodes.updateNodeMeta(sheetId, rootId, metadata)));
+    QVERIFY(std::holds_alternative<bool>(nodes.setStyle(sheetId, rootId, style)));
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(!document->isModified());
+    QCOMPARE(ProjectJson::toJson(document->project()), saved);
+    QCOMPARE(canvasNodes(view).value(rootId), visibleRoot);
+
+    NodeMetaUpdate patch;
+    patch.note = QStringLiteral("仅改备注");
+    QVERIFY(std::holds_alternative<bool>(nodes.updateNodeMeta(sheetId, rootId, patch)));
+    QCOMPARE(changed.count(), 1);
+    QVERIFY(document->isModified());
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), rootId);
+    QCOMPARE(view->scene()->selectedItems().size(), 1);
+    const auto changedRoot =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(rootId);
+    QCOMPARE(changedRoot.note, *patch.note);
+    QCOMPARE(changedRoot.tags, *metadata.tags);
+    QVERIFY(changedRoot.style.fill == style.fill);
+    commands->undo();
+    QCOMPARE(changed.count(), 2);
+    const auto restored =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(rootId);
+    QCOMPARE(restored.note, *metadata.note);
+    QCOMPARE(restored.tags, *metadata.tags);
+    QVERIFY(restored.style.fill == style.fill);
+    // 一次撤销直接恢复真实补丁前的备注，证明两次无操作没有占据历史栈顶。
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), rootId);
+    QVERIFY(canvasNodes(view).contains(rootId));
 }
 
 void TstUi::ganttLazyLoadRefreshAndUndo()
