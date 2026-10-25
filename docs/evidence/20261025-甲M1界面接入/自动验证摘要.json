@@ -1,0 +1,205 @@
+{
+  "dateUtc": "2026-10-25T03:06:46.1100807Z",
+  "sourceCommit": "4d134d9781b0408d414c23c95efa274853648031",
+  "branch": "feature/a/M1-editor-integration",
+  "success": true,
+  "versions": {
+    "qt": "6.8.3",
+    "gcc": "13.1.0",
+    "cmake": "cmake version 3.30.5",
+    "ninja": "1.12.1",
+    "clangFormat": "clang-format version 19.1.7"
+  },
+  "configurations": [
+    {
+      "name": "debug",
+      "suites": 14,
+      "passed": 204,
+      "failed": 0,
+      "skipped": 0,
+      "suiteDetails": [
+        {
+          "name": "tst_ai",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_charts",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_check",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_commands",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_domain",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_fileservice",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_ganttview",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_nodecommands",
+          "passed": 14,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_projectjson",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_recovery",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_review",
+          "passed": 23,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_secret",
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_tasks",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_ui",
+          "passed": 22,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "name": "release",
+      "suites": 14,
+      "passed": 204,
+      "failed": 0,
+      "skipped": 0,
+      "suiteDetails": [
+        {
+          "name": "tst_ai",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_charts",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_check",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_commands",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_domain",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_fileservice",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_ganttview",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_nodecommands",
+          "passed": 14,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_projectjson",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_recovery",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_review",
+          "passed": 23,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_secret",
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_tasks",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_ui",
+          "passed": 22,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    }
+  ],
+  "countConvention": "QtTest Incident，包含initTestCase和cleanupTestCase，不等同独立业务用例数",
+  "manualWindowsImeAndDpi": "未执行，待甲本人复验",
+  "nonAuthorReview": "待乙丙独立复核",
+  "screenshotSha256": "9CD87D2C03EF0D072DE0B9671B83923FB1E9DBBEBB3BDE828F482865AEFB6D06"
+}
