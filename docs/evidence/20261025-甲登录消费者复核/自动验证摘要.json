@@ -1,8 +1,8 @@
 {
-  "sourceCommit": "8bd32cd48bccb71d5a26b03d4353c4c75490de23",
-  "parentMain": "d19dbc8728090c28aab4c5870606be06aba3feec",
+  "sourceCommit": "9b9fc9330eb110e5e7ccf2bc73c385195512dedf",
   "branch": "fix/a/M2-session-review",
-  "dateUtc": "2026-10-25T08:29:30.2897862Z",
+  "parentMain": "cf47fe59eab9f919b4b25e42b570b4c3898ed2d4",
+  "dateUtc": "2026-10-25T08:56:15.4806472Z",
   "success": true,
   "versions": {
     "qt": "6.8.3",
@@ -15,7 +15,7 @@
     {
       "name": "debug",
       "suites": 16,
-      "passed": 302.0,
+      "passed": 304.0,
       "failed": 0.0,
       "skipped": 0.0,
       "details": [
@@ -111,7 +111,7 @@
         },
         {
           "name": "tst_ui",
-          "passed": 44,
+          "passed": 46,
           "failed": 0,
           "skipped": 0
         }
@@ -120,7 +120,7 @@
     {
       "name": "release",
       "suites": 16,
-      "passed": 302.0,
+      "passed": 304.0,
       "failed": 0.0,
       "skipped": 0.0,
       "details": [
@@ -216,7 +216,7 @@
         },
         {
           "name": "tst_ui",
-          "passed": 44,
+          "passed": 46,
           "failed": 0,
           "skipped": 0
         }
@@ -241,17 +241,22 @@
       "failed": 6,
       "passed": 3,
       "sha256": "50FB0442E02B4CE5DE120804DCCC3782FBD8F7CFE4A2B32349AF2FEBE15BEEA4"
-    }
-  ],
-  "countConvention": "含QtTest初始化/清理及数据行；红测14失败路径，不计初始化为缺陷",
-  "scope": "甲对乙登录模块的宿主与消费者复核；未改公共签名/Domain/JSON/Kit/CMake",
-  "humanAcceptance": "未执行或代签；账号/工程均隔离临时目录，口令为测试假值",
-  "images": [
+    },
     {
-      "file": "登录对话框_自动截图.png",
-      "sha256": "50C39B982819ED0B61F181A574832C62262759B69A7893692E60EC1BF25E88B0",
-      "kind": "offscreen自动截图非真人"
+      "file": "session-red-name-ui.xml",
+      "failed": 2,
+      "passed": 2,
+      "sha256": "05EED59622B62001730AE25B1FFDCD4E087B0A26A6845EE8B256791DCA3B3C70"
     }
   ],
-  "rawEvidence": "build/session-review-evidence/validation.json和32份XML；session-review-final-validation-console.log；build/session-red-*.xml和session-green-*.xml及session-capture.xml"
+  "countConvention": "含QtTest初始化/清理及数据行；16条实际失败路径，不计初始化为缺陷",
+  "scope": "追加完整文件名与空名称路径修正，服务签名/格式/Kit/CMake不变；UI文件名getter现在明确含扩展名",
+  "humanAcceptance": "未执行或代签；旧302项候选与原app/R02候选保留",
+  "rawEvidence": "build/session-review-exact-name-evidence含最终报告/32XML/red四份；session-review-exact-name-validation-console.log",
+  "priorEvidence": "8bd32cd初批302项摘要与登录自动图保留，图为未改登录窗口的旧快照",
+  "failureOwnership": {
+    "originalDeliveryRed": 14,
+    "preexistingRepeatedSuffix": 1,
+    "authorPatchEmptyNameRegression": 1
+  }
 }
