@@ -2,6 +2,9 @@
 
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 
 #include "domain/ProjectFactory.h"
@@ -32,6 +35,9 @@ class TstSession : public QObject
     void listOwnedNewestFirstAndSkipsForeign();
     void classifyOwnOthersPublic();
     void openOwnedRejectsMissingFile();
+    void accountNamesCannotShareDirectoryIdentity();
+    void malformedUsersCollectionKeepsAccountStore();
+    void duplicateDirectoryIdentityRejectedOnLoad();
 
   private:
     static Project makeProject(const QString &title)
@@ -244,6 +250,62 @@ void TstSession::openOwnedRejectsMissingFile()
         UserFileService::openOwned(root.path(), QStringLiteral("甲同学"), QStringLiteral("不存在"));
     QVERIFY(std::holds_alternative<AppError>(result));
     QCOMPARE(std::get<AppError>(result).code, QStringLiteral("FILE_NOT_FOUND"));
+}
+
+void TstSession::accountNamesCannotShareDirectoryIdentity()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        root.path(), QStringLiteral("CaseOwner"), QStringLiteral("test-only-one"))));
+    const auto alias = SessionService::createAccount(root.path(), QStringLiteral("caseowner"),
+                                                     QStringLiteral("test-only-two"));
+    QVERIFY(std::holds_alternative<AppError>(alias));
+    QCOMPARE(std::get<AppError>(alias).code, QStringLiteral("CONFLICT"));
+}
+
+void TstSession::malformedUsersCollectionKeepsAccountStore()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const QByteArray broken = R"({"schemaVersion":1,"users":42})";
+    QFile file(root.filePath(QStringLiteral("accounts.json")));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QCOMPARE(file.write(broken), broken.size());
+    file.close();
+    const auto result = SessionService::createAccount(root.path(), QStringLiteral("新同学"),
+                                                      QStringLiteral("test-only-one"));
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_PROJECT"));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.readAll(), broken);
+}
+
+void TstSession::duplicateDirectoryIdentityRejectedOnLoad()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        root.path(), QStringLiteral("CaseOwner"), QStringLiteral("test-only-one"))));
+    QFile file(root.filePath(QStringLiteral("accounts.json")));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    auto object = QJsonDocument::fromJson(file.readAll()).object();
+    file.close();
+    auto users = object.value(QStringLiteral("users")).toArray();
+    auto second = users.first().toObject();
+    second[QStringLiteral("name")] = QStringLiteral("caseowner");
+    users.append(second);
+    object[QStringLiteral("users")] = users;
+    const auto broken = QJsonDocument(object).toJson();
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QCOMPARE(file.write(broken), broken.size());
+    file.close();
+    const auto result = SessionService::login(root.path(), QStringLiteral("CaseOwner"),
+                                              QStringLiteral("test-only-one"));
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_PROJECT"));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.readAll(), broken);
 }
 
 QTEST_MAIN(TstSession)

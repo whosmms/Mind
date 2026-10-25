@@ -20,6 +20,7 @@
 #include <QGraphicsView>
 #include <QInputDialog>
 #include <QInputMethodEvent>
+#include <QLabel>
 #include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
@@ -35,9 +36,12 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 
 #include "app/MainWindow.h"
 #include "app/RecoveryDialog.h"
+#include "app/UserFilesDialog.h"
+#include "app/LoginDialog.h"
 #include "domain/Domain.h"
 #include "domain/ProjectFactory.h"
 #include "services/FileService.h"
@@ -94,6 +98,12 @@ private slots:
     void loggedInOpenRejectsOthersButAllowsPublicAndOwn();
     void loginSessionRejectsWrongPassword();
     void loggedOutOpensAnyFileUnchanged();
+    void ownedOpenCancelKeepsUnsavedProject();
+    void ownedSaveProtectsExternalChanges_data();
+    void ownedSaveProtectsExternalChanges();
+    void ownedListUsesStableFileIdentity_data();
+    void ownedListUsesStableFileIdentity();
+    void loginDialogValidationRegistrationAndCancel();
 
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
@@ -1670,6 +1680,194 @@ void TstUi::loggedOutOpensAnyFileUnchanged()
     MainWindow w;   // 未登录：现状不变，任何文件可开
     QVERIFY(w.openFile(othersPath));
     QVERIFY(!w.isLoggedIn());
+}
+
+void TstUi::ownedOpenCancelKeepsUnsavedProject()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setSessionRootForTest(root.path());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        root.path(), QStringLiteral("复核同学"), QStringLiteral("test-only-one"))));
+    MainWindow window;
+    QVERIFY(window.loginSession(QStringLiteral("复核同学"), QStringLiteral("test-only-one")));
+    QVERIFY(window.saveProjectToOwned(QStringLiteral("已存工程")));
+    QVERIFY(window.renameRootTo(QStringLiteral("不能丢的未保存修改")));
+    auto *document = window.findChild<ProjectDocument *>();
+    QVERIFY(document);
+    const auto before = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    autoCloseMessageBoxes();
+    QVERIFY(!window.openOwnedFile(QStringLiteral("已存工程")));
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(document->isModified());
+}
+
+void TstUi::ownedSaveProtectsExternalChanges_data()
+{
+    QTest::addColumn<bool>("removed");
+    QTest::newRow("外部修改") << false;
+    QTest::newRow("外部删除") << true;
+}
+
+void TstUi::ownedSaveProtectsExternalChanges()
+{
+    QFETCH(bool, removed);
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setSessionRootForTest(root.path());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        root.path(), QStringLiteral("复核同学"), QStringLiteral("test-only-one"))));
+    MainWindow window;
+    QVERIFY(window.loginSession(QStringLiteral("复核同学"), QStringLiteral("test-only-one")));
+    QVERIFY(window.saveProjectToOwned(QStringLiteral("防覆盖工程")));
+    const QString path = UserFileService::userDir(root.path(), QStringLiteral("复核同学")) +
+                         QStringLiteral("/防覆盖工程.lingya");
+    QVERIFY(window.renameRootTo(QStringLiteral("当前未保存修改")));
+    auto *document = window.findChild<ProjectDocument *>();
+    QVERIFY(document);
+    const auto before = ProjectJson::toJson(document->project());
+    if (removed)
+        QVERIFY(QFile::remove(path));
+    else
+        QVERIFY(std::holds_alternative<qint64>(
+            FileService::save(path, ProjectFactory::createMindmap(QStringLiteral("外部版本")))));
+    QByteArray externalBytes;
+    if (!removed)
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        externalBytes = file.readAll();
+    }
+    autoCloseMessageBoxes();
+    QVERIFY(!window.saveProjectToOwned(QStringLiteral("防覆盖工程")));
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(document->isModified());
+    if (removed)
+        QVERIFY(!QFile::exists(path));
+    else
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), externalBytes);
+    }
+}
+
+void TstUi::ownedListUsesStableFileIdentity_data()
+{
+    QTest::addColumn<bool>("removed");
+    QTest::newRow("排序变化") << false;
+    QTest::newRow("所选文件删除") << true;
+}
+
+void TstUi::ownedListUsesStableFileIdentity()
+{
+    QFETCH(bool, removed);
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const QString user = QStringLiteral("复核同学");
+    const auto savedA =
+        UserFileService::saveOwned(root.path(), user, QStringLiteral("原选中"),
+                                   ProjectFactory::createMindmap(QStringLiteral("原选中")));
+    const auto savedB =
+        UserFileService::saveOwned(root.path(), user, QStringLiteral("旁边文件"),
+                                   ProjectFactory::createMindmap(QStringLiteral("旁边文件")));
+    QVERIFY(std::holds_alternative<QString>(savedA));
+    QVERIFY(std::holds_alternative<QString>(savedB));
+    QFile fileA(std::get<QString>(savedA));
+    QFile fileB(std::get<QString>(savedB));
+    QVERIFY(fileA.open(QIODevice::ReadWrite));
+    QVERIFY(fileB.open(QIODevice::ReadWrite));
+    QVERIFY(fileA.setFileTime(
+        QDateTime::fromString(QStringLiteral("2025-01-02T00:00:00Z"), Qt::ISODate),
+        QFileDevice::FileModificationTime));
+    QVERIFY(fileB.setFileTime(
+        QDateTime::fromString(QStringLiteral("2025-01-01T00:00:00Z"), Qt::ISODate),
+        QFileDevice::FileModificationTime));
+    fileA.close();
+    fileB.close();
+    UserFilesDialog dialog(root.path(), user);
+    auto *list = dialog.findChild<QListWidget *>();
+    QVERIFY(list && list->count() == 2);
+    QVERIFY(list->item(0)->text().startsWith(QStringLiteral("原选中")));
+    list->setCurrentRow(0);
+    if (removed)
+        QVERIFY(QFile::remove(fileA.fileName()));
+    else
+    {
+        QVERIFY(fileB.open(QIODevice::ReadWrite));
+        QVERIFY(fileB.setFileTime(
+            QDateTime::fromString(QStringLiteral("2025-02-01T00:00:00Z"), Qt::ISODate),
+            QFileDevice::FileModificationTime));
+        fileB.close();
+    }
+    auto *open = findButton(dialog, QStringLiteral("打开"));
+    QVERIFY(open);
+    open->click();
+    if (removed)
+    {
+        QVERIFY(dialog.selectedFileName().isEmpty());
+        QVERIFY(dialog.result() != QDialog::Accepted);
+        const auto labels = dialog.findChildren<QLabel *>();
+        QVERIFY(std::any_of(labels.begin(), labels.end(),
+                            [](const QLabel *label) { return !label->text().isEmpty(); }));
+    }
+    else
+        QCOMPARE(dialog.selectedFileName(), QStringLiteral("原选中"));
+}
+
+void TstUi::loginDialogValidationRegistrationAndCancel()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    LoginDialog dialog(root.path());
+    if (!qEnvironmentVariableIsEmpty("LINGYA_LOGIN_CAPTURE"))
+    {
+        QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
+        QVERIFY(style.open(QIODevice::ReadOnly));
+        dialog.setStyleSheet(QString::fromUtf8(style.readAll()));
+    }
+    const auto edits = dialog.findChildren<QLineEdit *>();
+    QCOMPARE(edits.size(), 2);
+    QLineEdit *name = nullptr;
+    QLineEdit *password = nullptr;
+    for (auto *edit : edits)
+        if (edit->echoMode() == QLineEdit::Password)
+            password = edit;
+        else
+            name = edit;
+    QVERIFY(name && password);
+    name->setText(QStringLiteral("对话框同学"));
+    password->setText(QStringLiteral("test-only-one"));
+    auto *login = findButton(dialog, QStringLiteral("登录"));
+    auto *signup = findButton(dialog, QStringLiteral("注册并登录"));
+    QVERIFY(login && signup);
+    dialog.show();
+    login->click();
+    QVERIFY(dialog.result() != QDialog::Accepted);
+    const auto labels = dialog.findChildren<QLabel *>();
+    QVERIFY(std::any_of(labels.begin(), labels.end(), [](const QLabel *label)
+                        { return label->text() == QStringLiteral("用户名或密码错误"); }));
+    const QString capture = qEnvironmentVariable("LINGYA_LOGIN_CAPTURE");
+    if (!capture.isEmpty())
+        QVERIFY(dialog.grab().save(capture));
+    signup->click();
+    QCOMPARE(dialog.result(), QDialog::Accepted);
+    QCOMPARE(dialog.loggedInUserName(), QStringLiteral("对话框同学"));
+    const QString accountPath = root.filePath(QStringLiteral("accounts.json"));
+    QFile accounts(accountPath);
+    QVERIFY(accounts.open(QIODevice::ReadOnly));
+    const QByteArray before = accounts.readAll();
+    accounts.close();
+    LoginDialog cancelled(root.path());
+    auto *cancel = findButton(cancelled, QStringLiteral("取消"));
+    QVERIFY(cancel);
+    cancelled.show();
+    cancel->click();
+    QVERIFY(cancelled.loggedInUserName().isEmpty());
+    QVERIFY(accounts.open(QIODevice::ReadOnly));
+    QCOMPARE(accounts.readAll(), before);
 }
 
 QTEST_MAIN(TstUi)

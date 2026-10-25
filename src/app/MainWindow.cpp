@@ -1036,6 +1036,17 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
                    QStringLiteral("登录后才能保存到我的文件"));
         return false;
     }
+    QString targetName = name.trimmed();
+    if (!targetName.endsWith(QStringLiteral(".lingya"), Qt::CaseInsensitive))
+        targetName += QStringLiteral(".lingya");
+    if (!m_filePath.isEmpty() &&
+        UserFileService::classify(m_sessionRoot, m_sessionUser, m_filePath) ==
+            UserFileService::Access::Own &&
+        targetName.compare(QFileInfo(m_filePath).fileName(), Qt::CaseInsensitive) == 0)
+    {
+        // 原位保存复用统一的已加载文件戳保护，不覆盖外部编辑或复活外部删除。
+        return saveProjectTo(m_filePath);
+    }
     const auto saved =
         UserFileService::saveOwned(m_sessionRoot, m_sessionUser, name, m_doc->project());
     if (std::holds_alternative<AppError>(saved)) {
@@ -1062,6 +1073,7 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
 }
 
 bool MainWindow::openOwnedFile(const QString& name) {
+    if (!confirmDiscard()) return false;
     const auto opened = UserFileService::openOwned(m_sessionRoot, m_sessionUser, name);
     if (std::holds_alternative<AppError>(opened)) {
         showNotice(this, QMessageBox::Critical, QStringLiteral("无法打开"),
