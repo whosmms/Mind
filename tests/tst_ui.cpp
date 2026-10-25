@@ -107,6 +107,12 @@ private slots:
     void nodeStyleUneditedFontOverride_data();
     void nodeStyleUneditedFontOverride();
     void nodeStyleMixedHundredNodes();
+    void nodeTagsEditUndoAndRoundTrip();
+    void nodeTagsNoOpCancelAndInputMethod();
+    void nodeTagsLimits_data();
+    void nodeTagsLimits();
+    void outlineTagFilterIsTemporary();
+    void outlineTagFilterTracksUndoAndRemoval();
     void ganttLazyLoadRefreshAndUndo();
     void previewZoomAndLongTitle();
     void treeCanvasNodesEdgesSelectionAndRename();
@@ -143,6 +149,39 @@ private slots:
     void ownedSaveRejectsEmptyNameForDotFile();
 
 private:
+  static void answerNodeTags(MainWindow &window, std::function<void(QDialog *)> answer)
+  {
+      QTimer::singleShot(0, &window,
+                         [&window, answer]
+                         {
+                             auto *dialog =
+                                 window.findChild<QDialog *>(QStringLiteral("nodeTagsDialog"));
+                             if (!dialog || !dialog->isVisible())
+                             {
+                                 QTest::qFail("未显示标签窗口", __FILE__, __LINE__);
+                                 return;
+                             }
+                             answer(dialog);
+                             if (dialog->isVisible())
+                                 dialog->reject();
+                         });
+  }
+  static void addDraftTag(QDialog *dialog, const QString &value)
+  {
+      QTimer::singleShot(0, dialog,
+                         [dialog, value]
+                         {
+                             auto *input = dialog->findChild<QInputDialog *>();
+                             if (!input)
+                             {
+                                 QTest::qFail("未显示新增标签输入框", __FILE__, __LINE__);
+                                 return;
+                             }
+                             input->setTextValue(value);
+                             input->accept();
+                         });
+      dialog->findChild<QPushButton *>(QStringLiteral("addNodeTag"))->click();
+  }
   static void answerNodeStyle(MainWindow &window, std::function<void(QDialog *)> answer)
   {
       QTimer::singleShot(0, &window,
@@ -2734,6 +2773,273 @@ void TstUi::nodeStyleMixedHundredNodes()
         QTest::qWait(20);
         QVERIFY(window.grab().save(capture));
     }
+}
+
+void TstUi::nodeTagsEditUndoAndRoundTrip()
+{
+    MainWindow window;
+    if (!qEnvironmentVariableIsEmpty("LINGYA_TAGS_DIALOG_CAPTURE"))
+    {
+        QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
+        QVERIFY(style.open(QIODevice::ReadOnly));
+        window.setStyleSheet(QString::fromUtf8(style.readAll()));
+    }
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeTags"));
+    Project project = canvasProject();
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const ID rootId = tree.rootId;
+    tree.nodes[rootId].tags = {QStringLiteral("原标签")};
+    tree.nodes[rootId].note = QStringLiteral("独立备注不改");
+    tree.nodes[rootId].iconId = QStringLiteral("star");
+    tree.nodes[rootId].link = QStringLiteral("https://example.org");
+    tree.nodes[rootId].style.fill = QStringLiteral("#E7F0FF");
+    document->replaceProject(project);
+    commands->clearHistory();
+    document->setClean();
+    document->notifyChanged();
+    const auto before = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changed(document, &ProjectDocument::changed);
+    answerNodeTags(
+        window,
+        [](QDialog *dialog)
+        {
+            addDraftTag(dialog, QStringLiteral("  课程,第一类  "));
+            addDraftTag(dialog, QStringLiteral("研究"));
+            auto *list = dialog->findChild<QListWidget *>(QStringLiteral("nodeTags"));
+            list->setCurrentRow(0);
+            dialog->findChild<QPushButton *>(QStringLiteral("removeNodeTag"))->click();
+            const QString capture = qEnvironmentVariable("LINGYA_TAGS_DIALOG_CAPTURE");
+            if (!capture.isEmpty())
+                QVERIFY(dialog->grab().save(capture));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(document->sessionRevision(), revision + 1);
+    const auto updated =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(rootId);
+    QCOMPARE(updated.tags, QStringList({QStringLiteral("课程,第一类"), QStringLiteral("研究")}));
+    QCOMPARE(updated.note, tree.nodes.value(rootId).note);
+    QVERIFY(updated.iconId == tree.nodes.value(rootId).iconId);
+    QVERIFY(updated.link == tree.nodes.value(rootId).link);
+    QVERIFY(updated.style.fill == tree.nodes.value(rootId).style.fill);
+    const auto after = ProjectJson::toJson(document->project());
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(!commands->canUndo());
+    commands->redo();
+    QCOMPARE(ProjectJson::toJson(document->project()), after);
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("标签保存重开.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    QCOMPARE(ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()), after);
+}
+
+void TstUi::nodeTagsNoOpCancelAndInputMethod()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeTags"));
+    Project project = canvasProject();
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.nodes[tree.rootId].tags = {QStringLiteral("含,逗号"), QStringLiteral("一行\n二行"),
+                                    QStringLiteral("  原样  ")};
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString file = dir.filePath(QStringLiteral("原有标签.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(file, project)));
+    QVERIFY(window.openFile(file));
+    const auto before = ProjectJson::toJson(document->project());
+    const auto revision = document->sessionRevision();
+    answerNodeTags(
+        window, [](QDialog *dialog)
+        { dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click(); });
+    edit->trigger();
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(!document->isModified() && !commands->canUndo());
+    answerNodeTags(
+        window,
+        [](QDialog *dialog)
+        {
+            QTimer::singleShot(0, dialog,
+                               [dialog]
+                               {
+                                   auto *input = dialog->findChild<QInputDialog *>();
+                                   QVERIFY(input);
+                                   const auto close = qScopeGuard(
+                                       [input]
+                                       {
+                                           if (input->isVisible())
+                                               input->reject();
+                                       });
+                                   auto *line = input->findChild<QLineEdit *>();
+                                   QVERIFY(line);
+                                   QCOMPARE(input->okButtonText(), QStringLiteral("添加"));
+                                   QCOMPARE(input->cancelButtonText(), QStringLiteral("取消"));
+                                   QInputMethodEvent preedit(QStringLiteral("zhongwen"), {});
+                                   QCoreApplication::sendEvent(line, &preedit);
+                                   QTest::keyClick(line, Qt::Key_Return);
+                                   QVERIFY(input->isVisible());
+                                   QInputMethodEvent commit;
+                                   commit.setCommitString(QStringLiteral("中文标签"));
+                                   QCoreApplication::sendEvent(line, &commit);
+                                   QTest::keyClick(line, Qt::Key_Return);
+                                   QVERIFY(!input->isVisible());
+                               });
+            dialog->findChild<QPushButton *>(QStringLiteral("addNodeTag"))->click();
+            auto *list = dialog->findChild<QListWidget *>(QStringLiteral("nodeTags"));
+            QCOMPARE(list->count(), 4);
+            addDraftTag(dialog, QStringLiteral("中文标签"));
+            QCOMPARE(list->count(), 4);
+            QVERIFY(
+                !dialog->findChild<QLabel *>(QStringLiteral("nodeTagsError"))->text().isEmpty());
+            addDraftTag(dialog, QStringLiteral("   "));
+            QCOMPARE(list->count(), 4);
+            dialog->findChild<QPushButton *>(QStringLiteral("clearNodeTags"))->click();
+            QCOMPARE(list->count(), 0);
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Cancel)->click();
+        });
+    edit->trigger();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(!commands->canUndo());
+}
+
+void TstUi::nodeTagsLimits_data()
+{
+    QTest::addColumn<bool>("tooMany");
+    QTest::newRow("tag-count") << true;
+    QTest::newRow("unicode-length") << false;
+}
+
+void TstUi::nodeTagsLimits()
+{
+    QFETCH(bool, tooMany);
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeTags"));
+    const auto before = ProjectJson::toJson(document->project());
+    const auto revision = document->sessionRevision();
+    answerNodeTags(
+        window,
+        [&, tooMany](QDialog *dialog)
+        {
+            if (tooMany)
+                for (int index = 0; index < 21; ++index)
+                    addDraftTag(dialog, QStringLiteral("标签%1").arg(index));
+            else
+                addDraftTag(dialog, QString(31, QChar(0x4e2d)));
+            auto *buttons = dialog->findChild<QDialogButtonBox *>();
+            buttons->button(QDialogButtonBox::Ok)->click();
+            QVERIFY(dialog->isVisible());
+            QVERIFY(
+                !dialog->findChild<QLabel *>(QStringLiteral("nodeTagsError"))->text().isEmpty());
+            QCOMPARE(ProjectJson::toJson(document->project()), before);
+            QCOMPARE(document->sessionRevision(), revision);
+            auto *list = dialog->findChild<QListWidget *>(QStringLiteral("nodeTags"));
+            list->setCurrentRow(list->count() - 1);
+            dialog->findChild<QPushButton *>(QStringLiteral("removeNodeTag"))->click();
+            if (!tooMany)
+                addDraftTag(dialog, QString(29, QChar(0x4e2d)) + QString::fromUcs4(U"😀"));
+            buttons->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(document->sessionRevision(), revision + 1);
+    const auto &tree = std::get<TreeSheet>(document->project().sheets.first());
+    QCOMPARE(tree.nodes.value(tree.rootId).tags.size(), tooMany ? 20 : 1);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+}
+
+void TstUi::outlineTagFilterIsTemporary()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *filter = window.findChild<QComboBox *>(QStringLiteral("outlineTagFilter"));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    Project project = canvasProject();
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const ID match = canvasId(QStringLiteral("leaf-0-1"));
+    const ID other = canvasId(QStringLiteral("branch-1"));
+    tree.nodes[match].tags = {QStringLiteral("研究")};
+    tree.nodes[other].tags = {QStringLiteral("设计")};
+    document->replaceProject(project);
+    commands->clearHistory();
+    document->setClean();
+    document->notifyChanged();
+    const auto before = ProjectJson::toJson(document->project());
+    const auto revision = document->sessionRevision();
+    outline->setCurrentItem(outline->topLevelItem(0)->child(1));
+    filter->setCurrentIndex(filter->findData(QStringLiteral("研究")));
+    auto *root = outline->topLevelItem(0);
+    QVERIFY(!root->isHidden() && !root->child(0)->isHidden());
+    QVERIFY(root->child(0)->child(0)->isHidden());
+    QVERIFY(!root->child(0)->child(1)->isHidden() && root->child(1)->isHidden());
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), match);
+    QCOMPARE(canvasNodes(view).size(), 7);
+    window.show();
+    window.findChild<QAction *>(QStringLiteral("fitTopic"))->trigger();
+    QCoreApplication::processEvents();
+    const QString capture = qEnvironmentVariable("LINGYA_TAGS_FILTER_CAPTURE");
+    if (!capture.isEmpty())
+        QVERIFY(window.grab().save(capture));
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier,
+                      view->mapFromScene(canvasNodes(view).value(other)->pos()));
+    QCOMPARE(filter->currentIndex(), 0);
+    QVERIFY(!root->child(1)->isHidden());
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(!commands->canUndo() && !document->isModified());
+    filter->setCurrentIndex(filter->findData(QStringLiteral("研究")));
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString file = dir.filePath(QStringLiteral("新会话.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(file, project)));
+    QVERIFY(window.openFile(file));
+    QCOMPARE(filter->currentIndex(), 0);
+}
+
+void TstUi::outlineTagFilterTracksUndoAndRemoval()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *filter = window.findChild<QComboBox *>(QStringLiteral("outlineTagFilter"));
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeTags"));
+    Project project = canvasProject();
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.nodes[canvasId(QStringLiteral("branch-0"))].tags = {QStringLiteral("唯一标签")};
+    document->replaceProject(project);
+    commands->clearHistory();
+    document->setClean();
+    document->notifyChanged();
+    const auto before = ProjectJson::toJson(document->project());
+    outline->setCurrentItem(outline->topLevelItem(0)->child(0));
+    filter->setCurrentIndex(filter->findData(QStringLiteral("唯一标签")));
+    answerNodeTags(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QPushButton *>(QStringLiteral("clearNodeTags"))->click();
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(filter->currentIndex(), 0);
+    QCOMPARE(filter->findData(QStringLiteral("唯一标签")), -1);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(filter->findData(QStringLiteral("唯一标签")) > 0);
 }
 
 QTEST_MAIN(TstUi)

@@ -16,6 +16,7 @@ class QEvent;
 class QObject;
 class QTimer;
 class QTreeWidget;
+class QComboBox;
 
 namespace lingya {
 
@@ -102,12 +103,15 @@ private:
     bool saveProject(bool saveAs);
     void renameSelectedNode();
     void editSelectedNodeProperties();
+    void editSelectedNodeTags();
     void editSelectedNodeStyle();
     void openSelectedNodeLink();
     void addChildToSelection();
     void addSiblingToSelection();
     void deleteSelection();
     void rebuildOutline();
+    void rebuildTagFilter();
+    void applyOutlineTagFilter();
     void showGanttView();
     void setCanvasZoom(qreal zoom);
     void fitCanvas();
@@ -129,6 +133,7 @@ private:
     QGraphicsScene* m_scene = nullptr;
     QGraphicsView* m_view = nullptr;
     QTreeWidget *m_outline = nullptr;
+    QComboBox *m_tagFilter = nullptr;
     ID m_selectedNodeId;                       // 临时选择状态，不持久化、不进入撤销历史
     QMap<ID, NodeItem *> m_nodeItems;          // 非拥有指针；图元由m_scene销毁
     QString m_canvasError;
@@ -144,6 +149,7 @@ private:
     QAction *m_deleteAction = nullptr;
     QAction *m_propertiesAction = nullptr;
     QAction *m_styleAction = nullptr;
+    QAction *m_tagsAction = nullptr;
     QAction *m_openLinkAction = nullptr;
     QTimer* m_recoveryTimer = nullptr;     // 30秒恢复快照定时器（仅脏文档生效）
     QString m_recoveryRoot;                // 恢复快照根目录（测试可注入）
