@@ -5,6 +5,8 @@ Windows 桌面思维导图课程软件。仓库根目录即本文件所在目录
 
 ## 当前交付：H-022主题标签与大纲筛选
 
+草稿PR26：https://github.com/whosmms/Mind/pull/26（目标main，待乙丙复核，未自批合入）。
+
 - 当前main d91b3c4，乙INT009已接收PR20/22/23/24/25（79d0dc9账号原子写、28bc052属性PNG与局部样式、db52a61甘特及显示补丁）；五条远程分支已清理。旧等待段降为历史，不恢复关闭引用，原app/候选保持。
 - 甲feature/a/M2-node-tags独立消费乙updateNodeMeta(tags)，完成标签草稿单事务/取消/无操作、中文预编辑、数量/码点限制及严格重开；大纲临时筛选保留祖先、画布完整、选择/清空/撤销/新会话同步。不改Domain/JSON/命令/布局/CMake。
 - 被测462fa03：Debug/Release各16套件340项通过、0失败0跳过，32XML；无Svg专项各9项另计。说明docs/reviews/H-022-主题标签与大纲筛选.md，证据docs/evidence/20261025-甲标签编辑筛选。
