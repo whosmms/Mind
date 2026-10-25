@@ -1,0 +1,24 @@
+{
+  "rawEvidence": "build/png-only-runtime-evidence",
+  "sourceCommit": "172cfaba936f994221214d4b084ac8dc61d522fd",
+  "fullSuiteCounts": "全量313与定向5分别报告，不相加",
+  "method": "仅复制Core/Gui/Widgets/Network/Test与MinGW库和offscreen平台插件；qt.conf将插件路径锁至隔离目录，PATH不含Qt Kit；格式探针须有png且无svg/svgz，再运行3个属性图标用例（含init/cleanup各5项）；非乙本人复验",
+  "configurations": [
+    {
+      "svgFiles": 0,
+      "passed": 5,
+      "name": "debug",
+      "failed": 0,
+      "formats": "formats=bmp,pbm,pgm,png,ppm,xbm,xpm",
+      "skipped": 0
+    },
+    {
+      "svgFiles": 0,
+      "passed": 5,
+      "name": "release",
+      "failed": 0,
+      "formats": "formats=bmp,pbm,pgm,png,ppm,xbm,xpm",
+      "skipped": 0
+    }
+  ]
+}

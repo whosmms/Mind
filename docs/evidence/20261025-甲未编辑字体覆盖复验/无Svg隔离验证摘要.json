@@ -1,0 +1,23 @@
+{
+  "boundary": "与全量324分开统计；本机自动验证，不代签乙或真人",
+  "configurations": [
+    {
+      "name": "debug",
+      "formats": "formats=bmp,pbm,pgm,png,ppm,xbm,xpm",
+      "skipped": 0,
+      "failed": 0,
+      "passed": 16,
+      "svgFileCount": 0
+    },
+    {
+      "name": "release",
+      "formats": "formats=bmp,pbm,pgm,png,ppm,xbm,xpm",
+      "skipped": 0,
+      "failed": 0,
+      "passed": 16,
+      "svgFileCount": 0
+    }
+  ],
+  "method": "继承H020隔离验证：无QtSvg DLL/插件，qt.conf与PATH限制搜索，格式探针有png无svg/svgz；R02+样式+字体保留数据行，含init/cleanup各16项",
+  "sourceCommit": "275b57d0efb840f6921dbe4495294af96ad72f95"
+}

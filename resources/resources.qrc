@@ -1,8 +1,11 @@
-<!-- 资源索引（规范§3）：M0仅含QSS主题与AI提示词模板；图标资源随设计资产接入后补充 -->
+<!-- 资源索引：主题、提示词与原创内置节点图标 -->
 <RCC>
   <qresource prefix="/lingya">
     <file>styles/light.qss</file>
     <file>prompts/map-v1.txt</file>
     <file>prompts/draft-v1.txt</file>
+    <file>icons/idea.png</file>
+    <file>icons/star.png</file>
+    <file>icons/check.png</file>
   </qresource>
 </RCC>

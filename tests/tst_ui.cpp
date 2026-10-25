@@ -10,6 +10,10 @@
 #include "services/ProjectJson.h"
 #include <QAbstractButton>
 #include <QAction>
+#include <QComboBox>
+#include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -21,12 +25,15 @@
 #include <QGraphicsView>
 #include <QInputDialog>
 #include <QInputMethodEvent>
+#include <QImage>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QProcess>
+#include <QPushButton>
 #include <QSettings>
 #include <QScopeGuard>
 #include <QStackedWidget>
@@ -35,6 +42,7 @@
 #include <QTimer>
 #include <QTreeWidget>
 #include <QUuid>
+#include <QUrl>
 
 #include <cstdio>
 #include <cstdlib>
@@ -53,6 +61,17 @@
 #include "services/UserFileService.h"
 
 using namespace lingya;
+
+// 测试拦截系统URL派发，不启动浏览器或发出网络请求。
+class LinkReceiver : public QObject
+{
+    Q_OBJECT
+public:
+    QUrl last;
+    int count = 0;
+public slots:
+    void open(const QUrl &url) { last = url; ++count; }
+};
 
 // UI层测试（规范§3 tst_ui规划、§19.1）：进程内验证快捷键绑定与文件打开行为。
 // QTest::keyClick走Qt事件系统（ShortcutMap），不经Windows输入队列，
@@ -78,6 +97,16 @@ private slots:
     void rootRenameUsesSharedRulesAndTaskLinkage();
     void nodeMetadataSurvivesEditorAndFileRoundTrip();
     void nodeMetadataNoOpKeepsWindowClean();
+    void nodePropertiesEditClearUndoAndRoundTrip();
+    void nodePropertiesCancelInvalidAndUnknownIcon();
+    void nodeIconResourcesAndMeasurement();
+    void nodeStyleShapes_data();
+    void nodeStyleShapes();
+    void nodeStyleEditUndoAndRoundTrip();
+    void nodeStyleCancelInvalidResetAndNoOp();
+    void nodeStyleUneditedFontOverride_data();
+    void nodeStyleUneditedFontOverride();
+    void nodeStyleMixedHundredNodes();
     void ganttLazyLoadRefreshAndUndo();
     void previewZoomAndLongTitle();
     void treeCanvasNodesEdgesSelectionAndRename();
@@ -114,6 +143,41 @@ private slots:
     void ownedSaveRejectsEmptyNameForDotFile();
 
 private:
+  static void answerNodeStyle(MainWindow &window, std::function<void(QDialog *)> answer)
+  {
+      QTimer::singleShot(0, &window,
+                         [&window, answer]
+                         {
+                             auto *dialog =
+                                 window.findChild<QDialog *>(QStringLiteral("nodeStyleDialog"));
+                             if (dialog == nullptr || !dialog->isVisible())
+                             {
+                                 QTest::qFail("未显示节点样式对话框", __FILE__, __LINE__);
+                                 return;
+                             }
+                             answer(dialog);
+                             if (dialog->isVisible())
+                                 dialog->reject();
+                         });
+  }
+
+    static void answerNodeProperties(MainWindow &window, std::function<void(QDialog *)> answer)
+    {
+        QTimer::singleShot(0, &window, [&window, answer]
+        {
+            auto *dialog = window.findChild<QDialog *>(QStringLiteral("nodePropertiesDialog"));
+            if (dialog == nullptr || !dialog->isVisible())
+            {
+                QTest::qFail("未显示主题属性对话框", __FILE__, __LINE__);
+                return;
+            }
+            answer(dialog);
+            // 测试断言失败或预检拒绝时仍关闭模态窗口，避免测试挂起。
+            if (dialog->isVisible())
+                dialog->reject();
+        });
+    }
+
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
     QTemporaryDir m_recoveryDir;   // 恢复快照重定向目录（initTestCase设置，成员保活）
     QTemporaryDir m_sessionDir;    // 会话根重定向目录（D-M2-02登录功能隔离）
@@ -1267,6 +1331,239 @@ void TstUi::nodeMetadataNoOpKeepsWindowClean()
     QVERIFY(canvasNodes(view).contains(rootId));
 }
 
+void TstUi::nodePropertiesEditClearUndoAndRoundTrip()
+{
+    MainWindow window;
+    if (!qEnvironmentVariableIsEmpty("LINGYA_PROPERTIES_CAPTURE"))
+    {
+        QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
+        QVERIFY(style.open(QIODevice::ReadOnly));
+        window.setStyleSheet(QString::fromUtf8(style.readAll()));
+    }
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeProperties"));
+    auto *open = window.findChild<QAction *>(QStringLiteral("openNodeLink"));
+    QVERIFY(document && commands && outline && view && edit && open);
+    Project project = canvasProject();
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const ID branchId = canvasId(QStringLiteral("branch-0"));
+    tree.nodes[branchId].tags = {QStringLiteral("保留原标签")};
+    tree.nodes[branchId].style.fill = QStringLiteral("#247A62");
+    document->replaceProject(project);
+    commands->clearHistory();
+    document->setClean();
+    document->notifyChanged();
+    outline->setCurrentItem(outline->topLevelItem(0)->child(0));
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), branchId);
+    QVERIFY(!open->isEnabled());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changed(document, &ProjectDocument::changed);
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            auto *icons = dialog->findChild<QComboBox *>(QStringLiteral("nodeIcon"));
+            auto *note = dialog->findChild<QPlainTextEdit *>(QStringLiteral("nodeNote"));
+            auto *link = dialog->findChild<QLineEdit *>(QStringLiteral("nodeLink"));
+            auto *buttons = dialog->findChild<QDialogButtonBox *>();
+            QVERIFY(icons && note && link && buttons);
+            icons->setCurrentIndex(icons->findData(QStringLiteral("star")));
+            note->setPlainText(QStringLiteral("属性里的中文备注\n第二行"));
+            link->setText(QStringLiteral("https://example.org/topic"));
+            const QString capture = qEnvironmentVariable("LINGYA_PROPERTIES_CAPTURE");
+            if (!capture.isEmpty())
+                QVERIFY(dialog->grab().save(capture));
+            buttons->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(document->sessionRevision(), revision + 1);
+    const auto edited =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(branchId);
+    QCOMPARE(edited.note, QStringLiteral("属性里的中文备注\n第二行"));
+    QVERIFY(edited.iconId == std::optional<QString>(QStringLiteral("star")));
+    QVERIFY(edited.link == std::optional<QString>(QStringLiteral("https://example.org/topic")));
+    QCOMPARE(edited.tags, QStringList{QStringLiteral("保留原标签")});
+    QVERIFY(edited.style.fill == tree.nodes.value(branchId).style.fill);
+    QVERIFY(open->isEnabled());
+    LinkReceiver receiver;
+    QDesktopServices::setUrlHandler(QStringLiteral("https"), &receiver, "open");
+    const auto restoreUrlHandler =
+        qScopeGuard([] { QDesktopServices::unsetUrlHandler(QStringLiteral("https")); });
+    open->trigger();
+    QCOMPARE(receiver.count, 1);
+    QCOMPARE(receiver.last, QUrl(*edited.link));
+
+    // 三字段同一事务，撤销一次全部恢复；选择与未编辑字段保持。
+    commands->undo();
+    const auto undone =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(branchId);
+    QVERIFY(undone.note.isEmpty() && !undone.iconId && !undone.link);
+    QVERIFY(!commands->canUndo());
+    QVERIFY(!open->isEnabled());
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), branchId);
+    commands->redo();
+    const QString canvasCapture = qEnvironmentVariable("LINGYA_PROPERTIES_CANVAS_CAPTURE");
+    if (!canvasCapture.isEmpty())
+    {
+        window.show();
+        QTest::qWait(20);
+        QVERIFY(window.grab().save(canvasCapture));
+    }
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QComboBox *>(QStringLiteral("nodeIcon"))->setCurrentIndex(0);
+            dialog->findChild<QPlainTextEdit *>(QStringLiteral("nodeNote"))->clear();
+            dialog->findChild<QLineEdit *>(QStringLiteral("nodeLink"))->clear();
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    const auto cleared =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(branchId);
+    QVERIFY(cleared.note.isEmpty() && !cleared.iconId && !cleared.link);
+    commands->undo();
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("主题属性.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    const auto loaded = FileService::load(path);
+    QVERIFY(std::holds_alternative<Project>(loaded));
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(loaded)),
+             ProjectJson::toJson(document->project()));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    auto *reopenedDocument = reopened.findChild<ProjectDocument *>();
+    QVERIFY(reopenedDocument);
+    QCOMPARE(ProjectJson::toJson(reopenedDocument->project()),
+             ProjectJson::toJson(document->project()));
+    auto *reopenedView = reopened.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QVERIFY(reopenedView);
+    QCOMPARE(canvasNodes(reopenedView).size(), canvasNodes(view).size());
+    const auto originalItems = canvasNodes(view);
+    const auto reopenedItems = canvasNodes(reopenedView);
+    for (auto it = originalItems.constBegin(); it != originalItems.constEnd(); ++it)
+    {
+        // 保存前后按相同图标/字体测量，布局坐标和尺寸一致。
+        QVERIFY(canvasNodes(reopenedView).contains(it.key()));
+        QCOMPARE(canvasNodes(reopenedView).value(it.key())->boundingRect(),
+                 it.value()->boundingRect());
+        QCOMPARE(canvasNodes(reopenedView).value(it.key())->pos(), it.value()->pos());
+    }
+}
+
+void TstUi::nodePropertiesCancelInvalidAndUnknownIcon()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeProperties"));
+    QVERIFY(document && commands && edit);
+    Project project = canvasProject();
+    auto &sheet = std::get<TreeSheet>(project.sheets.first());
+    sheet.nodes[sheet.rootId].iconId = QStringLiteral("future-icon");
+    sheet.nodes[sheet.rootId].note = QStringLiteral("原备注");
+    document->replaceProject(project);
+    commands->clearHistory();
+    document->setClean();
+    document->notifyChanged();
+    const auto before = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changed(document, &ProjectDocument::changed);
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QPlainTextEdit *>(QStringLiteral("nodeNote"))
+                ->setPlainText(QStringLiteral("取消的修改"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Cancel)->click();
+        });
+    edit->trigger();
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            auto *icons = dialog->findChild<QComboBox *>(QStringLiteral("nodeIcon"));
+            QCOMPARE(icons->currentData().toString(), QStringLiteral("future-icon"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QLineEdit *>(QStringLiteral("nodeLink"))
+                ->setText(QStringLiteral("javascript:alert(1)"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+            QVERIFY(dialog->isVisible());
+            QVERIFY(dialog->findChild<QLabel *>(QStringLiteral("nodeMetadataError"))
+                        ->text()
+                        .contains(QStringLiteral("http")));
+        });
+    edit->trigger();
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QPlainTextEdit *>(QStringLiteral("nodeNote"))
+                ->setPlainText(QString(20001, QChar(0x4e2d)));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+            QVERIFY(dialog->isVisible());
+            QVERIFY(!dialog->findChild<QLabel *>(QStringLiteral("nodeMetadataError"))
+                         ->text()
+                         .isEmpty());
+        });
+    edit->trigger();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(!document->isModified());
+    QVERIFY(!commands->canUndo());
+}
+
+void TstUi::nodeIconResourcesAndMeasurement()
+{
+    const QStringList ids{QStringLiteral("idea"), QStringLiteral("star"), QStringLiteral("check")};
+    for (const QString &id : ids)
+    {
+        // 运行资源必须能用Qt内置PNG解码，不依赖团队未统一安装的Svg插件。
+        QFile resource(QStringLiteral(":/lingya/icons/%1.png").arg(id));
+        QVERIFY(resource.open(QIODevice::ReadOnly));
+        const QByteArray bytes = resource.readAll();
+        QVERIFY(bytes.startsWith(QByteArray::fromHex("89504e470d0a1a0a")));
+        const QImage raster = QImage::fromData(bytes, "PNG");
+        QCOMPARE(raster.size(), QSize(64, 64));
+        const auto icon = NodeItem::iconForId(id);
+        QVERIFY(!icon.isNull());
+        const auto pixmap = icon.pixmap(20, 20);
+        QVERIFY(!pixmap.isNull());
+        bool visible = false;
+        const auto image = pixmap.toImage();
+        for (int y = 0; y < image.height(); ++y)
+            for (int x = 0; x < image.width(); ++x)
+                visible |= qAlpha(image.pixel(x, y)) != 0;
+        QVERIFY(visible);
+    }
+    QVERIFY(NodeItem::iconForId(QStringLiteral("future-icon")).isNull());
+    QVERIFY(NodeItem::iconForId(QStringLiteral("https://example.org/icon.svg")).isNull());
+    QVERIFY(NodeItem::iconForId(QStringLiteral("D:/untrusted/icon.svg")).isNull());
+    QFont font(QStringLiteral("Microsoft YaHei"));
+    font.setPixelSize(16);
+    const QString title = QStringLiteral("图标和长中文测量") + QString(200, QChar(0x4e2d));
+    const NodeItem plain(title, font);
+    const NodeItem decorated(title, font, nullptr, QStringLiteral("idea"));
+    const QFontMetricsF metrics(font);
+    const auto text =
+        metrics.boundingRect(QRectF(0, 0, decorated.nodeRect().width() - 32 - 28, 100000),
+                             Qt::AlignCenter | Qt::TextWrapAnywhere, title);
+    QVERIFY(decorated.nodeRect().height() >= text.height() + 32);
+    QVERIFY(decorated.nodeRect().height() >= plain.nodeRect().height());
+}
+
 void TstUi::ganttLazyLoadRefreshAndUndo()
 {
     MainWindow window;
@@ -2108,6 +2405,335 @@ void TstUi::ownedSaveRejectsEmptyNameForDotFile()
     QVERIFY(!window.saveProjectToOwned(QString()));
     QVERIFY(document->isModified());
     QCOMPARE(ProjectJson::toJson(document->project()), before);
+}
+
+void TstUi::nodeStyleShapes_data()
+{
+    QTest::addColumn<QString>("shapeCode");
+    for (const QString &code :
+         {QStringLiteral("roundRect"), QStringLiteral("rect"), QStringLiteral("ellipse"),
+          QStringLiteral("diamond"), QStringLiteral("parallelogram")})
+        QTest::newRow(qPrintable(code)) << code;
+}
+
+void TstUi::nodeStyleShapes()
+{
+    QFETCH(QString, shapeCode);
+    NodeStyle defaults;
+    defaults.fill = QStringLiteral("#F0E0C0");
+    defaults.color = QStringLiteral("#183A72");
+    defaults.borderColor = QStringLiteral("#772244");
+    defaults.fontSize = 24;
+    defaults.bold = true;
+    NodeStyleOverride local;
+    local.shape = shapeCode;
+    local.fontSize = 32;
+    local.bold = false;
+    local.borderWidth = 20;
+    const NodeStyle resolved = NodeItem::resolvedStyle(defaults, local);
+    QCOMPARE(resolved.fill, defaults.fill);
+    QCOMPARE(resolved.fontSize, 32);
+    QVERIFY(!resolved.bold);
+    QFont fallback(QStringLiteral("Microsoft YaHei"));
+    const QFont font = NodeItem::styledFont(fallback, resolved);
+    QCOMPARE(font.pixelSize(), 32);
+    QVERIFY(!font.bold());
+    NodeItem item(QStringLiteral("长标题与图标共同显示\n样式Aa中文第二行"), font, nullptr,
+                  QStringLiteral("star"), resolved);
+    const QRectF text = item.textRect();
+    for (const QPointF &corner :
+         {text.topLeft(), text.topRight(), text.bottomLeft(), text.bottomRight()})
+        QVERIFY(item.shape().contains(corner));
+    QVERIFY(item.boundingRect().contains(item.shape().boundingRect().adjusted(-10, -10, 10, 10)));
+    QImage image(item.boundingRect().size().toSize() + QSize(4, 4), QImage::Format_ARGB32);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    painter.translate(-item.boundingRect().topLeft() + QPointF(2, 2));
+    item.paint(&painter, nullptr, nullptr);
+    painter.end();
+    int fillPixels = 0, textPixels = 0, borderPixels = 0;
+    for (int y = 0; y < image.height(); ++y)
+        for (int x = 0; x < image.width(); ++x)
+        {
+            const QColor pixel = image.pixelColor(x, y);
+            fillPixels += pixel == QColor(resolved.fill);
+            textPixels += pixel == QColor(resolved.color);
+            borderPixels += pixel == QColor(resolved.borderColor);
+        }
+    QVERIFY(fillPixels > 10 && textPixels > 0 && borderPixels > 0);
+    const qreal expected =
+        item.nodeRect().right() - (shapeCode == QStringLiteral("parallelogram") ? 12 : 0);
+    QCOMPARE(item.horizontalAnchor(true), QPointF(expected, 0));
+    QCOMPARE(item.horizontalAnchor(false), QPointF(-expected, 0));
+    // 短中文标题按实际粗体宽度留余量，不能因小数像素取整把最后一个字挤到第二行。
+    NodeStyle shortStyle = resolved;
+    shortStyle.fontSize = 28;
+    shortStyle.bold = true;
+    const QFont shortFont = NodeItem::styledFont(fallback, shortStyle);
+    const NodeItem shortItem(QStringLiteral("中心主题"), shortFont, nullptr, QString(), shortStyle);
+    const QFontMetricsF metrics(shortFont);
+    const QRectF singleLine = metrics.boundingRect(QRectF(0, 0, 10000, 10000),
+                                                    Qt::AlignCenter | Qt::TextWrapAnywhere,
+                                                    QStringLiteral("中心主题"));
+    QVERIFY(shortItem.textRect().height() <= singleLine.height() + 0.01);
+}
+
+void TstUi::nodeStyleEditUndoAndRoundTrip()
+{
+    MainWindow window;
+    if (!qEnvironmentVariableIsEmpty("LINGYA_STYLE_DIALOG_CAPTURE"))
+    {
+        QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
+        QVERIFY(style.open(QIODevice::ReadOnly));
+        window.setStyleSheet(QString::fromUtf8(style.readAll()));
+    }
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeStyle"));
+    QVERIFY(document && commands && view && edit);
+    const ID rootId = std::get<TreeSheet>(document->project().sheets.first()).rootId;
+    const auto before = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changes(document, &ProjectDocument::changed);
+    answerNodeStyle(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"))
+                ->setText(QStringLiteral("#E7F0FF"));
+            dialog->findChild<QLineEdit *>(QStringLiteral("styleColor"))
+                ->setText(QStringLiteral("#102040"));
+            dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderColor"))
+                ->setText(QStringLiteral("#406080"));
+            dialog->findChild<QLineEdit *>(QStringLiteral("styleFontFamily"))
+                ->setText(QStringLiteral("Microsoft YaHei"));
+            dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderWidth"))
+                ->setText(QStringLiteral("3.125"));
+            auto *size = dialog->findChild<QComboBox *>(QStringLiteral("styleFontSize"));
+            size->setCurrentIndex(size->findData(28));
+            auto *bold = dialog->findChild<QComboBox *>(QStringLiteral("styleBold"));
+            bold->setCurrentIndex(bold->findData(true));
+            auto *shape = dialog->findChild<QComboBox *>(QStringLiteral("styleShape"));
+            shape->setCurrentIndex(shape->findData(QStringLiteral("diamond")));
+            const QString capture = qEnvironmentVariable("LINGYA_STYLE_DIALOG_CAPTURE");
+            if (!capture.isEmpty())
+                QVERIFY(dialog->grab().save(capture));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(changes.count(), 1);
+    QCOMPARE(document->sessionRevision(), revision + 1);
+    const auto styled = ProjectJson::toJson(document->project());
+    const auto local =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(rootId).style;
+    QCOMPARE(local.fontSize.value(), 28);
+    QCOMPARE(local.borderWidth.value(), 3.125);
+    QCOMPARE(canvasNodes(view).value(rootId)->nodeStyle().shape, QStringLiteral("diamond"));
+    const QRectF bounds = canvasNodes(view).value(rootId)->boundingRect();
+    const QString canvasCapture = qEnvironmentVariable("LINGYA_STYLE_PREVIEW_CAPTURE");
+    if (!canvasCapture.isEmpty())
+    {
+        window.show();
+        window.findChild<QAction *>(QStringLiteral("fitTopic"))->trigger();
+        QTest::qWait(20);
+        QVERIFY(window.grab().save(canvasCapture));
+    }
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(!commands->canUndo());
+    commands->redo();
+    QCOMPARE(ProjectJson::toJson(document->project()), styled);
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString file = dir.filePath(QStringLiteral("局部样式.lingya"));
+    QVERIFY(window.saveProjectTo(file));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(file));
+    auto *reopenedDocument = reopened.findChild<ProjectDocument *>();
+    QCOMPARE(ProjectJson::toJson(reopenedDocument->project()), styled);
+    auto *reopenedView = reopened.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QCOMPARE(canvasNodes(reopenedView).value(rootId)->boundingRect(), bounds);
+    QCOMPARE(canvasNodes(reopenedView).value(rootId)->nodeStyle().fill, QStringLiteral("#E7F0FF"));
+}
+
+void TstUi::nodeStyleCancelInvalidResetAndNoOp()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeStyle"));
+    Project project = canvasProject();
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.defaultNodeStyle.bold = true;
+    tree.defaultNodeStyle.fontSize = 24;
+    tree.defaultNodeStyle.fill = QStringLiteral("#FFF0D0");
+    tree.nodes[tree.rootId].style.bold = false;
+    tree.nodes[tree.rootId].style.borderWidth = 0.123456789;
+    tree.nodes[tree.rootId].note = QStringLiteral("不修改备注");
+    document->replaceProject(project);
+    commands->clearHistory();
+    document->setClean();
+    document->notifyChanged();
+    const auto before = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    answerNodeStyle(
+        window,
+        [](QDialog *dialog)
+        {
+            auto *bold = dialog->findChild<QComboBox *>(QStringLiteral("styleBold"));
+            QCOMPARE(bold->currentIndex(), 1);
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(!commands->canUndo() && !document->isModified());
+    answerNodeStyle(
+        window,
+        [](QDialog *dialog)
+        {
+            auto *fill = dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"));
+            auto *width = dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderWidth"));
+            auto *buttons = dialog->findChild<QDialogButtonBox *>();
+            fill->setText(QStringLiteral("red"));
+            buttons->button(QDialogButtonBox::Ok)->click();
+            QVERIFY(dialog->isVisible());
+            QVERIFY(
+                !dialog->findChild<QLabel *>(QStringLiteral("nodeStyleError"))->text().isEmpty());
+            fill->clear();
+            width->setText(QStringLiteral("21"));
+            buttons->button(QDialogButtonBox::Ok)->click();
+            QVERIFY(dialog->isVisible());
+            dialog->findChild<QPushButton *>(QStringLiteral("resetNodeStyle"))->click();
+            buttons->button(QDialogButtonBox::Cancel)->click();
+        });
+    edit->trigger();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QCOMPARE(document->sessionRevision(), revision);
+    answerNodeStyle(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QPushButton *>(QStringLiteral("resetNodeStyle"))->click();
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(document->sessionRevision(), revision + 1);
+    const auto after = std::get<TreeSheet>(document->project().sheets.first());
+    QVERIFY(!after.nodes.value(tree.rootId).style.bold.has_value());
+    QCOMPARE(after.nodes.value(tree.rootId).note, QStringLiteral("不修改备注"));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QVERIFY(canvasNodes(view).value(tree.rootId)->nodeStyle().bold);
+    QCOMPARE(canvasNodes(view).value(tree.rootId)->nodeStyle().fill, QStringLiteral("#FFF0D0"));
+    QCOMPARE(canvasNodes(view).value(tree.rootId)->nodeStyle().fontSize, 24);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+}
+
+void TstUi::nodeStyleUneditedFontOverride_data()
+{
+    QTest::addColumn<QString>("family");
+    QTest::newRow("explicit-empty") << QStringLiteral("");
+    QTest::newRow("whitespace-only") << QStringLiteral("  ");
+    QTest::newRow("padded-family") << QStringLiteral("  Microsoft YaHei  ");
+}
+
+void TstUi::nodeStyleUneditedFontOverride()
+{
+    QFETCH(QString, family);
+    Project project = ProjectFactory::createMindmap(QStringLiteral("原样保留字体覆盖"));
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const ID rootId = tree.rootId;
+    tree.nodes[rootId].style.fontFamily = family;
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString file = dir.filePath(QStringLiteral("原字体覆盖.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(file, project)));
+    QVERIFY(std::holds_alternative<Project>(FileService::load(file)));
+    MainWindow window;
+    QVERIFY(window.openFile(file));
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeStyle"));
+    QVERIFY(document && commands && edit);
+    const auto before = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changes(document, &ProjectDocument::changed);
+    answerNodeStyle(
+        window, [](QDialog *dialog)
+        { dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click(); });
+    edit->trigger();
+    QCOMPARE(changes.count(), 0);
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(!document->isModified() && !commands->canUndo());
+    // 修改其他样式也不规范化未编辑的字体名；整组撤销一次恢复。
+    answerNodeStyle(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"))
+                ->setText(QStringLiteral("#E7F0FF"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(changes.count(), 1);
+    const auto styled = std::get<TreeSheet>(document->project().sheets.first()).nodes.value(rootId);
+    QVERIFY(styled.style.fontFamily.has_value());
+    QCOMPARE(styled.style.fontFamily.value(), family);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    // 即使原值是显式空串，“恢复为工作表样式”仍应清除optional覆盖。
+    answerNodeStyle(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QPushButton *>(QStringLiteral("resetNodeStyle"))->click();
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QVERIFY(!std::get<TreeSheet>(document->project().sheets.first())
+                 .nodes.value(rootId)
+                 .style.fontFamily);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+}
+
+void TstUi::nodeStyleMixedHundredNodes()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    Project project = canvasProject(9, 10);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const QStringList shapes{QStringLiteral("roundRect"), QStringLiteral("rect"),
+                             QStringLiteral("ellipse"), QStringLiteral("diamond"),
+                             QStringLiteral("parallelogram")};
+    int index = 0;
+    for (auto &node : tree.nodes)
+    {
+        node.title = QStringLiteral("混合样式长标题中文") + QString(index % 25, QChar(0x4e2d));
+        node.style.shape = shapes[index % shapes.size()];
+        node.style.fontSize = 12 + index % 21;
+        node.style.borderWidth = 0.1 + index % 20;
+        node.iconId = QStringLiteral("star");
+        ++index;
+    }
+    document->replaceProject(project);
+    document->notifyChanged();
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    const auto items = canvasNodes(view).values();
+    QCOMPARE(items.size(), 100);
+    for (int i = 0; i < items.size(); ++i)
+        for (int j = i + 1; j < items.size(); ++j)
+            QVERIFY(!items[i]->sceneBoundingRect().intersects(items[j]->sceneBoundingRect()));
+    const QString capture = qEnvironmentVariable("LINGYA_STYLE_CANVAS_CAPTURE");
+    if (!capture.isEmpty())
+    {
+        window.show();
+        window.findChild<QAction *>(QStringLiteral("fitTopic"))->trigger();
+        QTest::qWait(20);
+        QVERIFY(window.grab().save(capture));
+    }
 }
 
 QTEST_MAIN(TstUi)

@@ -3,11 +3,16 @@
 #include "layout/TreeLayout.h"
 #include <QAction>
 #include <QCloseEvent>
+#include <QComboBox>
 #include <QDateTime>
+#include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
@@ -32,8 +37,11 @@
 #include <QToolBar>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
+#include <QUrl>
+#include <QVBoxLayout>
 #include <QWheelEvent>
 #include <algorithm>
+#include <cmath>
 
 #include "app/LoginDialog.h"
 #include "app/RecoveryDialog.h"
@@ -241,6 +249,19 @@ void MainWindow::buildMenus() {
     toolbar->addAction(m_siblingAction);
     toolbar->addAction(renameAction);
     toolbar->addAction(m_deleteAction);
+    m_propertiesAction = editMenu->addAction(QStringLiteral("主题属性…"), this,
+                                              &MainWindow::editSelectedNodeProperties);
+    m_propertiesAction->setObjectName(QStringLiteral("editNodeProperties"));
+    m_styleAction =
+        editMenu->addAction(QStringLiteral("节点样式…"), this, &MainWindow::editSelectedNodeStyle);
+    m_styleAction->setObjectName(QStringLiteral("editNodeStyle"));
+    m_openLinkAction = editMenu->addAction(QStringLiteral("打开主题链接"), this,
+                                            &MainWindow::openSelectedNodeLink);
+    m_openLinkAction->setObjectName(QStringLiteral("openNodeLink"));
+    toolbar->addSeparator();
+    toolbar->addAction(m_propertiesAction);
+    toolbar->addAction(m_styleAction);
+    toolbar->addAction(m_openLinkAction);
 
     QMenu* viewMenu = menuBar()->addMenu(QStringLiteral("视图(&V)"));
     viewMenu->addAction(QStringLiteral("思维导图(&M)"), this, [this] { m_centralStack->setCurrentIndex(0); });
@@ -447,6 +468,239 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
         return true;
     }
     return QMainWindow::eventFilter(watched, event);
+}
+
+void MainWindow::editSelectedNodeProperties()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+        return;
+    const ID sheetId = sheet->id;
+    const ID nodeId = m_selectedNodeId;
+    const TreeNode node = sheet->nodes.value(nodeId);
+    QDialog dialog(this);
+    dialog.setObjectName(QStringLiteral("nodePropertiesDialog"));
+    dialog.setWindowTitle(QStringLiteral("主题属性"));
+    dialog.resize(520, 420);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *title = new QLabel(node.title, &dialog);
+    title->setTextFormat(Qt::PlainText);
+    title->setWordWrap(true);
+    layout->addWidget(title);
+    auto *form = new QFormLayout;
+    auto *icons = new QComboBox(&dialog);
+    icons->setObjectName(QStringLiteral("nodeIcon"));
+    icons->addItem(QStringLiteral("无图标"), QString());
+    const QStringList ids{QStringLiteral("idea"), QStringLiteral("star"), QStringLiteral("check")};
+    const QStringList names{QStringLiteral("灵感"), QStringLiteral("星标"), QStringLiteral("完成")};
+    for (int i = 0; i < ids.size(); ++i)
+        icons->addItem(NodeItem::iconForId(ids.at(i)), names.at(i), ids.at(i));
+    const QString currentIcon = node.iconId.value_or(QString());
+    if (icons->findData(currentIcon) < 0)
+        icons->addItem(QStringLiteral("当前图标（暂不支持预览）"), currentIcon);
+    icons->setCurrentIndex(icons->findData(currentIcon));
+    form->addRow(QStringLiteral("图标"), icons);
+    auto *link = new QLineEdit(node.link.value_or(QString()), &dialog);
+    link->setObjectName(QStringLiteral("nodeLink"));
+    link->setPlaceholderText(QStringLiteral("https:// 或 http:// 开头；留空清除"));
+    form->addRow(QStringLiteral("链接"), link);
+    auto *note = new QPlainTextEdit(node.note, &dialog);
+    note->setObjectName(QStringLiteral("nodeNote"));
+    note->setPlaceholderText(QStringLiteral("独立备注，可输入多行；留空清除"));
+    form->addRow(QStringLiteral("备注"), note);
+    layout->addLayout(form);
+    auto *error = new QLabel(&dialog);
+    error->setObjectName(QStringLiteral("nodeMetadataError"));
+    error->setWordWrap(true);
+    error->setTextFormat(Qt::PlainText);
+    layout->addWidget(error);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("应用"));
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    layout->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog,
+            [&]
+            {
+                NodeMetaUpdate patch;
+                patch.note = note->toPlainText();
+                patch.link = link->text();
+                patch.iconId = icons->currentData().toString();
+                NodeCommands nodes(m_commands, m_doc);
+                const auto result = nodes.updateNodeMeta(sheetId, nodeId, patch);
+                if (const auto *failure = std::get_if<AppError>(&result))
+                {
+                    error->setText(failure->message);
+                    return;
+                }
+                dialog.accept();
+            });
+    dialog.exec();
+}
+
+void MainWindow::editSelectedNodeStyle()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+        return;
+    const ID sheetId = sheet->id;
+    const ID nodeId = m_selectedNodeId;
+    const NodeStyleOverride original = sheet->nodes.value(nodeId).style;
+    const NodeStyle defaults = sheet->defaultNodeStyle;
+    QDialog dialog(this);
+    dialog.setObjectName(QStringLiteral("nodeStyleDialog"));
+    dialog.setWindowTitle(QStringLiteral("节点样式"));
+    dialog.resize(430, 440);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *hint = new QLabel(QStringLiteral("留空或选择“继承”时，使用工作表样式。"), &dialog);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+    auto *form = new QFormLayout;
+    const auto textField = [&](const QString &name, const QString &label,
+                               const std::optional<QString> &value, const QString &fallback)
+    {
+        auto *edit = new QLineEdit(value.value_or(QString()), &dialog);
+        edit->setObjectName(name);
+        edit->setPlaceholderText(QStringLiteral("继承：%1").arg(fallback));
+        form->addRow(label, edit);
+        return edit;
+    };
+    auto *fill = textField(QStringLiteral("styleFill"), QStringLiteral("填充色（#RRGGBB）"),
+                           original.fill, defaults.fill);
+    auto *color = textField(QStringLiteral("styleColor"), QStringLiteral("文字色（#RRGGBB）"),
+                            original.color, defaults.color);
+    auto *border =
+        textField(QStringLiteral("styleBorderColor"), QStringLiteral("边框色（#RRGGBB）"),
+                  original.borderColor, defaults.borderColor);
+    auto *family = textField(
+        QStringLiteral("styleFontFamily"), QStringLiteral("字体名称"), original.fontFamily,
+        defaults.fontFamily == QStringLiteral("system") ? QStringLiteral("系统字体")
+                                                        : defaults.fontFamily);
+    const QString initialFamily = family->text();
+    bool resetStyle = false;
+    auto *size = new QComboBox(&dialog);
+    size->setObjectName(QStringLiteral("styleFontSize"));
+    size->addItem(QStringLiteral("继承（%1）").arg(defaults.fontSize));
+    for (int value = Limits::kFontSizeMin; value <= Limits::kFontSizeMax; ++value)
+        size->addItem(QString::number(value), value);
+    if (original.fontSize)
+        size->setCurrentIndex(size->findData(*original.fontSize));
+    form->addRow(QStringLiteral("字号"), size);
+    auto *bold = new QComboBox(&dialog);
+    bold->setObjectName(QStringLiteral("styleBold"));
+    bold->addItem(QStringLiteral("继承（%1）")
+                      .arg(defaults.bold ? QStringLiteral("粗体") : QStringLiteral("常规")));
+    bold->addItem(QStringLiteral("常规"), false);
+    bold->addItem(QStringLiteral("粗体"), true);
+    if (original.bold)
+        bold->setCurrentIndex(bold->findData(*original.bold));
+    form->addRow(QStringLiteral("字重"), bold);
+    auto *shape = new QComboBox(&dialog);
+    shape->setObjectName(QStringLiteral("styleShape"));
+    const QStringList codes{QStringLiteral("roundRect"), QStringLiteral("rect"),
+                            QStringLiteral("ellipse"), QStringLiteral("diamond"),
+                            QStringLiteral("parallelogram")};
+    const QStringList names{QStringLiteral("圆角矩形"), QStringLiteral("矩形"),
+                            QStringLiteral("椭圆"), QStringLiteral("菱形"),
+                            QStringLiteral("平行四边形")};
+    shape->addItem(QStringLiteral("继承（%1）").arg(names.value(codes.indexOf(defaults.shape))));
+    for (int index = 0; index < codes.size(); ++index)
+        shape->addItem(names[index], codes[index]);
+    if (original.shape)
+        shape->setCurrentIndex(shape->findData(*original.shape));
+    form->addRow(QStringLiteral("节点形状"), shape);
+    auto *width =
+        textField(QStringLiteral("styleBorderWidth"), QStringLiteral("边框宽度（0.1～20）"),
+                  original.borderWidth
+                      ? std::optional<QString>(QString::number(*original.borderWidth, 'g', 17))
+                      : std::nullopt,
+                  QString::number(defaults.borderWidth));
+    layout->addLayout(form);
+    auto *reset = new QPushButton(QStringLiteral("恢复为工作表样式"), &dialog);
+    reset->setObjectName(QStringLiteral("resetNodeStyle"));
+    reset->setAutoDefault(false);
+    layout->addWidget(reset);
+    auto *error = new QLabel(&dialog);
+    error->setObjectName(QStringLiteral("nodeStyleError"));
+    error->setWordWrap(true);
+    error->setTextFormat(Qt::PlainText);
+    layout->addWidget(error);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("应用"));
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    layout->addWidget(buttons);
+    connect(reset, &QPushButton::clicked, &dialog,
+            [=, &resetStyle]
+            {
+                resetStyle = true;
+                for (auto *edit : {fill, color, border, family, width})
+                    edit->clear();
+                for (auto *combo : {size, bold, shape})
+                    combo->setCurrentIndex(0);
+                error->clear();
+            });
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog,
+            [&]
+            {
+                NodeStyleOverride style;
+                const auto optionalText = [](QLineEdit *edit) -> std::optional<QString>
+                {
+                    const QString text = edit->text().trimmed();
+                    return text.isEmpty() ? std::nullopt : std::optional<QString>(text);
+                };
+                style.fill = optionalText(fill);
+                style.color = optionalText(color);
+                style.borderColor = optionalText(border);
+                // 旧文件允许显式空串和首尾空白；未编辑时保留optional及原字符串。
+                // 恢复按钮则明确清除覆盖，不把“原来为空”误判为未操作。
+                style.fontFamily = !resetStyle && family->text() == initialFamily
+                                       ? original.fontFamily
+                                       : optionalText(family);
+                if (size->currentIndex() > 0)
+                    style.fontSize = size->currentData().toInt();
+                if (bold->currentIndex() > 0)
+                    style.bold = bold->currentData().toBool();
+                if (shape->currentIndex() > 0)
+                    style.shape = shape->currentData().toString();
+                if (!width->text().trimmed().isEmpty())
+                {
+                    bool ok = false;
+                    const double value = width->text().toDouble(&ok);
+                    if (!ok || !std::isfinite(value) || value < 0.1 || value > 20.0)
+                    {
+                        error->setText(QStringLiteral("边框宽度必须是0.1至20之间的数字。"));
+                        return;
+                    }
+                    style.borderWidth = value;
+                }
+                const auto result =
+                    NodeCommands(m_commands, m_doc).setStyle(sheetId, nodeId, style);
+                if (const auto *failure = std::get_if<AppError>(&result))
+                {
+                    error->setText(failure->message);
+                    return;
+                }
+                dialog.accept();
+            });
+    dialog.exec();
+}
+
+void MainWindow::openSelectedNodeLink()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+        return;
+    const auto link = sheet->nodes.value(m_selectedNodeId).link;
+    if (!link.has_value())
+        return;
+    const QUrl url(*link);
+    if (!url.isValid() ||
+        (url.scheme() != QStringLiteral("http") && url.scheme() != QStringLiteral("https")))
+        return;
+    if (!QDesktopServices::openUrl(url))
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法打开链接"),
+                   QStringLiteral("未能启动浏览器，请检查系统的默认浏览器设置。"));
 }
 
 void MainWindow::newProject() {
@@ -873,6 +1127,10 @@ void MainWindow::syncCanvasSelection()
                          m_selectedNodeId != sheet->rootId;
     m_siblingAction->setEnabled(nonRoot);
     m_deleteAction->setEnabled(nonRoot);
+    const bool valid = sheet != nullptr && sheet->nodes.contains(m_selectedNodeId);
+    m_propertiesAction->setEnabled(valid);
+    m_styleAction->setEnabled(valid);
+    m_openLinkAction->setEnabled(valid && sheet->nodes.value(m_selectedNodeId).link.has_value());
 }
 
 void MainWindow::focusSelectedNode()
@@ -901,7 +1159,9 @@ void MainWindow::rebuildCanvas() {
     sizes.reserve(display.nodes.size());
     for (auto it = display.nodes.constBegin(); it != display.nodes.constEnd(); ++it)
     {
-        const NodeItem measured(it.value().title, canvasFont());
+        const NodeStyle style = NodeItem::resolvedStyle(display.defaultNodeStyle, it.value().style);
+        const NodeItem measured(it.value().title, NodeItem::styledFont(canvasFont(), style),
+                                nullptr, it.value().iconId.value_or(QString()), style);
         const QRectF bounds = measured.boundingRect();
         sizes.append({it.key(), bounds.width(), bounds.height()});
     }
@@ -915,7 +1175,10 @@ void MainWindow::rebuildCanvas() {
     }
     for (const auto &position : std::get<QVector<TreeLayout::NodePosition>>(layout))
     {
-        auto *item = new NodeItem(display.nodes.value(position.id).title, canvasFont());
+        const auto node = display.nodes.value(position.id);
+        const NodeStyle style = NodeItem::resolvedStyle(display.defaultNodeStyle, node.style);
+        auto *item = new NodeItem(node.title, NodeItem::styledFont(canvasFont(), style), nullptr,
+                                  node.iconId.value_or(QString()), style);
         item->setNodeId(position.id);
         item->setPos(position.x, position.y);
         m_scene->addItem(item);
@@ -929,10 +1192,8 @@ void MainWindow::rebuildCanvas() {
         const NodeItem *parent = m_nodeItems.value(*parentId);
         const NodeItem *child = it.value();
         const bool right = child->pos().x() >= parent->pos().x();
-        const QPointF start = parent->mapToScene(
-            QPointF(right ? parent->nodeRect().right() : parent->nodeRect().left(), 0));
-        const QPointF end = child->mapToScene(
-            QPointF(right ? child->nodeRect().left() : child->nodeRect().right(), 0));
+        const QPointF start = parent->mapToScene(parent->horizontalAnchor(right));
+        const QPointF end = child->mapToScene(child->horizontalAnchor(!right));
         const qreal middleX = (start.x() + end.x()) / 2;
         QPainterPath path(start);
         path.cubicTo(QPointF(middleX, start.y()), QPointF(middleX, end.y()), end);

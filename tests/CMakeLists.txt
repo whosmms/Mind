@@ -72,7 +72,8 @@ add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/UserFilesDialog.h
     ${CMAKE_SOURCE_DIR}/src/app/UserFilesDialog.cpp
     ${CMAKE_SOURCE_DIR}/src/graphics/NodeItem.h
-    ${CMAKE_SOURCE_DIR}/src/graphics/NodeItem.cpp)
+    ${CMAKE_SOURCE_DIR}/src/graphics/NodeItem.cpp
+    ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
 target_link_libraries(tst_ui PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
 if(MSVC)
     target_compile_options(tst_ui PRIVATE /utf-8)

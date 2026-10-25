@@ -1,0 +1,23 @@
+{
+  "configurations": [
+    {
+      "formats": "formats=bmp,pbm,pgm,png,ppm,xbm,xpm",
+      "passed": 13,
+      "name": "debug",
+      "skipped": 0,
+      "failed": 0,
+      "svgFileCount": 0
+    },
+    {
+      "formats": "formats=bmp,pbm,pgm,png,ppm,xbm,xpm",
+      "passed": 13,
+      "name": "release",
+      "skipped": 0,
+      "failed": 0,
+      "svgFileCount": 0
+    }
+  ],
+  "boundary": "本机隔离验证，不代签乙或真人；321与13分别报告，不相加",
+  "sourceCommit": "388290d745eec3798fbc6fd44d7088f7cae5651e",
+  "method": "仅Core/Gui/Widgets/Network/Test、MinGW及offscreen插件；qt.conf限制插件搜索、PATH不含Qt Kit；支持png不含svg/svgz；R02三个用例+样式八行+初始化清理各13项"
+}
