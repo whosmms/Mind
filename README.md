@@ -6,6 +6,8 @@
 
 ## 甲当前复核：H-021丙PR24显示补丁
 
+草稿PR25：https://github.com/whosmms/Mind/pull/25（基于丙PR24分支，待丙接收，未合main）。
+
 - review/a/R13-display基于丙PR24/bbd1881；原提交双配置各16套件315项独立复验通过。补丁28d3d4e双配置各16套件320项通过、0失败0跳过，32XML，ganttview各19项；原实现追加5行实测失败后修正。
 - 仅GanttView.cpp与tst_ganttview.cpp：首日补年月、文字纳入滚动范围、里程碑FS线接实际菱形边缘；丙模块成果保留，甲消费者补丁待丙维护人接收。详见docs/reviews/H-021-丙R13显示复核.md与两套evidence目录，不混原315/补丁320或甲样式324。
 - 不改变Domain/JSON/命令/接口/CMake，不直接推丙分支或合main，不提前宣告完整R13/M3。任务表宿主/选中联动、拖拽、依赖避让仍保留；仅技术复核，没有新增用户真人待办。
