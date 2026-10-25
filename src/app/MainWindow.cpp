@@ -4,10 +4,15 @@
 #include <QAction>
 #include <QCloseEvent>
 #include <QDateTime>
+#include <QComboBox>
+#include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
@@ -32,6 +37,8 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QWheelEvent>
+#include <QUrl>
+#include <QVBoxLayout>
 #include <algorithm>
 
 #include "app/RecoveryDialog.h"
@@ -224,6 +231,15 @@ void MainWindow::buildMenus() {
     toolbar->addAction(m_siblingAction);
     toolbar->addAction(renameAction);
     toolbar->addAction(m_deleteAction);
+    m_propertiesAction = editMenu->addAction(QStringLiteral("主题属性…"), this,
+                                              &MainWindow::editSelectedNodeProperties);
+    m_propertiesAction->setObjectName(QStringLiteral("editNodeProperties"));
+    m_openLinkAction = editMenu->addAction(QStringLiteral("打开主题链接"), this,
+                                            &MainWindow::openSelectedNodeLink);
+    m_openLinkAction->setObjectName(QStringLiteral("openNodeLink"));
+    toolbar->addSeparator();
+    toolbar->addAction(m_propertiesAction);
+    toolbar->addAction(m_openLinkAction);
 
     QMenu* viewMenu = menuBar()->addMenu(QStringLiteral("视图(&V)"));
     viewMenu->addAction(QStringLiteral("思维导图(&M)"), this, [this] { m_centralStack->setCurrentIndex(0); });
@@ -430,6 +446,91 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
         return true;
     }
     return QMainWindow::eventFilter(watched, event);
+}
+
+void MainWindow::editSelectedNodeProperties()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+        return;
+    const ID sheetId = sheet->id;
+    const ID nodeId = m_selectedNodeId;
+    const TreeNode node = sheet->nodes.value(nodeId);
+    QDialog dialog(this);
+    dialog.setObjectName(QStringLiteral("nodePropertiesDialog"));
+    dialog.setWindowTitle(QStringLiteral("主题属性"));
+    dialog.resize(520, 420);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *title = new QLabel(node.title, &dialog);
+    title->setTextFormat(Qt::PlainText);
+    title->setWordWrap(true);
+    layout->addWidget(title);
+    auto *form = new QFormLayout;
+    auto *icons = new QComboBox(&dialog);
+    icons->setObjectName(QStringLiteral("nodeIcon"));
+    icons->addItem(QStringLiteral("无图标"), QString());
+    const QStringList ids{QStringLiteral("idea"), QStringLiteral("star"), QStringLiteral("check")};
+    const QStringList names{QStringLiteral("灵感"), QStringLiteral("星标"), QStringLiteral("完成")};
+    for (int i = 0; i < ids.size(); ++i)
+        icons->addItem(NodeItem::iconForId(ids.at(i)), names.at(i), ids.at(i));
+    const QString currentIcon = node.iconId.value_or(QString());
+    if (icons->findData(currentIcon) < 0)
+        icons->addItem(QStringLiteral("当前图标（暂不支持预览）"), currentIcon);
+    icons->setCurrentIndex(icons->findData(currentIcon));
+    form->addRow(QStringLiteral("图标"), icons);
+    auto *link = new QLineEdit(node.link.value_or(QString()), &dialog);
+    link->setObjectName(QStringLiteral("nodeLink"));
+    link->setPlaceholderText(QStringLiteral("https:// 或 http:// 开头；留空清除"));
+    form->addRow(QStringLiteral("链接"), link);
+    auto *note = new QPlainTextEdit(node.note, &dialog);
+    note->setObjectName(QStringLiteral("nodeNote"));
+    note->setPlaceholderText(QStringLiteral("独立备注，可输入多行；留空清除"));
+    form->addRow(QStringLiteral("备注"), note);
+    layout->addLayout(form);
+    auto *error = new QLabel(&dialog);
+    error->setObjectName(QStringLiteral("nodeMetadataError"));
+    error->setWordWrap(true);
+    error->setTextFormat(Qt::PlainText);
+    layout->addWidget(error);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("应用"));
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    layout->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog,
+            [&]
+            {
+                NodeMetaUpdate patch;
+                patch.note = note->toPlainText();
+                patch.link = link->text();
+                patch.iconId = icons->currentData().toString();
+                NodeCommands nodes(m_commands, m_doc);
+                const auto result = nodes.updateNodeMeta(sheetId, nodeId, patch);
+                if (const auto *failure = std::get_if<AppError>(&result))
+                {
+                    error->setText(failure->message);
+                    return;
+                }
+                dialog.accept();
+            });
+    dialog.exec();
+}
+
+void MainWindow::openSelectedNodeLink()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+        return;
+    const auto link = sheet->nodes.value(m_selectedNodeId).link;
+    if (!link.has_value())
+        return;
+    const QUrl url(*link);
+    if (!url.isValid() ||
+        (url.scheme() != QStringLiteral("http") && url.scheme() != QStringLiteral("https")))
+        return;
+    if (!QDesktopServices::openUrl(url))
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法打开链接"),
+                   QStringLiteral("未能启动浏览器，请检查系统的默认浏览器设置。"));
 }
 
 void MainWindow::newProject() {
@@ -829,6 +930,9 @@ void MainWindow::syncCanvasSelection()
                          m_selectedNodeId != sheet->rootId;
     m_siblingAction->setEnabled(nonRoot);
     m_deleteAction->setEnabled(nonRoot);
+    const bool valid = sheet != nullptr && sheet->nodes.contains(m_selectedNodeId);
+    m_propertiesAction->setEnabled(valid);
+    m_openLinkAction->setEnabled(valid && sheet->nodes.value(m_selectedNodeId).link.has_value());
 }
 
 void MainWindow::focusSelectedNode()
@@ -857,7 +961,8 @@ void MainWindow::rebuildCanvas() {
     sizes.reserve(display.nodes.size());
     for (auto it = display.nodes.constBegin(); it != display.nodes.constEnd(); ++it)
     {
-        const NodeItem measured(it.value().title, canvasFont());
+        const NodeItem measured(it.value().title, canvasFont(), nullptr,
+                                 it.value().iconId.value_or(QString()));
         const QRectF bounds = measured.boundingRect();
         sizes.append({it.key(), bounds.width(), bounds.height()});
     }
@@ -871,7 +976,8 @@ void MainWindow::rebuildCanvas() {
     }
     for (const auto &position : std::get<QVector<TreeLayout::NodePosition>>(layout))
     {
-        auto *item = new NodeItem(display.nodes.value(position.id).title, canvasFont());
+        const auto node = display.nodes.value(position.id);
+        auto *item = new NodeItem(node.title, canvasFont(), nullptr, node.iconId.value_or(QString()));
         item->setNodeId(position.id);
         item->setPos(position.x, position.y);
         m_scene->addItem(item);

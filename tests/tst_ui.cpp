@@ -10,6 +10,10 @@
 #include "services/ProjectJson.h"
 #include <QAbstractButton>
 #include <QAction>
+#include <QComboBox>
+#include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -20,18 +24,24 @@
 #include <QGraphicsView>
 #include <QInputDialog>
 #include <QInputMethodEvent>
+#include <QImage>
+#include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QProcess>
+#include <QPushButton>
 #include <QSettings>
+#include <QScopeGuard>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QTreeWidget>
 #include <QUuid>
+#include <QUrl>
 
 #include <cstdio>
 #include <cstdlib>
@@ -45,6 +55,17 @@
 #include "services/SettingsService.h"
 
 using namespace lingya;
+
+// 测试拦截系统URL派发，不启动浏览器或发出网络请求。
+class LinkReceiver : public QObject
+{
+    Q_OBJECT
+public:
+    QUrl last;
+    int count = 0;
+public slots:
+    void open(const QUrl &url) { last = url; ++count; }
+};
 
 // UI层测试（规范§3 tst_ui规划、§19.1）：进程内验证快捷键绑定与文件打开行为。
 // QTest::keyClick走Qt事件系统（ShortcutMap），不经Windows输入队列，
@@ -67,6 +88,9 @@ private slots:
     void rootRenameUsesSharedRulesAndTaskLinkage();
     void nodeMetadataSurvivesEditorAndFileRoundTrip();
     void nodeMetadataNoOpKeepsWindowClean();
+    void nodePropertiesEditClearUndoAndRoundTrip();
+    void nodePropertiesCancelInvalidAndUnknownIcon();
+    void nodeIconResourcesAndMeasurement();
     void ganttLazyLoadRefreshAndUndo();
     void previewZoomAndLongTitle();
     void treeCanvasNodesEdgesSelectionAndRename();
@@ -89,6 +113,23 @@ private slots:
     void recoveryProcessCrashEndToEnd();
 
 private:
+    static void answerNodeProperties(MainWindow &window, std::function<void(QDialog *)> answer)
+    {
+        QTimer::singleShot(0, &window, [&window, answer]
+        {
+            auto *dialog = window.findChild<QDialog *>(QStringLiteral("nodePropertiesDialog"));
+            if (dialog == nullptr || !dialog->isVisible())
+            {
+                QTest::qFail("未显示主题属性对话框", __FILE__, __LINE__);
+                return;
+            }
+            answer(dialog);
+            // 测试断言失败或预检拒绝时仍关闭模态窗口，避免测试挂起。
+            if (dialog->isVisible())
+                dialog->reject();
+        });
+    }
+
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
     QTemporaryDir m_recoveryDir;   // 恢复快照重定向目录（initTestCase设置，成员保活）
 
@@ -1096,6 +1137,232 @@ void TstUi::nodeMetadataNoOpKeepsWindowClean()
     // 一次撤销直接恢复真实补丁前的备注，证明两次无操作没有占据历史栈顶。
     QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), rootId);
     QVERIFY(canvasNodes(view).contains(rootId));
+}
+
+void TstUi::nodePropertiesEditClearUndoAndRoundTrip()
+{
+    MainWindow window;
+    if (!qEnvironmentVariableIsEmpty("LINGYA_PROPERTIES_CAPTURE"))
+    {
+        QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
+        QVERIFY(style.open(QIODevice::ReadOnly));
+        window.setStyleSheet(QString::fromUtf8(style.readAll()));
+    }
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeProperties"));
+    auto *open = window.findChild<QAction *>(QStringLiteral("openNodeLink"));
+    QVERIFY(document && commands && outline && view && edit && open);
+    Project project = canvasProject();
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const ID branchId = canvasId(QStringLiteral("branch-0"));
+    tree.nodes[branchId].tags = {QStringLiteral("保留原标签")};
+    tree.nodes[branchId].style.fill = QStringLiteral("#247A62");
+    document->replaceProject(project);
+    commands->clearHistory();
+    document->setClean();
+    document->notifyChanged();
+    outline->setCurrentItem(outline->topLevelItem(0)->child(0));
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), branchId);
+    QVERIFY(!open->isEnabled());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changed(document, &ProjectDocument::changed);
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            auto *icons = dialog->findChild<QComboBox *>(QStringLiteral("nodeIcon"));
+            auto *note = dialog->findChild<QPlainTextEdit *>(QStringLiteral("nodeNote"));
+            auto *link = dialog->findChild<QLineEdit *>(QStringLiteral("nodeLink"));
+            auto *buttons = dialog->findChild<QDialogButtonBox *>();
+            QVERIFY(icons && note && link && buttons);
+            icons->setCurrentIndex(icons->findData(QStringLiteral("star")));
+            note->setPlainText(QStringLiteral("属性里的中文备注\n第二行"));
+            link->setText(QStringLiteral("https://example.org/topic"));
+            const QString capture = qEnvironmentVariable("LINGYA_PROPERTIES_CAPTURE");
+            if (!capture.isEmpty())
+                QVERIFY(dialog->grab().save(capture));
+            buttons->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(document->sessionRevision(), revision + 1);
+    const auto edited =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(branchId);
+    QCOMPARE(edited.note, QStringLiteral("属性里的中文备注\n第二行"));
+    QVERIFY(edited.iconId == std::optional<QString>(QStringLiteral("star")));
+    QVERIFY(edited.link == std::optional<QString>(QStringLiteral("https://example.org/topic")));
+    QCOMPARE(edited.tags, QStringList{QStringLiteral("保留原标签")});
+    QVERIFY(edited.style.fill == tree.nodes.value(branchId).style.fill);
+    QVERIFY(open->isEnabled());
+    LinkReceiver receiver;
+    QDesktopServices::setUrlHandler(QStringLiteral("https"), &receiver, "open");
+    const auto restoreUrlHandler =
+        qScopeGuard([] { QDesktopServices::unsetUrlHandler(QStringLiteral("https")); });
+    open->trigger();
+    QCOMPARE(receiver.count, 1);
+    QCOMPARE(receiver.last, QUrl(*edited.link));
+
+    // 三字段同一事务，撤销一次全部恢复；选择与未编辑字段保持。
+    commands->undo();
+    const auto undone =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(branchId);
+    QVERIFY(undone.note.isEmpty() && !undone.iconId && !undone.link);
+    QVERIFY(!commands->canUndo());
+    QVERIFY(!open->isEnabled());
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), branchId);
+    commands->redo();
+    const QString canvasCapture = qEnvironmentVariable("LINGYA_PROPERTIES_CANVAS_CAPTURE");
+    if (!canvasCapture.isEmpty())
+    {
+        window.show();
+        QTest::qWait(20);
+        QVERIFY(window.grab().save(canvasCapture));
+    }
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QComboBox *>(QStringLiteral("nodeIcon"))->setCurrentIndex(0);
+            dialog->findChild<QPlainTextEdit *>(QStringLiteral("nodeNote"))->clear();
+            dialog->findChild<QLineEdit *>(QStringLiteral("nodeLink"))->clear();
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    const auto cleared =
+        std::get<TreeSheet>(document->project().sheets.first()).nodes.value(branchId);
+    QVERIFY(cleared.note.isEmpty() && !cleared.iconId && !cleared.link);
+    commands->undo();
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("主题属性.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    const auto loaded = FileService::load(path);
+    QVERIFY(std::holds_alternative<Project>(loaded));
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(loaded)),
+             ProjectJson::toJson(document->project()));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    auto *reopenedDocument = reopened.findChild<ProjectDocument *>();
+    QVERIFY(reopenedDocument);
+    QCOMPARE(ProjectJson::toJson(reopenedDocument->project()),
+             ProjectJson::toJson(document->project()));
+    auto *reopenedView = reopened.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QVERIFY(reopenedView);
+    QCOMPARE(canvasNodes(reopenedView).size(), canvasNodes(view).size());
+    const auto originalItems = canvasNodes(view);
+    const auto reopenedItems = canvasNodes(reopenedView);
+    for (auto it = originalItems.constBegin(); it != originalItems.constEnd(); ++it)
+    {
+        // 保存前后按相同图标/字体测量，布局坐标和尺寸一致。
+        QVERIFY(canvasNodes(reopenedView).contains(it.key()));
+        QCOMPARE(canvasNodes(reopenedView).value(it.key())->boundingRect(),
+                 it.value()->boundingRect());
+        QCOMPARE(canvasNodes(reopenedView).value(it.key())->pos(), it.value()->pos());
+    }
+}
+
+void TstUi::nodePropertiesCancelInvalidAndUnknownIcon()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeProperties"));
+    QVERIFY(document && commands && edit);
+    Project project = canvasProject();
+    auto &sheet = std::get<TreeSheet>(project.sheets.first());
+    sheet.nodes[sheet.rootId].iconId = QStringLiteral("future-icon");
+    sheet.nodes[sheet.rootId].note = QStringLiteral("原备注");
+    document->replaceProject(project);
+    commands->clearHistory();
+    document->setClean();
+    document->notifyChanged();
+    const auto before = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changed(document, &ProjectDocument::changed);
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QPlainTextEdit *>(QStringLiteral("nodeNote"))
+                ->setPlainText(QStringLiteral("取消的修改"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Cancel)->click();
+        });
+    edit->trigger();
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            auto *icons = dialog->findChild<QComboBox *>(QStringLiteral("nodeIcon"));
+            QCOMPARE(icons->currentData().toString(), QStringLiteral("future-icon"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QLineEdit *>(QStringLiteral("nodeLink"))
+                ->setText(QStringLiteral("javascript:alert(1)"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+            QVERIFY(dialog->isVisible());
+            QVERIFY(dialog->findChild<QLabel *>(QStringLiteral("nodeMetadataError"))
+                        ->text()
+                        .contains(QStringLiteral("http")));
+        });
+    edit->trigger();
+    answerNodeProperties(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QPlainTextEdit *>(QStringLiteral("nodeNote"))
+                ->setPlainText(QString(20001, QChar(0x4e2d)));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+            QVERIFY(dialog->isVisible());
+            QVERIFY(!dialog->findChild<QLabel *>(QStringLiteral("nodeMetadataError"))
+                         ->text()
+                         .isEmpty());
+        });
+    edit->trigger();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(!document->isModified());
+    QVERIFY(!commands->canUndo());
+}
+
+void TstUi::nodeIconResourcesAndMeasurement()
+{
+    const QStringList ids{QStringLiteral("idea"), QStringLiteral("star"), QStringLiteral("check")};
+    for (const QString &id : ids)
+    {
+        const auto icon = NodeItem::iconForId(id);
+        QVERIFY(!icon.isNull());
+        const auto pixmap = icon.pixmap(20, 20);
+        QVERIFY(!pixmap.isNull());
+        bool visible = false;
+        const auto image = pixmap.toImage();
+        for (int y = 0; y < image.height(); ++y)
+            for (int x = 0; x < image.width(); ++x)
+                visible |= qAlpha(image.pixel(x, y)) != 0;
+        QVERIFY(visible);
+    }
+    QVERIFY(NodeItem::iconForId(QStringLiteral("future-icon")).isNull());
+    QVERIFY(NodeItem::iconForId(QStringLiteral("https://example.org/icon.svg")).isNull());
+    QVERIFY(NodeItem::iconForId(QStringLiteral("D:/untrusted/icon.svg")).isNull());
+    QFont font(QStringLiteral("Microsoft YaHei"));
+    font.setPixelSize(16);
+    const QString title = QStringLiteral("图标和长中文测量") + QString(200, QChar(0x4e2d));
+    const NodeItem plain(title, font);
+    const NodeItem decorated(title, font, nullptr, QStringLiteral("idea"));
+    const QFontMetricsF metrics(font);
+    const auto text =
+        metrics.boundingRect(QRectF(0, 0, decorated.nodeRect().width() - 32 - 28, 100000),
+                             Qt::AlignCenter | Qt::TextWrapAnywhere, title);
+    QVERIFY(decorated.nodeRect().height() >= text.height() + 32);
+    QVERIFY(decorated.nodeRect().height() >= plain.nodeRect().height());
 }
 
 void TstUi::ganttLazyLoadRefreshAndUndo()
