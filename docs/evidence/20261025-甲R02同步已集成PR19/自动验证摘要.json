@@ -1,0 +1,231 @@
+{
+  "sourceCommit": "3ce397c4cb957b6c8b0251e340a70e4ebe1cb720",
+  "branch": "feature/a/M2-node-properties",
+  "parentMain": "712b3fa6db9dbebfc8d7d090914b4801e816e9e3",
+  "dateUtc": "2026-10-25T09:49:08.151246Z",
+  "success": true,
+  "versions": {
+    "qt": "6.8.3",
+    "gcc": "13.1.0",
+    "cmake": "cmake version 3.30.5",
+    "ninja": "1.12.1",
+    "clangFormat": "clang-format version 19.1.7"
+  },
+  "configurations": [
+    {
+      "name": "debug",
+      "suites": 16,
+      "passed": 295.0,
+      "failed": 0.0,
+      "skipped": 0.0,
+      "details": [
+        {
+          "name": "tst_ai",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_charts",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_check",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_commands",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_domain",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_fileservice",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_ganttview",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_layout",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_nodecommands",
+          "passed": 39,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_projectjson",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_recovery",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_review",
+          "passed": 23,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_secret",
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_session",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_tasks",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_ui",
+          "passed": 47,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "name": "release",
+      "suites": 16,
+      "passed": 295.0,
+      "failed": 0.0,
+      "skipped": 0.0,
+      "details": [
+        {
+          "name": "tst_ai",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_charts",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_check",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_commands",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_domain",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_fileservice",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_ganttview",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_layout",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_nodecommands",
+          "passed": 39,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_projectjson",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_recovery",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_review",
+          "passed": 23,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_secret",
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_session",
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_tasks",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "tst_ui",
+          "passed": 47,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    }
+  ],
+  "countConvention": "含QtTest初始化/清理及数据行",
+  "scope": "R02承接乙已合入主线的PR19；入口与日志冲突保留双方，业务自动合并；未混入PR21修正",
+  "credit": "users根公有边界修正及其原回归来自乙BUG-013，不计为甲实现",
+  "humanAcceptance": "未执行或代签；既有固定候选不覆盖，不因本轮同步重开人工待办",
+  "rawEvidence": "build/properties-pr19-main-sync-evidence"
+}
