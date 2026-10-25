@@ -4,6 +4,14 @@
 **新成员与AI协助从这里开始：先读 [AGENTS.md](AGENTS.md)，再读
 [docs/三人协作开发统一规范.md](docs/三人协作开发统一规范.md)。**
 
+## 本轮后续：账号库原子写独立交付（H-019）
+
+- 截止主线ca132b1，H-019/PR21已由乙非作者复核后合入bd28e6f，H-017后续补收e71720d。已关闭引用不再恢复；此前误恢复引用由乙再次清理，本轮fetch确认远程已不存在，无需用户授权清理。
+- 本分支fix/a/M2-account-store-atomic基于ca132b1，仅改SessionService.cpp的saveAccounts：QSaveFile禁用直接写回退、核对write字节数、commit原子提交。静态发现，未注入磁盘故障，不计为新增实测失败路径；签名、账号schema与哈希算法均保持，待乙维护人复核。
+- 被测99855e1：冻结Debug/Release构建/CTest各16/16通过；32份XML逐套实测各16套件310项通过、0失败0跳过（含初始化/清理和数据行）。见docs/evidence/20261025-甲账号库原子写主线复验，原始build/account-store-followup-evidence及account-store-followup-validation-console.log。
+- PR20/R02因BUG-014退回，甲另在原开放分支完成免Svg返工；不混入本分支。本修正不新增真人操作，旧M0/H-010/M1不重验；登录新路径真人仍暂留，不代签。
+## 历史状态（以下仅对应原时点）
+
 ## 当前状态：M1已集成，M2登录消费者修正待接收
 
 H-019最终被测9b9fc93，Debug/Release各16套件304项通过、0失败0跳过；草稿[PR21](https://github.com/whosmms/Mind/pull/21)待乙复核。补测16条失败路径中包含1条甲初批补丁引入的空名回归，已修正并单独归责。最终候选及新路径步骤位于D:/mind/人工验收/登录与我的文件_20261025_165841，真人未代签；下述302项/163509目录为初批快照，证据均保留。
