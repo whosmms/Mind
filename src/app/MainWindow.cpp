@@ -49,6 +49,7 @@
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
 #include "services/SessionService.h"
+#include "services/LocalNameRules.h"
 #include "services/SettingsService.h"
 #include "services/UserFileService.h"
 
@@ -502,11 +503,11 @@ bool MainWindow::saveProject(bool saveAs) {
         if (!saveAs && !m_filePath.isEmpty() &&
             UserFileService::classify(m_sessionRoot, m_sessionUser, m_filePath) ==
                 UserFileService::Access::Own) {
-            name = QFileInfo(m_filePath).completeBaseName();   // 我的文件原文件名保存
+            return saveProjectTo(m_filePath);   // 原位保存确切路径，保留完整文件名与文件戳
         } else {
             const QString fallback = m_filePath.isEmpty()
                                          ? m_doc->project().title
-                                         : QFileInfo(m_filePath).completeBaseName();
+                                         : QFileInfo(m_filePath).fileName();
             bool ok = false;
             name = QInputDialog::getText(this, QStringLiteral("保存到我的文件"),
                                          QStringLiteral("文件名称："), QLineEdit::Normal,
@@ -1036,6 +1037,23 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
                    QStringLiteral("登录后才能保存到我的文件"));
         return false;
     }
+    if (!LocalNameRules::validComponent(name.trimmed()))
+    {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("文件名无效"),
+                   QStringLiteral("文件名不能为空，且不能使用Windows保留名称或非法字符"));
+        return false;
+    }
+    QString targetName = name.trimmed();
+    if (!targetName.endsWith(QStringLiteral(".lingya"), Qt::CaseInsensitive))
+        targetName += QStringLiteral(".lingya");
+    if (!m_filePath.isEmpty() &&
+        UserFileService::classify(m_sessionRoot, m_sessionUser, m_filePath) ==
+            UserFileService::Access::Own &&
+        targetName.compare(QFileInfo(m_filePath).fileName(), Qt::CaseInsensitive) == 0)
+    {
+        // 原位保存复用统一的已加载文件戳保护，不覆盖外部编辑或复活外部删除。
+        return saveProjectTo(m_filePath);
+    }
     const auto saved =
         UserFileService::saveOwned(m_sessionRoot, m_sessionUser, name, m_doc->project());
     if (std::holds_alternative<AppError>(saved)) {
@@ -1062,6 +1080,7 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
 }
 
 bool MainWindow::openOwnedFile(const QString& name) {
+    if (!confirmDiscard()) return false;
     const auto opened = UserFileService::openOwned(m_sessionRoot, m_sessionUser, name);
     if (std::holds_alternative<AppError>(opened)) {
         showNotice(this, QMessageBox::Critical, QStringLiteral("无法打开"),

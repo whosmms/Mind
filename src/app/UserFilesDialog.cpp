@@ -64,8 +64,11 @@ void UserFilesDialog::refreshList()
     }
     for (const UserFileService::OwnedFileInfo &info : files)
     {
-        m_list->addItem(QStringLiteral("%1 · %2").arg(
-            info.name, info.modified.toString(QStringLiteral("yyyy-MM-dd HH:mm"))));
+        auto *item = new QListWidgetItem(
+            QStringLiteral("%1 · %2").arg(
+                info.name, info.modified.toString(QStringLiteral("yyyy-MM-dd HH:mm"))),
+            m_list);
+        item->setData(Qt::UserRole, info.name + QStringLiteral(".lingya"));
     }
     m_list->setCurrentRow(0);
 }
@@ -77,14 +80,8 @@ void UserFilesDialog::openSelected()
         return;
     if (m_list->item(row)->flags() == Qt::NoItemFlags)
         return; // 空态占位行
-    const QVector<UserFileService::OwnedFileInfo> files =
-        UserFileService::listOwned(m_root, m_userName);
-    if (row >= files.size())
-    {
-        refreshList(); // 列表与磁盘不一致（文件刚被外部改动）
-        return;
-    }
-    const QString name = files.at(row).name;
+    // 绑定显示项的文件名，磁盘排序变化或删除不能把当前行换成另一个文件。
+    const QString name = m_list->item(row)->data(Qt::UserRole).toString();
     const auto opened = UserFileService::openOwned(m_root, m_userName, name);
     if (std::holds_alternative<AppError>(opened))
     {

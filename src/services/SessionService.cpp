@@ -1,6 +1,7 @@
 #include "services/SessionService.h"
 #include "domain/Limits.h"
 #include "domain/TitleRules.h"
+#include "services/LocalNameRules.h"
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -58,6 +59,8 @@ std::variant<QVector<AccountRecord>, AppError> loadAccounts(const QString &root)
     const QJsonObject rootObject = doc.object();
     if (rootObject.value(QStringLiteral("schemaVersion")).toInt() != 1)
         return AppError{"UNSUPPORTED_SCHEMA", QStringLiteral("账号库版本不支持")};
+    if (!rootObject.value(QStringLiteral("users")).isArray())
+        return AppError{"INVALID_PROJECT", QStringLiteral("账号库用户列表损坏，拒绝加载")};
     const QJsonArray users = rootObject.value(QStringLiteral("users")).toArray();
     for (const auto &value : users)
     {
@@ -68,8 +71,12 @@ std::variant<QVector<AccountRecord>, AppError> loadAccounts(const QString &root)
         record.hash = user.value(QStringLiteral("hash")).toString();
         record.createdAt = QDateTime::fromString(user.value(QStringLiteral("createdAt")).toString(),
                                                  Qt::ISODateWithMs);
-        if (record.name.isEmpty() || record.salt.isEmpty() || record.hash.isEmpty())
+        if (!validUserName(record.name) || record.salt.isEmpty() || record.hash.isEmpty())
             return AppError{"INVALID_PROJECT", QStringLiteral("账号库存在不完整记录，拒绝加载")};
+        for (const AccountRecord &existing : records)
+            if (existing.name.compare(record.name, Qt::CaseInsensitive) == 0)
+                return AppError{"INVALID_PROJECT",
+                                QStringLiteral("账号库存在重复的文件目录身份，拒绝加载")};
         records.append(record);
     }
     return records;
@@ -109,15 +116,7 @@ bool validUserName(const QString &userName)
     const QString name = normalizeUserName(userName);
     if (TitleRules::codePointCount(name) < 2 || TitleRules::codePointCount(name) > 32)
         return false;
-    static const QString forbidden = QStringLiteral("/\\:*?\"<>|");
-    for (const QChar &ch : name)
-    {
-        if (ch.category() == QChar::Other_Control)
-            return false;
-        if (forbidden.contains(ch))
-            return false;
-    }
-    return name != QStringLiteral(".") && name != QStringLiteral("..");
+    return LocalNameRules::validComponent(name);
 }
 
 std::variant<bool, AppError> createAccount(const QString &root, const QString &userName,
@@ -139,7 +138,7 @@ std::variant<bool, AppError> createAccount(const QString &root, const QString &u
         return std::get<AppError>(loaded);
     QVector<AccountRecord> records = std::get<QVector<AccountRecord>>(loaded);
     for (const AccountRecord &record : records)
-        if (record.name == name)
+        if (record.name.compare(name, Qt::CaseInsensitive) == 0)
             return AppError{"CONFLICT", QStringLiteral("用户名已被注册：%1").arg(name)};
 
     AccountRecord record;

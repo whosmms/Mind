@@ -2,6 +2,9 @@
 
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 
 #include "domain/ProjectFactory.h"
@@ -32,6 +35,12 @@ class TstSession : public QObject
     void listOwnedNewestFirstAndSkipsForeign();
     void classifyOwnOthersPublic();
     void openOwnedRejectsMissingFile();
+    void accountNamesCannotShareDirectoryIdentity();
+    void malformedUsersCollectionKeepsAccountStore();
+    void duplicateDirectoryIdentityRejectedOnLoad();
+    void windowsAccountNamesRejected_data();
+    void windowsAccountNamesRejected();
+    void ownedNameRejectsStreamBeforeCreatingFolder();
 
   private:
     static Project makeProject(const QString &title)
@@ -252,6 +261,92 @@ void TstSession::openOwnedRejectsMissingFile()
         UserFileService::openOwned(root.path(), QStringLiteral("甲同学"), QStringLiteral("不存在"));
     QVERIFY(std::holds_alternative<AppError>(result));
     QCOMPARE(std::get<AppError>(result).code, QStringLiteral("FILE_NOT_FOUND"));
+}
+
+void TstSession::accountNamesCannotShareDirectoryIdentity()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        root.path(), QStringLiteral("CaseOwner"), QStringLiteral("test-only-one"))));
+    const auto alias = SessionService::createAccount(root.path(), QStringLiteral("caseowner"),
+                                                     QStringLiteral("test-only-two"));
+    QVERIFY(std::holds_alternative<AppError>(alias));
+    QCOMPARE(std::get<AppError>(alias).code, QStringLiteral("CONFLICT"));
+}
+
+void TstSession::malformedUsersCollectionKeepsAccountStore()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const QByteArray broken = R"({"schemaVersion":1,"users":42})";
+    QFile file(root.filePath(QStringLiteral("accounts.json")));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QCOMPARE(file.write(broken), broken.size());
+    file.close();
+    const auto result = SessionService::createAccount(root.path(), QStringLiteral("新同学"),
+                                                      QStringLiteral("test-only-one"));
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_PROJECT"));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.readAll(), broken);
+}
+
+void TstSession::duplicateDirectoryIdentityRejectedOnLoad()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+        root.path(), QStringLiteral("CaseOwner"), QStringLiteral("test-only-one"))));
+    QFile file(root.filePath(QStringLiteral("accounts.json")));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    auto object = QJsonDocument::fromJson(file.readAll()).object();
+    file.close();
+    auto users = object.value(QStringLiteral("users")).toArray();
+    auto second = users.first().toObject();
+    second[QStringLiteral("name")] = QStringLiteral("caseowner");
+    users.append(second);
+    object[QStringLiteral("users")] = users;
+    const auto broken = QJsonDocument(object).toJson();
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QCOMPARE(file.write(broken), broken.size());
+    file.close();
+    const auto result = SessionService::login(root.path(), QStringLiteral("CaseOwner"),
+                                              QStringLiteral("test-only-one"));
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_PROJECT"));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.readAll(), broken);
+}
+
+void TstSession::windowsAccountNamesRejected_data()
+{
+    QTest::addColumn<QString>("name");
+    QTest::newRow("尾点目录别名") << QStringLiteral("同学.");
+    QTest::newRow("保留设备名") << QStringLiteral("NUL");
+    QTest::newRow("设备名带扩展") << QStringLiteral("con.notes");
+    QTest::newRow("串行设备名") << QStringLiteral("COM1");
+    QTest::newRow("上标设备名") << QStringLiteral("LPT²");
+    QTest::newRow("冒号流名") << QStringLiteral("同学:附加");
+}
+
+void TstSession::windowsAccountNamesRejected()
+{
+    QFETCH(QString, name);
+    // 纯校验，不尝试打开Windows设备。
+    QVERIFY(!SessionService::validUserName(name));
+}
+
+void TstSession::ownedNameRejectsStreamBeforeCreatingFolder()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    const QString user = QStringLiteral("复核同学");
+    const auto result = UserFileService::saveOwned(root.path(), user, QStringLiteral("提纲:附加"),
+                                                   makeProject(QStringLiteral("测试工程")));
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_ARGUMENT"));
+    QVERIFY(!QDir(UserFileService::userDir(root.path(), user)).exists());
 }
 
 QTEST_MAIN(TstSession)
