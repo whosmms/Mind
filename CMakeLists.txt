@@ -38,6 +38,8 @@ add_library(lingya_core STATIC
     src/features/ReviewService.cpp
     src/features/ReviewSession.h
     src/features/ReviewSession.cpp
+    src/layout/TreeLayout.h
+    src/layout/TreeLayout.cpp
 )
 target_include_directories(lingya_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(lingya_core PUBLIC Qt6::Core)
