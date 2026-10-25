@@ -10,7 +10,7 @@
 
 甲本批基于该主线接通“主题属性…”：三种原创内置图标、独立多行备注、http(s)链接及打开链接；一次应用/一次撤销，支持清空、取消、错误预检、保存重开和图标布局测量。被测e7b2808，Debug/Release各15套件269项通过、0失败0跳过（UI37，含初始化/清理）。详见[H-018接收说明](docs/reviews/H-018-M2节点图标备注链接.md)及[仅本批新增路径的真人步骤](docs/甲M2节点属性_增量验收.md)。乙非作者复核和新窗口中文输入/DPI尚待完成，未宣告完整M2通过。
 
-M1操作核查另见[草稿PR19](https://github.com/whosmms/Mind/pull/19)，其271项来自另一条独立分支；本批不混入该尚未合并的测试。原D:/mind/app验收程序保留，本批候选位于D:/mind/.worktrees/button-api/build/release。
+本批已上传[草稿PR20](https://github.com/whosmms/Mind/pull/20)，待乙复核；固定候选程序与步骤在D:/mind/人工验收/R02节点属性_20261025_154116，后续构建不覆盖它。M1操作核查另见[草稿PR19](https://github.com/whosmms/Mind/pull/19)，其271项来自另一条独立分支；本批不混入该尚未合并的测试。原D:/mind/app验收程序保留。
 
 ## 历史过程记录
 
