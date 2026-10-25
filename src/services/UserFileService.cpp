@@ -106,6 +106,10 @@ UserFileService::Access classify(const QString &root, const QString &userName, c
         !absolute.startsWith(usersRoot + QLatin1Char('/'), Qt::CaseInsensitive))
         return Access::Public;
     const QString relative = absolute.mid(usersRoot.size() + 1);
+    // users根下直接散置的文件（不在任何用户子文件夹内）不属于任何用户：
+    // 按D-M2-02边界澄清视为公有（BUG-013：未登录存入users根的文件登录后须可打开）
+    if (!relative.contains(QLatin1Char('/')))
+        return Access::Public;
     const QString firstSegment = relative.section(QLatin1Char('/'), 0, 0); // 首段=用户目录名
     if (firstSegment.compare(me, Qt::CaseInsensitive) == 0)
         return Access::Own;
