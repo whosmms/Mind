@@ -15,6 +15,12 @@ Windows 桌面思维导图课程软件。仓库根目录即本文件所在目录
 
 ## 当前状态（以交接文档为准）
 
+- 2026-10-25每小时检查已完成独立P3按钮API清理，草稿PR #18：https://github.com/whosmms/Mind/pull/18。
+  分支fix/a/M1-button-api位于同仓库独立工作区D:/mind/.worktrees/button-api；被测4dba123，Debug/Release各15套件246项通过，0失败0跳过，当前弃用诊断消除。
+  PR18以PR17分支为基线仅展示后续差异，不提前合入待验PR17；PR17按原流程集成后，再同步/改目标到main并复核。源码、原待验Debug/Release程序SHA-256本轮均未变化。
+  不重复做此P3，不改乙认领的tst_nodecommands断言，不重构节点测量。原真人三项待办保持，未新增真人要求。
+  当前main=34c8475含乙R10；PR17远程dirty，3a090ce对34c8475虚拟合并仅docs/开发日志.md冲突。交接依据见docs/reviews/PR17-主线合流准备.md，乙合流时保留双方日志并重新实测，不把自动内容合并当测试通过。
+
 - 用户转交乙对85f0a1b的复核通过：代码/文档及NodeCommands排序补丁均接收，乙双配置各15套件246项通过。详见docs/reviews/H-013-乙复核回执.md；不是GitHub正式Review事件，不代签丙。
   PR #17当前只补文档，src/tests/CMake保持85f0a1b待验基线；后续R10（main=4fbd131）和P3代码使用独立增量，不直接并入待验源码。该安排不阻止其它独立任务。
   丙独立复核和甲本人三项增量真人验收仍待完成，之后由乙--no-ff合入。当前人工入口docs/甲M1增量真人验收_三项.md，原八项不再要求全量重做。
