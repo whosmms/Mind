@@ -25,7 +25,7 @@ git diff --check
 
 4dba123上实测：原验证脚本退出0，Debug/Release各15套件246项通过、0失败0跳过；tst_ui各32项，含QtTest初始化/清理。
 新工作区完整构建日志没有deprecated-declarations或is deprecated诊断；src/tests已不再调用buttonText/setButtonText。
-逐套30份XML在build/p3-evidence/debug及release，原构建报告为build/environment/validation.json和p3-validation-console.log。
+逐套30份XML在build/p3-evidence/debug及release，原构建报告保存在build/p3-evidence/validation.json和p3-validation-console.log（保留独立快照，避免后续预演覆盖）。
 共享[脱敏摘要](../evidence/20261025-甲P3按钮API/自动验证摘要.json)不含电脑名、凭据或个人工具安装目录。
 本轮没有界面行为或样式变化，不增加真人验收清单，不将旧人工结果扩展到未经实际操作的新行为。
 
