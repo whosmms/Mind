@@ -4,6 +4,17 @@
 **新成员与AI协助从这里开始：先读 [AGENTS.md](AGENTS.md)，再读
 [docs/三人协作开发统一规范.md](docs/三人协作开发统一规范.md)。**
 
+## H-018最新返工交接：BUG-014免QtSvg方案
+
+- main ca132b1已含乙接收H-019/PR21与H-017后续；本分支普通同步0ad1cab，双方日志与消费者用例均保留。乙对R02的退回结论见交接§20，不改写为已接收。
+- 甲本机environment.md早已登记安装Svg，原289/295是含Svg插件环境本机实测。乙无Svg实测失败，暴露甲未验证的隐式插件依赖；旧证据保留其环境边界，不能当三机一致通过。
+- 采用乙建议A：SVG保留源稿，导出64×64透明PNG并作为qrc运行资源；NodeItem只读PNG。原画面与图标ID保持，无Kit/CMake模块变动；PNG已逐个实际查看。仅资源和相关消费者测试改动，未实现新需求。
+- 被测172cfab：Debug/Release构建/CTest各16/16；32份XML核实各16套件313项通过、0失败0跳过，含QtTest初始化/清理及数据行。证据evidence/20261025-甲R02免Svg返工，原始build/properties-png-evidence及properties-png-validation-console.log。
+- 无Svg隔离目录没有QtSvg DLL/插件，qt.conf限制插件搜索，PATH不含Qt工具目录；格式探针只有bmp/pbm/pgm/png/ppm/xbm/xpm，三个属性与图标用例两配置各5项（含init/cleanup）通过、0失败0跳过。两份XML及摘要已归档；这不是乙本人复验，不相加成318项。
+- 新固定候选D:\mind\人工验收\R02免Svg节点属性_20261025_181956：18份运行库/程序文件逐项SHA-256校验，另附qt.conf锁定本包插件，无Svg。旧候选保留，仅推荐新候选。真人步骤仅更新启动入口；旧M0/H-010/M1不重验，新属性与登录路径待办不代签。
+- 原PR20保持草稿待乙复核返工，不自批合main。账号库原子写另fix/a/M2-account-store-atomic独立交付，无需为本批重复提交已合PR21。先前误恢复引用已由乙清理，fetch确认不存在，清理授权待办取消。
+## 合流前历史状态
+
 ## 当前交付：R02节点属性增量待接收
 
 PR19已由乙合入主线712b3fa，本分支普通同步为3ce397c；Debug/Release各16套件295项通过、0失败0跳过，32XML。[PR20](https://github.com/whosmms/Mind/pull/20)仍待乙复核；请先接收独立[PR21](https://github.com/whosmms/Mind/pull/21)登录修正（最新组合310项）。旧固定R02候选与[人验步骤](docs/甲M2节点属性_增量验收.md)保持，不重做旧全套。
