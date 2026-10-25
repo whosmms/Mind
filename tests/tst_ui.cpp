@@ -104,6 +104,8 @@ private slots:
     void nodeStyleShapes();
     void nodeStyleEditUndoAndRoundTrip();
     void nodeStyleCancelInvalidResetAndNoOp();
+    void nodeStyleUneditedFontOverride_data();
+    void nodeStyleUneditedFontOverride();
     void nodeStyleMixedHundredNodes();
     void ganttLazyLoadRefreshAndUndo();
     void previewZoomAndLongTitle();
@@ -2624,6 +2626,75 @@ void TstUi::nodeStyleCancelInvalidResetAndNoOp()
     QVERIFY(canvasNodes(view).value(tree.rootId)->nodeStyle().bold);
     QCOMPARE(canvasNodes(view).value(tree.rootId)->nodeStyle().fill, QStringLiteral("#FFF0D0"));
     QCOMPARE(canvasNodes(view).value(tree.rootId)->nodeStyle().fontSize, 24);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+}
+
+void TstUi::nodeStyleUneditedFontOverride_data()
+{
+    QTest::addColumn<QString>("family");
+    QTest::newRow("explicit-empty") << QStringLiteral("");
+    QTest::newRow("whitespace-only") << QStringLiteral("  ");
+    QTest::newRow("padded-family") << QStringLiteral("  Microsoft YaHei  ");
+}
+
+void TstUi::nodeStyleUneditedFontOverride()
+{
+    QFETCH(QString, family);
+    Project project = ProjectFactory::createMindmap(QStringLiteral("原样保留字体覆盖"));
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const ID rootId = tree.rootId;
+    tree.nodes[rootId].style.fontFamily = family;
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString file = dir.filePath(QStringLiteral("原字体覆盖.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(file, project)));
+    QVERIFY(std::holds_alternative<Project>(FileService::load(file)));
+    MainWindow window;
+    QVERIFY(window.openFile(file));
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *edit = window.findChild<QAction *>(QStringLiteral("editNodeStyle"));
+    QVERIFY(document && commands && edit);
+    const auto before = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    QSignalSpy changes(document, &ProjectDocument::changed);
+    answerNodeStyle(
+        window, [](QDialog *dialog)
+        { dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click(); });
+    edit->trigger();
+    QCOMPARE(changes.count(), 0);
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    QVERIFY(!document->isModified() && !commands->canUndo());
+    // 修改其他样式也不规范化未编辑的字体名；整组撤销一次恢复。
+    answerNodeStyle(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"))
+                ->setText(QStringLiteral("#E7F0FF"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QCOMPARE(changes.count(), 1);
+    const auto styled = std::get<TreeSheet>(document->project().sheets.first()).nodes.value(rootId);
+    QVERIFY(styled.style.fontFamily.has_value());
+    QCOMPARE(styled.style.fontFamily.value(), family);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(document->project()), before);
+    // 即使原值是显式空串，“恢复为工作表样式”仍应清除optional覆盖。
+    answerNodeStyle(
+        window,
+        [](QDialog *dialog)
+        {
+            dialog->findChild<QPushButton *>(QStringLiteral("resetNodeStyle"))->click();
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    edit->trigger();
+    QVERIFY(!std::get<TreeSheet>(document->project().sheets.first())
+                 .nodes.value(rootId)
+                 .style.fontFamily);
     commands->undo();
     QCOMPARE(ProjectJson::toJson(document->project()), before);
 }

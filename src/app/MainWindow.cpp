@@ -576,6 +576,8 @@ void MainWindow::editSelectedNodeStyle()
         QStringLiteral("styleFontFamily"), QStringLiteral("字体名称"), original.fontFamily,
         defaults.fontFamily == QStringLiteral("system") ? QStringLiteral("系统字体")
                                                         : defaults.fontFamily);
+    const QString initialFamily = family->text();
+    bool resetStyle = false;
     auto *size = new QComboBox(&dialog);
     size->setObjectName(QStringLiteral("styleFontSize"));
     size->addItem(QStringLiteral("继承（%1）").arg(defaults.fontSize));
@@ -628,8 +630,9 @@ void MainWindow::editSelectedNodeStyle()
     buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
     layout->addWidget(buttons);
     connect(reset, &QPushButton::clicked, &dialog,
-            [=]
+            [=, &resetStyle]
             {
+                resetStyle = true;
                 for (auto *edit : {fill, color, border, family, width})
                     edit->clear();
                 for (auto *combo : {size, bold, shape})
@@ -649,7 +652,11 @@ void MainWindow::editSelectedNodeStyle()
                 style.fill = optionalText(fill);
                 style.color = optionalText(color);
                 style.borderColor = optionalText(border);
-                style.fontFamily = optionalText(family);
+                // 旧文件允许显式空串和首尾空白；未编辑时保留optional及原字符串。
+                // 恢复按钮则明确清除覆盖，不把“原来为空”误判为未操作。
+                style.fontFamily = !resetStyle && family->text() == initialFamily
+                                       ? original.fontFamily
+                                       : optionalText(family);
                 if (size->currentIndex() > 0)
                     style.fontSize = size->currentData().toInt();
                 if (bold->currentIndex() > 0)
