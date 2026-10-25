@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
+#include <QFileDialog>
 #include <QFontDatabase>
 #include <QFontMetricsF>
 #include <QGraphicsPathItem>
@@ -26,6 +27,7 @@
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
+#include <QScopeGuard>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTemporaryDir>
@@ -55,6 +57,9 @@ class TstUi : public QObject {
 private slots:
     void initTestCase();
     void undoRedoViaShortcuts();
+    void redoWithEditorFocus_data();
+    void redoWithEditorFocus();
+    void saveAsDialogRoundTripAndCancel();
     void undoRedoDisabledBeforeAnyEdit();
     void openFileRestoresContent();
     void openFileFailureKeepsProject();
@@ -385,6 +390,147 @@ void TstUi::undoRedoViaShortcuts() {
     QCOMPARE(w.currentRootTitle(), QStringLiteral("第一次修改"));
     QTest::keyClick(win, Qt::Key_Z, Qt::ControlModifier);
     QCOMPARE(w.currentRootTitle(), QStringLiteral("中心主题"));
+}
+
+void TstUi::redoWithEditorFocus_data()
+{
+    QTest::addColumn<QString>("focusName");
+    QTest::addColumn<bool>("shiftZ");
+    QTest::newRow("大纲-CtrlY") << QStringLiteral("topicOutline") << false;
+    QTest::newRow("大纲-CtrlShiftZ") << QStringLiteral("topicOutline") << true;
+    QTest::newRow("画布-CtrlY") << QStringLiteral("topicPreview") << false;
+    QTest::newRow("画布-CtrlShiftZ") << QStringLiteral("topicPreview") << true;
+}
+
+void TstUi::redoWithEditorFocus()
+{
+    QFETCH(QString, focusName);
+    QFETCH(bool, shiftZ);
+    MainWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    auto *focus = window.findChild<QWidget *>(focusName);
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QVERIFY(focus && document && commands && outline && view);
+    const ID rootId = outline->currentItem()->data(0, Qt::UserRole).toString();
+    const QString before = window.currentRootTitle();
+    QVERIFY(window.renameRootTo(QStringLiteral("焦点内快捷键改名")));
+    focus->setFocus();
+    QTRY_VERIFY(focus->hasFocus());
+    QSignalSpy changed(document, &ProjectDocument::changed);
+    QTest::keyClick(window.windowHandle(), Qt::Key_Z, Qt::ControlModifier);
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(window.currentRootTitle(), before);
+    QVERIFY(commands->canRedo());
+    QTRY_VERIFY(focus->hasFocus());
+    QTest::keyClick(window.windowHandle(), shiftZ ? Qt::Key_Z : Qt::Key_Y,
+                    shiftZ ? Qt::ControlModifier | Qt::ShiftModifier : Qt::ControlModifier);
+    QCOMPARE(changed.count(), 2);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("焦点内快捷键改名"));
+    QVERIFY(!commands->canRedo());
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), rootId);
+    QCOMPARE(outline->currentItem()->text(0), window.currentRootTitle());
+    QVERIFY(canvasNodes(view).contains(rootId));
+    QCOMPARE(canvasNodes(view).value(rootId)->toolTip(), window.currentRootTitle());
+}
+
+void TstUi::saveAsDialogRoundTripAndCancel()
+{
+    // 自动化仅驱动Qt文件对话框，不据此声称覆盖Windows原生对话框/真实键盘。
+    const bool previousNative = QCoreApplication::testAttribute(Qt::AA_DontUseNativeDialogs);
+    QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+    const auto restoreNative = qScopeGuard(
+        [previousNative]
+        { QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs, previousNative); });
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString firstPath = dir.filePath(QStringLiteral("首次另存.lingya"));
+    const QString secondPath = dir.filePath(QStringLiteral("改名后另存.lingya"));
+    MainWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    auto *document = window.findChild<ProjectDocument *>();
+    QVERIFY(document);
+    QAction *saveAs = nullptr;
+    for (QAction *action : window.findChildren<QAction *>())
+        if (action->text().startsWith(QStringLiteral("另存为")))
+            saveAs = action;
+    QVERIFY(saveAs);
+    QVERIFY(window.renameRootTo(QStringLiteral("首次保存内容")));
+    int answered = 0;
+    bool accepted = false;
+    QString destination = firstPath;
+    bool cancel = false;
+    QTimer responder;
+    responder.setInterval(1);
+    connect(&responder, &QTimer::timeout, &window,
+            [&]
+            {
+                auto *dialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget());
+                if (dialog == nullptr || !dialog->isVisible())
+                    return;
+                responder.stop();
+                ++answered;
+                if (cancel)
+                    dialog->reject();
+                else
+                {
+                    dialog->selectFile(destination);
+                    accepted = QMetaObject::invokeMethod(dialog, "accept", Qt::DirectConnection);
+                    if (dialog->isVisible())
+                        dialog->reject();
+                }
+            });
+    responder.start();
+    QTest::keyClick(window.windowHandle(), Qt::Key_S, Qt::ControlModifier | Qt::ShiftModifier);
+    QCOMPARE(answered, 1);
+    QVERIFY(accepted);
+    QVERIFY(!document->isModified());
+    const auto first = FileService::load(firstPath);
+    QVERIFY(std::holds_alternative<Project>(first));
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(first)),
+             ProjectJson::toJson(document->project()));
+
+    QVERIFY(window.renameRootTo(QStringLiteral("取消另存后保留的修改")));
+    const auto beforeCancel = ProjectJson::toJson(document->project());
+    const qint64 revision = document->sessionRevision();
+    const QString title = window.windowTitle();
+    cancel = true;
+    responder.start();
+    saveAs->trigger();
+    QCOMPARE(answered, 2);
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(document->project()), beforeCancel);
+    QCOMPARE(window.windowTitle(), title);
+    QVERIFY(document->isModified());
+
+    cancel = false;
+    destination = secondPath;
+    responder.start();
+    saveAs->trigger();
+    QCOMPARE(answered, 3);
+    QVERIFY(!document->isModified());
+    QCOMPARE(window.windowTitle(), QStringLiteral("改名后另存 - 灵芽思维"));
+    QVERIFY(window.renameRootTo(QStringLiteral("继续保存只更新新文件")));
+    window.activateWindow();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QTest::keyClick(window.windowHandle(), Qt::Key_S, Qt::ControlModifier);
+    QCOMPARE(answered, 3);
+    QVERIFY(!document->isModified());
+    const auto firstAfter = FileService::load(firstPath);
+    const auto second = FileService::load(secondPath);
+    QVERIFY(std::holds_alternative<Project>(firstAfter));
+    QVERIFY(std::holds_alternative<Project>(second));
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(firstAfter)),
+             ProjectJson::toJson(std::get<Project>(first)));
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(second)),
+             ProjectJson::toJson(document->project()));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(secondPath));
+    QCOMPARE(reopened.currentRootTitle(), QStringLiteral("继续保存只更新新文件"));
 }
 
 void TstUi::openFileRestoresContent() {
