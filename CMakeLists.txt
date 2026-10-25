@@ -32,6 +32,10 @@ add_library(lingya_core STATIC
     src/services/RecoveryService.cpp
     src/services/SettingsService.h
     src/services/SettingsService.cpp
+    src/services/SessionService.h
+    src/services/SessionService.cpp
+    src/services/UserFileService.h
+    src/services/UserFileService.cpp
     src/features/CheckService.h
     src/features/CheckService.cpp
     src/features/ReviewService.h
@@ -92,6 +96,10 @@ add_executable(lingya
     src/app/MainWindow.cpp
     src/app/RecoveryDialog.h
     src/app/RecoveryDialog.cpp
+    src/app/LoginDialog.h
+    src/app/LoginDialog.cpp
+    src/app/UserFilesDialog.h
+    src/app/UserFilesDialog.cpp
     src/graphics/NodeItem.h
     src/graphics/NodeItem.cpp
     resources/resources.qrc
