@@ -39,6 +39,7 @@ GanttLayoutResult GanttLayout::compute(const QVector<Task>& tasks) const {
     // 含首尾两天：1 月 1 日到 1 月 1 日也算 1 天
     const int totalDays = static_cast<int>(minDate.daysTo(maxDate)) + 1;
     result.totalWidth = totalDays * m_pixelsPerDay;
+    result.rangeStart = minDate;
 
     for (int row = 0; row < tasks.size(); ++row) {
         const Task& task = tasks.at(row);
