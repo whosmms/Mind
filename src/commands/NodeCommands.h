@@ -8,7 +8,17 @@ namespace lingya {
 class CommandService;
 class ProjectDocument;
 
-// 节点类型化命令（统一规范§5.1：addChild、addSibling、deleteSubtree）。
+// 节点元数据补丁（M2：图标、备注、链接、标签）：外层optional=是否修改该字段；
+// 文本字段先去首尾空白，空白视为清除（iconId/link置空、tags为空表）。链接仅允许http/https
+// （与ProjectJson读写规则一致，规范§4.3.10）。
+struct NodeMetaUpdate {
+    std::optional<QString> note;      // 修改备注（可为空串=清空；≤20000码点）
+    std::optional<QString> iconId;    // 修改图标资源ID（空白=清除）
+    std::optional<QString> link;      // 修改链接（空白=清除；非空须http/https）
+    std::optional<QStringList> tags;  // 整表替换（每项去空白；≤20项、每项≤30码点）
+};
+
+// 节点类型化命令（统一规范§5.1：addChild、addSibling、deleteSubtree、updateNodeMeta、setStyle）。
 // 所有写入统一经CommandService::applyEdit（候选副本→ProjectValidator校验→单次快照入栈），
 // 失败不改变工程、dirty与撤销历史。
 // 改名统一使用TaskCommands::renameNode，本类不重复提供，避免两套行为。
@@ -39,6 +49,16 @@ public:
     std::variant<bool, AppError> deleteSubtree(const ID& sheetId, const ID& nodeId,
                                                TaskDeletePolicy policy =
                                                    TaskDeletePolicy::KeepAsStandalone);
+
+    // 按补丁更新节点元数据（note/iconId/link/tags）：单事务、可撤销、contentRevision+1；
+    // 补丁产生的值与当前值完全相同时无操作短路，不入历史（D-M1-02显式例外）。
+    std::variant<bool, AppError> updateNodeMeta(const ID& sheetId, const ID& nodeId,
+                                                const NodeMetaUpdate& update);
+
+    // 整值替换节点局部样式override：空override=清除，回退工作表默认样式；可撤销。
+    // 预检（基础码）：颜色#RRGGBB、shape五枚举、字号12至32、边宽正数；与当前相同则短路。
+    std::variant<bool, AppError> setStyle(const ID& sheetId, const ID& nodeId,
+                                          const NodeStyleOverride& style);
 
 private:
     CommandService* m_commands;
