@@ -54,7 +54,7 @@ namespace {
 void showNotice(QWidget *parent, QMessageBox::Icon icon, const QString &title, const QString &text)
 {
     QMessageBox box(icon, title, text, QMessageBox::Ok, parent);
-    box.setButtonText(QMessageBox::Ok, QStringLiteral("确定"));
+    box.button(QMessageBox::Ok)->setText(QStringLiteral("确定"));
     box.exec();
 }
 
@@ -720,9 +720,9 @@ bool MainWindow::confirmDiscard() {
     QMessageBox question(QMessageBox::Warning, QStringLiteral("未保存的修改"),
                          QStringLiteral("当前工程已修改，是否保存？"),
                          QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this);
-    question.setButtonText(QMessageBox::Save, QStringLiteral("保存"));
-    question.setButtonText(QMessageBox::Discard, QStringLiteral("放弃修改"));
-    question.setButtonText(QMessageBox::Cancel, QStringLiteral("取消"));
+    question.button(QMessageBox::Save)->setText(QStringLiteral("保存"));
+    question.button(QMessageBox::Discard)->setText(QStringLiteral("放弃修改"));
+    question.button(QMessageBox::Cancel)->setText(QStringLiteral("取消"));
     question.setDefaultButton(QMessageBox::Cancel);
     question.setEscapeButton(QMessageBox::Cancel);
     question.exec();

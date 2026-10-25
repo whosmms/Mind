@@ -1549,9 +1549,10 @@ void TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent()
             {
                 if (auto *box = qobject_cast<QMessageBox *>(top))
                 {
-                    chinese = box->buttonText(QMessageBox::Save) == QStringLiteral("保存") &&
-                              box->buttonText(QMessageBox::Discard) == QStringLiteral("放弃修改") &&
-                              box->buttonText(QMessageBox::Cancel) == QStringLiteral("取消");
+                    chinese =
+                        box->button(QMessageBox::Save)->text() == QStringLiteral("保存") &&
+                        box->button(QMessageBox::Discard)->text() == QStringLiteral("放弃修改") &&
+                        box->button(QMessageBox::Cancel)->text() == QStringLiteral("取消");
                     box->button(QMessageBox::Cancel)->click();
                 }
             }
