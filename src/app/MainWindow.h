@@ -86,6 +86,9 @@ private:
     void showGanttView();
     void setCanvasZoom(qreal zoom);
     void fitCanvas();
+    void selectNode(const ID &nodeId);
+    void syncCanvasSelection();
+    void focusSelectedNode();
     bool confirmDiscard();          // 换工程/关闭时提供保存、放弃、取消（原设计§8）
     void loadNewDocument(Project project);
     void rebuildCanvas();
@@ -99,6 +102,8 @@ private:
     QGraphicsView* m_view = nullptr;
     QTreeWidget *m_outline = nullptr;
     ID m_selectedNodeId;                       // 临时选择状态，不持久化、不进入撤销历史
+    QMap<ID, NodeItem *> m_nodeItems;          // 非拥有指针；图元由m_scene销毁
+    QString m_canvasError;
     QStackedWidget* m_centralStack = nullptr;  // 页0思维导图画布 / 页1甘特图（M3）
     QWidget* m_ganttPage = nullptr;            // 甘特页当前内容（占位或丙的视图）
     QString m_filePath;             // 磁盘路径只存在本机会话（原设计§8）

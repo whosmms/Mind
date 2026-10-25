@@ -33,6 +33,21 @@ QRectF NodeItem::boundingRect() const {
     return m_rect.adjusted(-2, -2, 2, 2); // 包含选中边框，避免裁切
 }
 
+void NodeItem::setNodeId(const QString &id)
+{
+    m_nodeId = id;
+}
+
+QString NodeItem::nodeId() const
+{
+    return m_nodeId;
+}
+
+QRectF NodeItem::nodeRect() const
+{
+    return m_rect;
+}
+
 void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) {
     Q_UNUSED(option);
     Q_UNUSED(widget);

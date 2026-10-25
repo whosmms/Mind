@@ -1,5 +1,6 @@
 #include "app/MainWindow.h"
 
+#include "layout/TreeLayout.h"
 #include <QAction>
 #include <QCloseEvent>
 #include <QDateTime>
@@ -7,9 +8,11 @@
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QInputDialog>
+#include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -17,6 +20,8 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QPainterPath>
+#include <QPlainTextEdit>
 #include <QSet>
 #include <QSignalBlocker>
 #include <QStackedWidget>
@@ -45,6 +50,55 @@ namespace lingya {
 
 
 namespace {
+// 标准Qt多行输入框：预编辑期间不把Enter当成提交，Shift+Enter保留换行。
+class NodeTitleDialog final : public QInputDialog
+{
+  public:
+    NodeTitleDialog(const QString &caption, const QString &initial, QWidget *parent)
+        : QInputDialog(parent)
+    {
+        setWindowTitle(caption);
+        setLabelText(QStringLiteral("主题标题（Enter确认，Shift+Enter换行）："));
+        setOption(QInputDialog::UsePlainTextEditForTextInput);
+        setTextValue(initial);
+        setOkButtonText(QStringLiteral("确定"));
+        setCancelButtonText(QStringLiteral("取消"));
+        resize(440, 240);
+        m_editor = findChild<QPlainTextEdit *>();
+        if (m_editor != nullptr)
+        {
+            m_editor->installEventFilter(this);
+            m_editor->selectAll();
+        }
+    }
+
+  protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (watched == m_editor && event->type() == QEvent::InputMethod)
+            m_preediting = !static_cast<QInputMethodEvent *>(event)->preeditString().isEmpty();
+        if (watched == m_editor && event->type() == QEvent::KeyPress)
+        {
+            const auto *key = static_cast<QKeyEvent *>(event);
+            if (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter)
+            {
+                if (m_preediting)
+                    return true;
+                if ((key->modifiers() & ~Qt::KeypadModifier) == Qt::NoModifier)
+                {
+                    accept();
+                    return true;
+                }
+            }
+        }
+        return QInputDialog::eventFilter(watched, event);
+    }
+
+  private:
+    QPlainTextEdit *m_editor = nullptr;
+    bool m_preediting = false;
+};
+
 QFont canvasFont() {
     QFont font(QStringLiteral("Microsoft YaHei"));   // Windows优先微软雅黑（规范§9）
     font.setPixelSize(16);                           // 节点默认字号（规范§4.2）
@@ -96,8 +150,7 @@ MainWindow::MainWindow(QWidget* parent)
             {
                 if (current == nullptr)
                     return;
-                m_selectedNodeId = current->data(0, Qt::UserRole).toString();
-                rebuildCanvas();
+                selectNode(current->data(0, Qt::UserRole).toString());
             });
     connect(m_outline, &QTreeWidget::itemDoubleClicked, this,
             [this](QTreeWidgetItem *, int) { renameSelectedNode(); });
@@ -168,7 +221,10 @@ void MainWindow::buildMenus() {
                                        [this] { setCanvasZoom(m_view->transform().m11() * 1.2); });
     auto *zoomOut = viewMenu->addAction(QStringLiteral("缩小"), this,
                                         [this] { setCanvasZoom(m_view->transform().m11() / 1.2); });
-    auto *fit = viewMenu->addAction(QStringLiteral("适应主题"), this, &MainWindow::fitCanvas);
+    auto *fit = viewMenu->addAction(QStringLiteral("适应全部"), this, &MainWindow::fitCanvas);
+    auto *locate =
+        viewMenu->addAction(QStringLiteral("定位所选主题"), this, &MainWindow::focusSelectedNode);
+    locate->setObjectName(QStringLiteral("locateTopic"));
     zoomIn->setObjectName(QStringLiteral("zoomIn"));
     zoomOut->setObjectName(QStringLiteral("zoomOut"));
     fit->setObjectName(QStringLiteral("fitTopic"));
@@ -176,6 +232,7 @@ void MainWindow::buildMenus() {
     toolbar->addAction(zoomIn);
     toolbar->addAction(zoomOut);
     toolbar->addAction(fit);
+    toolbar->addAction(locate);
 }
 
 void MainWindow::showGanttView()
@@ -301,6 +358,27 @@ void MainWindow::writeRecoverySnapshot() {
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == m_view->viewport() &&
+        (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonDblClick))
+    {
+        const auto *mouse = static_cast<QMouseEvent *>(event);
+        if (mouse->button() == Qt::LeftButton)
+        {
+            const QPointF position = m_view->mapToScene(mouse->position().toPoint());
+            if (const auto *item =
+                    dynamic_cast<NodeItem *>(m_scene->itemAt(position, QTransform())))
+            {
+                const ID nodeId = item->nodeId();
+                selectNode(nodeId);
+                m_view->setFocus();
+                if (event->type() == QEvent::MouseButtonDblClick)
+                    renameSelectedNode();
+                return true;
+            }
+        }
+    }
+    if (watched == m_view->viewport() && event->type() == QEvent::MouseButtonRelease)
+        syncCanvasSelection();
     // 只处理大纲/画布，文本对话框和输入法预编辑不经过此入口。
     if ((watched == m_outline || watched == m_view || watched == m_view->viewport()) &&
         event->type() == QEvent::KeyPress)
@@ -327,15 +405,6 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
             setCanvasZoom(m_view->transform().m11() *
                           (wheel->angleDelta().y() > 0 ? 1.2 : 1 / 1.2));
         return true;
-    }
-    // 双击节点重命名（M0简化交互；完整编辑交互细则见规范§5.2，M1实现）
-    if (watched == m_view->viewport() && event->type() == QEvent::MouseButtonDblClick) {
-        const auto* mouse = static_cast<QMouseEvent*>(event);
-        const QPointF scenePos = m_view->mapToScene(mouse->position().toPoint());
-        if (dynamic_cast<NodeItem*>(m_scene->itemAt(scenePos, QTransform())) != nullptr) {
-            renameSelectedNode();
-            return true;
-        }
     }
     return QMainWindow::eventFilter(watched, event);
 }
@@ -431,12 +500,10 @@ void MainWindow::renameSelectedNode()
     const ID sheetId = sheet->id;
     const ID nodeId = m_selectedNodeId;
     const QString oldTitle = sheet->nodes.value(nodeId).title;
-    bool ok = false;
-    const QString title =
-        QInputDialog::getText(this, QStringLiteral("重命名主题"), QStringLiteral("新的标题："),
-                              QLineEdit::Normal, oldTitle, &ok);
-    if (!ok)
+    NodeTitleDialog dialog(QStringLiteral("重命名主题"), oldTitle, this);
+    if (dialog.exec() != QDialog::Accepted)
         return;
+    const QString title = dialog.textValue();
     TaskCommands tasks(m_commands, m_doc);
     const auto result = tasks.renameNode(sheetId, nodeId, title);
     if (const auto *error = std::get_if<AppError>(&result))
@@ -450,11 +517,10 @@ void MainWindow::addChildToSelection()
         return;
     const ID sheetId = sheet->id;
     const ID parentId = m_selectedNodeId;
-    bool ok = false;
-    const QString title =
-        QInputDialog::getText(this, QStringLiteral("新增子主题"), QStringLiteral("子主题标题："),
-                              QLineEdit::Normal, QStringLiteral("未命名主题"), &ok);
-    if (!ok) return;
+    NodeTitleDialog dialog(QStringLiteral("新增子主题"), QStringLiteral("未命名主题"), this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    const QString title = dialog.textValue();
     NodeCommands nodes(m_commands, m_doc);
     const auto result = nodes.addChild(sheetId, parentId, title);
     if (const auto *error = std::get_if<AppError>(&result))
@@ -462,9 +528,7 @@ void MainWindow::addChildToSelection()
         QMessageBox::warning(this, QStringLiteral("无法新增"), error->message);
         return;
     }
-    m_selectedNodeId = std::get<ID>(result);
-    rebuildOutline();
-    rebuildCanvas();
+    selectNode(std::get<ID>(result));
 }
 
 void MainWindow::rebuildRecentMenu() {
@@ -587,16 +651,108 @@ void MainWindow::rebuildOutline()
     m_outline->scrollToItem(items.value(m_selectedNodeId));
 }
 
+void MainWindow::selectNode(const ID &nodeId)
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(nodeId))
+        return;
+    m_selectedNodeId = nodeId;
+    {
+        const QSignalBlocker blocker(m_outline);
+        for (QTreeWidgetItemIterator it(m_outline); *it; ++it)
+        {
+            if ((*it)->data(0, Qt::UserRole).toString() == nodeId)
+            {
+                m_outline->setCurrentItem(*it);
+                m_outline->scrollToItem(*it);
+                break;
+            }
+        }
+    }
+    // 选中持久化折叠分支内的节点时，仅临时展开其祖先供定位，不修改文档。
+    if (!m_nodeItems.contains(nodeId))
+        rebuildCanvas();
+    syncCanvasSelection();
+    focusSelectedNode();
+}
+
+void MainWindow::syncCanvasSelection()
+{
+    for (auto it = m_nodeItems.constBegin(); it != m_nodeItems.constEnd(); ++it)
+        it.value()->setSelected(it.key() == m_selectedNodeId);
+}
+
+void MainWindow::focusSelectedNode()
+{
+    if (NodeItem *item = m_nodeItems.value(m_selectedNodeId, nullptr))
+        m_view->ensureVisible(item, 48, 48);
+}
+
 void MainWindow::rebuildCanvas() {
+    m_nodeItems.clear();
     m_scene->clear();
-    const TreeSheet* sheet = activeTreeSheet();
+    m_canvasError.clear();
+    const TreeSheet *sheet = activeTreeSheet();
     if (sheet == nullptr) return;
-    const ID nodeId = sheet->nodes.contains(m_selectedNodeId) ? m_selectedNodeId : sheet->rootId;
-    const TreeNode node = sheet->nodes.value(nodeId);
-    auto *item = new NodeItem(node.title, canvasFont());
-    m_scene->addItem(item);
-    item->setSelected(true);
-    m_scene->setSceneRect(item->boundingRect().adjusted(-80, -80, 80, 80));
+    TreeSheet display = *sheet;
+    ID ancestor = m_selectedNodeId;
+    while (display.nodes.contains(ancestor))
+    {
+        const auto parent = display.nodes.value(ancestor).parentId;
+        if (!parent.has_value())
+            break;
+        display.nodes[*parent].collapsed = false;
+        ancestor = *parent;
+    }
+    QVector<TreeLayout::NodeSize> sizes;
+    sizes.reserve(display.nodes.size());
+    for (auto it = display.nodes.constBegin(); it != display.nodes.constEnd(); ++it)
+    {
+        const NodeItem measured(it.value().title, canvasFont());
+        const QRectF bounds = measured.boundingRect();
+        sizes.append({it.key(), bounds.width(), bounds.height()});
+    }
+    const auto layout = TreeLayout::layout(display, sizes);
+    if (const auto *error = std::get_if<AppError>(&layout))
+    {
+        m_canvasError = error->message;
+        m_scene->addText(QStringLiteral("无法显示导图：%1").arg(error->message), canvasFont());
+        m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
+        return;
+    }
+    for (const auto &position : std::get<QVector<TreeLayout::NodePosition>>(layout))
+    {
+        auto *item = new NodeItem(display.nodes.value(position.id).title, canvasFont());
+        item->setNodeId(position.id);
+        item->setPos(position.x, position.y);
+        m_scene->addItem(item);
+        m_nodeItems.insert(position.id, item);
+    }
+    for (auto it = m_nodeItems.constBegin(); it != m_nodeItems.constEnd(); ++it)
+    {
+        const auto parentId = display.nodes.value(it.key()).parentId;
+        if (!parentId.has_value() || !m_nodeItems.contains(*parentId))
+            continue;
+        const NodeItem *parent = m_nodeItems.value(*parentId);
+        const NodeItem *child = it.value();
+        const bool right = child->pos().x() >= parent->pos().x();
+        const QPointF start = parent->mapToScene(
+            QPointF(right ? parent->nodeRect().right() : parent->nodeRect().left(), 0));
+        const QPointF end = child->mapToScene(
+            QPointF(right ? child->nodeRect().left() : child->nodeRect().right(), 0));
+        const qreal middleX = (start.x() + end.x()) / 2;
+        QPainterPath path(start);
+        path.cubicTo(QPointF(middleX, start.y()), QPointF(middleX, end.y()), end);
+        QPen edgePen(QColor(display.defaultEdgeStyle.color), display.defaultEdgeStyle.width);
+        if (display.defaultEdgeStyle.dashed)
+            edgePen.setStyle(Qt::DashLine);
+        auto *edge = m_scene->addPath(path, edgePen);
+        edge->setZValue(-1);
+        edge->setAcceptedMouseButtons(Qt::NoButton);
+    }
+    syncCanvasSelection();
+    m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
+    focusSelectedNode();
 }
 
 void MainWindow::onDocumentChanged() {
@@ -621,11 +777,13 @@ void MainWindow::onDocumentChanged() {
 void MainWindow::updateStatusLine() {
     const QString state =
         m_doc->isModified() ? QStringLiteral("已修改") : QStringLiteral("已保存");
-    QString line = QStringLiteral("主题预览 · 左侧大纲编辑层级 · 修订 %1 · %2")
+    QString line = QStringLiteral("思维导图 · 大纲与画布同步 · 修订 %1 · %2")
                        .arg(m_doc->sessionRevision())
                        .arg(state);
     // 恢复快照与正式保存分别显示状态（原设计§8）：备注为最近一次快照写入时间或失败提示
     if (!m_recoveryNote.isEmpty()) line += QStringLiteral(" · ") + m_recoveryNote;
+    if (!m_canvasError.isEmpty())
+        line += QStringLiteral(" · 布局失败：%1").arg(m_canvasError);
     statusBar()->showMessage(line);
 }
 

@@ -8,15 +8,19 @@
 #include <QAbstractButton>
 #include <QAction>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFontDatabase>
 #include <QFontMetricsF>
+#include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QInputDialog>
+#include <QInputMethodEvent>
 #include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
 #include <QStackedWidget>
@@ -24,6 +28,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QTreeWidget>
+#include <QUuid>
 
 #include <cstdio>
 #include <cstdlib>
@@ -59,6 +64,10 @@ private slots:
     void rootRenameUsesSharedRulesAndTaskLinkage();
     void ganttLazyLoadRefreshAndUndo();
     void previewZoomAndLongTitle();
+    void treeCanvasNodesEdgesSelectionAndRename();
+    void treeCanvasHundredNodesRoundTrip();
+    void treeCanvasCollapsedSelectionIsViewOnly();
+    void multilineTitleInputMethodAndCancel();
     // 恢复快照（规范§11.3、原设计§8）——放最后：前序测试在隔离空恢复根目录下不受影响
     void recoverySnapshotWrittenOnlyForDirtyChangedContent();
     void recoveryAdoptionGoesThroughCommandTransaction();
@@ -72,23 +81,74 @@ private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
     QTemporaryDir m_recoveryDir;   // 恢复快照重定向目录（initTestCase设置，成员保活）
 
+    static QMap<ID, NodeItem *> canvasNodes(QGraphicsView *view)
+    {
+        QMap<ID, NodeItem *> result;
+        for (QGraphicsItem *item : view->scene()->items())
+            if (auto *node = dynamic_cast<NodeItem *>(item))
+                result.insert(node->nodeId(), node);
+        return result;
+    }
+
+    static Project canvasProject(int groups = 2, int children = 2)
+    {
+        Project project = ProjectFactory::createMindmap(QStringLiteral("整树画布验证"));
+        auto &sheet = std::get<TreeSheet>(project.sheets.first());
+        sheet.nodes[sheet.rootId].title = QStringLiteral("课程项目");
+        for (int group = 0; group < groups; ++group)
+        {
+            TreeNode branch;
+            branch.id = canvasId(QStringLiteral("branch-%1").arg(group));
+            branch.title = QStringLiteral("阶段%1").arg(group + 1);
+            branch.parentId = sheet.rootId;
+            branch.order = group;
+            sheet.nodes.insert(branch.id, branch);
+            for (int child = 0; child < children; ++child)
+            {
+                TreeNode node;
+                node.id = canvasId(QStringLiteral("leaf-%1-%2").arg(group).arg(child));
+                node.title = QStringLiteral("任务%1-%2").arg(group + 1).arg(child + 1);
+                node.parentId = branch.id;
+                node.order = child;
+                sheet.nodes.insert(node.id, node);
+            }
+        }
+        return project;
+    }
+
+    static ID canvasId(const QString &name)
+    {
+        // 测试标签映射为稳定UUID，满足工程文件严格读入规则。
+        const QUuid space(QStringLiteral("6ba7b810-9dad-11d1-80b4-00c04fd430c8"));
+        return QUuid::createUuidV5(space, name.toUtf8()).toString(QUuid::WithoutBraces);
+    }
+
     static void answerTitleDialog(const QString &title, bool accept = true)
     {
-        QTimer::singleShot(0,
-                           [title, accept]
-                           {
-                               for (QWidget *widget : QApplication::topLevelWidgets())
-                               {
-                                   if (auto *dialog = qobject_cast<QInputDialog *>(widget))
-                                   {
-                                       dialog->setTextValue(title);
-                                       if (accept)
-                                           dialog->accept();
-                                       else
-                                           dialog->reject();
-                                   }
-                               }
-                           });
+        // 鼠标事件可能先处理定时器再打开对话框，等待可见实例后再应答。
+        auto *timer = new QTimer(qApp);
+        timer->setInterval(1);
+        connect(timer, &QTimer::timeout, timer,
+                [timer, title, accept]
+                {
+                    for (QWidget *widget : QApplication::topLevelWidgets())
+                    {
+                        if (auto *dialog = qobject_cast<QInputDialog *>(widget);
+                            dialog != nullptr && dialog->isVisible())
+                        {
+                            timer->stop();
+                            dialog->setTextValue(title);
+                            if (accept)
+                                dialog->accept();
+                            else
+                                dialog->reject();
+                            timer->deleteLater();
+                            return;
+                        }
+                    }
+                });
+        timer->start();
+        QTimer::singleShot(3000, timer, &QObject::deleteLater);
     }
 
     // 进程级崩溃E2E子进程阶段（initTestCase识别LINGYA_E2E_PHASE=1进入）：
@@ -785,7 +845,8 @@ void TstUi::outlineCancelAndUndoSelection()
     outline->collapseAll();
     QCOMPARE(document->sessionRevision(), beforeSelection);
     auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
-    QCOMPARE(view->scene()->items().first()->toolTip(), QStringLiteral("新增后撤销"));
+    QCOMPARE(view->scene()->selectedItems().size(), 1);
+    QCOMPARE(view->scene()->selectedItems().first()->toolTip(), QStringLiteral("新增后撤销"));
 }
 
 void TstUi::rootRenameUsesSharedRulesAndTaskLinkage()
@@ -867,6 +928,228 @@ void TstUi::previewZoomAndLongTitle()
     QCOMPARE(longNode.toolTip(), title);
     QVERIFY(longNode.boundingRect().height() > shortNode.boundingRect().height());
     QVERIFY(longNode.boundingRect().width() <= 284);
+}
+
+void TstUi::treeCanvasNodesEdgesSelectionAndRename()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Project project = canvasProject();
+    const auto &sheet = std::get<TreeSheet>(project.sheets.first());
+    const ID rootId = sheet.rootId;
+    const QString path = dir.filePath(QStringLiteral("双侧整树.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+    QVERIFY(std::holds_alternative<Project>(FileService::load(path)));
+    MainWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QVERIFY(window.openFile(path));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *document = window.findChild<ProjectDocument *>();
+    auto nodes = canvasNodes(view);
+    QCOMPARE(nodes.size(), 7);
+    QCOMPARE(nodes.value(rootId)->pos(), QPointF(0, 0));
+    QVERIFY(nodes.value(canvasId(QStringLiteral("branch-0")))->pos().x() > 0);
+    QVERIFY(nodes.value(canvasId(QStringLiteral("branch-1")))->pos().x() < 0);
+    int edgeCount = 0;
+    for (QGraphicsItem *item : view->scene()->items())
+    {
+        if (auto *edge = dynamic_cast<QGraphicsPathItem *>(item))
+        {
+            ++edgeCount;
+            QVERIFY(edge->zValue() < 0);
+            QVERIFY(edge->acceptedMouseButtons() == Qt::NoButton);
+            const QPainterPath line = edge->path();
+            QVERIFY(!line.isEmpty());
+            int endpoints = 0;
+            for (NodeItem *node : nodes)
+            {
+                const auto first = line.elementAt(0);
+                const auto last = line.elementAt(line.elementCount() - 1);
+                const QRectF rect = node->sceneBoundingRect();
+                if (rect.contains(QPointF(first.x, first.y)))
+                    ++endpoints;
+                if (rect.contains(QPointF(last.x, last.y)))
+                    ++endpoints;
+            }
+            QCOMPARE(endpoints, 2);
+        }
+    }
+    QCOMPARE(edgeCount, 6);
+    const qint64 revision = document->sessionRevision();
+    auto *leaf = outline->topLevelItem(0)->child(0)->child(1);
+    outline->setCurrentItem(leaf);
+    const ID leafId = leaf->data(0, Qt::UserRole).toString();
+    QCOMPARE(view->scene()->selectedItems().size(), 1);
+    QCOMPARE(dynamic_cast<NodeItem *>(view->scene()->selectedItems().first())->nodeId(), leafId);
+    window.findChild<QAction *>(QStringLiteral("fitTopic"))->trigger();
+    QCoreApplication::processEvents();
+    const QPoint click =
+        view->mapFromScene(nodes.value(canvasId(QStringLiteral("branch-1")))->pos());
+    QVERIFY(view->viewport()->rect().contains(click));
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, click);
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(),
+             canvasId(QStringLiteral("branch-1")));
+    QCOMPARE(document->sessionRevision(), revision);
+    answerTitleDialog(QStringLiteral("画布双击改名"));
+    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, click);
+    QCOMPARE(outline->currentItem()->text(0), QStringLiteral("画布双击改名"));
+    auto *commands = window.findChild<CommandService *>();
+    commands->undo();
+    QCOMPARE(canvasNodes(view).value(canvasId(QStringLiteral("branch-1")))->toolTip(),
+             QStringLiteral("阶段2"));
+    commands->redo();
+    QCOMPARE(canvasNodes(view).value(canvasId(QStringLiteral("branch-1")))->toolTip(),
+             QStringLiteral("画布双击改名"));
+    // 视图切换及窗口缩放后，定位仍指向所选节点。
+    view->centerOn(10000, 10000);
+    window.findChild<QAction *>(QStringLiteral("locateTopic"))->trigger();
+    QVERIFY(view->viewport()->rect().contains(
+        view->mapFromScene(canvasNodes(view).value(canvasId(QStringLiteral("branch-1")))->pos())));
+    const QString capture = qEnvironmentVariable("LINGYA_TREE_CAPTURE");
+    if (!capture.isEmpty())
+    {
+        QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
+        QVERIFY(style.open(QIODevice::ReadOnly));
+        window.setStyleSheet(QString::fromUtf8(style.readAll()));
+        window.findChild<QAction *>(QStringLiteral("fitTopic"))->trigger();
+        QVERIFY(window.grab().save(capture));
+    }
+}
+
+void TstUi::treeCanvasHundredNodesRoundTrip()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Project project = canvasProject(9, 10);
+    auto &sheet = std::get<TreeSheet>(project.sheets.first());
+    sheet.nodes[canvasId(QStringLiteral("leaf-0-0"))].title =
+        QString(120, QChar(0x4e2d)) + QStringLiteral("\n末行");
+    const QString path = dir.filePath(QStringLiteral("一百节点.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+    QVERIFY(std::holds_alternative<Project>(FileService::load(path)));
+    MainWindow window;
+    QElapsedTimer elapsed;
+    elapsed.start();
+    QVERIFY(window.openFile(path));
+    qInfo() << "一百节点加载及布局毫秒数：" << elapsed.elapsed();
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    const auto before = canvasNodes(view);
+    QCOMPARE(before.size(), 100);
+    QCOMPARE(view->scene()->items().size(), 199);
+    const auto values = before.values();
+    QMap<ID, QPointF> positions;
+    QMap<ID, QRectF> bounds;
+    QMap<ID, QString> titles;
+    for (auto it = before.constBegin(); it != before.constEnd(); ++it)
+    {
+        positions.insert(it.key(), it.value()->pos());
+        bounds.insert(it.key(), it.value()->boundingRect());
+        titles.insert(it.key(), it.value()->toolTip());
+    }
+    for (int i = 0; i < values.size(); ++i)
+    {
+        QVERIFY(qIsFinite(values.at(i)->pos().x()));
+        QVERIFY(qIsFinite(values.at(i)->pos().y()));
+        for (int j = i + 1; j < values.size(); ++j)
+            QVERIFY2(
+                !values.at(i)->sceneBoundingRect().intersects(values.at(j)->sceneBoundingRect()),
+                qPrintable(values.at(i)->nodeId() + QStringLiteral(" 与 ") +
+                           values.at(j)->nodeId()));
+    }
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *document = window.findChild<ProjectDocument *>();
+    const qint64 revision = document->sessionRevision();
+    outline->setCurrentItem(outline->topLevelItem(0)->child(8)->child(9));
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    const auto after =
+        canvasNodes(reopened.findChild<QGraphicsView *>(QStringLiteral("topicPreview")));
+    QCOMPARE(after.size(), 100);
+    for (auto it = positions.constBegin(); it != positions.constEnd(); ++it)
+    {
+        QCOMPARE(after.value(it.key())->pos(), it.value());
+        QCOMPARE(after.value(it.key())->boundingRect(), bounds.value(it.key()));
+        QCOMPARE(after.value(it.key())->toolTip(), titles.value(it.key()));
+    }
+}
+
+void TstUi::treeCanvasCollapsedSelectionIsViewOnly()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Project project = canvasProject();
+    auto &sheet = std::get<TreeSheet>(project.sheets.first());
+    sheet.nodes[canvasId(QStringLiteral("branch-0"))].collapsed = true;
+    const QString path = dir.filePath(QStringLiteral("折叠定位.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+    QVERIFY(std::holds_alternative<Project>(FileService::load(path)));
+    MainWindow window;
+    QVERIFY(window.openFile(path));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *document = window.findChild<ProjectDocument *>();
+    QCOMPARE(canvasNodes(view).size(), 5);
+    const qint64 revision = document->sessionRevision();
+    outline->setCurrentItem(outline->topLevelItem(0)->child(0)->child(0));
+    QCOMPARE(canvasNodes(view).size(), 7);
+    QVERIFY(std::get<TreeSheet>(document->project().sheets.first())
+                .nodes.value(canvasId(QStringLiteral("branch-0")))
+                .collapsed);
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(!document->isModified());
+    QVERIFY(window.saveProjectTo(path));
+    QVERIFY(window.openFile(path));
+    QCOMPARE(canvasNodes(view).size(), 5);
+}
+
+void TstUi::multilineTitleInputMethodAndCancel()
+{
+    MainWindow window;
+    bool editorFound = false;
+    bool preeditKeptDialog = false;
+    QTimer::singleShot(0,
+                       [&]
+                       {
+                           for (QWidget *top : QApplication::topLevelWidgets())
+                           {
+                               if (auto *dialog = qobject_cast<QInputDialog *>(top))
+                               {
+                                   auto *editor = dialog->findChild<QPlainTextEdit *>();
+                                   if (editor == nullptr)
+                                   {
+                                       dialog->reject();
+                                       return;
+                                   }
+                                   editorFound = true;
+                                   editor->setPlainText(QStringLiteral("首行"));
+                                   editor->moveCursor(QTextCursor::End);
+                                   QTest::keyClick(editor, Qt::Key_Return, Qt::ShiftModifier);
+                                   editor->insertPlainText(QStringLiteral("次行"));
+                                   QInputMethodEvent preedit(QStringLiteral("zhong"), {});
+                                   QCoreApplication::sendEvent(editor, &preedit);
+                                   QTest::keyClick(editor, Qt::Key_Return);
+                                   preeditKeptDialog = dialog->isVisible();
+                                   QInputMethodEvent commit;
+                                   commit.setCommitString(QStringLiteral("中"));
+                                   QCoreApplication::sendEvent(editor, &commit);
+                                   QTest::keyClick(editor, Qt::Key_Return);
+                               }
+                           }
+                       });
+    window.findChild<QAction *>(QStringLiteral("renameTopic"))->trigger();
+    QVERIFY(editorFound);
+    QVERIFY(preeditKeptDialog);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("首行\n次行中"));
+    auto *document = window.findChild<ProjectDocument *>();
+    const qint64 revision = document->sessionRevision();
+    answerTitleDialog(QStringLiteral("取消多行\n不应写入"), false);
+    window.findChild<QAction *>(QStringLiteral("renameTopic"))->trigger();
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("首行\n次行中"));
 }
 
 QTEST_MAIN(TstUi)
