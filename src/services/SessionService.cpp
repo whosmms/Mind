@@ -10,6 +10,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSaveFile>
 #include <QUuid>
 
 namespace lingya
@@ -97,11 +98,17 @@ bool saveAccounts(const QString &root, const QVector<AccountRecord> &records)
                                  {QStringLiteral("users"), users}};
     if (!QDir().mkpath(root))
         return false;
-    QFile file(accountsPath(root));
+    QSaveFile file(accountsPath(root));
+    file.setDirectWriteFallback(false);
     if (!file.open(QIODevice::WriteOnly))
         return false;
-    file.write(QJsonDocument(rootObject).toJson(QJsonDocument::Compact));
-    return true;
+    const QByteArray bytes = QJsonDocument(rootObject).toJson(QJsonDocument::Compact);
+    if (file.write(bytes) != bytes.size())
+    {
+        file.cancelWriting();
+        return false;
+    }
+    return file.commit();
 }
 
 QString normalizeUserName(const QString &raw)
