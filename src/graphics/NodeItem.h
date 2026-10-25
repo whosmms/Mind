@@ -6,23 +6,25 @@
 
 namespace lingya {
 
-
-// 画布节点图元（M0简化版）：圆角矩形 + 标题，用于验证Graphics View技术选型
-// （规范§2.1、§12 M0“图形框架至少做一次小验证”）。
-// M1/M2将扩展：完整文本测量与折行（规范§6.1）、选中态2.5px轮廓（规范§9）、
-// 图标、备注标记、样式覆盖与进度徽标。
+// 通用节点图元：完整标题换行和尺寸测量；测量结果可供乙的布局使用。
 class NodeItem : public QGraphicsItem {
 public:
     NodeItem(const QString& title, const QFont& font, QGraphicsItem* parent = nullptr);
 
     QRectF boundingRect() const override;
+    // 稳定ID用于画布事件定位；可见边框用于连线端点，均不持有领域对象指针。
+    void setNodeId(const QString &id);
+    QString nodeId() const;
+    QRectF nodeRect() const;
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
                QWidget* widget) override;
 
 private:
     QString m_title;
+    QString m_nodeId;
     QFont m_font;
     QRectF m_rect;
+    QRectF m_textRect;
 };
 
 }  // namespace lingya

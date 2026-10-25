@@ -15,6 +15,7 @@ class QCloseEvent;
 class QEvent;
 class QObject;
 class QTimer;
+class QTreeWidget;
 
 namespace lingya {
 
@@ -79,7 +80,17 @@ private:
     void newProject();
     void openProject();
     bool saveProject(bool saveAs);
-    void renameRoot();
+    void renameSelectedNode();
+    void addChildToSelection();
+    void addSiblingToSelection();
+    void deleteSelection();
+    void rebuildOutline();
+    void showGanttView();
+    void setCanvasZoom(qreal zoom);
+    void fitCanvas();
+    void selectNode(const ID &nodeId);
+    void syncCanvasSelection();
+    void focusSelectedNode();
     bool confirmDiscard();          // 换工程/关闭时提供保存、放弃、取消（原设计§8）
     void loadNewDocument(Project project);
     void rebuildCanvas();
@@ -91,6 +102,10 @@ private:
     CommandService* m_commands = nullptr;
     QGraphicsScene* m_scene = nullptr;
     QGraphicsView* m_view = nullptr;
+    QTreeWidget *m_outline = nullptr;
+    ID m_selectedNodeId;                       // 临时选择状态，不持久化、不进入撤销历史
+    QMap<ID, NodeItem *> m_nodeItems;          // 非拥有指针；图元由m_scene销毁
+    QString m_canvasError;
     QStackedWidget* m_centralStack = nullptr;  // 页0思维导图画布 / 页1甘特图（M3）
     QWidget* m_ganttPage = nullptr;            // 甘特页当前内容（占位或丙的视图）
     QString m_filePath;             // 磁盘路径只存在本机会话（原设计§8）
@@ -99,6 +114,8 @@ private:
     QMenu* m_recentMenu = nullptr;  // 文件菜单内“最近文件”子菜单（R04）
     QAction* m_undoAction = nullptr;
     QAction* m_redoAction = nullptr;
+    QAction *m_siblingAction = nullptr;
+    QAction *m_deleteAction = nullptr;
     QTimer* m_recoveryTimer = nullptr;     // 30秒恢复快照定时器（仅脏文档生效）
     QString m_recoveryRoot;                // 恢复快照根目录（测试可注入）
     QString m_recoveryNote;                // 状态栏恢复快照备注（最近写入时间/失败）
