@@ -24,6 +24,8 @@ class CommandService;
 class NodeItem;
 class ProjectDocument;
 class RecoveryDialog;
+class LoginDialog;
+class UserFilesDialog;
 
 // 主窗口（原设计§3 src/app/MainWindow：装配页面、服务与控制器）
 // M0范围：中文界面 + 纵向闭环“根节点→改名→保存→关闭→重开”（原设计§12 M0），
@@ -55,6 +57,24 @@ public:
 
     // 测试注入恢复根目录（规范§19.1隔离，同QSettings重定向模式）；传空恢复默认QStandardPaths路径
     static void setRecoveryRootForTest(const QString& path);
+
+    // ---- 登录会话（2026-10-25新增需求，D-M2-02；未登录时全部行为维持现状）----
+    // 登录：经SessionService校验；成功建立会话并刷新菜单/状态栏，失败返回false
+    bool loginSession(const QString& userName, const QString& password);
+    // 退出登录：仅清除会话，不影响当前工程与文件路径
+    void logoutSession();
+    bool isLoggedIn() const;
+    QString sessionUserName() const;
+
+    // 登录态保存：仅命名，落当前用户专有文件夹（不能指定位置，D-M2-02）。
+    // 对话框入口与测试共用；成功后走与正式保存相同的状态流（清快照/记录最近文件）
+    bool saveProjectToOwned(const QString& name);
+
+    // 打开“我的文件”中的指定文件（对话框入口与测试共用）
+    bool openOwnedFile(const QString& name);
+
+    // 测试注入会话根目录（默认AppLocalDataLocation；账号库与users/均在其下）
+    static void setSessionRootForTest(const QString& path);
 
     // 将当前活动工作表根节点改名为title（对话框入口与测试共用）；失败返回false并保持原值
     bool renameRootTo(const QString& title);
@@ -98,6 +118,9 @@ private:
     void rebuildCanvas();
     void onDocumentChanged();
     void updateStatusLine();        // 状态栏统一拼装：文档状态+恢复快照备注
+    void showLoginDialog();
+    void showOwnedFilesDialog();
+    void updateSessionActions();    // 登录/退出登录/我的文件菜单项的可用性
     const TreeSheet* activeTreeSheet() const;
 
     ProjectDocument* m_doc = nullptr;
@@ -124,7 +147,13 @@ private:
     QString m_recoveryRoot;                // 恢复快照根目录（测试可注入）
     QString m_recoveryNote;                // 状态栏恢复快照备注（最近写入时间/失败）
     RecoveryDialog* m_recoveryDialog = nullptr;   // 启动预览对话框（同一时刻至多一个）
+    QString m_sessionRoot;                  // 会话根目录（账号库+users/；测试可注入）
+    QString m_sessionUser;                  // 当前登录用户名；空=未登录（行为维持现状）
+    QAction* m_loginAction = nullptr;
+    QAction* m_logoutAction = nullptr;
+    QAction* m_ownedFilesAction = nullptr;
     static QString s_recoveryRootForTest;  // 测试注入的恢复根目录覆盖
+    static QString s_sessionRootForTest;   // 测试注入的会话根目录覆盖
 };
 
 }  // namespace lingya

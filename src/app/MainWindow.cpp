@@ -31,6 +31,7 @@
 #include <QSet>
 #include <QSignalBlocker>
 #include <QStackedWidget>
+#include <QStandardPaths>
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolBar>
@@ -41,7 +42,9 @@
 #include <QVBoxLayout>
 #include <algorithm>
 
+#include "app/LoginDialog.h"
 #include "app/RecoveryDialog.h"
+#include "app/UserFilesDialog.h"
 #include "charts/GanttView.h"
 #include "commands/CommandService.h"
 #include "commands/NodeCommands.h"
@@ -52,7 +55,9 @@
 #include "graphics/NodeItem.h"
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
+#include "services/SessionService.h"
 #include "services/SettingsService.h"
+#include "services/UserFileService.h"
 
 namespace lingya {
 
@@ -122,6 +127,7 @@ QFont canvasFont() {
 }  // namespace
 
 QString MainWindow::s_recoveryRootForTest;
+QString MainWindow::s_sessionRootForTest;
 
 void MainWindow::setRecoveryRootForTest(const QString& path) {
     s_recoveryRootForTest = path;   // 空=恢复默认QStandardPaths路径（构造时生效）
@@ -177,6 +183,9 @@ MainWindow::MainWindow(QWidget* parent)
     // 每工程保留最近5份成功快照由RecoveryService写入后修剪
     m_recoveryRoot = s_recoveryRootForTest.isEmpty() ? RecoveryService::defaultRoot()
                                                      : s_recoveryRootForTest;
+    m_sessionRoot = s_sessionRootForTest.isEmpty()
+                        ? QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+                        : s_sessionRootForTest;
     m_recoveryTimer = new QTimer(this);
     m_recoveryTimer->setInterval(Limits::kRecoverySnapshotIntervalMs);
     connect(m_recoveryTimer, &QTimer::timeout, this, &MainWindow::writeRecoverySnapshot);
@@ -199,6 +208,13 @@ void MainWindow::buildMenus() {
                         [this] { saveProject(false); });
     fileMenu->addAction(QStringLiteral("另存为(&A)..."), QKeySequence::SaveAs, this,
                         [this] { saveProject(true); });
+    m_loginAction = fileMenu->addAction(QStringLiteral("登录(&I)..."), this,
+                                        &MainWindow::showLoginDialog);
+    m_logoutAction = fileMenu->addAction(QStringLiteral("退出登录(&I)"), this,
+                                         &MainWindow::logoutSession);
+    m_ownedFilesAction = fileMenu->addAction(QStringLiteral("我的文件(&M)..."), this,
+                                             &MainWindow::showOwnedFilesDialog);
+    updateSessionActions();
     m_recentMenu = fileMenu->addMenu(QStringLiteral("最近文件(&R)"));
     rebuildRecentMenu();
     fileMenu->addSeparator();
@@ -551,6 +567,14 @@ void MainWindow::openProject() {
 }
 
 bool MainWindow::openFile(const QString& path) {
+    // 登录态打开限制（D-M2-02）：公有文件与自己的文件可开，其他用户的文件拒绝
+    if (!m_sessionUser.isEmpty() &&
+        UserFileService::classify(m_sessionRoot, m_sessionUser, path) ==
+            UserFileService::Access::Others) {
+        showNotice(this, QMessageBox::Critical, QStringLiteral("无法打开"),
+                   QStringLiteral("不能打开其他用户的文件"));
+        return false;
+    }
     const auto result = FileService::load(path);
     if (std::holds_alternative<AppError>(result)) {
         // 坏文件不覆盖当前工作（R04）：原工程保持不变
@@ -573,6 +597,25 @@ bool MainWindow::openFile(const QString& path) {
 }
 
 bool MainWindow::saveProject(bool saveAs) {
+    // 登录态：只命名、不选路径，保存到当前用户专有文件夹（D-M2-02）
+    if (!m_sessionUser.isEmpty()) {
+        QString name;
+        if (!saveAs && !m_filePath.isEmpty() &&
+            UserFileService::classify(m_sessionRoot, m_sessionUser, m_filePath) ==
+                UserFileService::Access::Own) {
+            name = QFileInfo(m_filePath).completeBaseName();   // 我的文件原文件名保存
+        } else {
+            const QString fallback = m_filePath.isEmpty()
+                                         ? m_doc->project().title
+                                         : QFileInfo(m_filePath).completeBaseName();
+            bool ok = false;
+            name = QInputDialog::getText(this, QStringLiteral("保存到我的文件"),
+                                         QStringLiteral("文件名称："), QLineEdit::Normal,
+                                         fallback, &ok);
+            if (!ok) return false;   // 取消是正常结果
+        }
+        return saveProjectToOwned(name);
+    }
     QString path = m_filePath;
     if (saveAs || path.isEmpty()) {
         path = QFileDialog::getSaveFileName(this, QStringLiteral("另存为"), QString(),
@@ -1039,6 +1082,8 @@ void MainWindow::updateStatusLine() {
     if (!m_recoveryNote.isEmpty()) line += QStringLiteral(" · ") + m_recoveryNote;
     if (!m_canvasError.isEmpty())
         line += QStringLiteral(" · 布局失败：%1").arg(m_canvasError);
+    if (!m_sessionUser.isEmpty())
+        line += QStringLiteral(" · 用户 %1").arg(m_sessionUser);
     statusBar()->showMessage(line);
 }
 
@@ -1061,6 +1106,109 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         event->accept();
     else
         event->ignore();
+}
+
+
+bool MainWindow::loginSession(const QString& userName, const QString& password) {
+    const auto result = SessionService::login(m_sessionRoot, userName, password);
+    if (std::holds_alternative<AppError>(result)) {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("登录失败"),
+                   std::get<AppError>(result).message);
+        return false;
+    }
+    m_sessionUser = std::get<SessionService::AccountInfo>(result).userName;
+    updateSessionActions();
+    updateStatusLine();
+    return true;
+}
+
+void MainWindow::logoutSession() {
+    m_sessionUser.clear();
+    updateSessionActions();
+    updateStatusLine();
+}
+
+bool MainWindow::isLoggedIn() const {
+    return !m_sessionUser.isEmpty();
+}
+
+QString MainWindow::sessionUserName() const {
+    return m_sessionUser;
+}
+
+bool MainWindow::saveProjectToOwned(const QString& name) {
+    if (m_sessionUser.isEmpty()) {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("未登录"),
+                   QStringLiteral("登录后才能保存到我的文件"));
+        return false;
+    }
+    const auto saved =
+        UserFileService::saveOwned(m_sessionRoot, m_sessionUser, name, m_doc->project());
+    if (std::holds_alternative<AppError>(saved)) {
+        showNotice(this, QMessageBox::Critical, QStringLiteral("保存失败"),
+                   std::get<AppError>(saved).message);
+        return false;
+    }
+    const QString path = std::get<QString>(saved);
+    m_filePath = path;
+    m_doc->setClean();
+    // 正式保存成功：清除该工程的应用自建恢复快照（与saveProjectTo同规则，§11.3）
+    RecoveryService::clear(m_recoveryRoot, m_doc->project().id);
+    m_recoveryNote.clear();
+    m_doc->notifyChanged();
+    if (const auto fileStamp = FileService::stamp(path);
+        std::holds_alternative<FileService::FileStamp>(fileStamp)) {
+        m_fileStamp = std::get<FileService::FileStamp>(fileStamp);
+    } else {
+        m_fileStamp.reset();
+    }
+    SettingsService::addRecentFile(path);
+    rebuildRecentMenu();
+    return true;
+}
+
+bool MainWindow::openOwnedFile(const QString& name) {
+    const auto opened = UserFileService::openOwned(m_sessionRoot, m_sessionUser, name);
+    if (std::holds_alternative<AppError>(opened)) {
+        showNotice(this, QMessageBox::Critical, QStringLiteral("无法打开"),
+                   std::get<AppError>(opened).message);
+        return false;
+    }
+    QString fileName = name.trimmed();
+    if (!fileName.endsWith(QStringLiteral(".lingya"), Qt::CaseInsensitive))
+        fileName += QStringLiteral(".lingya");
+    return openFile(UserFileService::userDir(m_sessionRoot, m_sessionUser) + QLatin1Char('/') +
+                    fileName);   // 归属Own，走统一的加载/戳/最近文件流程
+}
+
+void MainWindow::showLoginDialog() {
+    LoginDialog dialog(m_sessionRoot, this);
+    if (dialog.exec() == QDialog::Accepted && !dialog.loggedInUserName().isEmpty()) {
+        m_sessionUser = dialog.loggedInUserName();   // 对话框内已校验凭据
+        updateSessionActions();
+        updateStatusLine();
+    }
+}
+
+void MainWindow::showOwnedFilesDialog() {
+    if (m_sessionUser.isEmpty()) return;
+    UserFilesDialog dialog(m_sessionRoot, m_sessionUser, this);
+    if (dialog.exec() == QDialog::Accepted && !dialog.selectedFileName().isEmpty())
+        openOwnedFile(dialog.selectedFileName());
+}
+
+void MainWindow::updateSessionActions() {
+    const bool loggedIn = !m_sessionUser.isEmpty();
+    if (m_loginAction != nullptr) m_loginAction->setVisible(!loggedIn);
+    if (m_logoutAction != nullptr) m_logoutAction->setVisible(loggedIn);
+    if (m_ownedFilesAction != nullptr) {
+        m_ownedFilesAction->setVisible(loggedIn);
+        m_ownedFilesAction->setEnabled(loggedIn);
+    }
+}
+
+void MainWindow::setSessionRootForTest(const QString& path) {
+    s_sessionRootForTest = path;   // 空=恢复默认AppLocalDataLocation（构造时生效）
 }
 
 }  // namespace lingya
