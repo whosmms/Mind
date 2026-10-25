@@ -235,6 +235,14 @@ void TstSession::classifyOwnOthersPublic()
              UserFileService::Access::Public);
     QCOMPARE(UserFileService::classify(root.path(), me, root.filePath(QStringLiteral("users"))),
              UserFileService::Access::Public); // users目录本身不属于任何用户
+    // BUG-013：users根下直接散置的文件不属于任何用户，按公有处理（登录后可打开）
+    QCOMPARE(UserFileService::classify(root.path(), me,
+                                       root.filePath(QStringLiteral("users/散置文件.lingya"))),
+             UserFileService::Access::Public);
+    // 他人子文件夹内的深层路径仍是Others
+    QCOMPARE(UserFileService::classify(
+                 root.path(), me, root.filePath(QStringLiteral("users/乙同学/子目录/深.lingya"))),
+             UserFileService::Access::Others);
 }
 
 void TstSession::openOwnedRejectsMissingFile()
