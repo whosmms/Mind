@@ -15,6 +15,7 @@ class QCloseEvent;
 class QEvent;
 class QObject;
 class QTimer;
+class QTreeWidget;
 
 namespace lingya {
 
@@ -79,7 +80,12 @@ private:
     void newProject();
     void openProject();
     bool saveProject(bool saveAs);
-    void renameRoot();
+    void renameSelectedNode();
+    void addChildToSelection();
+    void rebuildOutline();
+    void showGanttView();
+    void setCanvasZoom(qreal zoom);
+    void fitCanvas();
     bool confirmDiscard();          // 换工程/关闭时提供保存、放弃、取消（原设计§8）
     void loadNewDocument(Project project);
     void rebuildCanvas();
@@ -91,6 +97,8 @@ private:
     CommandService* m_commands = nullptr;
     QGraphicsScene* m_scene = nullptr;
     QGraphicsView* m_view = nullptr;
+    QTreeWidget *m_outline = nullptr;
+    ID m_selectedNodeId;                       // 临时选择状态，不持久化、不进入撤销历史
     QStackedWidget* m_centralStack = nullptr;  // 页0思维导图画布 / 页1甘特图（M3）
     QWidget* m_ganttPage = nullptr;            // 甘特页当前内容（占位或丙的视图）
     QString m_filePath;             // 磁盘路径只存在本机会话（原设计§8）

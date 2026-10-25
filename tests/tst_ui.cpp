@@ -1,19 +1,29 @@
 #include <QtTest>
 
+#include "charts/GanttView.h"
+#include "commands/CommandService.h"
+#include "commands/TaskCommands.h"
+#include "document/ProjectDocument.h"
+#include "graphics/NodeItem.h"
 #include <QAbstractButton>
 #include <QAction>
+#include <QDir>
 #include <QFile>
+#include <QFontDatabase>
+#include <QFontMetricsF>
+#include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QInputDialog>
 #include <QListWidget>
 #include <QMenu>
-#include <QProcess>
-#include <QStackedWidget>
-#include <QGraphicsView>
 #include <QMessageBox>
+#include <QProcess>
 #include <QSettings>
+#include <QStackedWidget>
 #include <QStatusBar>
-#include <QDir>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QTreeWidget>
 
 #include <cstdio>
 #include <cstdlib>
@@ -44,6 +54,11 @@ private slots:
     void recentFilesMissingEntryRemoved();
     void ganttHostSwitchAndAttach();
     void recentFilesCancelKeepsUnsavedContentAndEntry();
+    void outlineEditingRoundTrip();
+    void outlineCancelAndUndoSelection();
+    void rootRenameUsesSharedRulesAndTaskLinkage();
+    void ganttLazyLoadRefreshAndUndo();
+    void previewZoomAndLongTitle();
     // 恢复快照（规范§11.3、原设计§8）——放最后：前序测试在隔离空恢复根目录下不受影响
     void recoverySnapshotWrittenOnlyForDirtyChangedContent();
     void recoveryAdoptionGoesThroughCommandTransaction();
@@ -56,6 +71,25 @@ private slots:
 private:
     QTemporaryDir m_settingsDir;   // QSettings重定向目录（initTestCase设置，成员保活）
     QTemporaryDir m_recoveryDir;   // 恢复快照重定向目录（initTestCase设置，成员保活）
+
+    static void answerTitleDialog(const QString &title, bool accept = true)
+    {
+        QTimer::singleShot(0,
+                           [title, accept]
+                           {
+                               for (QWidget *widget : QApplication::topLevelWidgets())
+                               {
+                                   if (auto *dialog = qobject_cast<QInputDialog *>(widget))
+                                   {
+                                       dialog->setTextValue(title);
+                                       if (accept)
+                                           dialog->accept();
+                                       else
+                                           dialog->reject();
+                                   }
+                               }
+                           });
+    }
 
     // 进程级崩溃E2E子进程阶段（initTestCase识别LINGYA_E2E_PHASE=1进入）：
     // 写快照后不带任何清理地硬退出，模拟真实崩溃；失败以退出码2报告
@@ -103,6 +137,19 @@ private:
 };
 
 void TstUi::initTestCase() {
+#ifdef Q_OS_WIN
+    // 无屏幕平台不自动枚举Windows字体；显式加载仅影响测试进程。
+    if (QGuiApplication::platformName() == QStringLiteral("offscreen"))
+    {
+        const QString fontPath =
+            QDir(qEnvironmentVariable("WINDIR")).filePath(QStringLiteral("Fonts/msyh.ttc"));
+        if (QFile::exists(fontPath))
+        {
+            QFontDatabase::addApplicationFont(fontPath);
+            QApplication::setFont(QFont(QStringLiteral("Microsoft YaHei"), 10));
+        }
+    }
+#endif
     // 测试隔离：QSettings重定向到临时目录（IniFormat），不读写真实用户设置
     QVERIFY(m_settingsDir.isValid());
     QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -659,6 +706,167 @@ void TstUi::recoveryProcessCrashEndToEnd()
     MainWindow reopened;
     QVERIFY(reopened.openFile(saveDir.filePath(QStringLiteral("崩溃恢复落盘.lingya"))));
     QCOMPARE(reopened.currentRootTitle(), QStringLiteral("崩溃链路内容"));
+}
+
+void TstUi::outlineEditingRoundTrip()
+{
+    MainWindow window;
+    if (!qEnvironmentVariableIsEmpty("LINGYA_UI_CAPTURE"))
+    {
+        QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
+        QVERIFY(style.open(QIODevice::ReadOnly));
+        window.setStyleSheet(QString::fromUtf8(style.readAll()));
+    }
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    QVERIFY(outline != nullptr);
+    auto *add = window.findChild<QAction *>(QStringLiteral("addChildTopic"));
+    auto *rename = window.findChild<QAction *>(QStringLiteral("renameTopic"));
+    QVERIFY(add != nullptr && rename != nullptr);
+    const ID rootId = outline->currentItem()->data(0, Qt::UserRole).toString();
+    answerTitleDialog(QStringLiteral("第一层中文"));
+    add->trigger();
+    QCOMPARE(outline->currentItem()->text(0), QStringLiteral("第一层中文"));
+    QCOMPARE(outline->currentItem()->parent()->data(0, Qt::UserRole).toString(), rootId);
+    const ID childId = outline->currentItem()->data(0, Qt::UserRole).toString();
+    answerTitleDialog(QStringLiteral("第二层中文"));
+    QTest::keyClick(outline, Qt::Key_Tab);
+    QCOMPARE(outline->currentItem()->parent()->data(0, Qt::UserRole).toString(), childId);
+    answerTitleDialog(QStringLiteral("改名后的第二层"));
+    rename->trigger();
+    QCOMPARE(outline->currentItem()->text(0), QStringLiteral("改名后的第二层"));
+    window.activateWindow();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QTest::keyClick(&window, Qt::Key_Z, Qt::ControlModifier);
+    QCOMPARE(outline->currentItem()->text(0), QStringLiteral("第二层中文"));
+    QTest::keyClick(&window, Qt::Key_Y, Qt::ControlModifier);
+    QCOMPARE(outline->currentItem()->text(0), QStringLiteral("改名后的第二层"));
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("多级编辑.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    const QString capture = qEnvironmentVariable("LINGYA_UI_CAPTURE");
+    if (!capture.isEmpty())
+        QVERIFY(window.grab().save(capture));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    auto *tree = reopened.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    QCOMPARE(tree->topLevelItemCount(), 1);
+    QCOMPARE(tree->topLevelItem(0)->child(0)->text(0), QStringLiteral("第一层中文"));
+    QCOMPARE(tree->topLevelItem(0)->child(0)->child(0)->text(0), QStringLiteral("改名后的第二层"));
+}
+
+void TstUi::outlineCancelAndUndoSelection()
+{
+    MainWindow window;
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *add = window.findChild<QAction *>(QStringLiteral("addChildTopic"));
+    QVERIFY(outline && document && commands && add);
+    const qint64 revision = document->sessionRevision();
+    answerTitleDialog(QStringLiteral("取消的内容"), false);
+    add->trigger();
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(!document->isModified());
+    QVERIFY(!commands->canUndo());
+    answerTitleDialog(QStringLiteral("新增后撤销"));
+    add->trigger();
+    QVERIFY(outline->currentItem()->parent() != nullptr);
+    commands->undo();
+    QCOMPARE(outline->currentItem(), outline->topLevelItem(0));
+    QCOMPARE(outline->topLevelItem(0)->childCount(), 0);
+    commands->redo();
+    QCOMPARE(outline->topLevelItem(0)->childCount(), 1);
+    // 选择和展开不修改文档；预览必须对应新选中的节点。
+    const qint64 beforeSelection = document->sessionRevision();
+    outline->setCurrentItem(outline->topLevelItem(0)->child(0));
+    outline->collapseAll();
+    QCOMPARE(document->sessionRevision(), beforeSelection);
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QCOMPARE(view->scene()->items().first()->toolTip(), QStringLiteral("新增后撤销"));
+}
+
+void TstUi::rootRenameUsesSharedRulesAndTaskLinkage()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    QVERIFY(document && commands);
+    const auto &sheet = std::get<TreeSheet>(document->project().sheets.first());
+    TaskCommands tasks(commands, document);
+    const auto linked = tasks.linkTask(sheet.id, sheet.rootId);
+    QVERIFY(std::holds_alternative<ID>(linked));
+    QVERIFY(window.renameRootTo(QStringLiteral("  同步中文标题  ")));
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("同步中文标题"));
+    QCOMPARE(document->project().tasks.first().title, window.currentRootTitle());
+    const qint64 revision = document->sessionRevision();
+    QVERIFY(window.renameRootTo(QStringLiteral("同步中文标题")));
+    QCOMPARE(document->sessionRevision(), revision);
+    QVERIFY(window.renameRootTo(QStringLiteral("   ")));
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("未命名主题"));
+    commands->undo();
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("同步中文标题"));
+    QCOMPARE(document->project().tasks.first().title, window.currentRootTitle());
+    autoCloseMessageBoxes();
+    QVERIFY(!window.renameRootTo(QString(2001, QChar(0x4e2d))));
+    QCOMPARE(document->project().tasks.first().title, QStringLiteral("同步中文标题"));
+}
+
+void TstUi::ganttLazyLoadRefreshAndUndo()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *action = window.findChild<QAction *>(QStringLiteral("showGantt"));
+    QVERIFY(document && commands && action);
+    action->trigger();
+    auto *view = window.findChild<GanttView *>();
+    QVERIFY(view != nullptr);
+    action->trigger();
+    QCOMPARE(window.findChildren<GanttView *>().size(), 1);
+    TaskCommands tasks(commands, document);
+    QVERIFY(std::holds_alternative<ID>(tasks.addTask(QStringLiteral("排期任务"))));
+    Task scheduled = document->project().tasks.first();
+    scheduled.startDate = QDate(2026, 10, 25);
+    scheduled.endDate = QDate(2026, 10, 28);
+    QVERIFY(std::holds_alternative<bool>(tasks.updateTask(scheduled)));
+    QCOMPARE(view->tasks().size(), 1);
+    QCOMPARE(view->tasks().first().endDate, scheduled.endDate);
+    QVERIFY(!view->scene()->items().isEmpty());
+    commands->undo();
+    QVERIFY(!view->tasks().first().startDate.has_value());
+    commands->undo();
+    QVERIFY(view->tasks().isEmpty());
+    commands->redo();
+    QCOMPARE(view->tasks().size(), 1);
+}
+
+void TstUi::previewZoomAndLongTitle()
+{
+    MainWindow window;
+    auto *document = window.findChild<ProjectDocument *>();
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    auto *zoomIn = window.findChild<QAction *>(QStringLiteral("zoomIn"));
+    auto *zoomOut = window.findChild<QAction *>(QStringLiteral("zoomOut"));
+    QVERIFY(document && view && zoomIn && zoomOut);
+    const qint64 revision = document->sessionRevision();
+    for (int i = 0; i < 30; ++i)
+        zoomIn->trigger();
+    QCOMPARE(view->transform().m11(), 2.0);
+    for (int i = 0; i < 40; ++i)
+        zoomOut->trigger();
+    QCOMPARE(view->transform().m11(), 0.25);
+    QCOMPARE(document->sessionRevision(), revision);
+    QFont font(QStringLiteral("Microsoft YaHei"));
+    font.setPixelSize(16);
+    NodeItem shortNode(QStringLiteral("短标题"), font);
+    const QString title = QString(200, QChar(0x4e2d)) + QStringLiteral("\n末行");
+    NodeItem longNode(title, font);
+    QCOMPARE(longNode.toolTip(), title);
+    QVERIFY(longNode.boundingRect().height() > shortNode.boundingRect().height());
+    QVERIFY(longNode.boundingRect().width() <= 284);
 }
 
 QTEST_MAIN(TstUi)
