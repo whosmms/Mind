@@ -1,5 +1,6 @@
 #include "services/UserFileService.h"
 #include "services/FileService.h"
+#include "services/LocalNameRules.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -14,13 +15,11 @@ namespace UserFileService
 namespace
 {
 
-// 文件名安全：去首尾空白、非空、不含路径分隔符、不是"."/".."（防止越出用户目录）
+// 去首尾空白后检查Windows名称，在任何文件操作前拒绝路径/设备/流名。
 bool validFileName(const QString &raw, QString *cleaned)
 {
     const QString name = raw.trimmed();
-    if (name.isEmpty() || name == QStringLiteral(".") || name == QStringLiteral(".."))
-        return false;
-    if (name.contains(QLatin1Char('/')) || name.contains(QLatin1Char('\\')))
+    if (!LocalNameRules::validComponent(name))
         return false;
     if (cleaned != nullptr)
         *cleaned = name;
@@ -45,11 +44,12 @@ QString userDir(const QString &root, const QString &userName)
 std::variant<QString, AppError> saveOwned(const QString &root, const QString &userName,
                                           const QString &name, const Project &project)
 {
-    if (root.isEmpty() || userName.trimmed().isEmpty())
+    if (root.isEmpty() || !LocalNameRules::validComponent(userName.trimmed()))
         return AppError{"INVALID_ARGUMENT", QStringLiteral("保存需要有效的账号与目录")};
     QString cleaned;
     if (!validFileName(name, &cleaned))
-        return AppError{"INVALID_ARGUMENT", QStringLiteral("文件名不能为空，且不含路径分隔符")};
+        return AppError{"INVALID_ARGUMENT",
+                        QStringLiteral("文件名不能为空，且不能使用Windows保留名称或非法字符")};
     if (!QDir().mkpath(userDir(root, userName)))
         return AppError{"FILE_WRITE_FAILED", QStringLiteral("无法创建用户文件目录")};
     const QString path = ownedPath(root, userName, cleaned);
@@ -62,6 +62,8 @@ std::variant<QString, AppError> saveOwned(const QString &root, const QString &us
 QVector<OwnedFileInfo> listOwned(const QString &root, const QString &userName)
 {
     QVector<OwnedFileInfo> result;
+    if (root.isEmpty() || !LocalNameRules::validComponent(userName.trimmed()))
+        return result;
     const QDir dir(userDir(root, userName));
     if (!dir.exists())
         return result;
@@ -88,9 +90,12 @@ QVector<OwnedFileInfo> listOwned(const QString &root, const QString &userName)
 std::variant<Project, AppError> openOwned(const QString &root, const QString &userName,
                                           const QString &name)
 {
+    if (root.isEmpty() || !LocalNameRules::validComponent(userName.trimmed()))
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("打开需要有效的账号与目录")};
     QString cleaned;
     if (!validFileName(name, &cleaned))
-        return AppError{"INVALID_ARGUMENT", QStringLiteral("文件名不能为空，且不含路径分隔符")};
+        return AppError{"INVALID_ARGUMENT",
+                        QStringLiteral("文件名不能为空，且不能使用Windows保留名称或非法字符")};
     const QString path = ownedPath(root, userName, cleaned);
     if (!QFileInfo::exists(path))
         return AppError{"FILE_NOT_FOUND", QStringLiteral("文件不存在：%1").arg(cleaned)};
