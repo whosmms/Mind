@@ -16,11 +16,13 @@
 #include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QHBoxLayout>
 #include <QInputDialog>
 #include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -42,6 +44,7 @@
 #include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
+#include <functional>
 
 #include "app/LoginDialog.h"
 #include "app/RecoveryDialog.h"
@@ -121,6 +124,41 @@ class NodeTitleDialog final : public QInputDialog
     bool m_preediting = false;
 };
 
+// 单标签输入保留真实输入法候选确认，预编辑期间不把Enter当成添加。
+class TagNameDialog final : public QInputDialog
+{
+  public:
+    explicit TagNameDialog(QWidget *parent) : QInputDialog(parent)
+    {
+        setWindowTitle(QStringLiteral("新增标签"));
+        setLabelText(QStringLiteral("标签名称："));
+        setTextValue(QString());
+        setOkButtonText(QStringLiteral("添加"));
+        setCancelButtonText(QStringLiteral("取消"));
+        m_editor = findChild<QLineEdit *>();
+        if (m_editor)
+            m_editor->installEventFilter(this);
+    }
+
+  protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (watched == m_editor && event->type() == QEvent::InputMethod)
+            m_preediting = !static_cast<QInputMethodEvent *>(event)->preeditString().isEmpty();
+        if (watched == m_editor && event->type() == QEvent::KeyPress && m_preediting)
+        {
+            const auto *key = static_cast<QKeyEvent *>(event);
+            if (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter)
+                return true;
+        }
+        return QInputDialog::eventFilter(watched, event);
+    }
+
+  private:
+    QLineEdit *m_editor = nullptr;
+    bool m_preediting = false;
+};
+
 QFont canvasFont() {
     QFont font(QStringLiteral("Microsoft YaHei"));   // Windows优先微软雅黑（规范§9）
     font.setPixelSize(16);                           // 节点默认字号（规范§4.2）
@@ -160,13 +198,23 @@ MainWindow::MainWindow(QWidget* parent)
 
     auto *outlineDock = new QDockWidget(QStringLiteral("主题大纲"), this);
     outlineDock->setObjectName(QStringLiteral("outlineDock"));
-    m_outline = new QTreeWidget(outlineDock);
+    auto *outlinePanel = new QWidget(outlineDock);
+    auto *outlineLayout = new QVBoxLayout(outlinePanel);
+    outlineLayout->setContentsMargins(0, 0, 0, 0);
+    m_tagFilter = new QComboBox(outlinePanel);
+    m_tagFilter->setObjectName(QStringLiteral("outlineTagFilter"));
+    m_tagFilter->setAccessibleName(QStringLiteral("标签筛选"));
+    m_tagFilter->setToolTip(QStringLiteral(
+        "仅筛选大纲，保留匹配主题及祖先；画布保持完整。选择筛选外的画布主题时恢复全部。"));
+    outlineLayout->addWidget(m_tagFilter);
+    m_outline = new QTreeWidget(outlinePanel);
     m_outline->setObjectName(QStringLiteral("topicOutline"));
     m_outline->setHeaderLabel(QStringLiteral("主题（Tab新增子主题，F2改名）"));
     m_outline->setMinimumWidth(280);
     m_outline->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_outline->installEventFilter(this);
-    outlineDock->setWidget(m_outline);
+    outlineLayout->addWidget(m_outline);
+    outlineDock->setWidget(outlinePanel);
     addDockWidget(Qt::LeftDockWidgetArea, outlineDock);
     connect(m_outline, &QTreeWidget::currentItemChanged, this,
             [this](QTreeWidgetItem *current, QTreeWidgetItem *)
@@ -177,6 +225,8 @@ MainWindow::MainWindow(QWidget* parent)
             });
     connect(m_outline, &QTreeWidget::itemDoubleClicked, this,
             [this](QTreeWidgetItem *, int) { renameSelectedNode(); });
+    connect(m_tagFilter, &QComboBox::currentIndexChanged, this,
+            [this](int) { applyOutlineTagFilter(); });
 
     buildMenus();
     connect(m_doc, &ProjectDocument::changed, this, &MainWindow::onDocumentChanged);
@@ -261,6 +311,10 @@ void MainWindow::buildMenus() {
     toolbar->addSeparator();
     toolbar->addAction(m_propertiesAction);
     toolbar->addAction(m_styleAction);
+    m_tagsAction =
+        editMenu->addAction(QStringLiteral("主题标签…"), this, &MainWindow::editSelectedNodeTags);
+    m_tagsAction->setObjectName(QStringLiteral("editNodeTags"));
+    toolbar->addAction(m_tagsAction);
     toolbar->addAction(m_openLinkAction);
 
     QMenu* viewMenu = menuBar()->addMenu(QStringLiteral("视图(&V)"));
@@ -528,6 +582,115 @@ void MainWindow::editSelectedNodeProperties()
                 patch.iconId = icons->currentData().toString();
                 NodeCommands nodes(m_commands, m_doc);
                 const auto result = nodes.updateNodeMeta(sheetId, nodeId, patch);
+                if (const auto *failure = std::get_if<AppError>(&result))
+                {
+                    error->setText(failure->message);
+                    return;
+                }
+                dialog.accept();
+            });
+    dialog.exec();
+}
+
+void MainWindow::editSelectedNodeTags()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+        return;
+    const ID sheetId = sheet->id;
+    const ID nodeId = m_selectedNodeId;
+    const QStringList original = sheet->nodes.value(nodeId).tags;
+    QDialog dialog(this);
+    dialog.setObjectName(QStringLiteral("nodeTagsDialog"));
+    dialog.setWindowTitle(QStringLiteral("主题标签"));
+    dialog.resize(440, 340);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *hint = new QLabel(
+        QStringLiteral("每个主题最多%1个标签，每个标签最多%2个字符。应用后一起生效，取消不修改。")
+            .arg(Limits::kMaxTags)
+            .arg(Limits::kTagMaxChars),
+        &dialog);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+    auto *tags = new QListWidget(&dialog);
+    tags->setObjectName(QStringLiteral("nodeTags"));
+    tags->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    const auto append = [tags](const QString &tag)
+    {
+        auto *item = new QListWidgetItem(tag, tags);
+        item->setData(Qt::UserRole, tag); // 独立保存每项，不用逗号或换行拆解旧标签。
+    };
+    for (const QString &tag : original)
+        append(tag);
+    layout->addWidget(tags);
+    auto *actions = new QHBoxLayout;
+    auto *add = new QPushButton(QStringLiteral("新增标签"), &dialog);
+    auto *remove = new QPushButton(QStringLiteral("移除所选"), &dialog);
+    auto *clear = new QPushButton(QStringLiteral("清空标签"), &dialog);
+    add->setObjectName(QStringLiteral("addNodeTag"));
+    remove->setObjectName(QStringLiteral("removeNodeTag"));
+    clear->setObjectName(QStringLiteral("clearNodeTags"));
+    for (auto *button : {add, remove, clear})
+    {
+        button->setAutoDefault(false);
+        actions->addWidget(button);
+    }
+    layout->addLayout(actions);
+    auto *error = new QLabel(&dialog);
+    error->setObjectName(QStringLiteral("nodeTagsError"));
+    error->setTextFormat(Qt::PlainText);
+    error->setWordWrap(true);
+    layout->addWidget(error);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("应用"));
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    layout->addWidget(buttons);
+    connect(add, &QPushButton::clicked, &dialog,
+            [&]
+            {
+                TagNameDialog input(&dialog);
+                if (input.exec() != QDialog::Accepted)
+                    return;
+                const QString text = input.textValue().trimmed();
+                if (text.isEmpty())
+                {
+                    error->setText(QStringLiteral("标签不能为空白。"));
+                    return;
+                }
+                for (int index = 0; index < tags->count(); ++index)
+                    if (tags->item(index)->data(Qt::UserRole).toString().trimmed() == text)
+                    {
+                        error->setText(QStringLiteral("该标签已存在。"));
+                        return;
+                    }
+                append(text);
+                error->clear();
+            });
+    connect(remove, &QPushButton::clicked, &dialog,
+            [=]
+            {
+                for (auto *item : tags->selectedItems())
+                    delete tags->takeItem(tags->row(item));
+                error->clear();
+            });
+    connect(clear, &QPushButton::clicked, &dialog,
+            [=]
+            {
+                tags->clear();
+                error->clear();
+            });
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog,
+            [&]
+            {
+                QStringList values;
+                for (int index = 0; index < tags->count(); ++index)
+                    values.append(tags->item(index)->data(Qt::UserRole).toString());
+                NodeMetaUpdate update;
+                if (values != original)
+                    update.tags = values;
+                const auto result =
+                    NodeCommands(m_commands, m_doc).updateNodeMeta(sheetId, nodeId, update);
                 if (const auto *failure = std::get_if<AppError>(&result))
                 {
                     error->setText(failure->message);
@@ -1036,6 +1199,10 @@ bool MainWindow::confirmDiscard() {
 }
 
 void MainWindow::loadNewDocument(Project project) {
+    {
+        const QSignalBlocker blocker(m_tagFilter);
+        m_tagFilter->setCurrentIndex(0);
+    }
     m_selectedNodeId.clear();
     m_outline->clear();
     m_recoveryNote.clear();   // 新建/打开不能沿用上一工程的快照时间或失败状态
@@ -1047,6 +1214,7 @@ void MainWindow::loadNewDocument(Project project) {
 
 void MainWindow::rebuildOutline()
 {
+    rebuildTagFilter();
     const QSignalBlocker blocker(m_outline);
     QSet<ID> collapsed;
     for (QTreeWidgetItemIterator it(m_outline); *it; ++it)
@@ -1091,6 +1259,55 @@ void MainWindow::rebuildOutline()
         items.value(id)->setExpanded(!collapsed.contains(id));
     m_outline->setCurrentItem(items.value(m_selectedNodeId));
     m_outline->scrollToItem(items.value(m_selectedNodeId));
+    applyOutlineTagFilter();
+}
+
+void MainWindow::rebuildTagFilter()
+{
+    const QSignalBlocker blocker(m_tagFilter);
+    const QVariant previous = m_tagFilter->currentData();
+    QSet<QString> uniqueTags;
+    if (const TreeSheet *sheet = activeTreeSheet())
+        for (const auto &node : sheet->nodes)
+            for (const QString &tag : node.tags)
+                uniqueTags.insert(tag);
+    QStringList tags = uniqueTags.values();
+    tags.sort(Qt::CaseSensitive);
+    m_tagFilter->clear();
+    m_tagFilter->addItem(QStringLiteral("全部标签（大纲）"));
+    for (const QString &tag : tags)
+        m_tagFilter->addItem(tag.isEmpty() ? QStringLiteral("（空标签）") : tag, tag);
+    const int index = previous.isValid() ? m_tagFilter->findData(previous) : 0;
+    m_tagFilter->setCurrentIndex(index < 0 ? 0 : index);
+}
+
+void MainWindow::applyOutlineTagFilter()
+{
+    const TreeSheet *sheet = activeTreeSheet();
+    if (sheet == nullptr)
+        return;
+    const QVariant tag = m_tagFilter->currentData();
+    const bool filtered = tag.isValid();
+    QTreeWidgetItem *firstMatch = nullptr;
+    std::function<bool(QTreeWidgetItem *)> visit = [&](QTreeWidgetItem *item)
+    {
+        const bool match = !filtered || sheet->nodes.value(item->data(0, Qt::UserRole).toString())
+                                            .tags.contains(tag.toString());
+        if (match && firstMatch == nullptr)
+            firstMatch = item;
+        bool childVisible = false;
+        for (int index = 0; index < item->childCount(); ++index)
+            childVisible |= visit(item->child(index));
+        const bool visible = match || childVisible;
+        item->setHidden(!visible);
+        if (filtered && childVisible)
+            item->setExpanded(true);
+        return visible;
+    };
+    for (int index = 0; index < m_outline->topLevelItemCount(); ++index)
+        visit(m_outline->topLevelItem(index));
+    if (filtered && firstMatch && m_outline->currentItem() && m_outline->currentItem()->isHidden())
+        selectNode(firstMatch->data(0, Qt::UserRole).toString());
 }
 
 void MainWindow::selectNode(const ID &nodeId)
@@ -1098,6 +1315,14 @@ void MainWindow::selectNode(const ID &nodeId)
     const TreeSheet *sheet = activeTreeSheet();
     if (sheet == nullptr || !sheet->nodes.contains(nodeId))
         return;
+    for (QTreeWidgetItemIterator it(m_outline); *it; ++it)
+        if ((*it)->data(0, Qt::UserRole).toString() == nodeId && (*it)->isHidden())
+        {
+            const QSignalBlocker blocker(m_tagFilter);
+            m_tagFilter->setCurrentIndex(0);
+            applyOutlineTagFilter();
+            break;
+        }
     m_selectedNodeId = nodeId;
     {
         const QSignalBlocker blocker(m_outline);
@@ -1130,6 +1355,7 @@ void MainWindow::syncCanvasSelection()
     const bool valid = sheet != nullptr && sheet->nodes.contains(m_selectedNodeId);
     m_propertiesAction->setEnabled(valid);
     m_styleAction->setEnabled(valid);
+    m_tagsAction->setEnabled(valid);
     m_openLinkAction->setEnabled(valid && sheet->nodes.value(m_selectedNodeId).link.has_value());
 }
 
