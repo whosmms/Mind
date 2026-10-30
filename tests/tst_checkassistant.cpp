@@ -1,5 +1,6 @@
 #include <QtTest>
 
+#include "domain/ProjectFactory.h"
 #include "features/CheckAssistant.h"
 #include "features/CheckService.h"
 #include "ui/IssuePanel.h"
@@ -8,6 +9,9 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QSignalSpy>
+
+#include <algorithm>
+#include <variant>
 
 using namespace lingya;
 
@@ -23,6 +27,7 @@ private slots:
     void panelListsIssuesWithCount();
     void panelEnablesActionOnlyForFixable();
     void panelDispatchesAction();
+    void issueActionIdsAgreeWithAssistant();
 };
 
 namespace {
@@ -117,6 +122,27 @@ void TstCheckAssistant::panelDispatchesAction() {
     QCOMPARE(spy.first().at(0).toString(), QStringLiteral("sheet-1"));
     QCOMPARE(spy.first().at(1).toString(), QStringLiteral("target-1"));
     QCOMPARE(spy.first().at(2).toString(), QStringLiteral("edit-node"));
+}
+
+void TstCheckAssistant::issueActionIdsAgreeWithAssistant() {
+    // CheckService 产生 Issue.actionId，CheckAssistant 另有一份 ruleId→action 映射。
+    // 两处若不一致，侧栏按钮会把“编辑任务”派发成别的动作，故逐条交叉核对。
+    Project project = ProjectFactory::createMindmap(QStringLiteral("检查"));
+    auto& tree = std::get<TreeSheet>(project.sheets.first());
+    tree.nodes[tree.rootId].title = QString();
+    tree.defaultNodeStyle.color = QStringLiteral("#FFFFFF");
+    tree.defaultNodeStyle.fill = QStringLiteral("#FFFFFF");   // 低对比度，触发 C09
+
+    const QVector<Issue> issues = CheckService::checkProject(project);
+    QVERIFY(!issues.isEmpty());
+    QVERIFY(std::any_of(issues.cbegin(), issues.cend(), [](const Issue& issue) {
+        return issue.ruleId == QStringLiteral("C01");
+    }));
+    for (const Issue& issue : issues) {
+        if (issue.actionId.has_value()) {
+            QCOMPARE(CheckAssistant::actionFor(issue.ruleId).actionId, *issue.actionId);
+        }
+    }
 }
 
 QTEST_MAIN(TstCheckAssistant)
