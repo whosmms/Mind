@@ -99,6 +99,8 @@ add_library(lingya_appcore STATIC
     src/charts/GanttView.cpp
     src/ui/IssuePanel.h
     src/ui/IssuePanel.cpp
+    src/ui/AiPanel.h
+    src/ui/AiPanel.cpp
 )
 target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets Qt6::Network)
 if(WIN32)
