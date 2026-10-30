@@ -79,3 +79,11 @@ if(MSVC)
     target_compile_options(tst_ui PRIVATE /utf-8)
 endif()
 add_test(NAME tst_ui COMMAND tst_ui)
+
+# 检查助手：规则映射（CheckAssistant 在 appcore）+ 问题侧栏（也在 appcore）
+add_executable(tst_checkassistant tst_checkassistant.cpp)
+target_link_libraries(tst_checkassistant PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
+if(MSVC)
+    target_compile_options(tst_checkassistant PRIVATE /utf-8)
+endif()
+add_test(NAME tst_checkassistant COMMAND tst_checkassistant)

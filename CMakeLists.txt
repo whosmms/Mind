@@ -38,6 +38,8 @@ add_library(lingya_core STATIC
     src/services/UserFileService.cpp
     src/features/CheckService.h
     src/features/CheckService.cpp
+    src/features/CheckAssistant.h
+    src/features/CheckAssistant.cpp
     src/features/ReviewService.h
     src/features/ReviewService.cpp
     src/features/ReviewSession.h
@@ -79,6 +81,8 @@ add_library(lingya_appcore STATIC
     src/charts/GanttLayout.cpp
     src/charts/GanttView.h
     src/charts/GanttView.cpp
+    src/ui/IssuePanel.h
+    src/ui/IssuePanel.cpp
 )
 target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets)
 if(WIN32)
