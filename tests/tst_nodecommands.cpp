@@ -13,6 +13,7 @@
 #include "domain/Domain.h"
 #include "domain/Limits.h"
 #include "domain/ProjectFactory.h"
+#include "domain/ProjectValidator.h"
 #include "document/ProjectDocument.h"
 
 using namespace lingya;
@@ -163,6 +164,10 @@ private slots:
     void moveSubtreeReordersSiblingsAcrossParents();
     void moveSubtreeRejectsRootCycleAndBadReference();
     void moveSubtreeNoOpShortCircuits();
+    void moveSubtreeOutOfFrameRemovesAnnotation();
+    void moveSubtreeIntoFrameJoinsAnnotation();
+    void moveSubtreeReordersInsideFrameKeepsAnnotation();
+    void addSiblingInsideFrameJoinsAnnotation();
     void setSheetStyleAppliesAndShortCircuits();
     void addRelationCreatesAndRejectsInvalid();
     void updateRelationKeepsUntouchedFields();
@@ -564,6 +569,7 @@ void TstNodeCommands::deleteSubtreeRemovesNodesAndReferences() {
     addRawNode(project, rootId, 0, QStringLiteral("victim"), QStringLiteral("被删"));
     addRawNode(project, rootId, 1, QStringLiteral("keeper"), QStringLiteral("保留"));
     addRawNode(project, QStringLiteral("victim"), 0, QStringLiteral("child"), QStringLiteral("子"));
+    addRawNode(project, QStringLiteral("victim"), 1, QStringLiteral("child2"), QStringLiteral("子二"));
     addRawNode(project, rootId, 2, QStringLiteral("outside"), QStringLiteral("外部"));
 
     TreeSheet& tree = treeOf(project);
@@ -583,20 +589,24 @@ void TstNodeCommands::deleteSubtreeRemovesNodesAndReferences() {
     intact.targetId = QStringLiteral("outside");
     tree.relations.append(intact);
 
-    GroupAnnotation parentIn;   // 父级在子树内
+    GroupAnnotation parentIn;   // 父级在子树内 → 整框移除
     parentIn.id = QStringLiteral("ga-parent");
     parentIn.parentId = QStringLiteral("victim");
-    parentIn.memberIds = {QStringLiteral("child")};
+    parentIn.kind = QStringLiteral("boundary");
+    parentIn.memberIds = {QStringLiteral("child"), QStringLiteral("child2")};
     tree.annotations.append(parentIn);
-    GroupAnnotation memberIn;   // 成员在子树内
+    GroupAnnotation memberIn;   // 3个成员里删掉1个，剩下2个仍同父连续 → 保留
     memberIn.id = QStringLiteral("ga-member");
     memberIn.parentId = rootId;
-    memberIn.memberIds = {QStringLiteral("keeper"), QStringLiteral("victim")};
+    memberIn.kind = QStringLiteral("boundary");
+    memberIn.memberIds = {QStringLiteral("victim"), QStringLiteral("keeper"),
+                          QStringLiteral("outside")};
     tree.annotations.append(memberIn);
-    GroupAnnotation intactGa;
+    GroupAnnotation intactGa;   // 完全不涉及子树 → 原样保留
     intactGa.id = QStringLiteral("ga-ok");
     intactGa.parentId = rootId;
-    intactGa.memberIds = {QStringLiteral("keeper")};
+    intactGa.kind = QStringLiteral("boundary");
+    intactGa.memberIds = {QStringLiteral("keeper"), QStringLiteral("outside")};
     tree.annotations.append(intactGa);
 
     Comment onVictim;
@@ -623,8 +633,15 @@ void TstNodeCommands::deleteSubtreeRemovesNodesAndReferences() {
     QVERIFY(after.nodes.contains(QStringLiteral("keeper")));
     QCOMPARE(after.relations.size(), 1);
     QCOMPARE(after.relations.first().id, QStringLiteral("rel-ok"));
-    QCOMPARE(after.annotations.size(), 1);
-    QCOMPARE(after.annotations.first().id, QStringLiteral("ga-ok"));
+    // BUG-019 回归：删掉3个成员里的1个，剩下2个仍同父连续，外框必须保留（规范规则7只要求
+    // “成员少于2移除”）；父级被删的整框移除；不涉及子树的框原样保留。
+    QCOMPARE(after.annotations.size(), 2);
+    QCOMPARE(after.annotations.at(0).id, QStringLiteral("ga-member"));
+    QCOMPARE(after.annotations.at(0).memberIds,
+             QStringList({QStringLiteral("keeper"), QStringLiteral("outside")}));
+    QCOMPARE(after.annotations.at(1).id, QStringLiteral("ga-ok"));
+    QCOMPARE(after.annotations.at(1).memberIds,
+             QStringList({QStringLiteral("keeper"), QStringLiteral("outside")}));
     QCOMPARE(after.comments.size(), 1);
     QCOMPARE(after.comments.first().id, QStringLiteral("c-keeper"));
 }
@@ -1228,6 +1245,120 @@ void TstNodeCommands::setSheetStyleAppliesAndShortCircuits() {
     badEdge.width = 0.0;
     QCOMPARE(std::get<AppError>(nodes.setSheetStyle(fixture.sheetId, style, badEdge)).code,
              QStringLiteral("INVALID_ARGUMENT"));
+}
+
+// 甲复核 PR27（BUG-018）：外框[a,b]（父=根），把 a 移到 c 之下。以前命令成功、框的父仍是根、
+// 成员 a 的父已是 c，校验器又不查跨父，非法分组能一路存盘。
+void TstNodeCommands::moveSubtreeOutOfFrameRemovesAnnotation() {
+    RichTree fixture = makeRichTree();
+    GroupAnnotation annotation;
+    annotation.id = QStringLiteral("ga-move-out");
+    annotation.kind = QStringLiteral("boundary");
+    annotation.parentId = fixture.rootId;
+    annotation.memberIds = {QStringLiteral("a"), QStringLiteral("b")};
+    treeOf(fixture.project).annotations.append(annotation);
+
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto moved = nodes.moveSubtree(fixture.sheetId, QStringLiteral("a"),
+                                         QStringLiteral("c"), QString());
+    QVERIFY(std::holds_alternative<bool>(moved));
+    QVERIFY(std::get<bool>(moved));
+
+    const TreeSheet& after = treeOf(doc.project());
+    QCOMPARE(after.nodes.value(QStringLiteral("a")).parentId.value(), QStringLiteral("c"));
+    // 剩 b 一个成员，按规则7整框移除；不能留下跨父的框
+    QVERIFY(after.annotations.isEmpty());
+    QVERIFY(ProjectValidator::validate(doc.project()).isEmpty());
+}
+
+// 甲复核 PR27 场景2：外框[a,b]，把同级 c 移到 a 与 b 之间。c 落在框覆盖范围内，
+// 并入框、成员按树序排成 [a,c,b]；不能留下“成员被 c 隔开”的不连续分组。
+void TstNodeCommands::moveSubtreeIntoFrameJoinsAnnotation() {
+    RichTree fixture = makeRichTree();
+    GroupAnnotation annotation;
+    annotation.id = QStringLiteral("ga-move-in");
+    annotation.kind = QStringLiteral("boundary");
+    annotation.parentId = fixture.rootId;
+    annotation.memberIds = {QStringLiteral("a"), QStringLiteral("b")};
+    treeOf(fixture.project).annotations.append(annotation);
+
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto moved = nodes.moveSubtree(fixture.sheetId, QStringLiteral("c"), fixture.rootId,
+                                         QStringLiteral("b"));
+    QVERIFY(std::holds_alternative<bool>(moved));
+    QVERIFY(std::get<bool>(moved));
+
+    const TreeSheet& after = treeOf(doc.project());
+    QCOMPARE(orderOfChildren(doc.project(), fixture.rootId), QStringLiteral("a,c,b"));
+    QCOMPARE(after.annotations.size(), 1);
+    QCOMPARE(after.annotations.first().memberIds,
+             QStringList({QStringLiteral("a"), QStringLiteral("c"), QStringLiteral("b")}));
+    QVERIFY(ProjectValidator::validate(doc.project()).isEmpty());
+}
+
+// 成员在框内换序（b 移到 a 之前）不算破坏范围：框保留，成员表按树序重排成 [b,a]。
+void TstNodeCommands::moveSubtreeReordersInsideFrameKeepsAnnotation() {
+    RichTree fixture = makeRichTree();
+    GroupAnnotation annotation;
+    annotation.id = QStringLiteral("ga-reorder");
+    annotation.kind = QStringLiteral("boundary");
+    annotation.parentId = fixture.rootId;
+    annotation.memberIds = {QStringLiteral("a"), QStringLiteral("b")};
+    treeOf(fixture.project).annotations.append(annotation);
+
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto moved = nodes.moveSubtree(fixture.sheetId, QStringLiteral("b"), fixture.rootId,
+                                         QStringLiteral("a"));
+    QVERIFY(std::holds_alternative<bool>(moved));
+    QVERIFY(std::get<bool>(moved));
+
+    const TreeSheet& after = treeOf(doc.project());
+    QCOMPARE(orderOfChildren(doc.project(), fixture.rootId), QStringLiteral("b,a,c"));
+    QCOMPARE(after.annotations.size(), 1);
+    QCOMPARE(after.annotations.first().memberIds,
+             QStringList({QStringLiteral("b"), QStringLiteral("a")}));
+    QVERIFY(ProjectValidator::validate(doc.project()).isEmpty());
+}
+
+// 给框成员加同级主题：新节点插在两个成员之间，同样落在框内 → 并入，否则立刻变成不连续分组。
+void TstNodeCommands::addSiblingInsideFrameJoinsAnnotation() {
+    RichTree fixture = makeRichTree();
+    GroupAnnotation annotation;
+    annotation.id = QStringLiteral("ga-sibling");
+    annotation.kind = QStringLiteral("boundary");
+    annotation.parentId = fixture.rootId;
+    annotation.memberIds = {QStringLiteral("a"), QStringLiteral("b")};
+    treeOf(fixture.project).annotations.append(annotation);
+
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto added = nodes.addSibling(fixture.sheetId, QStringLiteral("a"),
+                                        QStringLiteral("新的同级"));
+    QVERIFY(std::holds_alternative<ID>(added));
+    const ID newId = std::get<ID>(added);
+
+    const TreeSheet& after = treeOf(doc.project());
+    QCOMPARE(orderOfChildren(doc.project(), fixture.rootId),
+             QStringLiteral("a,") + newId + QStringLiteral(",b,c"));
+    QCOMPARE(after.annotations.size(), 1);
+    QCOMPARE(after.annotations.first().memberIds,
+             QStringList({QStringLiteral("a"), newId, QStringLiteral("b")}));
+    QVERIFY(ProjectValidator::validate(doc.project()).isEmpty());
 }
 
 void TstNodeCommands::addRelationCreatesAndRejectsInvalid() {

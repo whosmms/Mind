@@ -62,4 +62,9 @@ struct GanttDateRange {
 GanttDateRange shiftTaskDates(const QDate& start, const QDate& end, int deltaDays,
                               GanttDragMode mode);
 
+// 为依赖连线的中转竖线选 x：避开 rowFrom..rowTo（含）之间任务条的横向范围，
+// 找不到时退回 preferredX。纯计算，供 GanttView 画折线用（L-020 依赖避让）。
+int freeRouteX(const QVector<GanttBar>& bars, int preferredX, int rowFrom, int rowTo,
+               int pixelsPerDay);
+
 }  // namespace lingya

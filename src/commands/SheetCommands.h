@@ -27,10 +27,11 @@ public:
     // 流程图与甘特图是独立模型，不做无损切换，返回INVALID_ARGUMENT（不做单向副本）。
     std::variant<bool, AppError> changeSheetKind(const ID& sheetId, const QString& kind);
 
-    // 删除工作表，同一事务内处理影响：依附于该表的复习卡片与讲解路线随之删除
-    // （ProjectValidator要求其sheetId必须存在），关联任务保留为独立任务（清除source）；
-    // 文稿是用户独立创作内容，仍以该表为来源时拒绝删除并返回SHEET_IN_USE，提示先处理文稿。
-    // 拒绝删除最后一张工作表；删除当前工作表时激活第一张剩余工作表。
+    // 删除工作表，同一事务内把关联任务保留为独立任务（清除source）；拒绝删除最后一张工作表；
+    // 删除当前工作表时激活第一张剩余工作表。
+    // 该表上仍有“用户攒下来的东西”时拒绝删除并返回SHEET_IN_USE，提示先处理：
+    // 文稿（独立创作内容）、复习卡片（学习状态，规范§7.1要求源删除时保留卡片而非销毁）、
+    // 讲解路线（步骤带用户写的讲解备注，规范§7.2）。含义见BUG-020。
     std::variant<bool, AppError> deleteSheet(const ID& sheetId);
 
 private:

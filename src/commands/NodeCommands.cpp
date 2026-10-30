@@ -234,6 +234,68 @@ std::variant<QStringList, AppError> orderedAnnotationMembers(const TreeSheet& tr
     return ordered;
 }
 
+// 外框/概要一致性修复（规范§4.3规则6、规则7），在每个改结构的事务末尾调用一次：
+// - 成员已不存在、或已不在本框父级之下（被移到别处/被删除）→ 从框内剔除；
+// - 剔除后不足2个成员 → 移除该框（规则7“成员少于2的外框/概要移除”）；
+// - 本轮插入的兄弟把成员切成两段（插到两个成员之间）→ 并入该框：
+//   新节点在画面上落在框覆盖范围内，用户看到的就是“在框里”，不并入反而成了不支持的数据；
+// - 剩余成员仍不连续（历史脏数据，且空隙节点不是本轮插入的）→ 只保留自首个成员起的
+//   最长连续段，避免把无关节点静默吞进框；该段不足2个则移除该框。
+// 只在命令事务里修，不碰只读路径；insertedIds 用于区分“我插的”和“本来就脏”的空隙。
+void repairAnnotations(TreeSheet& tree, const QSet<ID>& insertedIds) {
+    QVector<GroupAnnotation> kept;
+    kept.reserve(tree.annotations.size());
+    for (GroupAnnotation annotation : tree.annotations) {
+        const auto parent = tree.nodes.constFind(annotation.parentId);
+        if (parent == tree.nodes.constEnd()) continue;   // 父级被删 → 整框移除
+
+        // 1) 只留仍是该父级直接子节点、且仍存在的成员
+        QSet<ID> members;
+        for (const QString& member : annotation.memberIds) {
+            const auto it = tree.nodes.constFind(member);
+            if (it == tree.nodes.constEnd()) continue;
+            if (!it->parentId.has_value() || *it->parentId != annotation.parentId) continue;
+            members.insert(member);
+        }
+        if (members.size() < 2) continue;   // 规则7
+
+        // 2) 按父级兄弟序列恢复连续成员表
+        const QVector<ID> sequence = siblingSequence(tree, annotation.parentId);
+        QVector<int> positions;
+        for (const ID& member : members) {
+            const int at = sequence.indexOf(member);
+            if (at >= 0) positions.append(at);
+        }
+        if (positions.isEmpty()) continue;
+        std::sort(positions.begin(), positions.end());
+
+        const int first = positions.first();
+        const int last = positions.last();
+        int end = first;
+        while (end < last) {
+            const ID& next = sequence.at(end + 1);
+            if (members.contains(next)) {
+                ++end;
+                continue;
+            }
+            if (insertedIds.contains(next)) {   // 插到框内 → 并入
+                members.insert(next);
+                ++end;
+                continue;
+            }
+            break;   // 历史脏数据留下的空隙：不能把无关节点吞进框
+        }
+        if (end - first + 1 < 2) continue;
+
+        QStringList ordered;
+        for (int position = first; position <= end; ++position)
+            ordered.append(sequence.at(position));
+        annotation.memberIds = ordered;   // 规则6：成员顺序以树顺序为准
+        kept.append(annotation);
+    }
+    tree.annotations = kept;
+}
+
 }  // namespace
 
 NodeCommands::NodeCommands(CommandService* commands, const ProjectDocument* document)
@@ -346,6 +408,9 @@ std::variant<ID, AppError> NodeCommands::addSibling(const ID& sheetId, const ID&
         target->nodes.insert(newId, node);
         for (int i = 0; i < ordered.size(); ++i) target->nodes[ordered.at(i)].order = i;
         ++target->nodes[parentId].contentRevision;
+
+        // 新增的兄弟若落在某个外框/概要内部（插到两个成员之间），并入该框（规则6）
+        repairAnnotations(*target, {newId});
     });
     if (const auto* error = std::get_if<AppError>(&result)) {
         return *error;
@@ -397,16 +462,6 @@ std::variant<bool, AppError> NodeCommands::deleteSubtree(const ID& sheetId, cons
             }
             target->relations = keptRelations;
 
-            // 分组注释：父级或任一成员在子树内即删（校验器规则6/7）
-            QVector<GroupAnnotation> keptAnnotations;
-            for (const GroupAnnotation& ga : target->annotations) {
-                bool touches = subtree.contains(ga.parentId);
-                for (const ID& member : ga.memberIds)
-                    if (subtree.contains(member)) touches = true;
-                if (!touches) keptAnnotations.append(ga);
-            }
-            target->annotations = keptAnnotations;
-
             // 批注：指向子树节点即删（校验器：批注节点必须存在）
             QVector<Comment> keptComments;
             for (const Comment& c : target->comments) {
@@ -452,6 +507,11 @@ std::variant<bool, AppError> NodeCommands::deleteSubtree(const ID& sheetId, cons
             normalizeSiblings(*target, parentId); // 删除中间节点后，同级order仍须连续
             if (!parentId.isEmpty() && target->nodes.contains(parentId))
                 ++target->nodes[parentId].contentRevision;
+
+            // 分组注释（规则6、规则7）：被删成员从框内剔除，框的父级被删则整框移除；
+            // 剔除后不足2个成员才移除。以前是"任一成员在子树内就删整框"，删掉3个成员里的
+            // 1个会把剩下两个合法成员一起丢掉（BUG-019）。必须在节点移除与order规范化之后做。
+            repairAnnotations(*target, {});
         });
     if (const auto* error = std::get_if<AppError>(&result)) {
         return *error;
@@ -663,6 +723,11 @@ std::variant<bool, AppError> NodeCommands::moveSubtree(const ID& sheetId, const 
             ++target->nodes[newParentId].contentRevision;
             if (oldParentId != newParentId && target->nodes.contains(oldParentId))
                 ++target->nodes[oldParentId].contentRevision;
+
+            // 外框/概要跟随（规则6）：被移走的成员从原框剔除，移进框内的节点并入该框，
+            // 剔除后不足2个成员的框移除。移动本身不因注释被拒——拒了用户只会看到“拖不动”。
+            repairAnnotations(*target, {nodeId});
+
         });
     if (const auto* error = std::get_if<AppError>(&result)) {
         return *error;

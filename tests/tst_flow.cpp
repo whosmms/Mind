@@ -9,6 +9,7 @@
 
 #include "commands/CommandService.h"
 #include "commands/FlowCommands.h"
+#include "commands/ReviewCommands.h"
 #include "commands/SheetCommands.h"
 #include "document/ProjectDocument.h"
 #include "domain/Domain.h"
@@ -217,14 +218,17 @@ private slots:
     void createSheetRejectsUnknownKind();
     void changeKindKeepsNodesAndUndoes();
     void changeKindRejectsFlowSheet();
-    void deleteSheetKeepsTasksAndDropsCards();
+    void deleteSheetKeepsTasks();
     void deleteSheetRejectsLastSheet();
     void deleteSheetRejectsWhenDraftUsesIt();
+    void deleteSheetRejectsWhenCardsExist();
+    void deleteSheetRejectsWhenRouteExists();
     // 鱼骨布局
     void fishboneHeadAtOriginAndCategoriesAlternate();
     void fishboneReasonsBranchOutward();
     void fishboneFourLevelsNoOverlap();
     void fishboneCollapsedSubtreeHidden();
+    void fishboneSlotFollowsSubtreeExtent();
     void fishboneRejectsNonFishboneSheet();
 };
 
@@ -810,7 +814,7 @@ void TstFlow::changeKindRejectsFlowSheet() {
     QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_ARGUMENT"));
 }
 
-void TstFlow::deleteSheetKeepsTasksAndDropsCards() {
+void TstFlow::deleteSheetKeepsTasks() {
     Project project = ProjectFactory::createMindmap(QStringLiteral("删表"));
     const ID firstId = treeOf(project).id;
     const ID rootId = treeOf(project).rootId;
@@ -820,20 +824,6 @@ void TstFlow::deleteSheetKeepsTasksAndDropsCards() {
     task.title = QStringLiteral("中心主题");
     task.source = TaskSource{firstId, rootId};
     project.tasks.append(task);
-
-    ReviewCard card;
-    card.id = QStringLiteral("card-1");
-    card.sheetId = firstId;
-    card.nodeId = rootId;
-    card.front = QStringLiteral("问");
-    card.back = QStringLiteral("答");
-    project.cards.append(card);
-
-    PresentationRoute route;
-    route.id = QStringLiteral("route-1");
-    route.sheetId = firstId;
-    route.title = QStringLiteral("讲解");
-    project.routes.append(route);
 
     ProjectDocument document;
     document.replaceProject(project);
@@ -846,17 +836,92 @@ void TstFlow::deleteSheetKeepsTasksAndDropsCards() {
 
     QVERIFY(std::holds_alternative<bool>(sheets.deleteSheet(firstId)));
     QCOMPARE(document.project().sheets.size(), 1);
-    QCOMPARE(document.project().activeSheetId, secondId);       // 删除当前表后回退到剩余表
-    QCOMPARE(document.project().tasks.size(), 1);               // 任务保留
-    QVERIFY(!document.project().tasks.first().source.has_value());  // 但不再是工作表任务
-    QVERIFY(document.project().cards.isEmpty());                // 卡片随表删除（模型要求表存在）
-    QVERIFY(document.project().routes.isEmpty());
+    QCOMPARE(document.project().activeSheetId, secondId);           // 删除当前表后回退到剩余表
+    QCOMPARE(document.project().tasks.size(), 1);                    // 任务保留
+    QVERIFY(!document.project().tasks.first().source.has_value());   // 但不再是工作表任务
 
     service.undo();
     QCOMPARE(document.project().sheets.size(), 2);
-    QCOMPARE(document.project().cards.size(), 1);
-    QCOMPARE(document.project().routes.size(), 1);
     QVERIFY(document.project().tasks.first().source.has_value());
+}
+
+// 甲复核 PR28（BUG-020）：以前删表会把表上的复习卡片一起删掉。规范§7.1要求“源节点删除保留
+// 卡片快照并标missing，提供移除或转独立卡片”——学习状态（status/lastReviewedAt/custom）
+// 是用户攒出来的，不能因为删了一张表就静默销毁。卡片sheetId必须指向存在的表（CARD_SHEET），
+// 放宽该校验要先三方确认，所以本轮按影响确认阻断：有卡片就SHEET_IN_USE。
+void TstFlow::deleteSheetRejectsWhenCardsExist() {
+    Project project = ProjectFactory::createMindmap(QStringLiteral("带卡片"));
+    const ID firstId = treeOf(project).id;
+    const ID rootId = treeOf(project).rootId;
+
+    ReviewCard card;
+    card.id = QStringLiteral("card-1");
+    card.sheetId = firstId;
+    card.nodeId = rootId;
+    card.front = QStringLiteral("问");
+    card.back = QStringLiteral("答");
+    card.status = QStringLiteral("mastered");
+    card.lastReviewedAt = QDateTime::currentDateTimeUtc();
+    project.cards.append(card);
+
+    ProjectDocument document;
+    document.replaceProject(project);
+    CommandService service(&document);
+    SheetCommands sheets(&service, &document);
+    QVERIFY(std::holds_alternative<ID>(sheets.createSheet(QStringLiteral("mindmap"))));
+
+    const qint64 revisionBefore = document.sessionRevision();
+    const auto result = sheets.deleteSheet(firstId);
+    QVERIFY(std::holds_alternative<AppError>(result));
+    const AppError error = std::get<AppError>(result);
+    QCOMPARE(error.code, QStringLiteral("SHEET_IN_USE"));
+    QVERIFY(error.message.contains(QStringLiteral("复习卡片")));
+
+    // 阻断式失败：表、卡片、历史全都不动
+    QCOMPARE(document.project().sheets.size(), 2);
+    QCOMPARE(document.project().cards.size(), 1);
+    QCOMPARE(document.project().cards.first().status, QStringLiteral("mastered"));
+    QVERIFY(document.project().cards.first().lastReviewedAt.has_value());
+    QCOMPARE(document.sessionRevision(), revisionBefore);   // 不产生快照、不入历史
+
+    // 提示是可操作的，不是死路：按提示在处理路径上移除卡片后，删表即可通过
+    ReviewCommands reviews(&service, &document);
+    QVERIFY(std::holds_alternative<bool>(reviews.removeCard(QStringLiteral("card-1"))));
+    QVERIFY(std::holds_alternative<bool>(sheets.deleteSheet(firstId)));
+    QCOMPARE(document.project().sheets.size(), 1);
+    QVERIFY(document.project().cards.isEmpty());
+}
+
+// 讲解路线的步骤带用户写的讲解备注，同理不静默销毁（规范§7.2）
+void TstFlow::deleteSheetRejectsWhenRouteExists() {
+    Project project = ProjectFactory::createMindmap(QStringLiteral("带路线"));
+    const ID firstId = treeOf(project).id;
+
+    PresentationRoute route;
+    route.id = QStringLiteral("route-1");
+    route.sheetId = firstId;
+    route.title = QStringLiteral("讲解");
+    PresentationStep step;
+    step.id = QStringLiteral("step-1");
+    step.nodeId = treeOf(project).rootId;
+    step.speakerNote = QStringLiteral("开场先讲这个");
+    route.steps.append(step);
+    project.routes.append(route);
+
+    ProjectDocument document;
+    document.replaceProject(project);
+    CommandService service(&document);
+    SheetCommands sheets(&service, &document);
+    QVERIFY(std::holds_alternative<ID>(sheets.createSheet(QStringLiteral("mindmap"))));
+
+    const auto result = sheets.deleteSheet(firstId);
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("SHEET_IN_USE"));
+    QVERIFY(std::get<AppError>(result).message.contains(QStringLiteral("讲解路线")));
+    QCOMPARE(document.project().sheets.size(), 2);
+    QCOMPARE(document.project().routes.size(), 1);
+    QCOMPARE(document.project().routes.first().steps.first().speakerNote,
+             QStringLiteral("开场先讲这个"));
 }
 
 void TstFlow::deleteSheetRejectsLastSheet() {
@@ -1004,6 +1069,84 @@ void TstFlow::fishboneCollapsedSubtreeHidden() {
     for (const auto& position : value.positions)
         QVERIFY(position.id != reason);
     QCOMPARE(value.bones.at(2).size(), 1);   // 折叠类别只保留自身
+}
+
+// 甲复核 #37（BUG-021）：6类×8原因、三层文本（类别360、二三级480px）的样例，旧算法把每层最大宽度
+// 累加、每层还再加一个 kDepthShift，槽宽被撑到1528，画布约9500像素，适应窗口后文字小到看不清。
+// 槽宽应按子树实际横向范围算：同侧相邻两根主骨的包围盒之间只应留一个净间距，而不是空出大半根骨。
+void TstFlow::fishboneSlotFollowsSubtreeExtent() {
+    Project project = ProjectFactory::createFishbone(QStringLiteral("宽文本鱼骨"));
+    TreeSheet& sheet = treeOf(project);
+    const QVector<QPair<int, ID>> categories = visibleChildrenOf(sheet, sheet.rootId);
+    QCOMPARE(categories.size(), 6);
+    for (int c = 0; c < categories.size(); ++c) {
+        const ID categoryId = categories.at(c).second;
+        for (int r = 0; r < 8; ++r) {
+            const ID reason = addFishReason(sheet, categoryId, r,
+                                            QStringLiteral("原因%1-%2").arg(c).arg(r));
+            addFishReason(sheet, reason, 0, QStringLiteral("细节%1-%2").arg(c).arg(r));
+        }
+    }
+
+    QVector<FishboneLayout::NodeSize> sizes;
+    for (auto it = sheet.nodes.constBegin(); it != sheet.nodes.constEnd(); ++it) {
+        double width = 480.0;                                  // 二/三级原因
+        if (it.key() == sheet.rootId)
+            width = 320.0;                                     // 鱼头
+        else if (it.value().parentId.has_value() && *it.value().parentId == sheet.rootId)
+            width = 360.0;                                     // 类别
+        sizes.append(fishSize(it.key(), width, 48.0));
+    }
+
+    const auto result = FishboneLayout::layout(sheet, sizes);
+    QVERIFY(std::holds_alternative<FishboneLayout::Result>(result));
+    const auto& value = std::get<FishboneLayout::Result>(result);
+    QCOMPARE(value.bones.size(), 6);
+    QVERIFY(!fishAnyOverlap(fishDims(sizes), value.positions));
+
+    QHash<ID, QPointF> positions;
+    for (const auto& position : value.positions)
+        positions.insert(position.id, QPointF(position.x, position.y));
+    const QHash<ID, FishboneLayout::NodeSize> dims = fishDims(sizes);
+
+    // 每根主骨的水平包围盒
+    QVector<QPair<double, double>> boxes;   // {最左, 最右}
+    for (const QVector<ID>& bone : value.bones) {
+        double left = std::numeric_limits<double>::max();
+        double right = std::numeric_limits<double>::lowest();
+        for (const ID& id : bone) {
+            const QPointF center = positions.value(id);
+            left = std::min(left, center.x() - dims.value(id).width / 2.0);
+            right = std::max(right, center.x() + dims.value(id).width / 2.0);
+        }
+        boxes.append({left, right});
+    }
+
+    // 类别上下交替，相邻两根骨在画布上并不占同一段竖向空间，所以“隔一根”的空档里夹的是对侧骨，
+    // 这里不拿它当浪费。真正要盯的是：一根骨沿主轴推进的距离（相邻类别中心距）应接近该骨的实际
+    // 横向宽度，而不是接近“各层最大宽度之和”。旧算法 1528px 推进 vs 536px 实宽，空转近 3 倍。
+    double widestBone = 0.0;
+    for (const auto& box : boxes)
+        widestBone = std::max(widestBone, box.second - box.first);
+    for (int i = 0; i + 1 < boxes.size(); ++i) {
+        const double advance = positions.value(value.bones.at(i).first()).x() -
+                               positions.value(value.bones.at(i + 1).first()).x();
+        QVERIFY2(advance > 0.0, qPrintable(QStringLiteral("主骨 %1 未向左推进").arg(i)));
+        // 允许的余量：两根骨的净间距（左右各一根 kSlotGap=40）
+        QVERIFY2(advance <= widestBone + 80.0 + 0.5,
+                 qPrintable(QStringLiteral("主骨 %1 推进 %2，实宽仅 %3")
+                                .arg(i).arg(advance).arg(widestBone)));
+    }
+
+    // 画布总宽：旧算法约 9500，按实际横向范围应降到 4000 以内
+    double minX = 0.0;
+    double maxX = 0.0;
+    for (const auto& position : value.positions) {
+        minX = std::min(minX, position.x - dims.value(position.id).width / 2.0);
+        maxX = std::max(maxX, position.x + dims.value(position.id).width / 2.0);
+    }
+    QVERIFY2(maxX - minX < 4000.0,
+             qPrintable(QStringLiteral("画布宽 %1").arg(maxX - minX)));
 }
 
 void TstFlow::fishboneRejectsNonFishboneSheet() {

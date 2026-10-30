@@ -41,6 +41,7 @@ private slots:
   void shiftTaskDatesMove();
   void shiftTaskDatesResizeClamps();
   void shiftTaskDatesInvalidInput();
+  void freeRouteXAvoidsBlockingBars();
   void midMonthRangeShowsYearAndMonth();
   void longUnscheduledNamesRemainScrollable_data();
   void longUnscheduledNamesRemainScrollable();
@@ -426,6 +427,22 @@ void TstGanttView::shiftTaskDatesInvalidInput() {
     const GanttDateRange result = shiftTaskDates(QDate(), QDate(), 3, GanttDragMode::Move);
     QVERIFY(!result.start.isValid());
     QVERIFY(!result.end.isValid());
+}
+
+void TstGanttView::freeRouteXAvoidsBlockingBars() {
+    QVector<GanttBar> bars;
+    bars.append(GanttBar{ID(QStringLiteral("A")), 0, 0, 50, false, true});
+    bars.append(GanttBar{ID(QStringLiteral("B")), 1, 0, 100, false, true});
+    bars.append(GanttBar{ID(QStringLiteral("C")), 2, 0, 50, false, true});
+
+    // 25 被中间行 B(0..100) 挡住，向右挪到 105
+    QCOMPARE(freeRouteX(bars, 25, 0, 2, 10), 105);
+    // 本来就在外面，直接返回
+    QCOMPARE(freeRouteX(bars, 150, 0, 2, 10), 150);
+    // 只看 row2：C 只有 0..50
+    QCOMPARE(freeRouteX(bars, 60, 2, 2, 10), 60);
+    // 只看 row0：A 是 0..50，25 被挡 → 55
+    QCOMPARE(freeRouteX(bars, 25, 0, 0, 10), 55);
 }
 
 QTEST_MAIN(TstGanttView)
