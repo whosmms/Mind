@@ -1,7 +1,7 @@
 {
   "记录": "H-026 / DEV-20261030-004 甲R11鱼骨视图改接FishboneLayout",
-  "基线main": "9c89bcd644915e6efaab0d4b4e7f04d4c5e92037",
-  "被测": "feature/a/R11-fishbone-view 工作区（提交号见PR；提交前后源码一致）",
+  "基线main": "d16a92b（已普通合并入本分支）",
+  "被测": "feature/a/R11-fishbone-view 合并main d16a92b后（提交号见PR）",
   "环境": {
     "说明": "沙箱Linux补充证据，不是冻结Windows MinGW Kit",
     "系统": "Ubuntu 22.04 x86_64",
@@ -13,10 +13,33 @@
     "字体": "Noto Sans CJK（Linux），截图字形与Windows微软雅黑不同"
   },
   "冻结Kit复跑": "未执行：沙箱没有Windows MinGW 13.1工具链，需甲本机或非作者在Windows复跑",
-  "Debug": {
-    "suites": 21,
-    "totals": {
+  "红测": "原实现（鱼骨表仍走TreeLayout）上新增两条用例均失败：fishboneCanvasUsesFishboneLayout（非根节点出现在鱼头右侧）、fishboneCanvasDeepWideNoOverlap（连线数54≠55）；见原实现红测.xml。该次红测在3c0c4c3上执行，main 9c89bcd的MainWindow/tst_ui/layout与之相同。",
+  "告警": "新增代码0条；既有tst_nodecommands 4条（multichar/overflow）未变",
+  "格式": "clang-format 19.1.7 git clang-format --diff 对本次改动行无输出",
+  "真人": "未执行（用户指示本轮跳过真人验收）",
+  "合入main前（基线9c89bcd）": {
+    "Debug": {
       "pass": 445,
+      "fail": 0,
+      "skip": 0,
+      "suites": 21
+    },
+    "Release": {
+      "pass": 445,
+      "fail": 0,
+      "skip": 0,
+      "suites": 21
+    },
+    "基线main同环境Debug": {
+      "pass": 443,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "Debug": {
+    "suites": 22,
+    "totals": {
+      "pass": 459,
       "fail": 0,
       "skip": 0
     },
@@ -98,6 +121,11 @@
       },
       "tst_review": {
         "pass": 23,
+        "fail": 0,
+        "skip": 0
+      },
+      "tst_reviewcommands": {
+        "pass": 14,
         "fail": 0,
         "skip": 0
       },
@@ -129,9 +157,9 @@
     }
   },
   "Release": {
-    "suites": 21,
+    "suites": 22,
     "totals": {
-      "pass": 445,
+      "pass": 459,
       "fail": 0,
       "skip": 0
     },
@@ -216,6 +244,11 @@
         "fail": 0,
         "skip": 0
       },
+      "tst_reviewcommands": {
+        "pass": 14,
+        "fail": 0,
+        "skip": 0
+      },
       "tst_reviewpage": {
         "pass": 6,
         "fail": 0,
@@ -243,13 +276,5 @@
       }
     }
   },
-  "基线main同环境Debug": {
-    "pass": 443,
-    "fail": 0,
-    "skip": 0
-  },
-  "红测": "原实现（鱼骨表仍走TreeLayout）上新增两条用例均失败：fishboneCanvasUsesFishboneLayout（非根节点出现在鱼头右侧）、fishboneCanvasDeepWideNoOverlap（连线数54≠55）；见原实现红测.xml。该次红测在3c0c4c3上执行，main 9c89bcd的MainWindow/tst_ui/layout与之相同。",
-  "告警": "新增代码0条；既有tst_nodecommands 4条（multichar/overflow）未变",
-  "格式": "clang-format 19.1.7 git clang-format --diff 对本次改动行无输出",
-  "真人": "未执行（用户指示本轮跳过真人验收）"
+  "说明": "乙main d16a92b自报22套件457项；本分支合并后+2项（tst_ui 72→74）"
 }
