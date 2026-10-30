@@ -29,6 +29,9 @@ private slots:
     void rejectsTaskPredecessorMissing();
     void acceptsCrossMonthRange();
     void acceptsCrossYearRange();
+    void rejectsCrossParentAnnotation();
+    void rejectsNonContiguousAnnotation();
+    void acceptsContiguousAnnotation();
 
 private:
     static QString uuid() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
@@ -257,6 +260,60 @@ void TstDomain::acceptsCrossYearRange() {
     task.startDate = QDate(2026, 12, 28);
     task.endDate = QDate(2027, 1, 3);   // 跨 2026→2027，应合法
     p.tasks.push_back(task);
+    QVERIFY(ProjectValidator::validate(p).isEmpty());
+}
+
+// 规则6：外框/概要只支持同父兄弟。校验器以前只查成员是否存在、把跨父交给命令“保证”，
+// moveSubtree 搬走成员后非法分组能存盘（BUG-018）。
+void TstDomain::rejectsCrossParentAnnotation() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("跨父外框"));
+    TreeSheet& sheet = std::get<TreeSheet>(p.sheets[0]);
+    const ID first = addChild(sheet, sheet.rootId, QStringLiteral("甲"));
+    const ID grandChild = addChild(sheet, first, QStringLiteral("甲之子"));
+
+    GroupAnnotation ga;
+    ga.id = uuid();
+    ga.kind = QStringLiteral("boundary");
+    ga.parentId = sheet.rootId;
+    ga.memberIds = {first, grandChild};   // 一个是根的子节点，一个是孙节点
+    sheet.annotations.append(ga);
+
+    QVERIFY(hasCode(ProjectValidator::validate(p), "ANNOTATION_SCOPE"));
+}
+
+// 规则6：成员必须连续排列，中间夹着非成员就是不支持的数据
+void TstDomain::rejectsNonContiguousAnnotation() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("不连续外框"));
+    TreeSheet& sheet = std::get<TreeSheet>(p.sheets[0]);
+    const ID first = addChild(sheet, sheet.rootId, QStringLiteral("甲"));
+    addChild(sheet, sheet.rootId, QStringLiteral("乙"));
+    const ID third = addChild(sheet, sheet.rootId, QStringLiteral("丙"));
+
+    GroupAnnotation ga;
+    ga.id = uuid();
+    ga.kind = QStringLiteral("boundary");
+    ga.parentId = sheet.rootId;
+    ga.memberIds = {first, third};   // 跳过中间的“乙”
+    sheet.annotations.append(ga);
+
+    QVERIFY(hasCode(ProjectValidator::validate(p), "ANNOTATION_SCOPE"));
+}
+
+// 同父连续的两兄弟是合法外框（守住上面两条不误杀）
+void TstDomain::acceptsContiguousAnnotation() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("合法外框"));
+    TreeSheet& sheet = std::get<TreeSheet>(p.sheets[0]);
+    const ID first = addChild(sheet, sheet.rootId, QStringLiteral("甲"));
+    const ID second = addChild(sheet, sheet.rootId, QStringLiteral("乙"));
+    addChild(sheet, sheet.rootId, QStringLiteral("丙"));
+
+    GroupAnnotation ga;
+    ga.id = uuid();
+    ga.kind = QStringLiteral("boundary");
+    ga.parentId = sheet.rootId;
+    ga.memberIds = {second, first};   // 成员顺序由树序决定，这里故意倒序
+    sheet.annotations.append(ga);
+
     QVERIFY(ProjectValidator::validate(p).isEmpty());
 }
 

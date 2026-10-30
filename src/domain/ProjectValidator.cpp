@@ -3,6 +3,7 @@
 #include <QHash>
 #include <QQueue>
 #include <QSet>
+#include <algorithm>
 #include <functional>
 
 namespace lingya {
@@ -13,6 +14,23 @@ namespace {
 // 标题、标签等长度按Unicode码点计数（规范§4.2）
 int codePointCount(const QString& text) {
     return static_cast<int>(text.toUcs4().size());
+}
+
+// 某父节点的兄弟序列，按(order, ID)稳定排序；与命令层的兄弟序列规则一致
+QVector<ID> orderedSiblings(const TreeSheet& sheet, const ID& parentId) {
+    QVector<QPair<int, ID>> siblings;
+    for (auto it = sheet.nodes.constBegin(); it != sheet.nodes.constEnd(); ++it) {
+        if (it.value().parentId.has_value() && *it.value().parentId == parentId)
+            siblings.append({it.value().order, it.key()});
+    }
+    std::sort(siblings.begin(), siblings.end(),
+              [](const QPair<int, ID>& left, const QPair<int, ID>& right) {
+                  if (left.first != right.first) return left.first < right.first;
+                  return left.second < right.second;
+              });
+    QVector<ID> sequence;
+    for (const auto& pair : siblings) sequence.append(pair.second);
+    return sequence;
 }
 
 void checkTree(const TreeSheet& sheet, QVector<AppError>& es) {
@@ -93,15 +111,56 @@ void checkTree(const TreeSheet& sheet, QVector<AppError>& es) {
         if (!sheet.nodes.contains(rel.sourceId) || !sheet.nodes.contains(rel.targetId))
             es << AppError{"RELATION_ENDPOINT", where + "：关系线“" + rel.label + "”的端点缺失"};
 
-    // 分组注释：父级与成员存在；跨父选区、连续性与成员数由命令保证（规则6、规则7）
+    // 分组注释（规则6、规则7）：父级与成员存在；成员不重复、同父、连续排列。
+    // 这里以前只查存在性、把跨父与连续性交给命令“保证”，结果 moveSubtree 挪走成员后
+    // 非法分组能一路存盘（BUG-018）。现在结构非法在校验器就挡住，命令层负责把它修合法。
+    // 成员数<2 不在此报错：规则7要求“移除并提示”，由命令层 repairAnnotations 处理，
+    // 校验器硬拒会让带单片外框的旧文件直接打不开。
     for (const GroupAnnotation& ga : sheet.annotations) {
-        if (!sheet.nodes.contains(ga.parentId))
+        if (!sheet.nodes.contains(ga.parentId)) {
             es << AppError{"ANNOTATION_PARENT", where + "：外框/概要的父节点不存在"};
-        for (const ID& member : ga.memberIds)
-            if (!sheet.nodes.contains(member)) {
-                es << AppError{"ANNOTATION_MEMBER", where + "：外框/概要包含不存在的成员节点"};
+            continue;
+        }
+        if (ga.memberIds.size() < 2) continue;
+
+        QSet<ID> seen;
+        bool membersUsable = true;
+        for (const ID& member : ga.memberIds) {
+            if (seen.contains(member)) {
+                es << AppError{"ANNOTATION_MEMBER", where + "：外框/概要成员重复"};
+                membersUsable = false;
                 break;
             }
+            seen.insert(member);
+            const auto it = sheet.nodes.constFind(member);
+            if (it == sheet.nodes.constEnd()) {
+                es << AppError{"ANNOTATION_MEMBER", where + "：外框/概要包含不存在的成员节点"};
+                membersUsable = false;
+                break;
+            }
+            if (!it->parentId.has_value() || *it->parentId != ga.parentId) {
+                es << AppError{"ANNOTATION_SCOPE",
+                               where + "：外框/概要只支持同一父级的兄弟节点"};
+                membersUsable = false;
+                break;
+            }
+        }
+        if (!membersUsable) continue;
+
+        const QVector<ID> sequence = orderedSiblings(sheet, ga.parentId);
+        QVector<int> positions;
+        for (const ID& member : ga.memberIds) {
+            const int at = sequence.indexOf(member);
+            if (at >= 0) positions.append(at);
+        }
+        std::sort(positions.begin(), positions.end());
+        for (int i = 1; i < positions.size(); ++i) {
+            if (positions.at(i) != positions.at(i - 1) + 1) {
+                es << AppError{"ANNOTATION_SCOPE",
+                               where + "：外框/概要只支持连续排列的兄弟节点"};
+                break;
+            }
+        }
     }
 
     // 批注的节点必须存在

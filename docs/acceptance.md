@@ -109,7 +109,8 @@ templates/、third-party.md、AGENTS.md）。
   - 待补：R06 拖动排序/移动的界面接线（`moveSubtree` 已合main 1dc5ad7，甲未接界面）；M1 完整门禁签认
   - 注：搜索属 S02（配套交付体验），门禁在 M6，不计入 R06
 - `[~]` **M2**：R02/R03/R05/R07至R10
-  - 已有证据：R10 均衡布局（4fbd131）、R03/R05/R07/R08/R09 命令族（1dc5ad7 已合main，含片段载荷与ProjectValidator修BUG-015）
+  - 已有证据：R10 均衡布局（4fbd131）、R03/R05/R07/R08/R09 命令族（1dc5ad7 已合main，含片段载荷与ProjectValidator修BUG-015）；
+    R08 外框/概要随动（`repairAnnotations` + 校验器 `ANNOTATION_SCOPE`：移动/删除/新增同级后成员跨父与不连续不再产生，DEV-20261030-008）
   - 待补：R05 样式面板、R07/R08/R09 界面接线（甲）
   - 注：R02（图标/链接/备注）已由 PR #20 合入并有三类内容重开证据，不缺；大纲属 R06
 - `[~]` **M3**：R11 至 R13
