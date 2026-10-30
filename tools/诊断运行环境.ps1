@@ -82,8 +82,37 @@ if (-not (Test-Path -LiteralPath $diagExe -PathType Leaf)) {
     }
 }
 
-"--- 5. 怎么读这份输出 ---"
+"--- 5. 残留副本扫描（只列不删） ---"
+# 症状对照：报「无法定位程序输入点 ... 于动态链接库 xxx.exe 上」的多半是这类副本——
+# 程序目录里没有自带 Qt 运行库，能不能起来全看启动那一刻 PATH 里有没有配套的 Qt。
+$diagRoot = [IO.Path]::GetPathRoot($diagRepo)
+"  扫描根目录：$diagRoot（最多 5 层）"
+$diagCopies = @()
+try {
+    $diagCopies = @(Get-ChildItem -LiteralPath $diagRoot -Filter 'lingya.exe' -File -Recurse -Depth 5 -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notlike '*\CMakeFiles\*' })
+} catch {
+    "  扫描出错：$($_.Exception.Message)"
+}
+if ($diagCopies.Count -eq 0) {
+    "  未发现 lingya.exe 副本"
+} else {
+    foreach ($diagCopy in $diagCopies) {
+        $diagCopyDir = $diagCopy.DirectoryName
+        $diagPlugin = Join-Path $diagCopyDir 'platforms\qwindows.dll'
+        $diagCore = Join-Path $diagCopyDir 'Qt6Core.dll'
+        if ((Test-Path -LiteralPath $diagPlugin -PathType Leaf) -and (Test-Path -LiteralPath $diagCore -PathType Leaf)) {
+            "  [可独立运行] $($diagCopy.FullName)"
+        } else {
+            "  [依赖 PATH，别双击] $($diagCopy.FullName)  修改于 $($diagCopy.LastWriteTime)"
+        }
+    }
+}
+
+"--- 6. 怎么读这份输出 ---"
 "  1) 第 1 段出现 [缺]：重跑 tools\准备运行依赖.ps1 -Configuration $Configuration"
 "  2) 第 2/3 段 QT_QPA_PLATFORM 有值（尤其 offscreen）：该终端已带测试平台，先清掉再启动；第 4 段已自动清"
 "  3) 第 2/3 段 QT_PLUGIN_PATH 指向不存在的目录：改用 tools\打开灵芽思维.ps1 启动（会在启动前清掉）"
 "  4) 文件齐全、第 4 段仍失败：把这整段输出发出来，再查是否混入了别的 Qt 版本的 qwindows.dll"
+"  5) 第 5 段若出现 [依赖 PATH，别双击]：那是评审/临时构建留下的旧副本，程序目录不自洽；"
+"     报「无法定位程序输入点 ... 于 xxx.exe 上」就是它。删掉即可，要跑请用 tools\打开灵芽思维.ps1"
