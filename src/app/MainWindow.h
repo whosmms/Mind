@@ -1,9 +1,10 @@
 #pragma once
-#include <QMainWindow>
-#include <optional>
 #include "domain/Domain.h"
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
+#include <QMainWindow>
+#include <QSet>
+#include <optional>
 
 // Qt类前向声明必须位于全局作用域，不能进入lingya命名空间
 class QAction;
@@ -105,6 +106,20 @@ private:
     void editSelectedNodeProperties();
     void editSelectedNodeTags();
     void editSelectedNodeStyle();
+    void editNodeStyle(bool global);
+    void buildEditorActions(QMenu *editMenu);
+    void rebuildSheets();
+    void createSheet();
+    void renameSheet();
+    void deleteSheet();
+    void copySelection(bool cut);
+    void pasteSelection();
+    void moveSelection(const ID &nodeId, const ID &parentId, const ID &beforeId = ID{});
+    void editRelations();
+    void editAnnotations();
+    void editComments();
+    void addDecorations(const TreeSheet &sheet);
+    void selectNewNode(const ID &id);
     void openSelectedNodeLink();
     void addChildToSelection();
     void addSiblingToSelection();
@@ -135,6 +150,18 @@ private:
     QGraphicsView* m_view = nullptr;
     QTreeWidget *m_outline = nullptr;
     QComboBox *m_tagFilter = nullptr;
+    QComboBox *m_sheetSelector = nullptr;
+    ID m_outlineSheetId;
+    ID m_displaySheetId;
+    QSet<ID> m_unfilteredCollapsed;
+    bool m_filterWasActive = false;
+    ID m_dragNodeId;
+    QPoint m_dragStart;
+    ID m_cutNodeId, m_cutSheetId, m_cutProjectId;
+    qint64 m_cutRevision = -1;
+    QByteArray m_cutToken;
+    QString m_editorNote;
+    QMap<ID, QStringList> m_annotationMembers;
     ID m_selectedNodeId;                       // 临时选择状态，不持久化、不进入撤销历史
     QMap<ID, NodeItem *> m_nodeItems;          // 非拥有指针；图元由m_scene销毁
     QString m_canvasError;

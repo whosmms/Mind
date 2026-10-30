@@ -11,18 +11,23 @@
 #include "charts/GanttView.h"
 #include "commands/CommandService.h"
 #include "commands/NodeCommands.h"
+#include "commands/SheetCommands.h"
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
+#include "domain/ProjectValidator.h"
 #include "features/ReviewService.h"
 #include "graphics/NodeItem.h"
 #include "services/ProjectJson.h"
 #include <QAbstractButton>
 #include <QAction>
+#include <QCheckBox>
+#include <QClipboard>
 #include <QComboBox>
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
+#include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileDialog>
@@ -31,26 +36,29 @@
 #include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QImage>
 #include <QInputDialog>
 #include <QInputMethodEvent>
-#include <QImage>
+#include <QJsonDocument>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QPushButton>
-#include <QSettings>
 #include <QScopeGuard>
+#include <QSettings>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QTreeWidget>
-#include <QUuid>
+#include <QTreeWidgetItemIterator>
 #include <QUrl>
+#include <QUuid>
 
 #include <cstdio>
 #include <cstdlib>
@@ -90,6 +98,18 @@ class TstUi : public QObject {
 private slots:
     void initTestCase();
     void undoRedoViaShortcuts();
+    void editorSheetManagementAndDeletion();
+    void editorSheetDeletionProtectsUserData_data();
+    void editorSheetDeletionProtectsUserData();
+    void editorClipboardCopyAndCut();
+    void editorClipboardRejectsStaleAndInvalid();
+    void editorCanvasDragKeepsIdsAndRepairsFrames();
+    void editorGlobalStylePrecedenceAndRoundTrip();
+    void editorRelationsAndCommentsRoundTrip();
+    void editorAnnotationsFollowStructure();
+    void editorAnnotationEditDeleteAndThemeColor();
+    void editorFilterRestoresExpansionAndKeepsNewChild();
+    void editorGanttDatesUseCommand();
     void redoWithEditorFocus_data();
     void redoWithEditorFocus();
     void saveAsDialogRoundTripAndCancel();
@@ -159,6 +179,56 @@ private slots:
     void ownedSaveRejectsEmptyNameForDotFile();
 
 private:
+  static void loadEditorFixture(MainWindow &window, Project project)
+  {
+      QTimer::singleShot(5000, &window,
+                         []
+                         {
+                             if (auto *dialog =
+                                     qobject_cast<QDialog *>(QApplication::activeModalWidget()))
+                             {
+                                 qWarning() << "未应答窗口" << dialog->windowTitle();
+                                 if (auto *box = qobject_cast<QMessageBox *>(dialog))
+                                     qWarning() << box->text();
+                                 QTest::qFail("新增交互留下了未应答的模态窗口", __FILE__, __LINE__);
+                                 dialog->reject();
+                             }
+                         });
+      auto *doc = window.findChild<ProjectDocument *>();
+      doc->replaceProject(std::move(project));
+      window.findChild<CommandService *>()->clearHistory();
+      doc->setClean();
+      doc->notifyChanged();
+  }
+  static void chooseTopic(MainWindow &window, const ID &id)
+  {
+      auto *outline = window.findChild<QTreeWidget *>("topicOutline");
+      for (QTreeWidgetItemIterator it(outline); *it; ++it)
+          if ((*it)->data(0, Qt::UserRole).toString() == id)
+          {
+              outline->setCurrentItem(*it);
+              return;
+          }
+      QTest::qFail("找不到大纲主题", __FILE__, __LINE__);
+  }
+  static void runEditor(MainWindow &window, const char *action, const char *name,
+                        std::function<void(QDialog *)> answer)
+  {
+      QTimer::singleShot(0, &window,
+                         [&window, name, answer]
+                         {
+                             auto *dialog = window.findChild<QDialog *>(QString::fromLatin1(name));
+                             if (!dialog || !dialog->isVisible())
+                             {
+                                 QTest::qFail("新增窗口未显示", __FILE__, __LINE__);
+                                 return;
+                             }
+                             answer(dialog);
+                             if (dialog->isVisible())
+                                 dialog->reject();
+                         });
+      window.findChild<QAction *>(QString::fromLatin1(action))->trigger();
+  }
   static void answerNodeTags(MainWindow &window, std::function<void(QDialog *)> answer)
   {
       QTimer::singleShot(0, &window,
@@ -1959,7 +2029,6 @@ void TstUi::treeCanvasHundredNodesRoundTrip()
     QElapsedTimer elapsed;
     elapsed.start();
     QVERIFY(window.openFile(path));
-    qInfo() << "一百节点加载及布局毫秒数：" << elapsed.elapsed();
     auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
     const auto before = canvasNodes(view);
     QCOMPARE(before.size(), 100);
@@ -2260,10 +2329,8 @@ void TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent()
                 }
             }
         });
-    QAction *create = nullptr;
-    for (QAction *action : window.findChildren<QAction *>())
-        if (action->text().startsWith(QStringLiteral("新建")))
-            create = action;
+    // 新建工程与新建工作表是不同入口，用稳定对象名避免误开工作表窗口。
+    QAction *create = window.findChild<QAction *>(QStringLiteral("newProject"));
     QVERIFY(create != nullptr);
     create->trigger();
     QVERIFY(chinese);
@@ -3240,6 +3307,585 @@ void TstUi::outlineTagFilterTracksUndoAndRemoval()
     commands->undo();
     QCOMPARE(ProjectJson::toJson(document->project()), before);
     QVERIFY(filter->findData(QStringLiteral("唯一标签")) > 0);
+}
+
+void TstUi::editorSheetManagementAndDeletion()
+{
+    MainWindow window;
+    QTimer::singleShot(5000, &window,
+                       []
+                       {
+                           if (auto *dialog =
+                                   qobject_cast<QDialog *>(QApplication::activeModalWidget()))
+                           {
+                               qWarning() << "超时窗口" << dialog->windowTitle();
+                               dialog->reject();
+                           }
+                       });
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *selector = window.findChild<QComboBox *>("sheetSelector");
+    const ID first = doc->project().activeSheetId;
+    runEditor(window, "createSheet", "createSheetDialog", [](QDialog *) {});
+    QVERIFY(!commands->canUndo());
+    runEditor(
+        window, "createSheet", "createSheetDialog",
+        [](QDialog *dialog)
+        {
+            auto *kind = dialog->findChild<QComboBox *>("newSheetKind");
+            kind->setCurrentIndex(kind->findData("fishbone"));
+            dialog->findChild<QLineEdit *>("newSheetName")->setText(QStringLiteral("鱼骨验收"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+        });
+    QCOMPARE(doc->project().sheets.size(), 2);
+    const ID second = doc->project().activeSheetId;
+    QVERIFY(second != first);
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.last()).kind, QStringLiteral("fishbone"));
+    QCOMPARE(selector->currentData().toString(), second);
+    QCOMPARE(canvasNodes(window.findChild<QGraphicsView *>("topicPreview")).size(), 7);
+    window.findChild<QAction *>("changeSheetKind")->trigger();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.last()).kind, QStringLiteral("mindmap"));
+    commands->undo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.last()).kind, QStringLiteral("fishbone"));
+    answerTitleDialog(QStringLiteral("鱼骨新名称"));
+    window.findChild<QAction *>("renameSheet")->trigger();
+    QCOMPARE(selector->currentText(), QStringLiteral("鱼骨新名称"));
+    selector->setCurrentIndex(selector->findData(first));
+    QCOMPARE(doc->project().activeSheetId, first);
+    commands->undo();
+    QCOMPARE(doc->project().activeSheetId, second);
+    answerDeletion(QStringLiteral("取消"));
+    window.findChild<QAction *>("deleteSheet")->trigger();
+    QCOMPARE(doc->project().sheets.size(), 2);
+    answerDeletion(QStringLiteral("删除工作表"));
+    window.findChild<QAction *>("deleteSheet")->trigger();
+    QCOMPARE(doc->project().sheets.size(), 1);
+    commands->undo();
+    QCOMPARE(doc->project().sheets.size(), 2);
+    QCOMPARE(doc->project().activeSheetId, second);
+    QTemporaryDir files;
+    QVERIFY(window.saveProjectTo(files.filePath("sheets.lingya")));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(files.filePath("sheets.lingya")));
+    QCOMPARE(reopened.findChild<QComboBox *>("sheetSelector")->currentText(),
+             QStringLiteral("鱼骨新名称"));
+}
+
+void TstUi::editorSheetDeletionProtectsUserData_data()
+{
+    QTest::addColumn<QString>("kind");
+    QTest::newRow("card") << QStringLiteral("card");
+    QTest::newRow("route") << QStringLiteral("route");
+    QTest::newRow("draft") << QStringLiteral("draft");
+}
+
+void TstUi::editorSheetDeletionProtectsUserData()
+{
+    QFETCH(QString, kind);
+    MainWindow window;
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    QVERIFY(std::holds_alternative<ID>(SheetCommands(commands, doc).createSheet("mindmap")));
+    Project project = doc->snapshot();
+    const auto &tree = std::get<TreeSheet>(project.sheets.last());
+    if (kind == "card")
+    {
+        ReviewCard card;
+        card.id = canvasId("protected-card");
+        card.sheetId = tree.id;
+        card.nodeId = tree.rootId;
+        card.front = "正面";
+        card.back = "背面";
+        card.status = "mastered";
+        card.lastReviewedAt = QDateTime::currentDateTimeUtc();
+        project.cards.append(card);
+    }
+    else if (kind == "route")
+    {
+        PresentationRoute route;
+        route.id = canvasId("protected-route");
+        route.sheetId = tree.id;
+        route.title = "讲解";
+        route.steps.append({canvasId("step"), tree.rootId, "我的备注"});
+        project.routes.append(route);
+    }
+    else
+    {
+        TextDraft draft;
+        draft.id = canvasId("protected-draft");
+        draft.sourceSheetId = tree.id;
+        draft.title = "文稿";
+        draft.createdAt = QDateTime::currentDateTimeUtc();
+        project.drafts.append(draft);
+    }
+    loadEditorFixture(window, project);
+    QVERIFY(ProjectValidator::validate(project).isEmpty());
+    const auto before = QJsonDocument(ProjectJson::toJson(doc->project())).toJson();
+    answerDeletion(QStringLiteral("确定"));
+    window.findChild<QAction *>("deleteSheet")->trigger();
+    QCOMPARE(QJsonDocument(ProjectJson::toJson(doc->project())).toJson(), before);
+    QVERIFY(!commands->canUndo());
+    QVERIFY(!doc->isModified());
+}
+
+void TstUi::editorClipboardCopyAndCut()
+{
+    MainWindow window;
+    Project project = canvasProject(3, 1);
+    const auto &fixtureTree = std::get<TreeSheet>(project.sheets.first());
+    Task task;
+    task.id = canvasId("clipboard-task");
+    task.title = fixtureTree.nodes.value(canvasId("branch-0")).title;
+    task.source = TaskSource{fixtureTree.id, canvasId("branch-0")};
+    project.tasks.append(task);
+    ReviewCard card;
+    card.id = canvasId("clipboard-card");
+    card.sheetId = fixtureTree.id;
+    card.nodeId = canvasId("branch-0");
+    card.front = "学习记录";
+    card.back = "保留";
+    project.cards.append(card);
+    PresentationRoute route;
+    route.id = canvasId("clipboard-route");
+    route.sheetId = fixtureTree.id;
+    route.title = "讲解";
+    route.steps.append({canvasId("clipboard-step"), canvasId("branch-0"), "讲解备注"});
+    project.routes.append(route);
+    loadEditorFixture(window, project);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const ID a = canvasId("branch-0"), b = canvasId("branch-1");
+    chooseTopic(window, a);
+    window.findChild<QAction *>("copyTopic")->trigger();
+    QVERIFY(QApplication::clipboard()->mimeData()->hasFormat(Fragment::kMimeType));
+    QVERIFY(QApplication::clipboard()->text().contains("  任务1-1"));
+    QVERIFY(!doc->isModified());
+    chooseTopic(window, b);
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    const auto &pasted = std::get<TreeSheet>(doc->project().sheets.first());
+    QCOMPARE(pasted.nodes.size(), 9);
+    QCOMPARE(doc->project().tasks.size(), 2);
+    QCOMPARE(doc->project().cards.size(), 1);
+    QCOMPARE(doc->project().routes.size(), 1);
+    QSet<ID> ids;
+    for (const auto &node : pasted.nodes)
+        ids.insert(node.id);
+    QCOMPARE(ids.size(), 9);
+    commands->undo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), 7);
+    commands->redo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), 9);
+    // 延迟剪切不先删源，成功粘贴保留原ID且只产生一次移动。
+    chooseTopic(window, a);
+    const qint64 revision = doc->sessionRevision();
+    window.findChild<QAction *>("cutTopic")->trigger();
+    QCOMPARE(doc->sessionRevision(), revision);
+    chooseTopic(window, b);
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(a).parentId.value(), b);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    QCOMPARE(doc->project().tasks.first().id, task.id);
+    QCOMPARE(doc->project().tasks.first().source->nodeId, a);
+    QCOMPARE(doc->project().cards.first().nodeId, a);
+    QCOMPARE(doc->project().routes.first().steps.first().nodeId, a);
+    commands->undo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(a).parentId.value(),
+             std::get<TreeSheet>(doc->project().sheets.first()).rootId);
+    QTemporaryDir files;
+    QVERIFY(window.saveProjectTo(files.filePath("clipboard.lingya")));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(files.filePath("clipboard.lingya")));
+    QCOMPARE(std::get<TreeSheet>(reopened.findChild<ProjectDocument *>()->project().sheets.first())
+                 .nodes.size(),
+             9);
+    // 跨表普通复制允许，仍重映射ID。
+    chooseTopic(window, a);
+    window.findChild<QAction *>("copyTopic")->trigger();
+    QVERIFY(std::holds_alternative<ID>(SheetCommands(commands, doc).createSheet("mindmap")));
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.last()).nodes.size(), 3);
+    QApplication::clipboard()->clear();
+}
+
+void TstUi::editorClipboardRejectsStaleAndInvalid()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 1));
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const ID root = std::get<TreeSheet>(doc->project().sheets.first()).rootId;
+    answerDeletion(QStringLiteral("确定"));
+    window.findChild<QAction *>("cutTopic")->trigger();
+    QVERIFY(!commands->canUndo());
+    chooseTopic(window, canvasId("branch-0"));
+    window.findChild<QAction *>("cutTopic")->trigger();
+    chooseTopic(window, canvasId("leaf-0-0"));
+    answerDeletion(QStringLiteral("确定"));
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QVERIFY(!commands->canUndo()); // 不能把父主题移入自身后代
+    QVERIFY(window.renameRootTo(QStringLiteral("修订变化")));
+    const qint64 revision = doc->sessionRevision();
+    chooseTopic(window, root);
+    answerDeletion(QStringLiteral("确定"));
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), 5);
+    auto *mime = new QMimeData;
+    mime->setData(Fragment::kMimeType, "{broken");
+    QApplication::clipboard()->setMimeData(mime);
+    answerDeletion(QStringLiteral("确定"));
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QCOMPARE(doc->sessionRevision(), revision);
+    QApplication::clipboard()->clear();
+}
+
+void TstUi::editorCanvasDragKeepsIdsAndRepairsFrames()
+{
+    MainWindow window;
+    Project project = canvasProject(3, 0);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.layout = "right";
+    const ID a = canvasId("branch-0"), b = canvasId("branch-1"), c = canvasId("branch-2");
+    GroupAnnotation frame{canvasId("frame"), tree.rootId, "boundary", {a, b}, "外框", "#247A62"};
+    tree.annotations.append(frame);
+    loadEditorFixture(window, project);
+    window.show();
+    QTest::qWait(30);
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    window.findChild<QAction *>("fitTopic")->trigger();
+    const auto items = canvasNodes(view);
+    const QPoint start = view->mapFromScene(items.value(a)->pos()),
+                 end = view->mapFromScene(items.value(c)->pos());
+    const qint64 beforeDrag = window.findChild<ProjectDocument *>()->sessionRevision();
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    QEvent leave(QEvent::Leave);
+    QApplication::sendEvent(view->viewport(), &leave);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    QCOMPARE(window.findChild<ProjectDocument *>()->sessionRevision(), beforeDrag);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove(view->viewport(), end);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    auto *doc = window.findChild<ProjectDocument *>();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(a).parentId.value(), c);
+    QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).annotations.isEmpty());
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).annotations.size(), 1);
+    int frames = 0;
+    for (auto *item : view->scene()->items())
+        frames += item->data(0).toString() == "boundary";
+    QCOMPARE(frames, 1);
+}
+
+void TstUi::editorGlobalStylePrecedenceAndRoundTrip()
+{
+    MainWindow window;
+    Project project = canvasProject(2, 0);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.nodes[canvasId("branch-0")].style.fill = "#FFF0D0";
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    runEditor(window, "editSheetStyle", "sheetStyleDialog", [](QDialog *dialog)
+              { dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click(); });
+    QVERIFY(!commands->canUndo());
+    runEditor(window, "editSheetStyle", "sheetStyleDialog",
+              [](QDialog *dialog)
+              {
+                  dialog->findChild<QLineEdit *>("styleFill")->setText("wrong");
+                  dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+                  QVERIFY(dialog->isVisible());
+                  QVERIFY(!dialog->findChild<QLabel *>("nodeStyleError")->text().isEmpty());
+              });
+    QVERIFY(!commands->canUndo());
+    runEditor(window, "editSheetStyle", "sheetStyleDialog",
+              [](QDialog *dialog)
+              {
+                  dialog->findChild<QLineEdit *>("styleFill")->setText("#E7F0FF");
+                  dialog->findChild<QLineEdit *>("sheetEdgeColor")->setText("#406080");
+                  dialog->findChild<QCheckBox *>("sheetEdgeDashed")->setChecked(true);
+                  dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+              });
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    QCOMPARE(canvasNodes(view).value(canvasId("branch-0"))->nodeStyle().fill,
+             QStringLiteral("#FFF0D0"));
+    QCOMPARE(canvasNodes(view).value(canvasId("branch-1"))->nodeStyle().fill,
+             QStringLiteral("#E7F0FF"));
+    QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).defaultEdgeStyle.dashed);
+    commands->undo();
+    QVERIFY(!commands->canUndo());
+    commands->redo();
+    QTemporaryDir files;
+    QVERIFY(window.saveProjectTo(files.filePath("styles.lingya")));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(files.filePath("styles.lingya")));
+    QCOMPARE(ProjectJson::toJson(doc->project()),
+             ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()));
+}
+
+void TstUi::editorRelationsAndCommentsRoundTrip()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 0));
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const ID a = canvasId("branch-0"), b = canvasId("branch-1");
+    runEditor(
+        window, "editRelations", "relationsDialog",
+        [&](QDialog *dialog)
+        {
+            auto *source = dialog->findChild<QComboBox *>("relationSource");
+            auto *target = dialog->findChild<QComboBox *>("relationTarget");
+            source->setCurrentIndex(source->findData(a));
+            target->setCurrentIndex(target->findData(b));
+            dialog->findChild<QLineEdit *>("relationLabel")->setText(QStringLiteral("先修关系"));
+            dialog->findChild<QPushButton *>("applyRecord")->click();
+            QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).relations.size(), 1);
+            auto *list = dialog->findChild<QListWidget *>("records");
+            list->itemClicked(list->item(0));
+            dialog->findChild<QLineEdit *>("relationColor")->setText("#406080");
+            auto *arrow = dialog->findChild<QComboBox *>("relationArrow");
+            arrow->setCurrentIndex(arrow->findData("both"));
+            dialog->findChild<QPushButton *>("applyRecord")->click();
+            QCOMPARE(
+                std::get<TreeSheet>(doc->project().sheets.first()).relations.first().style.color,
+                QStringLiteral("#406080"));
+        });
+    int arrows = 0, labels = 0;
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    for (auto *item : view->scene()->items())
+    {
+        arrows += item->data(0).toString() == "relationArrow";
+        labels += item->data(0).toString() == "relationLabel";
+    }
+    QCOMPARE(arrows, 2);
+    QCOMPARE(labels, 1);
+    commands->undo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).relations.first().arrow,
+             QStringLiteral("end"));
+    commands->redo();
+    chooseTopic(window, a);
+    runEditor(window, "editComments", "commentsDialog",
+              [](QDialog *dialog)
+              {
+                  dialog->findChild<QPlainTextEdit *>("commentBody")
+                      ->setPlainText(QStringLiteral("取消的批注草稿"));
+              });
+    QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).comments.isEmpty());
+    runEditor(window, "editComments", "commentsDialog",
+              [&](QDialog *dialog)
+              {
+                  dialog->findChild<QLineEdit *>("commentAuthor")->setText(QStringLiteral("甲"));
+                  auto *body = dialog->findChild<QPlainTextEdit *>("commentBody");
+                  body->setPlainText(QString());
+                  dialog->findChild<QPushButton *>("applyRecord")->click();
+                  QVERIFY(!dialog->findChild<QLabel *>("editorError")->text().isEmpty());
+                  body->setPlainText(QStringLiteral("请补充来源\n第二行批注"));
+                  dialog->findChild<QPushButton *>("applyRecord")->click();
+                  auto *list = dialog->findChild<QListWidget *>("records");
+                  QCOMPARE(list->count(), 1);
+                  list->itemClicked(list->item(0));
+                  dialog->findChild<QPushButton *>("removeRecord")->click();
+              });
+    const auto &comment = std::get<TreeSheet>(doc->project().sheets.first()).comments.first();
+    QVERIFY(comment.resolved);
+    QVERIFY(comment.createdAt.isValid());
+    QVERIFY(comment.updatedAt.isValid());
+    QCOMPARE(comment.author, QStringLiteral("甲"));
+    QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(a).note.isEmpty());
+    commands->undo();
+    QVERIFY(!std::get<TreeSheet>(doc->project().sheets.first()).comments.first().resolved);
+    commands->redo();
+    QTemporaryDir files;
+    QVERIFY(window.saveProjectTo(files.filePath("relations-comments.lingya")));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(files.filePath("relations-comments.lingya")));
+    QCOMPARE(ProjectJson::toJson(doc->project()),
+             ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()));
+    runEditor(window, "editRelations", "relationsDialog",
+              [](QDialog *dialog)
+              {
+                  auto *list = dialog->findChild<QListWidget *>("records");
+                  list->itemClicked(list->item(0));
+                  dialog->findChild<QPushButton *>("removeRecord")->click();
+              });
+    QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).relations.isEmpty());
+    commands->undo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).relations.size(), 1);
+}
+
+void TstUi::editorAnnotationsFollowStructure()
+{
+    MainWindow window;
+    Project project = canvasProject(3, 1);
+    std::get<TreeSheet>(project.sheets.first()).layout = "right";
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const auto addAnnotation = [&](const QString &kind)
+    {
+        runEditor(
+            window, "editAnnotations", "annotationsDialog",
+            [&](QDialog *dialog)
+            {
+                auto *choice = dialog->findChild<QComboBox *>("annotationKind");
+                choice->setCurrentIndex(choice->findData(kind));
+                auto *list = dialog->findChild<QListWidget *>("annotationMembers");
+                QCOMPARE(list->count(), 3);
+                list->item(0)->setSelected(true);
+                list->item(2)->setSelected(true);
+                dialog->findChild<QPushButton *>("applyRecord")->click();
+                QVERIFY(!dialog->findChild<QLabel *>("editorError")->text().isEmpty());
+                QVERIFY(!commands->canUndo() ||
+                        !std::get<TreeSheet>(doc->project().sheets.first()).annotations.isEmpty());
+                list->item(1)->setSelected(true);
+                dialog->findChild<QLineEdit *>("annotationText")
+                    ->setText(QStringLiteral("连续分支概要") + QString(180, QChar(0x4E2D)));
+                dialog->findChild<QPushButton *>("applyRecord")->click();
+            });
+    };
+    addAnnotation("boundary");
+    addAnnotation("summary");
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).annotations.size(), 2);
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    int frames = 0, summaries = 0;
+    for (auto *item : view->scene()->items())
+    {
+        frames += item->data(0).toString() == "boundary";
+        summaries += item->data(0).toString() == "summary";
+        if (item->data(0).toString() == "annotationLabel")
+            for (auto *node : canvasNodes(view))
+                QVERIFY(!item->sceneBoundingRect().intersects(node->sceneBoundingRect()));
+    }
+    QCOMPARE(frames, 1);
+    QCOMPARE(summaries, 1);
+    const QString capture = qEnvironmentVariable("LINGYA_EDITOR_CAPTURE");
+    if (!capture.isEmpty())
+    {
+        window.show();
+        QTest::qWait(30);
+        window.findChild<QAction *>("fitTopic")->trigger();
+        QVERIFY(window.grab().save(capture));
+    }
+    const ID sheetId = doc->project().activeSheetId;
+    NodeCommands nodes(commands, doc);
+    QVERIFY(std::holds_alternative<bool>(nodes.deleteSubtree(sheetId, canvasId("branch-2"))));
+    QCOMPARE(
+        std::get<TreeSheet>(doc->project().sheets.first()).annotations.first().memberIds.size(), 2);
+    frames = 0;
+    for (auto *item : view->scene()->items())
+        frames += item->data(0).toString() == "boundary";
+    QCOMPARE(frames, 1);
+    QVERIFY(std::holds_alternative<bool>(
+        nodes.moveSubtree(sheetId, canvasId("branch-0"), canvasId("branch-1"))));
+    QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).annotations.isEmpty());
+    commands->undo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).annotations.size(), 2);
+    QTemporaryDir files;
+    QVERIFY(window.saveProjectTo(files.filePath("annotations.lingya")));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(files.filePath("annotations.lingya")));
+    QCOMPARE(ProjectJson::toJson(doc->project()),
+             ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()));
+}
+
+void TstUi::editorAnnotationEditDeleteAndThemeColor()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 0));
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    runEditor(
+        window, "editAnnotations", "annotationsDialog",
+        [&](QDialog *dialog)
+        {
+            auto *members = dialog->findChild<QListWidget *>("annotationMembers");
+            members->item(0)->setSelected(true);
+            members->item(1)->setSelected(true);
+            dialog->findChild<QLineEdit *>("annotationText")->setText(QStringLiteral("原外框"));
+            dialog->findChild<QPushButton *>("applyRecord")->click();
+            auto *list = dialog->findChild<QListWidget *>("records");
+            list->itemClicked(list->item(0));
+            dialog->findChild<QLineEdit *>("annotationText")
+                ->setText(QStringLiteral("修改后的外框"));
+            dialog->findChild<QLineEdit *>("annotationColor")->setText("#406080");
+            dialog->findChild<QPushButton *>("applyRecord")->click();
+            QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).annotations.first().text,
+                     QStringLiteral("修改后的外框"));
+            list->itemClicked(list->item(0));
+            dialog->findChild<QLineEdit *>("annotationColor")->clear();
+            dialog->findChild<QPushButton *>("applyRecord")->click();
+            const auto &tree = std::get<TreeSheet>(doc->project().sheets.first());
+            QCOMPARE(tree.annotations.first().color, tree.defaultEdgeStyle.color);
+            const auto loaded = ProjectJson::fromObject(ProjectJson::toJson(doc->project()));
+            QVERIFY(std::holds_alternative<Project>(loaded));
+            const auto *view = window.findChild<QGraphicsView *>("topicPreview");
+            const QRectF rootBounds =
+                canvasNodes(const_cast<QGraphicsView *>(view))
+                    .value(std::get<TreeSheet>(doc->project().sheets.first()).rootId)
+                    ->sceneBoundingRect();
+            for (auto *item : view->scene()->items())
+                if (item->data(0).toString() == "boundary")
+                    QVERIFY(!item->sceneBoundingRect().intersects(rootBounds));
+            list->itemClicked(list->item(0));
+            dialog->findChild<QPushButton *>("removeRecord")->click();
+        });
+    QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).annotations.isEmpty());
+    commands->undo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).annotations.size(), 1);
+}
+
+void TstUi::editorFilterRestoresExpansionAndKeepsNewChild()
+{
+    MainWindow window;
+    Project project = canvasProject(2, 1);
+    std::get<TreeSheet>(project.sheets.first()).nodes[canvasId("leaf-0-0")].tags = {
+        QStringLiteral("研究")};
+    loadEditorFixture(window, project);
+    auto *outline = window.findChild<QTreeWidget *>("topicOutline");
+    auto *filter = window.findChild<QComboBox *>("outlineTagFilter");
+    chooseTopic(window, canvasId("branch-0"));
+    outline->currentItem()->setExpanded(false);
+    filter->setCurrentIndex(filter->findData(QStringLiteral("研究")));
+    QVERIFY(outline->topLevelItem(0)->child(0)->isExpanded());
+    filter->setCurrentIndex(0);
+    QVERIFY(!outline->topLevelItem(0)->child(0)->isExpanded());
+    filter->setCurrentIndex(filter->findData(QStringLiteral("研究")));
+    chooseTopic(window, canvasId("leaf-0-0"));
+    answerTitleDialog(QStringLiteral("无标签的新主题"));
+    window.findChild<QAction *>("addChildTopic")->trigger();
+    QCOMPARE(filter->currentData().toString(), QStringLiteral("研究"));
+    QCOMPARE(std::get<TreeSheet>(window.findChild<ProjectDocument *>()->project().sheets.first())
+                 .nodes.size(),
+             6);
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(filter->currentData().toString(), QStringLiteral("研究"));
+    filter->setCurrentIndex(0);
+    QVERIFY(!outline->topLevelItem(0)->child(0)->isExpanded());
+}
+
+void TstUi::editorGanttDatesUseCommand()
+{
+    MainWindow window;
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const auto result = TaskCommands(commands, doc).addTask(QStringLiteral("可拖动任务"));
+    QVERIFY(std::holds_alternative<ID>(result));
+    window.findChild<QAction *>("showGantt")->trigger();
+    auto *view = window.findChild<GanttView *>();
+    QVERIFY(view);
+    const qint64 revision = doc->sessionRevision();
+    view->taskDatesEdited(std::get<ID>(result), QDate(2026, 10, 30), QDate(2026, 11, 2));
+    QCOMPARE(doc->project().tasks.first().startDate.value(), QDate(2026, 10, 30));
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    commands->undo();
+    QVERIFY(!doc->project().tasks.first().startDate.has_value());
+    commands->redo();
+    QCOMPARE(view->tasks().first().endDate.value(), QDate(2026, 11, 2));
+    answerDeletion(QStringLiteral("确定"));
+    view->taskDatesEdited(std::get<ID>(result), QDate(2026, 11, 10), QDate(2026, 11, 2));
+    QCOMPARE(view->tasks().first().startDate.value(), QDate(2026, 10, 30));
 }
 
 QTEST_MAIN(TstUi)

@@ -149,13 +149,22 @@ QRectF NodeItem::nodeRect() const
     return m_rect;
 }
 
+void NodeItem::setCutPending(bool pending)
+{
+    m_cutPending = pending;
+    update();
+}
+
 void NodeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
     Q_UNUSED(option);
     Q_UNUSED(widget);
     painter->setRenderHint(QPainter::Antialiasing);
-    painter->setPen(QPen(QColor(isSelected() ? QStringLiteral("#247A62") : m_style.borderColor),
-                         isSelected() ? qMax(2.5, m_style.borderWidth) : m_style.borderWidth));
+    QPen border(QColor(isSelected() ? QStringLiteral("#247A62") : m_style.borderColor),
+                isSelected() ? qMax(2.5, m_style.borderWidth) : m_style.borderWidth);
+    if (m_cutPending)
+        border.setStyle(Qt::DashLine);
+    painter->setPen(border);
     painter->setBrush(QColor(m_style.fill));
     painter->drawPath(m_shape);
     if (!m_icon.isNull())

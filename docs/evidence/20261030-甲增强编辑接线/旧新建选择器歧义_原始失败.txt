@@ -1,0 +1,290 @@
+********* Start testing of TstUi *********
+Config: Using QtTest library 6.8.3, Qt 6.8.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 13.1.0), windows 11
+INFO   : TstUi::initTestCase() entering
+PASS   : TstUi::initTestCase()
+INFO   : TstUi::undoRedoViaShortcuts() entering
+QWARN  : TstUi::undoRedoViaShortcuts() QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : TstUi::undoRedoViaShortcuts() This plugin does not support propagateSizeHints()
+PASS   : TstUi::undoRedoViaShortcuts()
+INFO   : TstUi::editorSheetManagementAndDeletion() entering
+QWARN  : TstUi::editorSheetManagementAndDeletion() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorSheetManagementAndDeletion() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorSheetManagementAndDeletion() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorSheetManagementAndDeletion() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorSheetManagementAndDeletion() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorSheetManagementAndDeletion() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorSheetManagementAndDeletion()
+INFO   : TstUi::editorSheetDeletionProtectsUserData() entering
+QWARN  : TstUi::editorSheetDeletionProtectsUserData(card) This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorSheetDeletionProtectsUserData(card)
+QWARN  : TstUi::editorSheetDeletionProtectsUserData(route) This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorSheetDeletionProtectsUserData(route)
+QWARN  : TstUi::editorSheetDeletionProtectsUserData(draft) This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorSheetDeletionProtectsUserData(draft)
+INFO   : TstUi::editorClipboardCopyAndCut() entering
+QWARN  : TstUi::editorClipboardCopyAndCut() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorClipboardCopyAndCut()
+INFO   : TstUi::editorClipboardRejectsStaleAndInvalid() entering
+QWARN  : TstUi::editorClipboardRejectsStaleAndInvalid() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorClipboardRejectsStaleAndInvalid() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorClipboardRejectsStaleAndInvalid() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorClipboardRejectsStaleAndInvalid() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorClipboardRejectsStaleAndInvalid()
+INFO   : TstUi::editorCanvasDragKeepsIdsAndRepairsFrames() entering
+QWARN  : TstUi::editorCanvasDragKeepsIdsAndRepairsFrames() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorCanvasDragKeepsIdsAndRepairsFrames()
+INFO   : TstUi::editorGlobalStylePrecedenceAndRoundTrip() entering
+QWARN  : TstUi::editorGlobalStylePrecedenceAndRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorGlobalStylePrecedenceAndRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorGlobalStylePrecedenceAndRoundTrip() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorGlobalStylePrecedenceAndRoundTrip()
+INFO   : TstUi::editorRelationsAndCommentsRoundTrip() entering
+QWARN  : TstUi::editorRelationsAndCommentsRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorRelationsAndCommentsRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorRelationsAndCommentsRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorRelationsAndCommentsRoundTrip() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorRelationsAndCommentsRoundTrip()
+INFO   : TstUi::editorAnnotationsFollowStructure() entering
+QWARN  : TstUi::editorAnnotationsFollowStructure() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorAnnotationsFollowStructure() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorAnnotationsFollowStructure()
+INFO   : TstUi::editorAnnotationEditDeleteAndThemeColor() entering
+QWARN  : TstUi::editorAnnotationEditDeleteAndThemeColor() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorAnnotationEditDeleteAndThemeColor()
+INFO   : TstUi::editorFilterRestoresExpansionAndKeepsNewChild() entering
+QWARN  : TstUi::editorFilterRestoresExpansionAndKeepsNewChild() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorFilterRestoresExpansionAndKeepsNewChild() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorFilterRestoresExpansionAndKeepsNewChild()
+INFO   : TstUi::editorGanttDatesUseCommand() entering
+QWARN  : TstUi::editorGanttDatesUseCommand() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorGanttDatesUseCommand()
+INFO   : TstUi::redoWithEditorFocus() entering
+QWARN  : TstUi::redoWithEditorFocus(大纲-CtrlY) This plugin does not support propagateSizeHints()
+PASS   : TstUi::redoWithEditorFocus(大纲-CtrlY)
+QWARN  : TstUi::redoWithEditorFocus(大纲-CtrlShiftZ) This plugin does not support propagateSizeHints()
+PASS   : TstUi::redoWithEditorFocus(大纲-CtrlShiftZ)
+QWARN  : TstUi::redoWithEditorFocus(画布-CtrlY) This plugin does not support propagateSizeHints()
+PASS   : TstUi::redoWithEditorFocus(画布-CtrlY)
+QWARN  : TstUi::redoWithEditorFocus(画布-CtrlShiftZ) This plugin does not support propagateSizeHints()
+PASS   : TstUi::redoWithEditorFocus(画布-CtrlShiftZ)
+INFO   : TstUi::saveAsDialogRoundTripAndCancel() entering
+QWARN  : TstUi::saveAsDialogRoundTripAndCancel() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::saveAsDialogRoundTripAndCancel() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::saveAsDialogRoundTripAndCancel() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::saveAsDialogRoundTripAndCancel() This plugin does not support propagateSizeHints()
+PASS   : TstUi::saveAsDialogRoundTripAndCancel()
+INFO   : TstUi::undoRedoDisabledBeforeAnyEdit() entering
+QWARN  : TstUi::undoRedoDisabledBeforeAnyEdit() This plugin does not support propagateSizeHints()
+PASS   : TstUi::undoRedoDisabledBeforeAnyEdit()
+INFO   : TstUi::openFileRestoresContent() entering
+PASS   : TstUi::openFileRestoresContent()
+INFO   : TstUi::openFileFailureKeepsProject() entering
+QWARN  : TstUi::openFileFailureKeepsProject() This plugin does not support propagateSizeHints()
+PASS   : TstUi::openFileFailureKeepsProject()
+INFO   : TstUi::recentFilesMenuOpensEntry() entering
+PASS   : TstUi::recentFilesMenuOpensEntry()
+INFO   : TstUi::recentFilesMissingEntryRemoved() entering
+QWARN  : TstUi::recentFilesMissingEntryRemoved() This plugin does not support propagateSizeHints()
+PASS   : TstUi::recentFilesMissingEntryRemoved()
+INFO   : TstUi::ganttHostSwitchAndAttach() entering
+QWARN  : TstUi::ganttHostSwitchAndAttach() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::ganttHostSwitchAndAttach() This plugin does not support propagateSizeHints()
+PASS   : TstUi::ganttHostSwitchAndAttach()
+INFO   : TstUi::recentFilesCancelKeepsUnsavedContentAndEntry() entering
+QWARN  : TstUi::recentFilesCancelKeepsUnsavedContentAndEntry() This plugin does not support propagateSizeHints()
+PASS   : TstUi::recentFilesCancelKeepsUnsavedContentAndEntry()
+INFO   : TstUi::outlineEditingRoundTrip() entering
+QWARN  : TstUi::outlineEditingRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineEditingRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineEditingRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineEditingRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineEditingRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineEditingRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineEditingRoundTrip() This plugin does not support propagateSizeHints()
+PASS   : TstUi::outlineEditingRoundTrip()
+INFO   : TstUi::outlineCancelAndUndoSelection() entering
+QWARN  : TstUi::outlineCancelAndUndoSelection() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineCancelAndUndoSelection() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineCancelAndUndoSelection() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::outlineCancelAndUndoSelection() This plugin does not support propagateSizeHints()
+PASS   : TstUi::outlineCancelAndUndoSelection()
+INFO   : TstUi::rootRenameUsesSharedRulesAndTaskLinkage() entering
+QWARN  : TstUi::rootRenameUsesSharedRulesAndTaskLinkage() This plugin does not support propagateSizeHints()
+PASS   : TstUi::rootRenameUsesSharedRulesAndTaskLinkage()
+INFO   : TstUi::nodeMetadataSurvivesEditorAndFileRoundTrip() entering
+QWARN  : TstUi::nodeMetadataSurvivesEditorAndFileRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeMetadataSurvivesEditorAndFileRoundTrip() This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeMetadataSurvivesEditorAndFileRoundTrip()
+INFO   : TstUi::nodeMetadataNoOpKeepsWindowClean() entering
+PASS   : TstUi::nodeMetadataNoOpKeepsWindowClean()
+INFO   : TstUi::nodePropertiesEditClearUndoAndRoundTrip() entering
+QWARN  : TstUi::nodePropertiesEditClearUndoAndRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodePropertiesEditClearUndoAndRoundTrip() This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodePropertiesEditClearUndoAndRoundTrip()
+INFO   : TstUi::nodePropertiesCancelInvalidAndUnknownIcon() entering
+QWARN  : TstUi::nodePropertiesCancelInvalidAndUnknownIcon() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodePropertiesCancelInvalidAndUnknownIcon() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodePropertiesCancelInvalidAndUnknownIcon() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodePropertiesCancelInvalidAndUnknownIcon() This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodePropertiesCancelInvalidAndUnknownIcon()
+INFO   : TstUi::nodeIconResourcesAndMeasurement() entering
+PASS   : TstUi::nodeIconResourcesAndMeasurement()
+INFO   : TstUi::nodeStyleShapes() entering
+PASS   : TstUi::nodeStyleShapes(roundRect)
+PASS   : TstUi::nodeStyleShapes(rect)
+PASS   : TstUi::nodeStyleShapes(ellipse)
+PASS   : TstUi::nodeStyleShapes(diamond)
+PASS   : TstUi::nodeStyleShapes(parallelogram)
+INFO   : TstUi::nodeStyleEditUndoAndRoundTrip() entering
+QWARN  : TstUi::nodeStyleEditUndoAndRoundTrip() This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeStyleEditUndoAndRoundTrip()
+INFO   : TstUi::nodeStyleCancelInvalidResetAndNoOp() entering
+QWARN  : TstUi::nodeStyleCancelInvalidResetAndNoOp() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeStyleCancelInvalidResetAndNoOp() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeStyleCancelInvalidResetAndNoOp() This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeStyleCancelInvalidResetAndNoOp()
+INFO   : TstUi::nodeStyleUneditedFontOverride() entering
+QWARN  : TstUi::nodeStyleUneditedFontOverride(explicit-empty) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeStyleUneditedFontOverride(explicit-empty) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeStyleUneditedFontOverride(explicit-empty) This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeStyleUneditedFontOverride(explicit-empty)
+QWARN  : TstUi::nodeStyleUneditedFontOverride(whitespace-only) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeStyleUneditedFontOverride(whitespace-only) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeStyleUneditedFontOverride(whitespace-only) This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeStyleUneditedFontOverride(whitespace-only)
+QWARN  : TstUi::nodeStyleUneditedFontOverride(padded-family) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeStyleUneditedFontOverride(padded-family) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeStyleUneditedFontOverride(padded-family) This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeStyleUneditedFontOverride(padded-family)
+INFO   : TstUi::nodeStyleMixedHundredNodes() entering
+PASS   : TstUi::nodeStyleMixedHundredNodes()
+INFO   : TstUi::nodeTagsEditUndoAndRoundTrip() entering
+QWARN  : TstUi::nodeTagsEditUndoAndRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsEditUndoAndRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsEditUndoAndRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsEditUndoAndRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsEditUndoAndRoundTrip() This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeTagsEditUndoAndRoundTrip()
+INFO   : TstUi::nodeTagsNoOpCancelAndInputMethod() entering
+QWARN  : TstUi::nodeTagsNoOpCancelAndInputMethod() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsNoOpCancelAndInputMethod() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsNoOpCancelAndInputMethod() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsNoOpCancelAndInputMethod() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsNoOpCancelAndInputMethod() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsNoOpCancelAndInputMethod() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsNoOpCancelAndInputMethod() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsNoOpCancelAndInputMethod() This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeTagsNoOpCancelAndInputMethod()
+INFO   : TstUi::nodeTagsLimits() entering
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(tag-count) This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeTagsLimits(tag-count)
+QWARN  : TstUi::nodeTagsLimits(unicode-length) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(unicode-length) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(unicode-length) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(unicode-length) This plugin does not support propagateSizeHints()
+QWARN  : TstUi::nodeTagsLimits(unicode-length) This plugin does not support propagateSizeHints()
+PASS   : TstUi::nodeTagsLimits(unicode-length)
+INFO   : TstUi::outlineTagFilterIsTemporary() entering
+QWARN  : TstUi::outlineTagFilterIsTemporary() This plugin does not support propagateSizeHints()
+PASS   : TstUi::outlineTagFilterIsTemporary()
+INFO   : TstUi::outlineTagFilterTracksUndoAndRemoval() entering
+QWARN  : TstUi::outlineTagFilterTracksUndoAndRemoval() This plugin does not support propagateSizeHints()
+PASS   : TstUi::outlineTagFilterTracksUndoAndRemoval()
+INFO   : TstUi::ganttLazyLoadRefreshAndUndo() entering
+PASS   : TstUi::ganttLazyLoadRefreshAndUndo()
+INFO   : TstUi::previewZoomAndLongTitle() entering
+PASS   : TstUi::previewZoomAndLongTitle()
+INFO   : TstUi::treeCanvasNodesEdgesSelectionAndRename() entering
+QWARN  : TstUi::treeCanvasNodesEdgesSelectionAndRename() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::treeCanvasNodesEdgesSelectionAndRename() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::treeCanvasNodesEdgesSelectionAndRename() This plugin does not support propagateSizeHints()
+PASS   : TstUi::treeCanvasNodesEdgesSelectionAndRename()
+INFO   : TstUi::treeCanvasHundredNodesRoundTrip() entering
+PASS   : TstUi::treeCanvasHundredNodesRoundTrip()
+INFO   : TstUi::fishboneCanvasUsesFishboneLayout() entering
+QWARN  : TstUi::fishboneCanvasUsesFishboneLayout() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::fishboneCanvasUsesFishboneLayout() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::fishboneCanvasUsesFishboneLayout() This plugin does not support propagateSizeHints()
+PASS   : TstUi::fishboneCanvasUsesFishboneLayout()
+INFO   : TstUi::fishboneCanvasDeepWideNoOverlap() entering
+PASS   : TstUi::fishboneCanvasDeepWideNoOverlap()
+INFO   : TstUi::treeCanvasCollapsedSelectionIsViewOnly() entering
+PASS   : TstUi::treeCanvasCollapsedSelectionIsViewOnly()
+INFO   : TstUi::multilineTitleInputMethodAndCancel() entering
+QWARN  : TstUi::multilineTitleInputMethodAndCancel() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::multilineTitleInputMethodAndCancel() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::multilineTitleInputMethodAndCancel() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::multilineTitleInputMethodAndCancel() This plugin does not support propagateSizeHints()
+PASS   : TstUi::multilineTitleInputMethodAndCancel()
+INFO   : TstUi::siblingKeyboardInsertionRoundTrip() entering
+QWARN  : TstUi::siblingKeyboardInsertionRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::siblingKeyboardInsertionRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::siblingKeyboardInsertionRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::siblingKeyboardInsertionRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::siblingKeyboardInsertionRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::siblingKeyboardInsertionRoundTrip() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::siblingKeyboardInsertionRoundTrip() This plugin does not support propagateSizeHints()
+PASS   : TstUi::siblingKeyboardInsertionRoundTrip()
+INFO   : TstUi::deletionCancelAndRootProtection() entering
+QWARN  : TstUi::deletionCancelAndRootProtection() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::deletionCancelAndRootProtection() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::deletionCancelAndRootProtection() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::deletionCancelAndRootProtection() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::deletionCancelAndRootProtection() This plugin does not support propagateSizeHints()
+PASS   : TstUi::deletionCancelAndRootProtection()
+INFO   : TstUi::deletionPoliciesAndUndo() entering
+QWARN  : TstUi::deletionPoliciesAndUndo(保留独立任务) This plugin does not support propagateSizeHints()
+PASS   : TstUi::deletionPoliciesAndUndo(保留独立任务)
+QWARN  : TstUi::deletionPoliciesAndUndo(连同任务删除) This plugin does not support propagateSizeHints()
+PASS   : TstUi::deletionPoliciesAndUndo(连同任务删除)
+INFO   : TstUi::exportManualFixtures() entering
+PASS   : TstUi::exportManualFixtures()
+INFO   : TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent() entering
+QWARN  : TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent() This plugin does not support propagateSizeHints()
+QFATAL : TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent() Test function timed out
+FAIL!  : TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent() Received a fatal error.
+Totals: 65 passed, 1 failed, 0 skipped, 0 blacklisted, 31952ms
+********* Finished testing of TstUi *********

@@ -121,69 +121,70 @@ class TstNodeCommands : public QObject {
     Q_OBJECT
 
 private slots:
-    void addChildToRootCreatesAndUndoes();
-    void addChildNormalizesSiblingOrder();
-    void addChildRejectsInvalidInput();
-    void addChildNormalizesTitle();
-    void addChildEnforcesTitleLimit();
-    void addChildEnforcesNodeLimit();
-    void renameNodeSyncsTaskAndRevision();
-    void renameNodeNoOpKeepsHistoryClean();
-    void renameNodeRepairsMismatchedTask();
-    void renameTaskSyncsNodeAndRevision();
-    void renameTaskNoOpKeepsHistoryClean();
-    void renameRejectsOverlongTitle();
+  void relationStyleIsAtomicAndValidated();
+  void addChildToRootCreatesAndUndoes();
+  void addChildNormalizesSiblingOrder();
+  void addChildRejectsInvalidInput();
+  void addChildNormalizesTitle();
+  void addChildEnforcesTitleLimit();
+  void addChildEnforcesNodeLimit();
+  void renameNodeSyncsTaskAndRevision();
+  void renameNodeNoOpKeepsHistoryClean();
+  void renameNodeRepairsMismatchedTask();
+  void renameTaskSyncsNodeAndRevision();
+  void renameTaskNoOpKeepsHistoryClean();
+  void renameRejectsOverlongTitle();
 
-    void addSiblingInsertsAfterReferenceWithNormalizedOrders();
-    void addSiblingAtEndKeepsAppendingOrder();
-    void addSiblingRejectsRootReference();
-    void addSiblingRejectsMissingReference();
-    void addSiblingNormalizesTitle();
-    void addSiblingSingleHistoryUndoRestores();
-    void deleteSubtreeRemovesNodesAndReferences();
-    void deleteSubtreeKeepAsStandaloneClearsTaskSource();
-    void deleteSubtreeDeleteTogetherRemovesTaskAndDependencies();
-    void deleteSubtreeMarksReviewCardsMissing();
-    void deleteSubtreeKeepsRoutesAndDrafts();
-    void deleteSubtreeRejectsRoot();
-    void deleteSubtreeBumpsParentRevision();
-    void deleteSubtreeUndoRestoresEverythingInOneStep();
+  void addSiblingInsertsAfterReferenceWithNormalizedOrders();
+  void addSiblingAtEndKeepsAppendingOrder();
+  void addSiblingRejectsRootReference();
+  void addSiblingRejectsMissingReference();
+  void addSiblingNormalizesTitle();
+  void addSiblingSingleHistoryUndoRestores();
+  void deleteSubtreeRemovesNodesAndReferences();
+  void deleteSubtreeKeepAsStandaloneClearsTaskSource();
+  void deleteSubtreeDeleteTogetherRemovesTaskAndDependencies();
+  void deleteSubtreeMarksReviewCardsMissing();
+  void deleteSubtreeKeepsRoutesAndDrafts();
+  void deleteSubtreeRejectsRoot();
+  void deleteSubtreeBumpsParentRevision();
+  void deleteSubtreeUndoRestoresEverythingInOneStep();
 
-    void updateMetaNoteSetsAndUndoes();
-    void updateMetaNoteRejectsOverlong();
-    void updateMetaIconSetsAndClears();
-    void updateMetaLinkValidatesProtocol();
-    void updateMetaTagsReplaceTrimAndLimits();
-    void updateMetaNoOpShortCircuits();
-    void updateMetaRejectsMissingNode();
-    void setStyleAppliesAndUndoes();
-    void setStyleClearsOverride();
-    void setStyleRejectsInvalidValues();
-    void setStyleNoOpShortCircuits();
+  void updateMetaNoteSetsAndUndoes();
+  void updateMetaNoteRejectsOverlong();
+  void updateMetaIconSetsAndClears();
+  void updateMetaLinkValidatesProtocol();
+  void updateMetaTagsReplaceTrimAndLimits();
+  void updateMetaNoOpShortCircuits();
+  void updateMetaRejectsMissingNode();
+  void setStyleAppliesAndUndoes();
+  void setStyleClearsOverride();
+  void setStyleRejectsInvalidValues();
+  void setStyleNoOpShortCircuits();
 
-    void moveSubtreeReordersSiblingsAcrossParents();
-    void moveSubtreeRejectsRootCycleAndBadReference();
-    void moveSubtreeNoOpShortCircuits();
-    void moveSubtreeOutOfFrameRemovesAnnotation();
-    void moveSubtreeIntoFrameJoinsAnnotation();
-    void moveSubtreeReordersInsideFrameKeepsAnnotation();
-    void addSiblingInsideFrameJoinsAnnotation();
-    void setSheetStyleAppliesAndShortCircuits();
-    void addRelationCreatesAndRejectsInvalid();
-    void updateRelationKeepsUntouchedFields();
-    void removeRelationDeletesAndReportsMissing();
-    void createAnnotationRequiresContiguousSiblings();
-    void createAnnotationStoresMembersInTreeOrder();
-    void updateAnnotationRevalidatesMembers();
-    void removeAnnotationDeletesAndReportsMissing();
-    void addCommentNormalizesTimestamps();
-    void resolveCommentShortCircuitsWhenUnchanged();
-    void copyFragmentCollapsesAncestorsAndKeepsInternalRefs();
-    void copyFragmentKeepsOnlyInternalReferences();
-    void pasteFragmentRemapsIdsRelationsAndTasks();
-    void fragmentJsonRoundTrips();
-    void fragmentJsonRejectsBadEnvelope();
-    void pasteFragmentRejectsEmptyOrMissingParent();
+  void moveSubtreeReordersSiblingsAcrossParents();
+  void moveSubtreeRejectsRootCycleAndBadReference();
+  void moveSubtreeNoOpShortCircuits();
+  void moveSubtreeOutOfFrameRemovesAnnotation();
+  void moveSubtreeIntoFrameJoinsAnnotation();
+  void moveSubtreeReordersInsideFrameKeepsAnnotation();
+  void addSiblingInsideFrameJoinsAnnotation();
+  void setSheetStyleAppliesAndShortCircuits();
+  void addRelationCreatesAndRejectsInvalid();
+  void updateRelationKeepsUntouchedFields();
+  void removeRelationDeletesAndReportsMissing();
+  void createAnnotationRequiresContiguousSiblings();
+  void createAnnotationStoresMembersInTreeOrder();
+  void updateAnnotationRevalidatesMembers();
+  void removeAnnotationDeletesAndReportsMissing();
+  void addCommentNormalizesTimestamps();
+  void resolveCommentShortCircuitsWhenUnchanged();
+  void copyFragmentCollapsesAncestorsAndKeepsInternalRefs();
+  void copyFragmentKeepsOnlyInternalReferences();
+  void pasteFragmentRemapsIdsRelationsAndTasks();
+  void fragmentJsonRoundTrips();
+  void fragmentJsonRejectsBadEnvelope();
+  void pasteFragmentRejectsEmptyOrMissingParent();
 };
 
 void TstNodeCommands::addChildToRootCreatesAndUndoes() {
@@ -1952,6 +1953,53 @@ void TstNodeCommands::pasteFragmentRejectsEmptyOrMissingParent() {
     const auto badSheet = nodes.pasteFragment(QStringLiteral("missing"), fixture.rootId, fragment);
     QCOMPARE(std::get<AppError>(badSheet).code, QStringLiteral("NOT_FOUND"));
     QVERIFY(!service.canUndo());
+}
+
+void TstNodeCommands::relationStyleIsAtomicAndValidated()
+{
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("关系样式")));
+    CommandService commands(&doc);
+    NodeCommands nodes(&commands, &doc);
+    const ID sheet = treeOf(doc.project()).id, root = treeOf(doc.project()).rootId;
+    const auto child = nodes.addChild(sheet, root, QStringLiteral("目标"));
+    QVERIFY(std::holds_alternative<ID>(child));
+    const auto relation =
+        nodes.addRelation(sheet, root, std::get<ID>(child), QStringLiteral("原标签"));
+    QVERIFY(std::holds_alternative<ID>(relation));
+    commands.clearHistory();
+    doc.setClean();
+    const Relation before = treeOf(doc.project()).relations.first();
+    RelationUpdate update;
+    update.label = QStringLiteral("新标签");
+    update.arrow = QStringLiteral("both");
+    update.style = EdgeStyle{QStringLiteral("#406080"), 3.125, true};
+    const qint64 revision = doc.sessionRevision();
+    QSignalSpy changes(&doc, &ProjectDocument::changed);
+    QVERIFY(
+        std::holds_alternative<bool>(nodes.updateRelation(sheet, std::get<ID>(relation), update)));
+    QCOMPARE(changes.count(), 1);
+    QCOMPARE(doc.sessionRevision(), revision + 1);
+    QCOMPARE(treeOf(doc.project()).relations.first().style.width, 3.125);
+    commands.undo();
+    QCOMPARE(treeOf(doc.project()).relations.first().label, before.label);
+    QCOMPARE(treeOf(doc.project()).relations.first().style.color, before.style.color);
+    commands.redo();
+    const qint64 after = doc.sessionRevision();
+    QVERIFY(
+        std::holds_alternative<bool>(nodes.updateRelation(sheet, std::get<ID>(relation), update)));
+    QCOMPARE(doc.sessionRevision(), after);
+    for (const EdgeStyle &invalid :
+         {EdgeStyle{QStringLiteral("red"), 1, false},
+          EdgeStyle{QStringLiteral("#406080"), 0, false},
+          EdgeStyle{QStringLiteral("#406080"), std::numeric_limits<double>::infinity(), false}})
+    {
+        update.style = invalid;
+        QVERIFY(std::holds_alternative<AppError>(
+            nodes.updateRelation(sheet, std::get<ID>(relation), update)));
+        QCOMPARE(doc.sessionRevision(), after);
+        QCOMPARE(treeOf(doc.project()).relations.first().style.width, 3.125);
+    }
 }
 
 QTEST_GUILESS_MAIN(TstNodeCommands)

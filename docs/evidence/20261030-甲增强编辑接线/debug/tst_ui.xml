@@ -1,0 +1,964 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstUi">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.1868"/>
+  </TestFunction>
+  <TestFunction name="undoRedoViaShortcuts">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="56.3868"/>
+  </TestFunction>
+  <TestFunction name="editorSheetManagementAndDeletion">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="63.8874"/>
+  </TestFunction>
+  <TestFunction name="editorSheetDeletionProtectsUserData">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[card]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[card]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[route]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[route]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[draft]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[draft]]></DataTag>
+    </Incident>
+    <Duration msecs="74.5702"/>
+  </TestFunction>
+  <TestFunction name="editorClipboardCopyAndCut">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="126.014"/>
+  </TestFunction>
+  <TestFunction name="editorClipboardRejectsStaleAndInvalid">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="11.7242"/>
+  </TestFunction>
+  <TestFunction name="editorCanvasDragKeepsIdsAndRepairsFrames">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="51.4829"/>
+  </TestFunction>
+  <TestFunction name="editorGlobalStylePrecedenceAndRoundTrip">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="70.7347"/>
+  </TestFunction>
+  <TestFunction name="editorRelationsAndCommentsRoundTrip">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="74.0523"/>
+  </TestFunction>
+  <TestFunction name="editorAnnotationsFollowStructure">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="67.6286"/>
+  </TestFunction>
+  <TestFunction name="editorAnnotationEditDeleteAndThemeColor">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="9.5238"/>
+  </TestFunction>
+  <TestFunction name="editorFilterRestoresExpansionAndKeepsNewChild">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="9.2474"/>
+  </TestFunction>
+  <TestFunction name="editorGanttDatesUseCommand">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="8.8367"/>
+  </TestFunction>
+  <TestFunction name="redoWithEditorFocus">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[大纲-CtrlY]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[大纲-CtrlY]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[大纲-CtrlShiftZ]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[大纲-CtrlShiftZ]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[画布-CtrlY]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[画布-CtrlY]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[画布-CtrlShiftZ]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[画布-CtrlShiftZ]]></DataTag>
+    </Incident>
+    <Duration msecs="61.3754"/>
+  </TestFunction>
+  <TestFunction name="saveAsDialogRoundTripAndCancel">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="414.234"/>
+  </TestFunction>
+  <TestFunction name="undoRedoDisabledBeforeAnyEdit">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="7.7124"/>
+  </TestFunction>
+  <TestFunction name="openFileRestoresContent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="43.85"/>
+  </TestFunction>
+  <TestFunction name="openFileFailureKeepsProject">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.9133"/>
+  </TestFunction>
+  <TestFunction name="recentFilesMenuOpensEntry">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="46.9969"/>
+  </TestFunction>
+  <TestFunction name="recentFilesMissingEntryRemoved">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="43.8477"/>
+  </TestFunction>
+  <TestFunction name="ganttHostSwitchAndAttach">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="7.5876"/>
+  </TestFunction>
+  <TestFunction name="recentFilesCancelKeepsUnsavedContentAndEntry">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="24.0546"/>
+  </TestFunction>
+  <TestFunction name="outlineEditingRoundTrip">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="51.2016"/>
+  </TestFunction>
+  <TestFunction name="outlineCancelAndUndoSelection">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="7.1724"/>
+  </TestFunction>
+  <TestFunction name="rootRenameUsesSharedRulesAndTaskLinkage">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.0708"/>
+  </TestFunction>
+  <TestFunction name="nodeMetadataSurvivesEditorAndFileRoundTrip">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="61.8207"/>
+  </TestFunction>
+  <TestFunction name="nodeMetadataNoOpKeepsWindowClean">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="64.077"/>
+  </TestFunction>
+  <TestFunction name="nodePropertiesEditClearUndoAndRoundTrip">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="89.9809"/>
+  </TestFunction>
+  <TestFunction name="nodePropertiesCancelInvalidAndUnknownIcon">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="20.1117"/>
+  </TestFunction>
+  <TestFunction name="nodeIconResourcesAndMeasurement">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.9862"/>
+  </TestFunction>
+  <TestFunction name="nodeStyleShapes">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[roundRect]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[rect]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[ellipse]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[diamond]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[parallelogram]]></DataTag>
+    </Incident>
+    <Duration msecs="63.9563"/>
+  </TestFunction>
+  <TestFunction name="nodeStyleEditUndoAndRoundTrip">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="81.7582"/>
+  </TestFunction>
+  <TestFunction name="nodeStyleCancelInvalidResetAndNoOp">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="11.4718"/>
+  </TestFunction>
+  <TestFunction name="nodeStyleUneditedFontOverride">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[explicit-empty]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[explicit-empty]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[explicit-empty]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[explicit-empty]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[whitespace-only]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[whitespace-only]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[whitespace-only]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[whitespace-only]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[padded-family]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[padded-family]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[padded-family]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[padded-family]]></DataTag>
+    </Incident>
+    <Duration msecs="154.284"/>
+  </TestFunction>
+  <TestFunction name="nodeStyleMixedHundredNodes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="15.4884"/>
+  </TestFunction>
+  <TestFunction name="nodeTagsEditUndoAndRoundTrip">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="37.9813"/>
+  </TestFunction>
+  <TestFunction name="nodeTagsNoOpCancelAndInputMethod">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="41.3651"/>
+  </TestFunction>
+  <TestFunction name="nodeTagsLimits">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[tag-count]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[tag-count]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[unicode-length]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[unicode-length]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[unicode-length]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[unicode-length]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[unicode-length]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[unicode-length]]></DataTag>
+    </Incident>
+    <Duration msecs="28.6889"/>
+  </TestFunction>
+  <TestFunction name="outlineTagFilterIsTemporary">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="53.0205"/>
+  </TestFunction>
+  <TestFunction name="outlineTagFilterTracksUndoAndRemoval">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.324"/>
+  </TestFunction>
+  <TestFunction name="ganttLazyLoadRefreshAndUndo">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="4.6993"/>
+  </TestFunction>
+  <TestFunction name="previewZoomAndLongTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="3.5179"/>
+  </TestFunction>
+  <TestFunction name="treeCanvasNodesEdgesSelectionAndRename">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="44.9242"/>
+  </TestFunction>
+  <TestFunction name="treeCanvasHundredNodesRoundTrip">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="84.421"/>
+  </TestFunction>
+  <TestFunction name="fishboneCanvasUsesFishboneLayout">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="148.358"/>
+  </TestFunction>
+  <TestFunction name="fishboneCanvasDeepWideNoOverlap">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="252.117"/>
+  </TestFunction>
+  <TestFunction name="treeCanvasCollapsedSelectionIsViewOnly">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="42.2746"/>
+  </TestFunction>
+  <TestFunction name="multilineTitleInputMethodAndCancel">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.2824"/>
+  </TestFunction>
+  <TestFunction name="siblingKeyboardInsertionRoundTrip">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="42.789"/>
+  </TestFunction>
+  <TestFunction name="deletionCancelAndRootProtection">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="18.9622"/>
+  </TestFunction>
+  <TestFunction name="deletionPoliciesAndUndo">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[保留独立任务]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[保留独立任务]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[连同任务删除]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[连同任务删除]]></DataTag>
+    </Incident>
+    <Duration msecs="97.9657"/>
+  </TestFunction>
+  <TestFunction name="exportManualFixtures">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="48.3769"/>
+  </TestFunction>
+  <TestFunction name="unsavedPromptButtonsAreChineseAndCancelKeepsContent">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="3.9176"/>
+  </TestFunction>
+  <TestFunction name="recoverySnapshotWrittenOnlyForDirtyChangedContent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="31.7843"/>
+  </TestFunction>
+  <TestFunction name="recoveryAdoptionGoesThroughCommandTransaction">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="33.2438"/>
+  </TestFunction>
+  <TestFunction name="recoveryOfferDialogAdoptAndIgnoreAll">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="38.9016"/>
+  </TestFunction>
+  <TestFunction name="recoveryAdoptionFromOpenedFileRefreshesTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="33.6451"/>
+  </TestFunction>
+  <TestFunction name="recoveryAdoptionSurvivesRestartAndFailedSave">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="47.3156"/>
+  </TestFunction>
+  <TestFunction name="recoveryOpeningAnotherProjectClearsSnapshotStatus">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="30.7316"/>
+  </TestFunction>
+  <TestFunction name="recoveryProcessCrashEndToEnd">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="127.663"/>
+  </TestFunction>
+  <TestFunction name="loggedInSaveNamesIntoOwnedFolderOnly">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="48.7917"/>
+  </TestFunction>
+  <TestFunction name="loggedInOpenRejectsOthersButAllowsPublicAndOwn">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="46.3715"/>
+  </TestFunction>
+  <TestFunction name="loginSessionRejectsWrongPassword">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="10.7732"/>
+  </TestFunction>
+  <TestFunction name="loggedOutOpensAnyFileUnchanged">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="15.7956"/>
+  </TestFunction>
+  <TestFunction name="loggedInOpensFileLooseInUsersRoot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="19.1407"/>
+  </TestFunction>
+  <TestFunction name="ownedOpenCancelKeepsUnsavedProject">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="26.5482"/>
+  </TestFunction>
+  <TestFunction name="ownedSaveProtectsExternalChanges">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[外部修改]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[外部修改]]></DataTag>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[外部删除]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[外部删除]]></DataTag>
+    </Incident>
+    <Duration msecs="69.7466"/>
+  </TestFunction>
+  <TestFunction name="ownedListUsesStableFileIdentity">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[排序变化]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[所选文件删除]]></DataTag>
+    </Incident>
+    <Duration msecs="26.8945"/>
+  </TestFunction>
+  <TestFunction name="loginDialogValidationRegistrationAndCancel">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="10.3931"/>
+  </TestFunction>
+  <TestFunction name="ownedListPreservesRepeatedExtension">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="52.2259"/>
+  </TestFunction>
+  <TestFunction name="ownedSaveRejectsEmptyNameForDotFile">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="26.0673"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0085"/>
+  </TestFunction>
+  <Duration msecs="3572.82"/>
+</TestCase>

@@ -3,6 +3,9 @@
 #include "layout/FishboneLayout.h"
 #include "layout/TreeLayout.h"
 #include <QAction>
+#include <QApplication>
+#include <QCheckBox>
+#include <QClipboard>
 #include <QCloseEvent>
 #include <QComboBox>
 #include <QDateTime>
@@ -10,16 +13,20 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDockWidget>
+#include <QDoubleSpinBox>
+#include <QDropEvent>
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
 #include <QGraphicsPathItem>
 #include <QGraphicsScene>
+#include <QGraphicsTextItem>
 #include <QGraphicsView>
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QInputMethodEvent>
+#include <QJsonDocument>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -27,10 +34,13 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QPainterPath>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScreen>
+#include <QScrollArea>
 #include <QSet>
 #include <QSignalBlocker>
 #include <QStackedWidget>
@@ -41,6 +51,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QUrl>
+#include <QUuid>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 #include <algorithm>
@@ -55,15 +66,16 @@
 #include "charts/GanttView.h"
 #include "commands/CommandService.h"
 #include "commands/NodeCommands.h"
+#include "commands/SheetCommands.h"
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
 #include "domain/Limits.h"
 #include "domain/ProjectFactory.h"
 #include "graphics/NodeItem.h"
 #include "services/FileService.h"
+#include "services/LocalNameRules.h"
 #include "services/RecoveryService.h"
 #include "services/SessionService.h"
-#include "services/LocalNameRules.h"
 #include "services/SettingsService.h"
 #include "services/UserFileService.h"
 
@@ -71,6 +83,106 @@ namespace lingya {
 
 
 namespace {
+// 大纲拖放只发出移动意图，不调用Qt内部的模型搬移；命令提交后统一重建视图。
+class TopicOutline final : public QTreeWidget
+{
+  public:
+    using QTreeWidget::QTreeWidget;
+    std::function<void(ID, ID, ID)> moveRequested;
+
+  protected:
+    void dropEvent(QDropEvent *event) override
+    {
+        auto *target = itemAt(event->position().toPoint());
+        auto *source = currentItem();
+        if (event->source() != this || !target || !source || target == source)
+        {
+            event->ignore();
+            return;
+        }
+        QTreeWidgetItem *parent = target;
+        ID before;
+        if (dropIndicatorPosition() == AboveItem || dropIndicatorPosition() == BelowItem)
+        {
+            parent = target->parent();
+            if (!parent)
+            {
+                event->ignore();
+                return;
+            }
+            int index = parent->indexOfChild(target);
+            if (dropIndicatorPosition() == BelowItem)
+                ++index;
+            if (index < parent->childCount())
+                before = parent->child(index)->data(0, Qt::UserRole).toString();
+        }
+        const ID node = source->data(0, Qt::UserRole).toString();
+        const ID parentId = parent->data(0, Qt::UserRole).toString();
+        event->setDropAction(Qt::MoveAction);
+        event->accept();
+        // 延后提交，避免在dropEvent栈内重建并销毁source/target。
+        QTimer::singleShot(0, this,
+                           [this, node, parentId, before]
+                           {
+                               if (moveRequested)
+                                   moveRequested(node, parentId, before);
+                           });
+    }
+};
+
+// 管理窗口的“应用”每次提交一条命令；关闭不回滚已应用内容，撤销走主窗口历史。
+struct EditorForm
+{
+    QDialog dialog;
+    QVBoxLayout *layout;
+    QListWidget *list;
+    QFormLayout *fields;
+    QLabel *error;
+    QPushButton *fresh, *remove, *apply;
+    EditorForm(QWidget *parent, const QString &name, const QString &title) : dialog(parent)
+    {
+        dialog.setObjectName(name);
+        dialog.setWindowTitle(title);
+        dialog.resize(560, qMin(620, parent->screen()->availableGeometry().height() - 80));
+        layout = new QVBoxLayout(&dialog);
+        auto *hint = new QLabel(
+            QStringLiteral("每次应用立即保存到工程，可在主窗口撤销。关闭窗口保留已应用内容。"),
+            &dialog);
+        hint->setWordWrap(true);
+        layout->addWidget(hint);
+        list = new QListWidget(&dialog);
+        list->setObjectName("records");
+        list->setMaximumHeight(150);
+        layout->addWidget(list);
+        auto *content = new QWidget(&dialog);
+        fields = new QFormLayout(content);
+        auto *scroll = new QScrollArea(&dialog);
+        scroll->setWidgetResizable(true);
+        scroll->setWidget(content);
+        layout->addWidget(scroll, 1);
+        error = new QLabel(&dialog);
+        error->setObjectName("editorError");
+        error->setTextFormat(Qt::PlainText);
+        error->setWordWrap(true);
+        layout->addWidget(error);
+        auto *row = new QHBoxLayout;
+        fresh = new QPushButton(QStringLiteral("新建"), &dialog);
+        fresh->setObjectName("newRecord");
+        remove = new QPushButton(QStringLiteral("删除所选"), &dialog);
+        remove->setObjectName("removeRecord");
+        apply = new QPushButton(QStringLiteral("应用"), &dialog);
+        apply->setObjectName("applyRecord");
+        auto *close = new QPushButton(QStringLiteral("关闭"), &dialog);
+        for (auto *button : {fresh, remove, apply, close})
+        {
+            button->setAutoDefault(false);
+            row->addWidget(button);
+        }
+        layout->addLayout(row);
+        QObject::connect(close, &QPushButton::clicked, &dialog, &QDialog::reject);
+    }
+};
+
 void showNotice(QWidget *parent, QMessageBox::Icon icon, const QString &title, const QString &text)
 {
     QMessageBox box(icon, title, text, QMessageBox::Ok, parent);
@@ -210,7 +322,12 @@ MainWindow::MainWindow(QWidget* parent)
     m_tagFilter->setToolTip(QStringLiteral(
         "仅筛选大纲，保留匹配主题及祖先；画布保持完整。选择筛选外的画布主题时恢复全部。"));
     outlineLayout->addWidget(m_tagFilter);
-    m_outline = new QTreeWidget(outlinePanel);
+    auto *outline = new TopicOutline(outlinePanel);
+    m_outline = outline;
+    outline->setDragDropMode(QAbstractItemView::InternalMove);
+    outline->setDefaultDropAction(Qt::MoveAction);
+    outline->moveRequested = [this](const ID &node, const ID &parentId, const ID &before)
+    { moveSelection(node, parentId, before); };
     m_outline->setObjectName(QStringLiteral("topicOutline"));
     m_outline->setHeaderLabel(QStringLiteral("主题（Tab新增子主题，F2改名）"));
     m_outline->setMinimumWidth(280);
@@ -256,7 +373,7 @@ MainWindow::MainWindow(QWidget* parent)
 void MainWindow::buildMenus() {
     QMenu* fileMenu = menuBar()->addMenu(QStringLiteral("文件(&F)"));
     fileMenu->addAction(QStringLiteral("新建(&N)"), QKeySequence::New, this,
-                        &MainWindow::newProject);
+                        &MainWindow::newProject)->setObjectName(QStringLiteral("newProject"));
     fileMenu->addAction(QStringLiteral("打开(&O)..."), QKeySequence::Open, this,
                         &MainWindow::openProject);
     fileMenu->addAction(QStringLiteral("保存(&S)"), QKeySequence::Save, this,
@@ -344,6 +461,7 @@ void MainWindow::buildMenus() {
     toolbar->addAction(zoomOut);
     toolbar->addAction(fit);
     toolbar->addAction(locate);
+    buildEditorActions(editMenu);
 }
 
 void MainWindow::showGanttView()
@@ -380,6 +498,27 @@ void MainWindow::fitCanvas()
 void MainWindow::setGanttView(QGraphicsView* view) {
     // 同一指针重复调用或误传画布/空指针：无操作（评审指出重复调用会deleteLater后悬空）
     if (view == nullptr || view == m_ganttPage || view == m_view) return;
+    if (auto *gantt = qobject_cast<GanttView *>(view))
+        connect(gantt, &GanttView::taskDatesEdited, this,
+                [this, gantt](const ID &id, const QDate &start, const QDate &end)
+                {
+                    for (const auto &task : m_doc->project().tasks)
+                        if (task.id == id)
+                        {
+                            Task changed = task;
+                            changed.startDate = start;
+                            changed.endDate = end;
+                            const auto result = TaskCommands(m_commands, m_doc).updateTask(changed);
+                            if (const auto *error = std::get_if<AppError>(&result))
+                            {
+                                gantt->setTasks(m_doc->project().tasks);
+                                showNotice(this, QMessageBox::Warning,
+                                           QStringLiteral("无法修改排期"), error->message);
+                            }
+                            return;
+                        }
+                    gantt->setTasks(m_doc->project().tasks);
+                });
     // 替换甘特页内容：移除旧页（占位或旧视图）后插入新视图，页序保持不变
     const int ganttIndex = m_centralStack->indexOf(m_ganttPage);
     m_centralStack->removeWidget(m_ganttPage);
@@ -469,6 +608,23 @@ void MainWindow::writeRecoverySnapshot() {
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == m_view->viewport() && event->type() == QEvent::Leave)
+        m_dragNodeId.clear(); // 离开画布即取消，不能让下次释放沿用旧的拖动源。
+    if (watched == m_view->viewport() && event->type() == QEvent::MouseMove &&
+        !m_dragNodeId.isEmpty())
+    {
+        const auto *mouse = static_cast<QMouseEvent *>(event);
+        if (!(mouse->buttons() & Qt::LeftButton))
+        {
+            m_dragNodeId.clear();
+            return QMainWindow::eventFilter(watched, event);
+        }
+        if ((mouse->position().toPoint() - m_dragStart).manhattanLength() >=
+            QApplication::startDragDistance())
+            statusBar()->showMessage(
+                QStringLiteral("松开到目标主题上，将作为其子主题；同级排序可在大纲拖到主题前后。"));
+        return true;
+    }
     if (watched == m_view->viewport() &&
         (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonDblClick))
     {
@@ -480,21 +636,50 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
                     dynamic_cast<NodeItem *>(m_scene->itemAt(position, QTransform())))
             {
                 const ID nodeId = item->nodeId();
+                m_dragNodeId = nodeId;
+                m_dragStart = mouse->position().toPoint();
                 selectNode(nodeId);
                 m_view->setFocus();
                 if (event->type() == QEvent::MouseButtonDblClick)
+                {
+                    m_dragNodeId.clear();
                     renameSelectedNode();
+                }
                 return true;
             }
         }
     }
     if (watched == m_view->viewport() && event->type() == QEvent::MouseButtonRelease)
+    {
+        const auto *mouse = static_cast<QMouseEvent *>(event);
+        const ID dragged = m_dragNodeId;
+        m_dragNodeId.clear();
+        if (mouse->button() == Qt::LeftButton && !dragged.isEmpty() &&
+            (mouse->position().toPoint() - m_dragStart).manhattanLength() >=
+                QApplication::startDragDistance())
+        {
+            if (const auto *target = dynamic_cast<NodeItem *>(
+                    m_scene->itemAt(m_view->mapToScene(mouse->position().toPoint()), QTransform())))
+                if (target->nodeId() != dragged)
+                {
+                    moveSelection(dragged, target->nodeId());
+                    return true;
+                }
+        }
         syncCanvasSelection();
+    }
     // 只处理大纲/画布，文本对话框和输入法预编辑不经过此入口。
     if ((watched == m_outline || watched == m_view || watched == m_view->viewport()) &&
         event->type() == QEvent::KeyPress)
     {
         const auto *key = static_cast<QKeyEvent *>(event);
+        if (key->key() == Qt::Key_Escape && !m_cutNodeId.isEmpty())
+        {
+            m_cutNodeId.clear();
+            m_cutToken.clear();
+            syncCanvasSelection();
+            return true;
+        }
         if (key->key() == Qt::Key_Tab && key->modifiers() == Qt::NoModifier)
         {
             addChildToSelection();
@@ -565,7 +750,12 @@ void MainWindow::editSelectedNodeProperties()
     note->setObjectName(QStringLiteral("nodeNote"));
     note->setPlaceholderText(QStringLiteral("独立备注，可输入多行；留空清除"));
     form->addRow(QStringLiteral("备注"), note);
-    layout->addLayout(form);
+    auto *styleContent = new QWidget(&dialog);
+    styleContent->setLayout(form);
+    auto *styleScroll = new QScrollArea(&dialog);
+    styleScroll->setWidgetResizable(true);
+    styleScroll->setWidget(styleContent);
+    layout->addWidget(styleScroll, 1);
     auto *error = new QLabel(&dialog);
     error->setObjectName(QStringLiteral("nodeMetadataError"));
     error->setWordWrap(true);
@@ -706,20 +896,41 @@ void MainWindow::editSelectedNodeTags()
 
 void MainWindow::editSelectedNodeStyle()
 {
+    editNodeStyle(false);
+}
+
+void MainWindow::editNodeStyle(bool global)
+{
     const TreeSheet *sheet = activeTreeSheet();
     if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
         return;
     const ID sheetId = sheet->id;
     const ID nodeId = m_selectedNodeId;
-    const NodeStyleOverride original = sheet->nodes.value(nodeId).style;
+    NodeStyleOverride original = sheet->nodes.value(nodeId).style;
     const NodeStyle defaults = sheet->defaultNodeStyle;
+    const EdgeStyle edgeDefaults = sheet->defaultEdgeStyle;
+    if (global)
+    {
+        original.fill = defaults.fill;
+        original.color = defaults.color;
+        original.borderColor = defaults.borderColor;
+        original.fontFamily = defaults.fontFamily;
+        original.fontSize = defaults.fontSize;
+        original.bold = defaults.bold;
+        original.shape = defaults.shape;
+        original.borderWidth = defaults.borderWidth;
+    }
     QDialog dialog(this);
-    dialog.setObjectName(QStringLiteral("nodeStyleDialog"));
-    dialog.setWindowTitle(QStringLiteral("节点样式"));
+    dialog.setObjectName(global ? QStringLiteral("sheetStyleDialog")
+                                : QStringLiteral("nodeStyleDialog"));
+    dialog.setWindowTitle(global ? QStringLiteral("工作表默认样式") : QStringLiteral("节点样式"));
     dialog.resize(430, 440);
     auto *layout = new QVBoxLayout(&dialog);
     auto *hint = new QLabel(QStringLiteral("留空或选择“继承”时，使用工作表样式。"), &dialog);
     hint->setWordWrap(true);
+    if (global)
+        hint->setText(QStringLiteral(
+            "工作表默认值影响未覆盖的节点；节点局部覆盖优先。此处修改不清除局部覆盖。"));
     layout->addWidget(hint);
     auto *form = new QFormLayout;
     const auto textField = [&](const QString &name, const QString &label,
@@ -781,11 +992,43 @@ void MainWindow::editSelectedNodeStyle()
                       ? std::optional<QString>(QString::number(*original.borderWidth, 'g', 17))
                       : std::nullopt,
                   QString::number(defaults.borderWidth));
-    layout->addLayout(form);
+    auto *styleContent = new QWidget(&dialog);
+    styleContent->setLayout(form);
+    auto *styleScroll = new QScrollArea(&dialog);
+    styleScroll->setWidgetResizable(true);
+    styleScroll->setWidget(styleContent);
+    layout->addWidget(styleScroll, 1);
+    auto *edgeColor = new QLineEdit(edgeDefaults.color, &dialog);
+    edgeColor->setObjectName(QStringLiteral("sheetEdgeColor"));
+    auto *edgeWidth = new QDoubleSpinBox(&dialog);
+    edgeWidth->setObjectName(QStringLiteral("sheetEdgeWidth"));
+    edgeWidth->setRange(0.1, 20);
+    edgeWidth->setDecimals(12);
+    edgeWidth->setValue(edgeDefaults.width);
+    const double initialEdgeWidth = edgeWidth->value();
+    auto *edgeDashed = new QCheckBox(QStringLiteral("默认连线使用虚线"), &dialog);
+    edgeDashed->setObjectName(QStringLiteral("sheetEdgeDashed"));
+    edgeDashed->setChecked(edgeDefaults.dashed);
+    if (global)
+    {
+        form->addRow(QStringLiteral("连线颜色（#RRGGBB）"), edgeColor);
+        form->addRow(QStringLiteral("连线宽度"), edgeWidth);
+        form->addRow(edgeDashed);
+        // 默认样式无上级可继承，移除继承项。
+        for (auto *combo : {size, bold, shape})
+            combo->removeItem(0);
+    }
+    else
+    {
+        edgeColor->hide();
+        edgeWidth->hide();
+        edgeDashed->hide();
+    }
     auto *reset = new QPushButton(QStringLiteral("恢复为工作表样式"), &dialog);
     reset->setObjectName(QStringLiteral("resetNodeStyle"));
     reset->setAutoDefault(false);
     layout->addWidget(reset);
+    reset->setVisible(!global);
     auto *error = new QLabel(&dialog);
     error->setObjectName(QStringLiteral("nodeStyleError"));
     error->setWordWrap(true);
@@ -823,11 +1066,11 @@ void MainWindow::editSelectedNodeStyle()
                 style.fontFamily = !resetStyle && family->text() == initialFamily
                                        ? original.fontFamily
                                        : optionalText(family);
-                if (size->currentIndex() > 0)
+                if (global || size->currentIndex() > 0)
                     style.fontSize = size->currentData().toInt();
-                if (bold->currentIndex() > 0)
+                if (global || bold->currentIndex() > 0)
                     style.bold = bold->currentData().toBool();
-                if (shape->currentIndex() > 0)
+                if (global || shape->currentIndex() > 0)
                     style.shape = shape->currentData().toString();
                 if (!width->text().trimmed().isEmpty())
                 {
@@ -840,8 +1083,28 @@ void MainWindow::editSelectedNodeStyle()
                     }
                     style.borderWidth = value;
                 }
-                const auto result =
-                    NodeCommands(m_commands, m_doc).setStyle(sheetId, nodeId, style);
+                std::variant<bool, AppError> result;
+                if (global)
+                {
+                    NodeStyle next;
+                    next.fill = style.fill.value_or(QString());
+                    next.color = style.color.value_or(QString());
+                    next.borderColor = style.borderColor.value_or(QString());
+                    next.fontFamily = style.fontFamily.value_or(QString());
+                    next.fontSize = style.fontSize.value_or(defaults.fontSize);
+                    next.bold = style.bold.value_or(defaults.bold);
+                    next.shape = style.shape.value_or(defaults.shape);
+                    next.borderWidth = style.borderWidth.value_or(defaults.borderWidth);
+                    EdgeStyle edge{edgeColor->text().trimmed(),
+                                   edgeWidth->value() == initialEdgeWidth ? edgeDefaults.width
+                                                                          : edgeWidth->value(),
+                                   edgeDashed->isChecked()};
+                    result = NodeCommands(m_commands, m_doc).setSheetStyle(sheetId, next, edge);
+                }
+                else
+                {
+                    result = NodeCommands(m_commands, m_doc).setStyle(sheetId, nodeId, style);
+                }
                 if (const auto *failure = std::get_if<AppError>(&result))
                 {
                     error->setText(failure->message);
@@ -1015,7 +1278,7 @@ void MainWindow::addChildToSelection()
         showNotice(this, QMessageBox::Warning, QStringLiteral("无法新增"), error->message);
         return;
     }
-    selectNode(std::get<ID>(result));
+    selectNewNode(std::get<ID>(result));
 }
 
 void MainWindow::addSiblingToSelection()
@@ -1037,7 +1300,7 @@ void MainWindow::addSiblingToSelection()
         showNotice(this, QMessageBox::Warning, QStringLiteral("无法新增同级主题"), error->message);
         return;
     }
-    selectNode(std::get<ID>(result));
+    selectNewNode(std::get<ID>(result));
 }
 
 void MainWindow::deleteSelection()
@@ -1089,7 +1352,8 @@ void MainWindow::deleteSelection()
         if (card.sheetId == sheetId && subtree.contains(card.nodeId))
             ++cardCount;
     QString summary = QStringLiteral("将删除“%1”及其后代，共%2个主题。可用Ctrl+Z撤销。\n\n"
-                                     "同时清理：%3条关系、%4项外框/概要、%5条批注。\n"
+                                     "同时清理：%3条关系、%5条批注。涉及%4项外框/"
+                                     "概要，剔除成员后不足两个才移除；父级被删则移除。\n"
                                      "%6张复习卡片将保留并标记来源缺失。\n"
                                      "讲解路线和文稿保留，使用时需重新检查来源。")
                           .arg(sheet->nodes.value(nodeId).title.simplified().left(60))
@@ -1202,6 +1466,13 @@ bool MainWindow::confirmDiscard() {
 }
 
 void MainWindow::loadNewDocument(Project project) {
+    m_annotationMembers.clear();
+    m_cutNodeId.clear();
+    m_cutToken.clear();
+    m_unfilteredCollapsed.clear();
+    m_filterWasActive = false;
+    m_outlineSheetId.clear();
+    m_displaySheetId.clear();
     {
         const QSignalBlocker blocker(m_tagFilter);
         m_tagFilter->setCurrentIndex(0);
@@ -1217,12 +1488,23 @@ void MainWindow::loadNewDocument(Project project) {
 
 void MainWindow::rebuildOutline()
 {
+    if (m_outlineSheetId != m_doc->project().activeSheetId)
+    {
+        m_outlineSheetId = m_doc->project().activeSheetId;
+        m_unfilteredCollapsed.clear();
+        m_filterWasActive = false;
+        const QSignalBlocker filterBlocker(m_tagFilter);
+        m_tagFilter->setCurrentIndex(0);
+        m_outline->clear();
+    }
     rebuildTagFilter();
     const QSignalBlocker blocker(m_outline);
     QSet<ID> collapsed;
     for (QTreeWidgetItemIterator it(m_outline); *it; ++it)
         if (!(*it)->isExpanded())
             collapsed.insert((*it)->data(0, Qt::UserRole).toString());
+    if (m_filterWasActive)
+        collapsed = m_unfilteredCollapsed;
     m_outline->clear();
     const TreeSheet *sheet = activeTreeSheet();
     if (sheet == nullptr)
@@ -1291,6 +1573,18 @@ void MainWindow::applyOutlineTagFilter()
         return;
     const QVariant tag = m_tagFilter->currentData();
     const bool filtered = tag.isValid();
+    if (filtered && !m_filterWasActive)
+    {
+        m_unfilteredCollapsed.clear();
+        for (QTreeWidgetItemIterator it(m_outline); *it; ++it)
+            if (!(*it)->isExpanded())
+                m_unfilteredCollapsed.insert((*it)->data(0, Qt::UserRole).toString());
+    }
+    if (!filtered && m_filterWasActive)
+        for (QTreeWidgetItemIterator it(m_outline); *it; ++it)
+            (*it)->setExpanded(
+                !m_unfilteredCollapsed.contains((*it)->data(0, Qt::UserRole).toString()));
+    m_filterWasActive = filtered;
     QTreeWidgetItem *firstMatch = nullptr;
     std::function<bool(QTreeWidgetItem *)> visit = [&](QTreeWidgetItem *item)
     {
@@ -1349,7 +1643,11 @@ void MainWindow::selectNode(const ID &nodeId)
 void MainWindow::syncCanvasSelection()
 {
     for (auto it = m_nodeItems.constBegin(); it != m_nodeItems.constEnd(); ++it)
+    {
         it.value()->setSelected(it.key() == m_selectedNodeId);
+        it.value()->setCutPending(it.key() == m_cutNodeId &&
+                                  m_cutRevision == m_doc->sessionRevision());
+    }
     const TreeSheet *sheet = activeTreeSheet();
     const bool nonRoot = sheet != nullptr && sheet->nodes.contains(m_selectedNodeId) &&
                          m_selectedNodeId != sheet->rootId;
@@ -1360,6 +1658,11 @@ void MainWindow::syncCanvasSelection()
     m_styleAction->setEnabled(valid);
     m_tagsAction->setEnabled(valid);
     m_openLinkAction->setEnabled(valid && sheet->nodes.value(m_selectedNodeId).link.has_value());
+    for (const auto &name :
+         {"copyTopic", "cutTopic", "pasteTopic", "editSheetStyle", "editRelations",
+          "editAnnotations", "editComments", "changeSheetKind", "renameTopic", "addChildTopic"})
+        if (auto *action = findChild<QAction *>(QString::fromLatin1(name)))
+            action->setEnabled(valid);
 }
 
 void MainWindow::focusSelectedNode()
@@ -1373,7 +1676,28 @@ void MainWindow::rebuildCanvas() {
     m_scene->clear();
     m_canvasError.clear();
     const TreeSheet *sheet = activeTreeSheet();
-    if (sheet == nullptr) return;
+    m_editorNote.clear();
+    if (sheet == nullptr)
+    {
+        syncCanvasSelection();
+        // 不把独立图模型错误地当作树渲染；流程图编辑另按R12交接。
+        for (const auto &value : m_doc->project().sheets)
+            if (const auto *flow = std::get_if<FlowSheet>(&value);
+                flow && flow->id == m_doc->project().activeSheetId)
+            {
+                for (const auto &node : flow->nodes)
+                {
+                    const auto style = NodeItem::resolvedStyle(flow->defaultNodeStyle, node.style);
+                    auto *item = new NodeItem(node.title, NodeItem::styledFont(canvasFont(), style),
+                                              nullptr, node.iconId.value_or(QString()), style);
+                    item->setPos(node.position);
+                    m_scene->addItem(item);
+                }
+                m_scene->addText(QStringLiteral("流程图工作表：节点与有向边编辑入口仍待R12接线。"));
+            }
+        m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
+        return;
+    }
     TreeSheet display = *sheet;
     ID ancestor = m_selectedNodeId;
     while (display.nodes.contains(ancestor))
@@ -1463,6 +1787,7 @@ void MainWindow::rebuildCanvas() {
         edge->setZValue(-1);
         edge->setAcceptedMouseButtons(Qt::NoButton);
     }
+    addDecorations(display);
     syncCanvasSelection();
     m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
     focusSelectedNode();
@@ -1564,8 +1889,26 @@ void MainWindow::addFishboneEdges(const TreeSheet &display)
 }
 
 void MainWindow::onDocumentChanged() {
+    const bool sameSheet = m_outlineSheetId == m_doc->project().activeSheetId;
+    const auto previousAnnotations = m_annotationMembers;
+    rebuildSheets();
     rebuildOutline();
     rebuildCanvas();
+    m_annotationMembers.clear();
+    if (const auto *tree = activeTreeSheet())
+        for (const auto &annotation : tree->annotations)
+            m_annotationMembers.insert(annotation.id, annotation.memberIds);
+    if (sameSheet)
+        for (auto it = previousAnnotations.constBegin(); it != previousAnnotations.constEnd(); ++it)
+            if (!m_annotationMembers.contains(it.key()) ||
+                m_annotationMembers.value(it.key()) != it.value())
+            {
+                m_editorNote =
+                    QStringLiteral("外框/概要已随结构变化调整，成员不足两个时移除；可撤销。");
+                break;
+            }
+    if (!m_cutNodeId.isEmpty() && m_cutRevision != m_doc->sessionRevision())
+        m_editorNote += QStringLiteral(" 剪切标记因源修订变化已失效，请重新剪切。");
     if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
         gantt->setTasks(m_doc->project().tasks);
     updateStatusLine();
@@ -1597,6 +1940,8 @@ void MainWindow::updateStatusLine() {
     if (!m_recoveryNote.isEmpty()) line += QStringLiteral(" · ") + m_recoveryNote;
     if (!m_canvasError.isEmpty())
         line += QStringLiteral(" · 布局失败：%1").arg(m_canvasError);
+    if (!m_editorNote.isEmpty())
+        line += QStringLiteral(" · ") + m_editorNote;
     if (!m_sessionUser.isEmpty())
         line += QStringLiteral(" · 用户 %1").arg(m_sessionUser);
     statusBar()->showMessage(line);
@@ -1742,6 +2087,890 @@ void MainWindow::updateSessionActions() {
 
 void MainWindow::setSessionRootForTest(const QString& path) {
     s_sessionRootForTest = path;   // 空=恢复默认AppLocalDataLocation（构造时生效）
+}
+
+void MainWindow::buildEditorActions(QMenu *editMenu)
+{
+    auto *clipboard = editMenu->addMenu(QStringLiteral("剪贴板"));
+    clipboard
+        ->addAction(QStringLiteral("复制子树"), QKeySequence::Copy, this,
+                    [this] { copySelection(false); })
+        ->setObjectName(QStringLiteral("copyTopic"));
+    clipboard
+        ->addAction(QStringLiteral("剪切子树（粘贴后移动）"), QKeySequence::Cut, this,
+                    [this] { copySelection(true); })
+        ->setObjectName(QStringLiteral("cutTopic"));
+    clipboard
+        ->addAction(QStringLiteral("粘贴为子主题"), QKeySequence::Paste, this,
+                    &MainWindow::pasteSelection)
+        ->setObjectName(QStringLiteral("pasteTopic"));
+    editMenu->addAction(QStringLiteral("工作表默认样式…"), this, [this] { editNodeStyle(true); })
+        ->setObjectName(QStringLiteral("editSheetStyle"));
+    editMenu->addAction(QStringLiteral("关系线…"), this, &MainWindow::editRelations)
+        ->setObjectName(QStringLiteral("editRelations"));
+    editMenu->addAction(QStringLiteral("外框与概要…"), this, &MainWindow::editAnnotations)
+        ->setObjectName(QStringLiteral("editAnnotations"));
+    editMenu->addAction(QStringLiteral("主题批注…"), this, &MainWindow::editComments)
+        ->setObjectName(QStringLiteral("editComments"));
+    auto *sheets = menuBar()->addMenu(QStringLiteral("工作表"));
+    sheets->addAction(QStringLiteral("新建工作表…"), this, &MainWindow::createSheet)
+        ->setObjectName(QStringLiteral("createSheet"));
+    sheets->addAction(QStringLiteral("工作表改名…"), this, &MainWindow::renameSheet)
+        ->setObjectName(QStringLiteral("renameSheet"));
+    sheets
+        ->addAction(QStringLiteral("导图／鱼骨切换"), this,
+                    [this]
+                    {
+                        const auto *tree = activeTreeSheet();
+                        if (!tree)
+                            return;
+                        const auto result =
+                            SheetCommands(m_commands, m_doc)
+                                .changeSheetKind(tree->id, tree->kind == QStringLiteral("fishbone")
+                                                               ? QStringLiteral("mindmap")
+                                                               : QStringLiteral("fishbone"));
+                        if (const auto *error = std::get_if<AppError>(&result))
+                            showNotice(this, QMessageBox::Warning, QStringLiteral("无法换结构"),
+                                       error->message);
+                    })
+        ->setObjectName(QStringLiteral("changeSheetKind"));
+    sheets->addAction(QStringLiteral("删除当前工作表…"), this, &MainWindow::deleteSheet)
+        ->setObjectName(QStringLiteral("deleteSheet"));
+    auto *bar = addToolBar(QStringLiteral("工作表"));
+    bar->setObjectName(QStringLiteral("sheetToolbar"));
+    bar->setMovable(false);
+    m_sheetSelector = new QComboBox(bar);
+    m_sheetSelector->setObjectName(QStringLiteral("sheetSelector"));
+    m_sheetSelector->setAccessibleName(QStringLiteral("当前工作表"));
+    m_sheetSelector->setMinimumContentsLength(16);
+    bar->addWidget(m_sheetSelector);
+    bar->addAction(findChild<QAction *>(QStringLiteral("createSheet")));
+    connect(m_sheetSelector, &QComboBox::currentIndexChanged, this,
+            [this](int index)
+            {
+                if (index < 0)
+                    return;
+                const ID id = m_sheetSelector->itemData(index).toString();
+                if (id == m_doc->project().activeSheetId)
+                    return;
+                m_commands->applyEdit(QStringLiteral("切换工作表"),
+                                      [id](Project &project) { project.activeSheetId = id; });
+            });
+    connect(QApplication::clipboard(), &QClipboard::dataChanged, this,
+            [this]
+            {
+                if (!m_cutToken.isEmpty() && QApplication::clipboard()->mimeData()->data(
+                                                 "application/x-lingya-cut-token") != m_cutToken)
+                {
+                    m_cutNodeId.clear();
+                    m_cutToken.clear();
+                    syncCanvasSelection();
+                }
+            });
+}
+
+void MainWindow::rebuildSheets()
+{
+    const QSignalBlocker blocker(m_sheetSelector);
+    m_sheetSelector->clear();
+    bool gantt = false;
+    for (const Sheet &sheet : m_doc->project().sheets)
+        std::visit(
+            [&](const auto &value)
+            {
+                m_sheetSelector->addItem(value.name, value.id);
+                if (value.id == m_doc->project().activeSheetId)
+                    gantt = value.kind == QStringLiteral("gantt");
+            },
+            sheet);
+    m_sheetSelector->setCurrentIndex(m_sheetSelector->findData(m_doc->project().activeSheetId));
+    if (m_displaySheetId != m_doc->project().activeSheetId)
+    {
+        m_displaySheetId = m_doc->project().activeSheetId;
+        if (gantt)
+            showGanttView();
+        else
+            m_centralStack->setCurrentIndex(0);
+    }
+}
+
+void MainWindow::createSheet()
+{
+    QDialog dialog(this);
+    dialog.setObjectName(QStringLiteral("createSheetDialog"));
+    dialog.setWindowTitle(QStringLiteral("新建工作表"));
+    auto *form = new QFormLayout(&dialog);
+    auto *kind = new QComboBox(&dialog);
+    kind->setObjectName(QStringLiteral("newSheetKind"));
+    kind->addItem(QStringLiteral("思维导图"), "mindmap");
+    kind->addItem(QStringLiteral("鱼骨图"), "fishbone");
+    kind->addItem(QStringLiteral("流程图"), "flowchart");
+    kind->addItem(QStringLiteral("甘特图"), "gantt");
+    auto *name = new QLineEdit(&dialog);
+    name->setObjectName(QStringLiteral("newSheetName"));
+    form->addRow(QStringLiteral("类型"), kind);
+    form->addRow(QStringLiteral("名称（留空自动命名）"), name);
+    auto *error = new QLabel(&dialog);
+    error->setWordWrap(true);
+    error->setTextFormat(Qt::PlainText);
+    form->addRow(error);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("创建"));
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    form->addRow(buttons);
+    for (auto *button : buttons->buttons())
+        if (auto *push = qobject_cast<QPushButton *>(button))
+            push->setAutoDefault(false);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog,
+            [&]
+            {
+                const auto result = SheetCommands(m_commands, m_doc)
+                                        .createSheet(kind->currentData().toString(), name->text());
+                if (const auto *failure = std::get_if<AppError>(&result))
+                    error->setText(failure->message);
+                else
+                {
+                    dialog.accept();
+                    fitCanvas();
+                }
+            });
+    dialog.exec();
+}
+
+void MainWindow::renameSheet()
+{
+    TagNameDialog input(this);
+    input.setWindowTitle(QStringLiteral("工作表改名"));
+    input.setLabelText(QStringLiteral("工作表名称："));
+    input.setOkButtonText(QStringLiteral("确定"));
+    input.setTextValue(m_sheetSelector->currentText());
+    if (input.exec() != QDialog::Accepted)
+        return;
+    const auto result = SheetCommands(m_commands, m_doc)
+                            .renameSheet(m_doc->project().activeSheetId, input.textValue());
+    if (const auto *error = std::get_if<AppError>(&result))
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法改名"), error->message);
+}
+
+void MainWindow::deleteSheet()
+{
+    const Project &project = m_doc->project();
+    const ID id = project.activeSheetId;
+    int cards = 0, routes = 0, drafts = 0, tasks = 0;
+    for (const auto &card : project.cards)
+        cards += card.sheetId == id;
+    for (const auto &route : project.routes)
+        routes += route.sheetId == id;
+    for (const auto &draft : project.drafts)
+        drafts += draft.sourceSheetId == id;
+    for (const auto &task : project.tasks)
+        tasks += task.source && task.source->sheetId == id;
+    if (cards || routes || drafts || project.sheets.size() <= 1)
+    {
+        const auto result = SheetCommands(m_commands, m_doc).deleteSheet(id);
+        if (const auto *error = std::get_if<AppError>(&result))
+            showNotice(this, QMessageBox::Warning, QStringLiteral("无法删除工作表"),
+                       error->message);
+        return;
+    }
+    QMessageBox box(
+        QMessageBox::Question, QStringLiteral("删除工作表"),
+        QStringLiteral("删除“%1”？表中主题与连线将移除；%2个关联任务保留为独立任务。可以撤销。")
+            .arg(m_sheetSelector->currentText())
+            .arg(tasks),
+        QMessageBox::Ok | QMessageBox::Cancel, this);
+    box.button(QMessageBox::Ok)->setText(QStringLiteral("删除工作表"));
+    box.button(QMessageBox::Cancel)->setText(QStringLiteral("取消"));
+    box.setDefaultButton(QMessageBox::Cancel);
+    if (box.exec() != QMessageBox::Ok)
+        return;
+    const auto result = SheetCommands(m_commands, m_doc).deleteSheet(id);
+    if (const auto *error = std::get_if<AppError>(&result))
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法删除工作表"), error->message);
+}
+
+void MainWindow::copySelection(bool cut)
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree || !tree->nodes.contains(m_selectedNodeId))
+        return;
+    if (cut && m_selectedNodeId == tree->rootId)
+    {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法剪切"),
+                   QStringLiteral("根主题不能剪切；可以复制整棵树，或通过工作表菜单删除整张表。"));
+        return;
+    }
+    const auto result = NodeCommands(m_commands, m_doc).copyFragment(tree->id, {m_selectedNodeId});
+    if (const auto *error = std::get_if<AppError>(&result))
+    {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法复制"), error->message);
+        return;
+    }
+    const Fragment fragment = std::get<Fragment>(result);
+    auto *mime = new QMimeData;
+    mime->setData(Fragment::kMimeType,
+                  QJsonDocument(fragment.toJson()).toJson(QJsonDocument::Compact));
+    QStringList lines;
+    std::function<void(ID, int)> append = [&](const ID &id, int depth)
+    {
+        lines.append(QString(depth * 2, QLatin1Char(' ')) + fragment.nodes.value(id).title);
+        QVector<QPair<int, ID>> children;
+        for (const auto &node : fragment.nodes)
+            if (node.parentId == id)
+                children.append({node.order, node.id});
+        std::sort(children.begin(), children.end());
+        for (const auto &child : children)
+            append(child.second, depth + 1);
+    };
+    for (const auto &root : fragment.rootIds)
+        append(root, 0);
+    mime->setText(lines.join(QLatin1Char('\n')));
+    m_cutNodeId.clear();
+    m_cutToken.clear();
+    if (cut)
+    {
+        m_cutNodeId = m_selectedNodeId;
+        m_cutSheetId = tree->id;
+        m_cutProjectId = m_doc->project().id;
+        m_cutRevision = m_doc->sessionRevision();
+        m_cutToken = QUuid::createUuid().toByteArray();
+        mime->setData("application/x-lingya-cut-token", m_cutToken);
+    }
+    QApplication::clipboard()->setMimeData(mime);
+    syncCanvasSelection();
+    statusBar()->showMessage(
+        cut ? QStringLiteral("已标记待剪切，粘贴成功后移动；按Esc取消。")
+            : QStringLiteral("已复制子树；任务副本不带外部依赖，复习记录与讲解路线不复制。"),
+        8000);
+}
+
+void MainWindow::pasteSelection()
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree || !tree->nodes.contains(m_selectedNodeId))
+        return;
+    const QMimeData *mime = QApplication::clipboard()->mimeData();
+    const QByteArray token = mime->data("application/x-lingya-cut-token");
+    if (!token.isEmpty())
+    {
+        if (token == m_cutToken && m_cutProjectId == m_doc->project().id &&
+            m_cutSheetId != tree->id)
+        {
+            showNotice(
+                this, QMessageBox::Warning, QStringLiteral("无法跨表剪切"),
+                QStringLiteral(
+                    "跨工作表移动的卡片和路线引用尚无统一迁移命令。请使用复制；源节点保留。"));
+            return;
+        }
+        if (token != m_cutToken || m_cutProjectId != m_doc->project().id ||
+            m_cutRevision != m_doc->sessionRevision())
+        {
+            showNotice(this, QMessageBox::Warning, QStringLiteral("剪切已失效"),
+                       QStringLiteral("源工程、修订或剪贴板已变化，请重新剪切；源节点没有删除。跨工"
+                                      "程传递请使用复制。"));
+            return;
+        }
+        if (m_cutSheetId != tree->id)
+        {
+            showNotice(
+                this, QMessageBox::Warning, QStringLiteral("无法跨表剪切"),
+                QStringLiteral(
+                    "跨工作表移动的卡片和路线引用尚无统一迁移命令。请使用复制；源节点保留。"));
+            return;
+        }
+        // applyEdit会发changed，先复制剪贴板字段，避免回调影响临时指针。
+        const QByteArray bytes = mime->data(Fragment::kMimeType);
+        const QString text = mime->text();
+        const auto result =
+            NodeCommands(m_commands, m_doc).moveSubtree(tree->id, m_cutNodeId, m_selectedNodeId);
+        if (const auto *error = std::get_if<AppError>(&result))
+        {
+            showNotice(this, QMessageBox::Warning, QStringLiteral("无法移动"), error->message);
+            return;
+        }
+        m_cutNodeId.clear();
+        m_cutToken.clear();
+        auto *copied = new QMimeData;
+        copied->setData(Fragment::kMimeType, bytes);
+        copied->setText(text);
+        QApplication::clipboard()->setMimeData(copied);
+        syncCanvasSelection();
+        m_editorNote.clear();
+        updateStatusLine();
+        return;
+    }
+    const QByteArray bytes = mime->data(Fragment::kMimeType);
+    if (bytes.isEmpty() || bytes.size() > Limits::kMaxFileBytes)
+    {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法粘贴"),
+                   QStringLiteral("剪贴板中没有可用的灵芽子树，或片段超过10MiB。请先复制主题。"));
+        return;
+    }
+    QJsonParseError parse;
+    const auto json = QJsonDocument::fromJson(bytes, &parse);
+    const auto parsed = Fragment::fromJson(json.object());
+    if (parse.error != QJsonParseError::NoError || !json.isObject() ||
+        std::holds_alternative<AppError>(parsed))
+    {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法粘贴"),
+                   QStringLiteral("剪贴板片段格式不合法，原工程未改变。"));
+        return;
+    }
+    const auto result = NodeCommands(m_commands, m_doc)
+                            .pasteFragment(tree->id, m_selectedNodeId, std::get<Fragment>(parsed));
+    if (const auto *error = std::get_if<AppError>(&result))
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法粘贴"), error->message);
+    else
+        selectNewNode(std::get<ID>(result));
+}
+
+void MainWindow::moveSelection(const ID &nodeId, const ID &parentId, const ID &beforeId)
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree)
+        return;
+    const auto result =
+        NodeCommands(m_commands, m_doc).moveSubtree(tree->id, nodeId, parentId, beforeId);
+    if (const auto *error = std::get_if<AppError>(&result))
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法移动主题"), error->message);
+    else
+        selectNode(nodeId);
+}
+
+void MainWindow::selectNewNode(const ID &id)
+{
+    if (m_tagFilter->currentData().isValid())
+    {
+        statusBar()->showMessage(
+            QStringLiteral("已新增主题；当前标签筛选保持，切回“全部标签”可查看新主题。"), 8000);
+        return;
+    }
+    selectNode(id);
+}
+
+void MainWindow::editRelations()
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree)
+        return;
+    const ID sheetId = tree->id;
+    EditorForm ui(this, "relationsDialog", QStringLiteral("关系线"));
+    auto *source = new QComboBox(&ui.dialog), *target = new QComboBox(&ui.dialog);
+    source->setObjectName("relationSource");
+    target->setObjectName("relationTarget");
+    for (const auto &node : tree->nodes)
+    {
+        source->addItem(node.title, node.id);
+        target->addItem(node.title, node.id);
+    }
+    source->setCurrentIndex(source->findData(m_selectedNodeId));
+    auto *label = new QLineEdit(&ui.dialog);
+    label->setObjectName("relationLabel");
+    auto *arrow = new QComboBox(&ui.dialog);
+    arrow->setObjectName("relationArrow");
+    arrow->addItem(QStringLiteral("无箭头"), "none");
+    arrow->addItem(QStringLiteral("终点箭头"), "end");
+    arrow->addItem(QStringLiteral("双向箭头"), "both");
+    arrow->setCurrentIndex(1);
+    auto *color = new QLineEdit(tree->defaultEdgeStyle.color, &ui.dialog);
+    color->setObjectName("relationColor");
+    auto *width = new QLineEdit(QString::number(tree->defaultEdgeStyle.width, 'g', 17), &ui.dialog);
+    width->setObjectName("relationWidth");
+    auto *dashed = new QCheckBox(QStringLiteral("虚线"), &ui.dialog);
+    dashed->setObjectName("relationDashed");
+    dashed->setChecked(tree->defaultEdgeStyle.dashed);
+    ui.fields->addRow(QStringLiteral("起点"), source);
+    ui.fields->addRow(QStringLiteral("终点"), target);
+    ui.fields->addRow(QStringLiteral("标签"), label);
+    ui.fields->addRow(QStringLiteral("箭头"), arrow);
+    ui.fields->addRow(QStringLiteral("颜色（新建继承默认，选中后可改）"), color);
+    ui.fields->addRow(QStringLiteral("宽度（0.1～20）"), width);
+    ui.fields->addRow(dashed);
+    ID selected;
+    const auto refresh = [&]
+    {
+        ui.list->clear();
+        for (const auto &relation : activeTreeSheet()->relations)
+        {
+            auto *item = new QListWidgetItem(
+                QStringLiteral("%1 → %2：%3")
+                    .arg(activeTreeSheet()->nodes.value(relation.sourceId).title,
+                         activeTreeSheet()->nodes.value(relation.targetId).title, relation.label),
+                ui.list);
+            item->setData(Qt::UserRole, relation.id);
+        }
+    };
+    const auto fresh = [&]
+    {
+        selected.clear();
+        ui.list->clearSelection();
+        label->clear();
+        source->setEnabled(true);
+        target->setEnabled(true);
+        color->setEnabled(false);
+        width->setEnabled(false);
+        dashed->setEnabled(false);
+        ui.remove->setEnabled(false);
+        ui.error->clear();
+    };
+    connect(ui.fresh, &QPushButton::clicked, &ui.dialog, fresh);
+    connect(ui.list, &QListWidget::itemClicked, &ui.dialog,
+            [&](QListWidgetItem *item)
+            {
+                selected = item->data(Qt::UserRole).toString();
+                for (const auto &relation : activeTreeSheet()->relations)
+                    if (relation.id == selected)
+                    {
+                        source->setCurrentIndex(source->findData(relation.sourceId));
+                        target->setCurrentIndex(target->findData(relation.targetId));
+                        source->setEnabled(false);
+                        target->setEnabled(false);
+                        label->setText(relation.label);
+                        arrow->setCurrentIndex(arrow->findData(relation.arrow));
+                        color->setText(relation.style.color);
+                        width->setText(QString::number(relation.style.width, 'g', 17));
+                        dashed->setChecked(relation.style.dashed);
+                        color->setEnabled(true);
+                        width->setEnabled(true);
+                        dashed->setEnabled(true);
+                        ui.remove->setEnabled(true);
+                    }
+            });
+    connect(ui.apply, &QPushButton::clicked, &ui.dialog,
+            [&]
+            {
+                NodeCommands nodes(m_commands, m_doc);
+                if (selected.isEmpty())
+                {
+                    const auto result = nodes.addRelation(
+                        sheetId, source->currentData().toString(), target->currentData().toString(),
+                        label->text(), arrow->currentData().toString());
+                    if (const auto *error = std::get_if<AppError>(&result))
+                    {
+                        ui.error->setText(error->message);
+                        return;
+                    }
+                }
+                else
+                {
+                    bool ok;
+                    const double value = width->text().toDouble(&ok);
+                    if (!ok)
+                    {
+                        ui.error->setText(QStringLiteral("关系线宽度必须为数字。"));
+                        return;
+                    }
+                    RelationUpdate update;
+                    update.label = label->text();
+                    update.arrow = arrow->currentData().toString();
+                    update.style = EdgeStyle{color->text().trimmed(), value, dashed->isChecked()};
+                    const auto result = nodes.updateRelation(sheetId, selected, update);
+                    if (const auto *error = std::get_if<AppError>(&result))
+                    {
+                        ui.error->setText(error->message);
+                        return;
+                    }
+                }
+                refresh();
+                fresh();
+            });
+    connect(ui.remove, &QPushButton::clicked, &ui.dialog,
+            [&]
+            {
+                const auto result =
+                    NodeCommands(m_commands, m_doc).removeRelation(sheetId, selected);
+                if (const auto *error = std::get_if<AppError>(&result))
+                    ui.error->setText(error->message);
+                else
+                {
+                    refresh();
+                    fresh();
+                }
+            });
+    refresh();
+    fresh();
+    ui.dialog.exec();
+}
+
+void MainWindow::editAnnotations()
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree)
+        return;
+    const ID sheetId = tree->id;
+    const QString themeColor = tree->defaultEdgeStyle.color;
+    EditorForm ui(this, "annotationsDialog", QStringLiteral("外框与概要"));
+    auto *parent = new QComboBox(&ui.dialog);
+    parent->setObjectName("annotationParent");
+    for (const auto &node : tree->nodes)
+        parent->addItem(node.title, node.id);
+    parent->setCurrentIndex(
+        parent->findData(tree->nodes.value(m_selectedNodeId).parentId.value_or(tree->rootId)));
+    auto *kind = new QComboBox(&ui.dialog);
+    kind->setObjectName("annotationKind");
+    kind->addItem(QStringLiteral("外框"), "boundary");
+    kind->addItem(QStringLiteral("概要"), "summary");
+    auto *members = new QListWidget(&ui.dialog);
+    members->setObjectName("annotationMembers");
+    members->setSelectionMode(QAbstractItemView::MultiSelection);
+    members->setMaximumHeight(140);
+    auto *text = new QLineEdit(&ui.dialog);
+    text->setObjectName("annotationText");
+    auto *color = new QLineEdit(&ui.dialog);
+    color->setObjectName("annotationColor");
+    color->setPlaceholderText(QStringLiteral("留空使用主题色；或#RRGGBB"));
+    ui.fields->addRow(QStringLiteral("父主题"), parent);
+    ui.fields->addRow(QStringLiteral("类型"), kind);
+    ui.fields->addRow(QStringLiteral("连续兄弟≥2（点击多选）"), members);
+    ui.fields->addRow(QStringLiteral("文本"), text);
+    ui.fields->addRow(QStringLiteral("颜色"), color);
+    ID selected;
+    const auto populate = [&]
+    {
+        members->clear();
+        QVector<QPair<int, ID>> ordered;
+        for (const auto &node : activeTreeSheet()->nodes)
+            if (node.parentId == parent->currentData().toString())
+                ordered.append({node.order, node.id});
+        std::sort(ordered.begin(), ordered.end());
+        for (const auto &entry : ordered)
+        {
+            auto *item =
+                new QListWidgetItem(activeTreeSheet()->nodes.value(entry.second).title, members);
+            item->setData(Qt::UserRole, entry.second);
+        }
+    };
+    const auto refresh = [&]
+    {
+        ui.list->clear();
+        for (const auto &annotation : activeTreeSheet()->annotations)
+        {
+            auto *item =
+                new QListWidgetItem(QStringLiteral("%1（%2个分支）：%3")
+                                        .arg(annotation.kind == "boundary" ? QStringLiteral("外框")
+                                                                           : QStringLiteral("概要"))
+                                        .arg(annotation.memberIds.size())
+                                        .arg(annotation.text),
+                                    ui.list);
+            item->setData(Qt::UserRole, annotation.id);
+        }
+    };
+    const auto fresh = [&]
+    {
+        selected.clear();
+        ui.list->clearSelection();
+        text->clear();
+        color->clear();
+        parent->setEnabled(true);
+        kind->setEnabled(true);
+        ui.remove->setEnabled(false);
+        ui.error->clear();
+        populate();
+    };
+    connect(parent, &QComboBox::currentIndexChanged, &ui.dialog, [&](int) { populate(); });
+    connect(ui.fresh, &QPushButton::clicked, &ui.dialog, fresh);
+    connect(ui.list, &QListWidget::itemClicked, &ui.dialog,
+            [&](QListWidgetItem *item)
+            {
+                selected = item->data(Qt::UserRole).toString();
+                for (const auto &annotation : activeTreeSheet()->annotations)
+                    if (annotation.id == selected)
+                    {
+                        parent->setCurrentIndex(parent->findData(annotation.parentId));
+                        populate();
+                        kind->setCurrentIndex(kind->findData(annotation.kind));
+                        parent->setEnabled(false);
+                        kind->setEnabled(false);
+                        text->setText(annotation.text);
+                        color->setText(annotation.color);
+                        for (int i = 0; i < members->count(); ++i)
+                            members->item(i)->setSelected(annotation.memberIds.contains(
+                                members->item(i)->data(Qt::UserRole).toString()));
+                        ui.remove->setEnabled(true);
+                    }
+            });
+    connect(ui.apply, &QPushButton::clicked, &ui.dialog,
+            [&]
+            {
+                QStringList ids;
+                for (auto *item : members->selectedItems())
+                    ids.append(item->data(Qt::UserRole).toString());
+                NodeCommands nodes(m_commands, m_doc);
+                std::optional<AppError> error;
+                if (selected.isEmpty())
+                {
+                    // 命令允许空色，而ProjectJson要求显式#RRGGBB；消费者先落实主题色，避免存后打不开。
+                    const auto result = nodes.createAnnotation(
+                        sheetId, parent->currentData().toString(), kind->currentData().toString(),
+                        ids, text->text(),
+                        color->text().trimmed().isEmpty() ? themeColor : color->text());
+                    if (const auto *failure = std::get_if<AppError>(&result))
+                        error = *failure;
+                }
+                else
+                {
+                    AnnotationUpdate update;
+                    update.memberIds = ids;
+                    update.text = text->text();
+                    update.color = color->text().trimmed().isEmpty() ? themeColor : color->text();
+                    const auto result = nodes.updateAnnotation(sheetId, selected, update);
+                    if (const auto *failure = std::get_if<AppError>(&result))
+                        error = *failure;
+                }
+                if (error)
+                {
+                    ui.error->setText(error->message +
+                                      QStringLiteral("。请选择同一父主题下至少两个连续兄弟。"));
+                    return;
+                }
+                refresh();
+                fresh();
+            });
+    connect(ui.remove, &QPushButton::clicked, &ui.dialog,
+            [&]
+            {
+                const auto result =
+                    NodeCommands(m_commands, m_doc).removeAnnotation(sheetId, selected);
+                if (const auto *error = std::get_if<AppError>(&result))
+                    ui.error->setText(error->message);
+                else
+                {
+                    refresh();
+                    fresh();
+                }
+            });
+    refresh();
+    fresh();
+    ui.dialog.exec();
+}
+
+void MainWindow::editComments()
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree || !tree->nodes.contains(m_selectedNodeId))
+        return;
+    const ID sheetId = tree->id, nodeId = m_selectedNodeId;
+    EditorForm ui(this, "commentsDialog", QStringLiteral("主题批注"));
+    auto *author =
+        new QLineEdit(m_sessionUser.isEmpty() ? QStringLiteral("匿名") : m_sessionUser, &ui.dialog);
+    author->setObjectName("commentAuthor");
+    auto *body = new QPlainTextEdit(&ui.dialog);
+    body->setObjectName("commentBody");
+    ui.fields->addRow(QStringLiteral("作者显示名"), author);
+    ui.fields->addRow(QStringLiteral("正文（最多2000字符）"), body);
+    ui.remove->setText(QStringLiteral("标记已解决／重新打开"));
+    ui.remove->setEnabled(false);
+    ID selected;
+    bool resolved = false;
+    const auto refresh = [&]
+    {
+        ui.list->clear();
+        for (const auto &comment : activeTreeSheet()->comments)
+            if (comment.nodeId == nodeId)
+            {
+                auto *item = new QListWidgetItem(
+                    QStringLiteral("[%1] %2 · %3\n%4")
+                        .arg(comment.resolved ? QStringLiteral("已解决") : QStringLiteral("待处理"),
+                             comment.author,
+                             comment.createdAt.toLocalTime().toString("yyyy-MM-dd HH:mm"),
+                             comment.body),
+                    ui.list);
+                item->setData(Qt::UserRole, comment.id);
+                item->setToolTip(QStringLiteral("更新于 %1")
+                                     .arg(comment.updatedAt.toLocalTime().toString(Qt::ISODate)));
+            }
+    };
+    const auto fresh = [&]
+    {
+        selected.clear();
+        ui.list->clearSelection();
+        body->clear();
+        body->setReadOnly(false);
+        author->setReadOnly(false);
+        ui.apply->setEnabled(true);
+        ui.remove->setEnabled(false);
+        ui.error->clear();
+    };
+    connect(ui.fresh, &QPushButton::clicked, &ui.dialog, fresh);
+    connect(ui.list, &QListWidget::itemClicked, &ui.dialog,
+            [&](QListWidgetItem *item)
+            {
+                selected = item->data(Qt::UserRole).toString();
+                for (const auto &comment : activeTreeSheet()->comments)
+                    if (comment.id == selected)
+                    {
+                        author->setText(comment.author);
+                        body->setPlainText(comment.body);
+                        resolved = comment.resolved;
+                        body->setReadOnly(true);
+                        author->setReadOnly(true);
+                        ui.apply->setEnabled(false);
+                        ui.remove->setEnabled(true);
+                    }
+            });
+    connect(ui.apply, &QPushButton::clicked, &ui.dialog,
+            [&]
+            {
+                const auto result =
+                    NodeCommands(m_commands, m_doc)
+                        .addComment(sheetId, nodeId, author->text(), body->toPlainText());
+                if (const auto *error = std::get_if<AppError>(&result))
+                    ui.error->setText(error->message);
+                else
+                {
+                    refresh();
+                    fresh();
+                }
+            });
+    connect(ui.remove, &QPushButton::clicked, &ui.dialog,
+            [&]
+            {
+                const auto result =
+                    NodeCommands(m_commands, m_doc).resolveComment(sheetId, selected, !resolved);
+                if (const auto *error = std::get_if<AppError>(&result))
+                    ui.error->setText(error->message);
+                else
+                {
+                    refresh();
+                    fresh();
+                }
+            });
+    refresh();
+    ui.dialog.exec();
+}
+
+void MainWindow::addDecorations(const TreeSheet &sheet)
+{
+    const auto addPath =
+        [this](const QPainterPath &path, const QPen &pen, const QString &kind, const ID &id)
+    {
+        auto *item = m_scene->addPath(path, pen);
+        item->setZValue(-0.5);
+        item->setAcceptedMouseButtons(Qt::NoButton);
+        item->setData(0, kind);
+        item->setData(1, id);
+        return item;
+    };
+    const auto addText = [this](const QString &text, const QPointF &position, const QColor &color,
+                                const QString &kind, const ID &id)
+    {
+        auto *item = m_scene->addText(QString(), canvasFont());
+        item->setPlainText(text);
+        item->setTextWidth(220);
+        item->setDefaultTextColor(color);
+        item->setPos(position);
+        item->setZValue(-0.25);
+        item->setAcceptedMouseButtons(Qt::NoButton);
+        item->setData(0, kind);
+        item->setData(1, id);
+        return item;
+    };
+    for (const auto &relation : sheet.relations)
+    {
+        const auto *source = m_nodeItems.value(relation.sourceId, nullptr);
+        const auto *target = m_nodeItems.value(relation.targetId, nullptr);
+        if (!source || !target)
+            continue; // 端点折叠隐藏时仅隐藏连线，不改数据
+        const bool right = target->pos().x() >= source->pos().x();
+        const QPointF start = source->mapToScene(source->horizontalAnchor(right));
+        const QPointF end = target->mapToScene(target->horizontalAnchor(!right));
+        const qreal offset = qMax(60.0, qAbs(end.x() - start.x()) * 0.35);
+        QPainterPath path(start);
+        const QPointF controlStart = start + QPointF(right ? offset : -offset, -36);
+        const QPointF controlEnd = end + QPointF(right ? -offset : offset, -36);
+        path.cubicTo(controlStart, controlEnd, end);
+        QPen pen(QColor(relation.style.color), relation.style.width);
+        if (relation.style.dashed)
+            pen.setStyle(Qt::DashLine);
+        addPath(path, pen, "relation", relation.id);
+        const auto arrow = [&](QPointF tip, QPointF previous)
+        {
+            QLineF direction(previous, tip);
+            direction.setLength(11);
+            const QPointF back = tip - (direction.p2() - direction.p1());
+            const QPointF normal(-(direction.dy()), direction.dx());
+            QPainterPath head(tip);
+            head.lineTo(back + normal * 0.4);
+            head.moveTo(tip);
+            head.lineTo(back - normal * 0.4);
+            addPath(head, pen, "relationArrow", relation.id);
+        };
+        if (relation.arrow != "none")
+            arrow(end, controlEnd);
+        if (relation.arrow == "both")
+            arrow(start, controlStart);
+        if (!relation.label.isEmpty())
+            addText(relation.label, path.pointAtPercent(0.5) + QPointF(-110, -32), pen.color(),
+                    "relationLabel", relation.id);
+    }
+    QRectF allNodes;
+    for (const auto *node : m_nodeItems)
+        allNodes = allNodes.united(node->sceneBoundingRect());
+    qreal nextRightY = allNodes.top(), nextLeftY = allNodes.top();
+    for (const auto &annotation : sheet.annotations)
+    {
+        QMap<int, QRectF> sections;
+        int visibleMembers = 0;
+        for (const auto &id : annotation.memberIds)
+            visibleMembers += m_nodeItems.contains(id);
+        if (!visibleMembers)
+            continue;
+        for (auto it = m_nodeItems.constBegin(); it != m_nodeItems.constEnd(); ++it)
+        {
+            ID id = it.key();
+            while (sheet.nodes.contains(id))
+            {
+                if (annotation.memberIds.contains(id))
+                {
+                    const int side = m_nodeItems.value(id)->pos().x() < 0 ? -1 : 1;
+                    sections[side] = sections.value(side).united(it.value()->sceneBoundingRect());
+                    break;
+                }
+                const auto parent = sheet.nodes.value(id).parentId;
+                if (!parent)
+                    break;
+                id = *parent;
+            }
+        }
+        // 双侧导图的同一组可以横跨左右：分侧绘制，避免大矩形把根和无关分支也框入。
+        for (QRectF bounds : sections)
+        {
+            bounds.adjust(-16, -16, 16, 16);
+            const QColor color(annotation.color.isEmpty() ? QStringLiteral("#247A62")
+                                                          : annotation.color);
+            QPainterPath path;
+            const bool right = bounds.center().x() >= 0;
+            const qreal x = right ? bounds.right() : bounds.left();
+            if (annotation.kind == "boundary")
+                path.addRoundedRect(bounds, 14, 14);
+            else
+            {
+                path.moveTo(x, bounds.top());
+                path.lineTo(x + (right ? 10 : -10), bounds.top());
+                path.lineTo(x + (right ? 10 : -10), bounds.bottom());
+                path.lineTo(x, bounds.bottom());
+            }
+            auto *frame = addPath(path, QPen(color, 1.5), annotation.kind, annotation.id);
+            frame->setZValue(-2);
+            if (!annotation.text.isEmpty())
+            {
+                // 独立侧边通道在全部节点之外；逐条向下避让文本，避免长概要覆盖无关分支。
+                qreal &nextY = right ? nextRightY : nextLeftY;
+                const qreal y = qMax(bounds.top(), nextY);
+                const qreal textX = right ? allNodes.right() + 48 : allNodes.left() - 268;
+                auto *label = addText(annotation.text, QPointF(textX, y), color, "annotationLabel",
+                                      annotation.id);
+                nextY = y + label->boundingRect().height() + 16;
+                QPainterPath connector(QPointF(x, bounds.center().y()));
+                connector.lineTo(right ? textX : textX + 220,
+                                 y + label->boundingRect().height() / 2);
+                auto *line =
+                    addPath(connector, QPen(color, 1), "annotationConnector", annotation.id);
+                line->setZValue(-2);
+            }
+        }
+    }
 }
 
 }  // namespace lingya

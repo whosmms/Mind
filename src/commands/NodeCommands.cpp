@@ -872,19 +872,33 @@ std::variant<bool, AppError> NodeCommands::updateRelation(const ID& sheetId, con
     }
     const QString label = update.label.has_value() ? update.label->trimmed() : current->label;
     const QString arrow = update.arrow.value_or(current->arrow);
-    if (label == current->label && arrow == current->arrow) return true;   // 无操作短路
+    const EdgeStyle style = update.style.value_or(current->style);
+    if (!isHexColor(style.color) || !std::isfinite(style.width) || style.width < 0.1 ||
+        style.width > 20.0)
+    {
+        return AppError{"INVALID_ARGUMENT",
+                        QStringLiteral("关系线颜色须为#RRGGBB，宽度须在0.1至20之间")};
+    }
+    if (label == current->label && arrow == current->arrow && sameEdgeStyle(style, current->style))
+        return true; // 无操作短路
 
-    const auto result = m_commands->applyEdit(
-        QStringLiteral("修改关系线"), [sheetId, relationId, label, arrow](Project& project) {
-            TreeSheet* target = findTree(project, sheetId);
-            if (target == nullptr) return;
-            for (Relation& relation : target->relations) {
-                if (relation.id != relationId) continue;
-                relation.label = label;
-                relation.arrow = arrow;
-                return;
-            }
-        });
+    const auto result =
+        m_commands->applyEdit(QStringLiteral("修改关系线"),
+                              [sheetId, relationId, label, arrow, style](Project &project)
+                              {
+                                  TreeSheet *target = findTree(project, sheetId);
+                                  if (target == nullptr)
+                                      return;
+                                  for (Relation &relation : target->relations)
+                                  {
+                                      if (relation.id != relationId)
+                                          continue;
+                                      relation.label = label;
+                                      relation.arrow = arrow;
+                                      relation.style = style;
+                                      return;
+                                  }
+                              });
     if (const auto* error = std::get_if<AppError>(&result)) {
         return *error;
     }
