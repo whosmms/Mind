@@ -55,6 +55,8 @@ endif()
 add_library(lingya_appcore STATIC
     src/document/ProjectDocument.h
     src/document/ProjectDocument.cpp
+    src/document/Fragment.h
+    src/document/Fragment.cpp
     src/commands/CommandService.h
     src/commands/CommandService.cpp
     src/commands/SnapshotCommand.h

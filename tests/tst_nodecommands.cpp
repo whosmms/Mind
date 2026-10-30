@@ -2,6 +2,11 @@
 
 #include <algorithm>
 
+#include <QUuid>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QSet>
+
 #include "commands/CommandService.h"
 #include "commands/NodeCommands.h"
 #include "commands/TaskCommands.h"
@@ -73,6 +78,42 @@ QVector<int> childOrders(const Project& project, const ID& parentId) {
     return orders;
 }
 
+// 根 + 三个同级 a/b/c + a 的两个子节点 a-1/a-2，供移动、关系、外框、批注与片段用例复用
+struct RichTree {
+    Project project;
+    ID sheetId;
+    ID rootId;
+};
+
+RichTree makeRichTree() {
+    RichTree result;
+    result.project = ProjectFactory::createMindmap(QStringLiteral("命令族测试"));
+    const TreeSheet& tree = treeOf(result.project);
+    result.sheetId = tree.id;
+    result.rootId = tree.rootId;
+    addRawNode(result.project, result.rootId, 0, QStringLiteral("a"), QStringLiteral("A"));
+    addRawNode(result.project, result.rootId, 1, QStringLiteral("b"), QStringLiteral("B"));
+    addRawNode(result.project, result.rootId, 2, QStringLiteral("c"), QStringLiteral("C"));
+    addRawNode(result.project, QStringLiteral("a"), 0, QStringLiteral("a-1"),
+               QStringLiteral("A1"));
+    addRawNode(result.project, QStringLiteral("a"), 1, QStringLiteral("a-2"),
+               QStringLiteral("A2"));
+    return result;
+}
+
+QString orderOfChildren(const Project& project, const ID& parentId) {
+    const TreeSheet& tree = treeOf(project);
+    QVector<QPair<int, ID>> pairs;
+    for (auto it = tree.nodes.constBegin(); it != tree.nodes.constEnd(); ++it) {
+        if (it.value().parentId.has_value() && *it.value().parentId == parentId)
+            pairs.append({it.value().order, it.key()});
+    }
+    std::sort(pairs.begin(), pairs.end());
+    QStringList ids;
+    for (const auto& pair : pairs) ids.append(pair.second);
+    return ids.join(QLatin1Char(','));
+}
+
 }  // namespace
 
 class TstNodeCommands : public QObject {
@@ -118,6 +159,26 @@ private slots:
     void setStyleClearsOverride();
     void setStyleRejectsInvalidValues();
     void setStyleNoOpShortCircuits();
+
+    void moveSubtreeReordersSiblingsAcrossParents();
+    void moveSubtreeRejectsRootCycleAndBadReference();
+    void moveSubtreeNoOpShortCircuits();
+    void setSheetStyleAppliesAndShortCircuits();
+    void addRelationCreatesAndRejectsInvalid();
+    void updateRelationKeepsUntouchedFields();
+    void removeRelationDeletesAndReportsMissing();
+    void createAnnotationRequiresContiguousSiblings();
+    void createAnnotationStoresMembersInTreeOrder();
+    void updateAnnotationRevalidatesMembers();
+    void removeAnnotationDeletesAndReportsMissing();
+    void addCommentNormalizesTimestamps();
+    void resolveCommentShortCircuitsWhenUnchanged();
+    void copyFragmentCollapsesAncestorsAndKeepsInternalRefs();
+    void copyFragmentKeepsOnlyInternalReferences();
+    void pasteFragmentRemapsIdsRelationsAndTasks();
+    void fragmentJsonRoundTrips();
+    void fragmentJsonRejectsBadEnvelope();
+    void pasteFragmentRejectsEmptyOrMissingParent();
 };
 
 void TstNodeCommands::addChildToRootCreatesAndUndoes() {
@@ -1027,6 +1088,739 @@ void TstNodeCommands::setStyleNoOpShortCircuits() {
 
     QVERIFY(std::get<bool>(nodes.setStyle(tree.id, tree.rootId, NodeStyleOverride{})));   // 当前即为空
     QVERIFY(!service.canUndo());   // 无修改不入历史（D-M1-02）
+}
+
+void TstNodeCommands::moveSubtreeReordersSiblingsAcrossParents() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const qint64 aRevision = treeOf(doc.project()).nodes.value(QStringLiteral("a")).contentRevision;
+
+    const auto moved = nodes.moveSubtree(fixture.sheetId, QStringLiteral("c"), fixture.rootId,
+                                         QStringLiteral("a"));
+    QVERIFY(std::holds_alternative<bool>(moved));
+    QVERIFY(std::get<bool>(moved));
+    QCOMPARE(orderOfChildren(doc.project(), fixture.rootId), QStringLiteral("c,a,b"));
+    QCOMPARE(childOrders(doc.project(), fixture.rootId), QVector<int>({0, 1, 2}));
+
+    // 跨父级：a-1 移到 b 之下，旧父级与新父级的contentRevision各+1
+    QVERIFY(std::get<bool>(
+        nodes.moveSubtree(fixture.sheetId, QStringLiteral("a-1"), QStringLiteral("b"))));
+    QCOMPARE(treeOf(doc.project()).nodes.value(QStringLiteral("a-1")).parentId.value_or(QString()),
+             QStringLiteral("b"));
+    QCOMPARE(orderOfChildren(doc.project(), QStringLiteral("b")), QStringLiteral("a-1"));
+    QCOMPARE(treeOf(doc.project()).nodes.value(QStringLiteral("a")).contentRevision, aRevision + 1);
+
+    service.undo();
+    service.undo();
+    QCOMPARE(orderOfChildren(doc.project(), fixture.rootId), QStringLiteral("a,b,c"));
+    QCOMPARE(treeOf(doc.project()).nodes.value(QStringLiteral("a-1")).parentId.value_or(QString()),
+             QStringLiteral("a"));
+    QCOMPARE(treeOf(doc.project()).nodes.value(QStringLiteral("a")).contentRevision, aRevision);
+}
+
+void TstNodeCommands::moveSubtreeRejectsRootCycleAndBadReference() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+    const qint64 revision = doc.sessionRevision();
+
+    const auto rootMove = nodes.moveSubtree(fixture.sheetId, fixture.rootId, QStringLiteral("a"));
+    QVERIFY(std::holds_alternative<AppError>(rootMove));
+    QCOMPARE(std::get<AppError>(rootMove).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto cycle = nodes.moveSubtree(fixture.sheetId, QStringLiteral("a"),
+                                         QStringLiteral("a-2"));
+    QVERIFY(std::holds_alternative<AppError>(cycle));
+    QCOMPARE(std::get<AppError>(cycle).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto missingParent = nodes.moveSubtree(fixture.sheetId, QStringLiteral("a"),
+                                                 QStringLiteral("missing"));
+    QVERIFY(std::holds_alternative<AppError>(missingParent));
+    QCOMPARE(std::get<AppError>(missingParent).code, QStringLiteral("NOT_FOUND"));
+
+    // a-1 是 a 的子节点，不是根的子节点，不能作为“插入到根下某兄弟之前”的参照
+    const auto badBefore = nodes.moveSubtree(fixture.sheetId, QStringLiteral("b"), fixture.rootId,
+                                             QStringLiteral("a-1"));
+    QVERIFY(std::holds_alternative<AppError>(badBefore));
+    QCOMPARE(std::get<AppError>(badBefore).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    QCOMPARE(doc.sessionRevision(), revision);
+    QVERIFY(!service.canUndo());
+}
+
+void TstNodeCommands::moveSubtreeNoOpShortCircuits() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    // a 已在首位，插到 b 之前即当前状态
+    QVERIFY(std::get<bool>(
+        nodes.moveSubtree(fixture.sheetId, QStringLiteral("a"), fixture.rootId,
+                          QStringLiteral("b"))));
+    QVERIFY(!service.canUndo());
+
+    // c 已是末尾，beforeNodeId为空表示追加末尾
+    QVERIFY(std::get<bool>(
+        nodes.moveSubtree(fixture.sheetId, QStringLiteral("c"), fixture.rootId)));
+    QVERIFY(!service.canUndo());
+}
+
+void TstNodeCommands::setSheetStyleAppliesAndShortCircuits() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const TreeSheet& before = treeOf(doc.project());
+    const int originalSize = before.defaultNodeStyle.fontSize;
+    NodeStyle style = before.defaultNodeStyle;
+    style.fontSize = 20;
+    style.fill = QStringLiteral("#112233");
+    EdgeStyle edge = before.defaultEdgeStyle;
+    edge.width = 3.0;
+    edge.dashed = true;
+
+    QVERIFY(std::get<bool>(nodes.setSheetStyle(fixture.sheetId, style, edge)));
+    const TreeSheet& applied = treeOf(doc.project());
+    QCOMPARE(applied.defaultNodeStyle.fontSize, 20);
+    QCOMPARE(applied.defaultNodeStyle.fill, QStringLiteral("#112233"));
+    QCOMPARE(applied.defaultEdgeStyle.width, 3.0);
+    QVERIFY(applied.defaultEdgeStyle.dashed);
+    QVERIFY(service.canUndo());
+
+    const qint64 revision = doc.sessionRevision();
+    QVERIFY(std::get<bool>(nodes.setSheetStyle(fixture.sheetId, style, edge)));   // 同值短路
+    QCOMPARE(doc.sessionRevision(), revision);
+
+    service.undo();
+    QCOMPARE(treeOf(doc.project()).defaultNodeStyle.fontSize, originalSize);
+
+    NodeStyle badColor = style;
+    badColor.fill = QStringLiteral("red");
+    QCOMPARE(std::get<AppError>(nodes.setSheetStyle(fixture.sheetId, badColor, edge)).code,
+             QStringLiteral("INVALID_ARGUMENT"));
+
+    NodeStyle badShape = style;
+    badShape.shape = QStringLiteral("hexagon");
+    QCOMPARE(std::get<AppError>(nodes.setSheetStyle(fixture.sheetId, badShape, edge)).code,
+             QStringLiteral("INVALID_ARGUMENT"));
+
+    NodeStyle badSize = style;
+    badSize.fontSize = Limits::kFontSizeMax + 1;
+    QCOMPARE(std::get<AppError>(nodes.setSheetStyle(fixture.sheetId, badSize, edge)).code,
+             QStringLiteral("LIMIT_EXCEEDED"));
+
+    NodeStyle badWidth = style;
+    badWidth.borderWidth = 0.0;
+    QCOMPARE(std::get<AppError>(nodes.setSheetStyle(fixture.sheetId, badWidth, edge)).code,
+             QStringLiteral("INVALID_ARGUMENT"));
+
+    EdgeStyle badEdge = edge;
+    badEdge.width = 0.0;
+    QCOMPARE(std::get<AppError>(nodes.setSheetStyle(fixture.sheetId, style, badEdge)).code,
+             QStringLiteral("INVALID_ARGUMENT"));
+}
+
+void TstNodeCommands::addRelationCreatesAndRejectsInvalid() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto created = nodes.addRelation(fixture.sheetId, QStringLiteral("a"),
+                                           QStringLiteral("b"), QStringLiteral("  依赖  "),
+                                           QStringLiteral("both"));
+    QVERIFY(std::holds_alternative<ID>(created));
+    const TreeSheet& tree = treeOf(doc.project());
+    QCOMPARE(tree.relations.size(), 1);
+    QCOMPARE(tree.relations.first().label, QStringLiteral("依赖"));
+    QCOMPARE(tree.relations.first().arrow, QStringLiteral("both"));
+    QCOMPARE(tree.relations.first().sourceId, QStringLiteral("a"));
+    QVERIFY(service.canUndo());
+
+    service.undo();
+    QVERIFY(treeOf(doc.project()).relations.isEmpty());
+
+    const auto self = nodes.addRelation(fixture.sheetId, QStringLiteral("a"), QStringLiteral("a"),
+                                        QString());
+    QCOMPARE(std::get<AppError>(self).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto missing = nodes.addRelation(fixture.sheetId, QStringLiteral("a"),
+                                           QStringLiteral("missing"), QString());
+    QCOMPARE(std::get<AppError>(missing).code, QStringLiteral("NOT_FOUND"));
+
+    const auto badArrow = nodes.addRelation(fixture.sheetId, QStringLiteral("a"),
+                                            QStringLiteral("b"), QString(),
+                                            QStringLiteral("forward"));
+    QCOMPARE(std::get<AppError>(badArrow).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    QVERIFY(std::holds_alternative<ID>(nodes.addRelation(fixture.sheetId, QStringLiteral("a"),
+                                                         QStringLiteral("b"), QString())));
+    const auto duplicate = nodes.addRelation(fixture.sheetId, QStringLiteral("a"),
+                                             QStringLiteral("b"), QString());
+    QCOMPARE(std::get<AppError>(duplicate).code, QStringLiteral("INVALID_ARGUMENT"));
+    QCOMPARE(treeOf(doc.project()).relations.size(), 1);
+}
+
+void TstNodeCommands::updateRelationKeepsUntouchedFields() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const ID relationId = std::get<ID>(
+        nodes.addRelation(fixture.sheetId, QStringLiteral("a"), QStringLiteral("b"),
+                          QStringLiteral("原标签")));
+
+    RelationUpdate labelOnly;
+    labelOnly.label = QStringLiteral("  新标签  ");
+    QVERIFY(std::get<bool>(nodes.updateRelation(fixture.sheetId, relationId, labelOnly)));
+    QCOMPARE(treeOf(doc.project()).relations.first().label, QStringLiteral("新标签"));
+    QCOMPARE(treeOf(doc.project()).relations.first().arrow, QStringLiteral("end"));
+
+    const qint64 revision = doc.sessionRevision();
+    QVERIFY(std::get<bool>(nodes.updateRelation(fixture.sheetId, relationId, labelOnly)));
+    QCOMPARE(doc.sessionRevision(), revision);   // 无操作短路
+
+    RelationUpdate arrowOnly;
+    arrowOnly.arrow = QStringLiteral("none");
+    QVERIFY(std::get<bool>(nodes.updateRelation(fixture.sheetId, relationId, arrowOnly)));
+    QCOMPARE(treeOf(doc.project()).relations.first().arrow, QStringLiteral("none"));
+
+    RelationUpdate badArrow;
+    badArrow.arrow = QStringLiteral("both-ways");
+    QCOMPARE(std::get<AppError>(nodes.updateRelation(fixture.sheetId, relationId, badArrow)).code,
+             QStringLiteral("INVALID_ARGUMENT"));
+
+    QCOMPARE(std::get<AppError>(
+                 nodes.updateRelation(fixture.sheetId, QStringLiteral("missing"), labelOnly))
+                 .code,
+             QStringLiteral("NOT_FOUND"));
+}
+
+void TstNodeCommands::removeRelationDeletesAndReportsMissing() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const ID relationId = std::get<ID>(
+        nodes.addRelation(fixture.sheetId, QStringLiteral("a"), QStringLiteral("b"), QString()));
+    QVERIFY(std::get<bool>(nodes.removeRelation(fixture.sheetId, relationId)));
+    QVERIFY(treeOf(doc.project()).relations.isEmpty());
+
+    QCOMPARE(std::get<AppError>(nodes.removeRelation(fixture.sheetId, relationId)).code,
+             QStringLiteral("NOT_FOUND"));
+
+    service.undo();
+    QCOMPARE(treeOf(doc.project()).relations.size(), 1);
+}
+
+void TstNodeCommands::createAnnotationRequiresContiguousSiblings() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto single = nodes.createAnnotation(fixture.sheetId, fixture.rootId,
+                                               QStringLiteral("boundary"),
+                                               {QStringLiteral("a")});
+    QCOMPARE(std::get<AppError>(single).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto nonContiguous =
+        nodes.createAnnotation(fixture.sheetId, fixture.rootId, QStringLiteral("boundary"),
+                               {QStringLiteral("a"), QStringLiteral("c")});
+    QCOMPARE(std::get<AppError>(nonContiguous).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    // a 与 a-1 不是同一父级的兄弟
+    const auto crossParent =
+        nodes.createAnnotation(fixture.sheetId, fixture.rootId, QStringLiteral("boundary"),
+                               {QStringLiteral("a"), QStringLiteral("a-1")});
+    QCOMPARE(std::get<AppError>(crossParent).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto duplicated =
+        nodes.createAnnotation(fixture.sheetId, fixture.rootId, QStringLiteral("boundary"),
+                               {QStringLiteral("a"), QStringLiteral("a")});
+    QCOMPARE(std::get<AppError>(duplicated).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto badKind =
+        nodes.createAnnotation(fixture.sheetId, fixture.rootId, QStringLiteral("frame"),
+                               {QStringLiteral("a"), QStringLiteral("b")});
+    QCOMPARE(std::get<AppError>(badKind).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto badColor =
+        nodes.createAnnotation(fixture.sheetId, fixture.rootId, QStringLiteral("boundary"),
+                               {QStringLiteral("a"), QStringLiteral("b")}, QString(),
+                               QStringLiteral("#12345"));
+    QCOMPARE(std::get<AppError>(badColor).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto missingParent =
+        nodes.createAnnotation(fixture.sheetId, QStringLiteral("missing"),
+                               QStringLiteral("boundary"),
+                               {QStringLiteral("a"), QStringLiteral("b")});
+    QCOMPARE(std::get<AppError>(missingParent).code, QStringLiteral("NOT_FOUND"));
+
+    QVERIFY(!service.canUndo());
+    QVERIFY(treeOf(doc.project()).annotations.isEmpty());
+}
+
+void TstNodeCommands::createAnnotationStoresMembersInTreeOrder() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto created =
+        nodes.createAnnotation(fixture.sheetId, fixture.rootId, QStringLiteral("summary"),
+                               {QStringLiteral("b"), QStringLiteral("a")},
+                               QStringLiteral("  概要  "));
+    QVERIFY(std::holds_alternative<ID>(created));
+    const TreeSheet& tree = treeOf(doc.project());
+    QCOMPARE(tree.annotations.size(), 1);
+    QCOMPARE(tree.annotations.first().kind, QStringLiteral("summary"));
+    QCOMPARE(tree.annotations.first().memberIds,
+             QStringList({QStringLiteral("a"), QStringLiteral("b")}));
+    QCOMPARE(tree.annotations.first().text, QStringLiteral("概要"));
+    QVERIFY(tree.annotations.first().color.isEmpty());
+
+    service.undo();
+    QVERIFY(treeOf(doc.project()).annotations.isEmpty());
+}
+
+void TstNodeCommands::updateAnnotationRevalidatesMembers() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const ID annotationId = std::get<ID>(
+        nodes.createAnnotation(fixture.sheetId, fixture.rootId, QStringLiteral("boundary"),
+                               {QStringLiteral("a"), QStringLiteral("b")},
+                               QStringLiteral("组")));
+
+    AnnotationUpdate members;
+    members.memberIds = QStringList({QStringLiteral("c"), QStringLiteral("b")});
+    QVERIFY(std::get<bool>(nodes.updateAnnotation(fixture.sheetId, annotationId, members)));
+    QCOMPARE(treeOf(doc.project()).annotations.first().memberIds,
+             QStringList({QStringLiteral("b"), QStringLiteral("c")}));
+    QCOMPARE(treeOf(doc.project()).annotations.first().text, QStringLiteral("组"));
+
+    const qint64 revision = doc.sessionRevision();
+    QVERIFY(std::get<bool>(nodes.updateAnnotation(fixture.sheetId, annotationId, members)));
+    QCOMPARE(doc.sessionRevision(), revision);   // 无操作短路
+
+    AnnotationUpdate nonContiguous;
+    nonContiguous.memberIds = QStringList({QStringLiteral("a"), QStringLiteral("c")});
+    QCOMPARE(
+        std::get<AppError>(nodes.updateAnnotation(fixture.sheetId, annotationId, nonContiguous))
+            .code,
+        QStringLiteral("INVALID_ARGUMENT"));
+
+    AnnotationUpdate colorAndText;
+    colorAndText.text = QStringLiteral("改过的概要");
+    colorAndText.color = QStringLiteral("#247A62");
+    QVERIFY(std::get<bool>(nodes.updateAnnotation(fixture.sheetId, annotationId, colorAndText)));
+    QCOMPARE(treeOf(doc.project()).annotations.first().text, QStringLiteral("改过的概要"));
+    QCOMPARE(treeOf(doc.project()).annotations.first().color, QStringLiteral("#247A62"));
+}
+
+void TstNodeCommands::removeAnnotationDeletesAndReportsMissing() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const ID annotationId = std::get<ID>(
+        nodes.createAnnotation(fixture.sheetId, fixture.rootId, QStringLiteral("boundary"),
+                               {QStringLiteral("a"), QStringLiteral("b")}));
+    QVERIFY(std::get<bool>(nodes.removeAnnotation(fixture.sheetId, annotationId)));
+    QVERIFY(treeOf(doc.project()).annotations.isEmpty());
+    QCOMPARE(std::get<AppError>(nodes.removeAnnotation(fixture.sheetId, annotationId)).code,
+             QStringLiteral("NOT_FOUND"));
+
+    service.undo();
+    QCOMPARE(treeOf(doc.project()).annotations.size(), 1);
+}
+
+void TstNodeCommands::addCommentNormalizesTimestamps() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto created = nodes.addComment(fixture.sheetId, QStringLiteral("a"),
+                                          QStringLiteral("  张三  "),
+                                          QStringLiteral("  这里需要补充  "));
+    QVERIFY(std::holds_alternative<ID>(created));
+    const TreeSheet& tree = treeOf(doc.project());
+    QCOMPARE(tree.comments.size(), 1);
+    QCOMPARE(tree.comments.first().author, QStringLiteral("张三"));
+    QCOMPARE(tree.comments.first().body, QStringLiteral("这里需要补充"));
+    QVERIFY(!tree.comments.first().resolved);
+    QVERIFY(tree.comments.first().createdAt.isValid());
+    QCOMPARE(tree.comments.first().createdAt.timeSpec(), Qt::UTC);
+    QCOMPARE(tree.comments.first().createdAt, tree.comments.first().updatedAt);
+
+    const auto blank = nodes.addComment(fixture.sheetId, QStringLiteral("a"), QString(),
+                                        QStringLiteral("   "));
+    QCOMPARE(std::get<AppError>(blank).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const auto tooLong = nodes.addComment(fixture.sheetId, QStringLiteral("a"), QString(),
+                                          emojiTitle(Limits::kCommentMaxChars + 1));
+    QCOMPARE(std::get<AppError>(tooLong).code, QStringLiteral("LIMIT_EXCEEDED"));
+
+    const auto missingNode =
+        nodes.addComment(fixture.sheetId, QStringLiteral("missing"), QString(),
+                         QStringLiteral("正文"));
+    QCOMPARE(std::get<AppError>(missingNode).code, QStringLiteral("NOT_FOUND"));
+
+    service.undo();
+    QVERIFY(treeOf(doc.project()).comments.isEmpty());
+}
+
+void TstNodeCommands::resolveCommentShortCircuitsWhenUnchanged() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const ID commentId = std::get<ID>(nodes.addComment(fixture.sheetId, QStringLiteral("a"),
+                                                       QStringLiteral("乙"),
+                                                       QStringLiteral("待确认")));
+    QVERIFY(std::get<bool>(nodes.resolveComment(fixture.sheetId, commentId, true)));
+    QVERIFY(treeOf(doc.project()).comments.first().resolved);
+
+    const qint64 revision = doc.sessionRevision();
+    QVERIFY(std::get<bool>(nodes.resolveComment(fixture.sheetId, commentId, true)));
+    QCOMPARE(doc.sessionRevision(), revision);   // 状态相同则短路
+
+    QVERIFY(std::get<bool>(nodes.resolveComment(fixture.sheetId, commentId, false)));
+    QVERIFY(!treeOf(doc.project()).comments.first().resolved);
+
+    service.undo();   // 回到“已解决”
+    QVERIFY(treeOf(doc.project()).comments.first().resolved);
+
+    QCOMPARE(std::get<AppError>(nodes.resolveComment(fixture.sheetId, QStringLiteral("missing")))
+                 .code,
+             QStringLiteral("NOT_FOUND"));
+}
+
+void TstNodeCommands::copyFragmentCollapsesAncestorsAndKeepsInternalRefs() {
+    RichTree fixture = makeRichTree();
+    Relation relation;
+    relation.id = QStringLiteral("rel-1");
+    relation.sourceId = QStringLiteral("a-1");
+    relation.targetId = QStringLiteral("a-2");
+    treeOf(fixture.project).relations.append(relation);
+
+    GroupAnnotation annotation;
+    annotation.id = QStringLiteral("anno-1");
+    annotation.parentId = QStringLiteral("a");
+    annotation.kind = QStringLiteral("boundary");
+    annotation.memberIds = QStringList({QStringLiteral("a-1"), QStringLiteral("a-2")});
+    treeOf(fixture.project).annotations.append(annotation);
+
+    Comment comment;
+    comment.id = QStringLiteral("cmt-1");
+    comment.nodeId = QStringLiteral("a-1");
+    comment.author = QStringLiteral("甲");
+    comment.body = QStringLiteral("检查");
+    treeOf(fixture.project).comments.append(comment);
+
+    Task task;
+    task.id = QStringLiteral("t-1");
+    task.title = QStringLiteral("A1");
+    task.source = TaskSource{fixture.sheetId, QStringLiteral("a-1")};
+    task.progress = 40;
+    fixture.project.tasks.append(task);
+
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    // 祖先与后代同选：只处理最高层子树一次（规范§5.3）
+    const auto copied = nodes.copyFragment(
+        fixture.sheetId, {QStringLiteral("a"), QStringLiteral("a-1")});
+    QVERIFY(std::holds_alternative<Fragment>(copied));
+    const Fragment& fragment = std::get<Fragment>(copied);
+    QCOMPARE(fragment.rootIds, QVector<ID>({QStringLiteral("a")}));
+    QCOMPARE(fragment.nodes.size(), 3);
+    QVERIFY(fragment.nodes.contains(QStringLiteral("a-1")));
+    QVERIFY(fragment.nodes.contains(QStringLiteral("a-2")));
+    QVERIFY(!fragment.nodes.value(QStringLiteral("a")).parentId.has_value());
+    QCOMPARE(fragment.relations.size(), 1);
+    QCOMPARE(fragment.annotations.size(), 1);
+    QCOMPARE(fragment.comments.size(), 1);
+    QCOMPARE(fragment.tasks.size(), 1);
+    QVERIFY(!service.canUndo());   // 复制不写数据、不入历史
+
+    // 两个不相邻的根：按树顺序排列
+    const auto twoRoots = nodes.copyFragment(
+        fixture.sheetId, {QStringLiteral("b"), QStringLiteral("a")});
+    QVERIFY(std::holds_alternative<Fragment>(twoRoots));
+    QCOMPARE(std::get<Fragment>(twoRoots).rootIds,
+             QVector<ID>({QStringLiteral("a"), QStringLiteral("b")}));
+}
+
+void TstNodeCommands::copyFragmentKeepsOnlyInternalReferences() {
+    RichTree fixture = makeRichTree();
+    Relation external;
+    external.id = QStringLiteral("rel-out");
+    external.sourceId = QStringLiteral("b");
+    external.targetId = QStringLiteral("a");
+    treeOf(fixture.project).relations.append(external);
+
+    Comment outside;
+    outside.id = QStringLiteral("cmt-out");
+    outside.nodeId = QStringLiteral("b");
+    outside.body = QStringLiteral("不在片段内");
+    treeOf(fixture.project).comments.append(outside);
+
+    Task outsideTask;
+    outsideTask.id = QStringLiteral("t-out");
+    outsideTask.title = QStringLiteral("B");
+    outsideTask.source = TaskSource{fixture.sheetId, QStringLiteral("b")};
+    fixture.project.tasks.append(outsideTask);
+
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const Fragment fragment =
+        std::get<Fragment>(nodes.copyFragment(fixture.sheetId, {QStringLiteral("a")}));
+    QVERIFY(fragment.relations.isEmpty());   // 端点不全在片段内，不复制
+    QVERIFY(fragment.comments.isEmpty());
+    QVERIFY(fragment.tasks.isEmpty());
+    QCOMPARE(fragment.nodes.size(), 3);
+}
+
+void TstNodeCommands::pasteFragmentRemapsIdsRelationsAndTasks() {
+    RichTree fixture = makeRichTree();
+    Relation relation;
+    relation.id = QStringLiteral("rel-1");
+    relation.sourceId = QStringLiteral("a-1");
+    relation.targetId = QStringLiteral("a-2");
+    relation.label = QStringLiteral("顺序");
+    treeOf(fixture.project).relations.append(relation);
+
+    GroupAnnotation annotation;
+    annotation.id = QStringLiteral("anno-1");
+    annotation.parentId = QStringLiteral("a");
+    annotation.kind = QStringLiteral("boundary");
+    annotation.memberIds = QStringList({QStringLiteral("a-1"), QStringLiteral("a-2")});
+    treeOf(fixture.project).annotations.append(annotation);
+
+    Comment comment;
+    comment.id = QStringLiteral("cmt-1");
+    comment.nodeId = QStringLiteral("a-1");
+    comment.body = QStringLiteral("检查");
+    treeOf(fixture.project).comments.append(comment);
+
+    Task first;
+    first.id = QStringLiteral("t-1");
+    first.title = QStringLiteral("A1");
+    first.source = TaskSource{fixture.sheetId, QStringLiteral("a-1")};
+    first.startDate = QDate(2026, 10, 1);
+    first.endDate = QDate(2026, 10, 3);
+    first.progress = 60;
+    Task second;
+    second.id = QStringLiteral("t-2");
+    second.title = QStringLiteral("A2");
+    second.source = TaskSource{fixture.sheetId, QStringLiteral("a-2")};
+    second.predecessorIds = QStringList({QStringLiteral("t-1"), QStringLiteral("t-ext")});
+    Task external;
+    external.id = QStringLiteral("t-ext");
+    external.title = QStringLiteral("B外部任务");
+    external.source = TaskSource{fixture.sheetId, QStringLiteral("b")};
+    fixture.project.tasks.append(first);
+    fixture.project.tasks.append(second);
+    fixture.project.tasks.append(external);
+
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const Fragment fragment =
+        std::get<Fragment>(nodes.copyFragment(fixture.sheetId, {QStringLiteral("a")}));
+    const auto pasted = nodes.pasteFragment(fixture.sheetId, QStringLiteral("b"), fragment);
+    QVERIFY(std::holds_alternative<ID>(pasted));
+    const ID newRoot = std::get<ID>(pasted);
+    QVERIFY(newRoot != QStringLiteral("a"));
+
+    const Project& after = doc.project();
+    const TreeSheet& tree = treeOf(after);
+    QCOMPARE(tree.nodes.size(), 9);   // 原6 + 粘贴3
+    QCOMPARE(tree.nodes.value(newRoot).title, QStringLiteral("A"));
+    QCOMPARE(tree.nodes.value(newRoot).parentId.value_or(QString()), QStringLiteral("b"));
+    QCOMPARE(orderOfChildren(after, QStringLiteral("b")), newRoot);
+
+    // 子节点ID全部重新生成，父子关系在片段内部重建
+    QSet<ID> newChildren;
+    for (auto it = tree.nodes.constBegin(); it != tree.nodes.constEnd(); ++it) {
+        if (it.value().parentId.has_value() && *it.value().parentId == newRoot)
+            newChildren.insert(it.key());
+    }
+    QCOMPARE(newChildren.size(), 2);
+    QVERIFY(!newChildren.contains(QStringLiteral("a-1")));
+
+    // 关系线：原1条 + 粘贴1条，端点指向新节点
+    QCOMPARE(tree.relations.size(), 2);
+    ID pastedRelationId;
+    for (const Relation& item : tree.relations) {
+        if (item.sourceId != QStringLiteral("a-1")) {
+            pastedRelationId = item.id;
+            QVERIFY(newChildren.contains(item.sourceId));
+            QVERIFY(newChildren.contains(item.targetId));
+        }
+    }
+    QVERIFY(!pastedRelationId.isEmpty());
+
+    // 外框成员与批注节点同步重映射
+    QCOMPARE(tree.annotations.size(), 2);
+    for (const GroupAnnotation& item : tree.annotations) {
+        if (item.parentId != QStringLiteral("a")) {
+            QCOMPARE(item.parentId, newRoot);
+            for (const ID& member : item.memberIds) QVERIFY(newChildren.contains(member));
+        }
+    }
+    QCOMPARE(tree.comments.size(), 2);
+    for (const Comment& item : tree.comments) {
+        if (item.id != QStringLiteral("cmt-1")) QVERIFY(newChildren.contains(item.nodeId));
+    }
+
+    // 任务：独立副本，继承日期与进度；前置依赖仅保留片段内的映射结果
+    QCOMPARE(after.tasks.size(), 5);
+    ID pastedFirstTask;
+    ID pastedSecondTask;
+    for (const Task& item : after.tasks) {
+        if (item.id == QStringLiteral("t-1") || item.id == QStringLiteral("t-2") ||
+            item.id == QStringLiteral("t-ext"))
+            continue;
+        QVERIFY(item.source.has_value());
+        QCOMPARE(item.source->sheetId, fixture.sheetId);
+        QVERIFY(newChildren.contains(item.source->nodeId));
+        if (item.title == QStringLiteral("A1")) {
+            pastedFirstTask = item.id;
+            QCOMPARE(item.progress, 60);
+            QCOMPARE(item.startDate.value_or(QDate()), QDate(2026, 10, 1));
+        } else {
+            pastedSecondTask = item.id;
+        }
+    }
+    QVERIFY(!pastedFirstTask.isEmpty());
+    QVERIFY(!pastedSecondTask.isEmpty());
+    for (const Task& item : after.tasks) {
+        if (item.id != pastedSecondTask) continue;
+        QCOMPARE(item.predecessorIds, QStringList({pastedFirstTask}));   // 外部前置被清除
+    }
+
+    service.undo();
+    QCOMPARE(treeOf(doc.project()).nodes.size(), 6);
+    QCOMPARE(doc.project().tasks.size(), 3);
+    QVERIFY(treeOf(doc.project()).relations.size() == 1);
+}
+
+void TstNodeCommands::fragmentJsonRoundTrips() {
+    // ProjectJson要求节点ID为UUID，故用真实ID形态构造片段
+    Project project = ProjectFactory::createMindmap(QStringLiteral("片段序列化"));
+    const ID sheetId = treeOf(project).id;
+    const ID rootId = treeOf(project).rootId;
+    const ID parentId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    const ID childId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    addRawNode(project, rootId, 0, parentId, QStringLiteral("父主题"));
+    addRawNode(project, parentId, 0, childId, QStringLiteral("子主题"));
+    Relation relation;
+    relation.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    relation.sourceId = childId;
+    relation.targetId = parentId;
+    relation.style.color = QStringLiteral("#247A62");
+    treeOf(project).relations.append(relation);
+
+    ProjectDocument doc;
+    doc.replaceProject(project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const Fragment original =
+        std::get<Fragment>(nodes.copyFragment(sheetId, {parentId}));
+    const QJsonObject json = original.toJson();
+    QCOMPARE(json.value(QStringLiteral("fragmentVersion")).toInt(), 1);
+    QCOMPARE(json.value(QStringLiteral("roots")).toArray().size(), 1);
+    QVERIFY(json.value(QStringLiteral("payload")).isObject());
+
+    const auto parsed = Fragment::fromJson(json);
+    QVERIFY(std::holds_alternative<Fragment>(parsed));
+    const Fragment& restored = std::get<Fragment>(parsed);
+    QCOMPARE(restored.rootIds, original.rootIds);
+    QCOMPARE(restored.nodes.size(), 2);
+    QVERIFY(!restored.nodes.value(parentId).parentId.has_value());
+    QCOMPARE(restored.nodes.value(childId).parentId.value_or(QString()), parentId);
+    QCOMPARE(restored.relations.size(), 1);
+
+    const auto pasted = nodes.pasteFragment(sheetId, rootId, restored);
+    QVERIFY(std::holds_alternative<ID>(pasted));
+    QCOMPARE(treeOf(doc.project()).nodes.size(), 5);   // 原3 + 粘贴2
+}
+
+void TstNodeCommands::fragmentJsonRejectsBadEnvelope() {
+    QJsonObject empty;
+    QCOMPARE(std::get<AppError>(Fragment::fromJson(empty)).code,
+             QStringLiteral("INVALID_ARGUMENT"));
+
+    QJsonObject future;
+    future.insert(QStringLiteral("fragmentVersion"), 99);
+    future.insert(QStringLiteral("roots"), QJsonArray({QStringLiteral("a")}));
+    future.insert(QStringLiteral("payload"), QJsonObject());
+    QCOMPARE(std::get<AppError>(Fragment::fromJson(future)).code,
+             QStringLiteral("UNSUPPORTED_SCHEMA"));
+
+    QJsonObject noRoots;
+    noRoots.insert(QStringLiteral("fragmentVersion"), 1);
+    noRoots.insert(QStringLiteral("payload"), QJsonObject());
+    QCOMPARE(std::get<AppError>(Fragment::fromJson(noRoots)).code,
+             QStringLiteral("INVALID_ARGUMENT"));
+}
+
+void TstNodeCommands::pasteFragmentRejectsEmptyOrMissingParent() {
+    RichTree fixture = makeRichTree();
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService service(&doc);
+    NodeCommands nodes(&service, &doc);
+
+    const auto empty = nodes.pasteFragment(fixture.sheetId, fixture.rootId, Fragment{});
+    QCOMPARE(std::get<AppError>(empty).code, QStringLiteral("INVALID_ARGUMENT"));
+
+    const Fragment fragment =
+        std::get<Fragment>(nodes.copyFragment(fixture.sheetId, {QStringLiteral("a")}));
+    const auto missingParent =
+        nodes.pasteFragment(fixture.sheetId, QStringLiteral("missing"), fragment);
+    QCOMPARE(std::get<AppError>(missingParent).code, QStringLiteral("NOT_FOUND"));
+
+    const auto badSheet = nodes.pasteFragment(QStringLiteral("missing"), fixture.rootId, fragment);
+    QCOMPARE(std::get<AppError>(badSheet).code, QStringLiteral("NOT_FOUND"));
+    QVERIFY(!service.canUndo());
 }
 
 QTEST_GUILESS_MAIN(TstNodeCommands)

@@ -15,10 +15,12 @@ class ProjectDocument;
 // 生成SnapshotCommand压入唯一QUndoStack；QUndoStack::push自动触发第一次redo，
 // 因此不能先修改文档再push。校验失败不压入命令、不改变原数据。
 // M0提供通用编辑事务支撑纵向闭环；M1起在此之上补充类型化命令：
-// addChild、addSibling、renameNode、deleteSubtree、moveSubtree、updateNodeMeta、setStyle、
-// addRelation、updateRelation、removeRelation、createAnnotation、updateAnnotation、addComment、
-// resolveComment、pasteFragment、addTask、updateTask、linkTask、unlinkTask、applyAIMap、
-// saveTextDraft、changeSheetKind、deleteSheet（规范§5.1清单）。
+// addChild、addSibling、renameNode、deleteSubtree、updateNodeMeta、setStyle；
+// M2命令族（乙，2026-10-30）追加：moveSubtree、setSheetStyle、addRelation、updateRelation、
+// removeRelation、createAnnotation、updateAnnotation、removeAnnotation、addComment、
+// resolveComment、copyFragment/pasteFragment（片段序列化见document/Fragment.h）。
+// 仍待实现：applyAIMap、saveTextDraft、changeSheetKind、deleteSheet；addTask/updateTask/
+// linkTask/unlinkTask由丙的TaskCommands维护（规范§5.1清单）。
 class CommandService : public QObject {
     Q_OBJECT
 public:
