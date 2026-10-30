@@ -70,4 +70,24 @@ QDate GanttLayout::dateForX(int x, const QDate& rangeStart) const {
     return rangeStart.addDays(days);
 }
 
+GanttDateRange shiftTaskDates(const QDate& start, const QDate& end, int deltaDays,
+                              GanttDragMode mode) {
+    if (!start.isValid() || !end.isValid()) {
+        return GanttDateRange{start, end};
+    }
+    switch (mode) {
+    case GanttDragMode::Move:
+        return GanttDateRange{start.addDays(deltaDays), end.addDays(deltaDays)};
+    case GanttDragMode::ResizeStart: {
+        const QDate shifted = start.addDays(deltaDays);
+        return GanttDateRange{shifted > end ? end : shifted, end};
+    }
+    case GanttDragMode::ResizeEnd: {
+        const QDate shifted = end.addDays(deltaDays);
+        return GanttDateRange{start, shifted < start ? start : shifted};
+    }
+    }
+    return GanttDateRange{start, end};
+}
+
 }  // namespace lingya

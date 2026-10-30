@@ -34,6 +34,9 @@ private slots:
   void timeAxisDrawsTicks();
   void rowForTaskMatchesTableOrder();
   void unscheduledListShowsTasks();
+  void shiftTaskDatesMove();
+  void shiftTaskDatesResizeClamps();
+  void shiftTaskDatesInvalidInput();
   void midMonthRangeShowsYearAndMonth();
   void longUnscheduledNamesRemainScrollable_data();
   void longUnscheduledNamesRemainScrollable();
@@ -286,6 +289,38 @@ void TstGanttView::milestoneDependenciesReachMarkers()
     const QRectF succBounds = succMarker->polygon().boundingRect();
     QCOMPARE(QPointF(first.x, first.y), QPointF(predBounds.right(), predBounds.center().y()));
     QCOMPARE(QPointF(last.x, last.y), QPointF(succBounds.left(), succBounds.center().y()));
+}
+
+void TstGanttView::shiftTaskDatesMove() {
+    const GanttDateRange moved =
+        shiftTaskDates(QDate(2026, 1, 10), QDate(2026, 1, 12), 3, GanttDragMode::Move);
+    QCOMPARE(moved.start, QDate(2026, 1, 13));
+    QCOMPARE(moved.end, QDate(2026, 1, 15));
+
+    const GanttDateRange back =
+        shiftTaskDates(QDate(2026, 1, 10), QDate(2026, 1, 12), -2, GanttDragMode::Move);
+    QCOMPARE(back.start, QDate(2026, 1, 8));
+    QCOMPARE(back.end, QDate(2026, 1, 10));
+}
+
+void TstGanttView::shiftTaskDatesResizeClamps() {
+    // 改开始日越过结束日时夹到结束日
+    const GanttDateRange start =
+        shiftTaskDates(QDate(2026, 1, 10), QDate(2026, 1, 12), 5, GanttDragMode::ResizeStart);
+    QCOMPARE(start.start, QDate(2026, 1, 12));
+    QCOMPARE(start.end, QDate(2026, 1, 12));
+
+    // 改结束日早于开始日时夹到开始日
+    const GanttDateRange end =
+        shiftTaskDates(QDate(2026, 1, 10), QDate(2026, 1, 12), -5, GanttDragMode::ResizeEnd);
+    QCOMPARE(end.start, QDate(2026, 1, 10));
+    QCOMPARE(end.end, QDate(2026, 1, 10));
+}
+
+void TstGanttView::shiftTaskDatesInvalidInput() {
+    const GanttDateRange result = shiftTaskDates(QDate(), QDate(), 3, GanttDragMode::Move);
+    QVERIFY(!result.start.isValid());
+    QVERIFY(!result.end.isValid());
 }
 
 QTEST_MAIN(TstGanttView)

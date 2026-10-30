@@ -45,4 +45,21 @@ private:
     int m_pixelsPerDay;
 };
 
+// 拖拽改期（R13 编辑）：整体平移或只改一端
+enum class GanttDragMode {
+    Move,         // 整体平移
+    ResizeStart,  // 只改开始日
+    ResizeEnd     // 只改结束日
+};
+
+struct GanttDateRange {
+    QDate start;
+    QDate end;
+};
+
+// 按天偏移计算拖拽后的起止日期：Move 平移；ResizeStart/ResizeEnd 只改一端并保持 start<=end。
+// 输入日期无效时原样返回，调用方可据此跳过。
+GanttDateRange shiftTaskDates(const QDate& start, const QDate& end, int deltaDays,
+                              GanttDragMode mode);
+
 }  // namespace lingya
