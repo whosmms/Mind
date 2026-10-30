@@ -14,13 +14,15 @@ class ProjectDocument;
 // 流程为：基于当前Project产生候选副本 → 执行变更 → ProjectValidator校验 →
 // 生成SnapshotCommand压入唯一QUndoStack；QUndoStack::push自动触发第一次redo，
 // 因此不能先修改文档再push。校验失败不压入命令、不改变原数据。
-// M0提供通用编辑事务支撑纵向闭环；M1起在此之上补充类型化命令：
-// addChild、addSibling、renameNode、deleteSubtree、moveSubtree、updateNodeMeta、setStyle、
-// addRelation、updateRelation、removeRelation、createAnnotation、updateAnnotation、addComment、
-// resolveComment、pasteFragment、addTask、updateTask、linkTask、unlinkTask、applyAIMap、
-// M3（乙，2026-10-30）：流程图命令见commands/FlowCommands（节点/连线/自动布局/批注），
-// 工作表命令见commands/SheetCommands（新建/改名/换结构/删除）；
-// saveTextDraft、changeSheetKind、deleteSheet（规范§5.1清单）。
+// M0提供通用编辑事务支撑纵向闭环；M1起在此之上补充类型化命令（规范§5.1清单）：
+// NodeCommands：addChild、addSibling、renameNode、deleteSubtree、moveSubtree、updateNodeMeta、
+//   setStyle、setSheetStyle、addRelation/updateRelation/removeRelation、
+//   createAnnotation/updateAnnotation/removeAnnotation、addComment、resolveComment、
+//   copyFragment、pasteFragment；
+// TaskCommands（丙）：addTask、updateTask、linkTask、unlinkTask、renameNode（X03）；
+// FlowCommands：流程图节点/连线/自动布局/批注；
+// SheetCommands：createSheet、renameSheet、changeSheetKind、deleteSheet；
+// AiCommands：applyAIMap（applyMapAsSheet/applyMapAsBranch）、saveTextDraft。
 class CommandService : public QObject {
     Q_OBJECT
 public:
