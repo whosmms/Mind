@@ -37,7 +37,8 @@ public:
     // 不把“换供应方”的责任推给 UI（避免“存了密钥仍发给 Fake”）。
     void setProviderFactory(std::function<std::unique_ptr<IAiProvider>()> factory);
 
-    // 直接更换 provider（测试/装配用）：取消在途请求、断开旧的、连接新的
+    // 直接更换 provider：仅供**外接/测试**使用（生产路径走 setProviderFactory 自动重建）。
+    // 先摘（旧对象还活着时 cancel+disconnect）再释放；被中止的在途请求会收到 failed(CANCELED)。
     void setProvider(IAiProvider* provider);
 
     AiStatus status() const;

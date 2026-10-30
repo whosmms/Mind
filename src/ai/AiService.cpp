@@ -222,6 +222,8 @@ void AiService::attachProvider(IAiProvider* provider) {
 void AiService::notifyDropped(const QString& requestId) {
     // 必须在最终 setState(Idle) 之后发：否则 stateChanged→面板写"就绪"会把中止提示盖掉。
     // 重建导致的在途请求不是"用户主动取消"，要显式告知 UI（§10.4 一次请求一个终态）。
+    // 已知不一致：此处在 state()==Idle 时发 failed（终态信号与状态不同步）。面板按信号收尾，
+    // 不读 state()，所以当前无影响；将来若有人按 state 判断终态，需先统一这两者。
     if (requestId.isEmpty()) {
         return;
     }

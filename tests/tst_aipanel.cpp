@@ -25,6 +25,7 @@ private slots:
     void testConnectionShowsModel();
     void providerRebuildCancelsBeforeDestroy();
     void providerRebuildShowsAbortedStatus();
+    void setProviderSwapsAndNotifies();
 };
 
 void TstAiPanel::idleDisablesApply() {
@@ -185,6 +186,29 @@ void TstAiPanel::providerRebuildShowsAbortedStatus() {
     // 换密钥触发重建：在途请求要显式告知用户，不能被随后的"就绪"盖掉
     QVERIFY(service.setKey(QStringLiteral("k2"), false));
     QTRY_VERIFY_WITH_TIMEOUT(status->text().contains(QStringLiteral("中止")), 3000);
+}
+
+void TstAiPanel::setProviderSwapsAndNotifies() {
+    QStringList log;
+    SessionSecretStore store;
+    QVERIFY(store.setApiKey(QStringLiteral("k1"), false));
+
+    AiService service(nullptr, &store);
+    RecordingProvider first(&log);
+    service.setProvider(&first);
+
+    GenerateMapRequest request;
+    request.requestId = QStringLiteral("req-1");
+    request.text = QStringLiteral("材料");
+    QVERIFY(service.generateMap(request));   // 在途：first 不完成
+
+    RecordingProvider second(&log);
+    QSignalSpy failed(&service, &AiService::failed);
+    service.setProvider(&second);
+
+    QCOMPARE(log.count(QStringLiteral("cancel")), 1);   // 旧 provider 被取消
+    QCOMPARE(failed.count(), 1);                        // 且用户收到了中止通知
+    QCOMPARE(failed.first().at(0).value<AiError>().code, QStringLiteral("CANCELED"));
 }
 
 QTEST_MAIN(TstAiPanel)
