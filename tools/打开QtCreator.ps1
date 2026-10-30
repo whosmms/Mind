@@ -1,7 +1,8 @@
 ﻿# 使用本项目的独立Qt Creator设置，不修改其他Qt Creator安装或全局PATH。
 [CmdletBinding()]
 param(
-    [string]$ToolsRoot = (Join-Path (Split-Path $PSScriptRoot -Parent | Split-Path -Parent) '.tools')
+    # 留空则由 进入开发环境.ps1 自动探测工具链根目录。
+    [string]$ToolsRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'

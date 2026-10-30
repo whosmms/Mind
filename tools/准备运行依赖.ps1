@@ -3,7 +3,8 @@
 param(
     [ValidateSet('Debug', 'Release', 'Both')]
     [string]$Configuration = 'Both',
-    [string]$ToolsRoot = (Join-Path (Split-Path $PSScriptRoot -Parent | Split-Path -Parent) '.tools')
+    # 留空则由 进入开发环境.ps1 自动探测工具链根目录。
+    [string]$ToolsRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,9 +29,17 @@ foreach ($deployConfig in $deployConfigs) {
     if ($deployImports -match 'DLL Name:\s+Qt6Cored\.dll') { $deployQtFlavor = 'debug' }
     elseif ($deployImports -match 'DLL Name:\s+Qt6Core\.dll') { $deployQtFlavor = 'release' }
     else { throw '未识别到Qt Core运行依赖，请核对本项目的动态链接Kit。' }
-    & $deployTool ('--' + $deployQtFlavor) --compiler-runtime --no-translations $deployExe
-    if ($LASTEXITCODE -ne 0) {
-        throw "准备${deployConfig}运行依赖失败，请查看windeployqt实际输出。"
+    # WinPS 5.1 在 $ErrorActionPreference='Stop' 下会把 windeployqt 写到 stderr 的普通警告
+    # （如 "Translations will not be available..."）当成异常抛出，脚本在部署中途中断，
+    # 于是构建目录留下半套依赖，启动时就报 no Qt platform plugin could be initialized。
+    # 这里临时放宽错误动作，改为按退出码判定，失败时把真实输出带进异常。
+    $deployPrevErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $deployOutput = (& $deployTool ('--' + $deployQtFlavor) --compiler-runtime --no-translations $deployExe 2>&1) -join "`n"
+    $deployCode = $LASTEXITCODE
+    $ErrorActionPreference = $deployPrevErrorAction
+    if ($deployCode -ne 0) {
+        throw "准备${deployConfig}运行依赖失败（windeployqt 退出码 $deployCode）：`n$deployOutput"
     }
     # 明确从配套MinGW取得运行库，避免某些Qt发行包仅搜索Qt/bin而漏拷贝。
     foreach ($deployRuntime in @('libgcc_s_seh-1.dll', 'libstdc++-6.dll', 'libwinpthread-1.dll')) {

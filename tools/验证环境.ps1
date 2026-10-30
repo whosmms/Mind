@@ -3,7 +3,8 @@
 param(
     [ValidateSet('Debug', 'Release', 'Both')]
     [string]$Configuration = 'Both',
-    [string]$ToolsRoot = (Join-Path (Split-Path $PSScriptRoot -Parent | Split-Path -Parent) '.tools')
+    # 留空则由 进入开发环境.ps1 自动探测工具链根目录。
+    [string]$ToolsRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
