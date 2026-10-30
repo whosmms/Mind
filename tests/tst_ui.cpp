@@ -3350,10 +3350,20 @@ void TstUi::editorSheetManagementAndDeletion()
     answerTitleDialog(QStringLiteral("鱼骨新名称"));
     window.findChild<QAction *>("renameSheet")->trigger();
     QCOMPARE(selector->currentText(), QStringLiteral("鱼骨新名称"));
+    // 切表是视图定位而非内容编辑（D-M1-08/BUG-023）：不递增修订、不压撤销记录；活动表随工程存盘，仍置脏。
+    doc->setClean(); // 排除改名留下的脏标记，单独验证"切表置脏"
+    const qint64 revisionBeforeSwitch = doc->sessionRevision();
     selector->setCurrentIndex(selector->findData(first));
     QCOMPARE(doc->project().activeSheetId, first);
+    QCOMPARE(doc->sessionRevision(), revisionBeforeSwitch);
+    QVERIFY(doc->isModified());
+    // 撤销撤的仍是上一次编辑（改名）；若切表进了撤销栈，这里撤掉的会是"切表"，名字不会回退。
     commands->undo();
-    QCOMPARE(doc->project().activeSheetId, second);
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.last()).name, QStringLiteral("鱼骨验收"));
+    QCOMPARE(doc->project().activeSheetId, second); // 快照撤销会带回当时的活动表
+    answerTitleDialog(QStringLiteral("鱼骨新名称")); // 上面那条撤销撤掉了改名，这里改回来，继续验证改名可存盘
+    window.findChild<QAction *>("renameSheet")->trigger();
+    QCOMPARE(selector->currentText(), QStringLiteral("鱼骨新名称"));
     answerDeletion(QStringLiteral("取消"));
     window.findChild<QAction *>("deleteSheet")->trigger();
     QCOMPARE(doc->project().sheets.size(), 2);
@@ -3817,7 +3827,8 @@ void TstUi::editorAnnotationEditDeleteAndThemeColor()
             dialog->findChild<QLineEdit *>("annotationColor")->clear();
             dialog->findChild<QPushButton *>("applyRecord")->click();
             const auto &tree = std::get<TreeSheet>(doc->project().sheets.first());
-            QCOMPARE(tree.annotations.first().color, tree.defaultEdgeStyle.color);
+            // 留空=跟随主题色：界面写空串而不是把当前主题色冻进批注（§44；渲染回退到 defaultEdgeStyle.color）
+            QVERIFY(tree.annotations.first().color.isEmpty());
             const auto loaded = ProjectJson::fromObject(ProjectJson::toJson(doc->project()));
             QVERIFY(std::holds_alternative<Project>(loaded));
             const auto *view = window.findChild<QGraphicsView *>("topicPreview");

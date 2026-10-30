@@ -873,8 +873,11 @@ std::variant<bool, AppError> NodeCommands::updateRelation(const ID& sheetId, con
     const QString label = update.label.has_value() ? update.label->trimmed() : current->label;
     const QString arrow = update.arrow.value_or(current->arrow);
     const EdgeStyle style = update.style.value_or(current->style);
-    if (!isHexColor(style.color) || !std::isfinite(style.width) || style.width < 0.1 ||
-        style.width > 20.0)
+    // 只校验调用方本次提供的部分：不带style的调用（例如只改标签）不该被已有样式卡住，
+    // 也让将来放宽"空色"规则时不会在这里误拒（见交接文档§42.4-2）。
+    if (update.style.has_value() &&
+        (!isHexColor(style.color) || !std::isfinite(style.width) || style.width < 0.1 ||
+         style.width > 20.0))
     {
         return AppError{"INVALID_ARGUMENT",
                         QStringLiteral("关系线颜色须为#RRGGBB，宽度须在0.1至20之间")};

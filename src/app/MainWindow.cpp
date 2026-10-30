@@ -2153,8 +2153,16 @@ void MainWindow::buildEditorActions(QMenu *editMenu)
                 const ID id = m_sheetSelector->itemData(index).toString();
                 if (id == m_doc->project().activeSheetId)
                     return;
-                m_commands->applyEdit(QStringLiteral("切换工作表"),
-                                      [id](Project &project) { project.activeSheetId = id; });
+                // 切表是视图定位而非内容编辑：走ProjectDocument::setActiveSheet，不进撤销栈、
+                // 不递增sessionRevision（否则Ctrl+Z会撤掉"切表"、剪切令牌还会被切表弄失效，见BUG-023/D-M1-08）。
+                // setActiveSheet内部已notifyChanged，这里不要再补一次。
+                if (!m_doc->setActiveSheet(id))
+                {
+                    // 失败时下拉框已经跳到目标项，先按文档真实状态重建，避免界面与实际不一致。
+                    rebuildSheets();
+                    statusBar()->showMessage(QStringLiteral("无法切换工作表：目标工作表不存在"),
+                                             5000);
+                }
             });
     connect(QApplication::clipboard(), &QClipboard::dataChanged, this,
             [this]
@@ -2371,14 +2379,7 @@ void MainWindow::pasteSelection()
                                       "程传递请使用复制。"));
             return;
         }
-        if (m_cutSheetId != tree->id)
-        {
-            showNotice(
-                this, QMessageBox::Warning, QStringLiteral("无法跨表剪切"),
-                QStringLiteral(
-                    "跨工作表移动的卡片和路线引用尚无统一迁移命令。请使用复制；源节点保留。"));
-            return;
-        }
+        // 跨表剪切在上面的第一个分支里已经拦掉（token 一致且换表），这里不再重复判断。
         // applyEdit会发changed，先复制剪贴板字段，避免回调影响临时指针。
         const QByteArray bytes = mime->data(Fragment::kMimeType);
         const QString text = mime->text();
@@ -2599,7 +2600,6 @@ void MainWindow::editAnnotations()
     if (!tree)
         return;
     const ID sheetId = tree->id;
-    const QString themeColor = tree->defaultEdgeStyle.color;
     EditorForm ui(this, "annotationsDialog", QStringLiteral("外框与概要"));
     auto *parent = new QComboBox(&ui.dialog);
     parent->setObjectName("annotationParent");
@@ -2700,11 +2700,11 @@ void MainWindow::editAnnotations()
                 std::optional<AppError> error;
                 if (selected.isEmpty())
                 {
-                    // 命令允许空色，而ProjectJson要求显式#RRGGBB；消费者先落实主题色，避免存后打不开。
+                    // 颜色留空即"跟随主题色"：写空串（NodeCommands.h 的颜色契约），读盘侧已允许空串，
+                    // 渲染时回退到工作表主题色（BUG-022/§44），不再把当时的主题色字面值冻进批注。
                     const auto result = nodes.createAnnotation(
                         sheetId, parent->currentData().toString(), kind->currentData().toString(),
-                        ids, text->text(),
-                        color->text().trimmed().isEmpty() ? themeColor : color->text());
+                        ids, text->text(), color->text().trimmed());
                     if (const auto *failure = std::get_if<AppError>(&result))
                         error = *failure;
                 }
@@ -2713,7 +2713,7 @@ void MainWindow::editAnnotations()
                     AnnotationUpdate update;
                     update.memberIds = ids;
                     update.text = text->text();
-                    update.color = color->text().trimmed().isEmpty() ? themeColor : color->text();
+                    update.color = color->text().trimmed();
                     const auto result = nodes.updateAnnotation(sheetId, selected, update);
                     if (const auto *failure = std::get_if<AppError>(&result))
                         error = *failure;
@@ -2937,7 +2937,8 @@ void MainWindow::addDecorations(const TreeSheet &sheet)
         for (QRectF bounds : sections)
         {
             bounds.adjust(-16, -16, 16, 16);
-            const QColor color(annotation.color.isEmpty() ? QStringLiteral("#247A62")
+            // 空色=跟随主题色（NodeCommands.h 的颜色契约）：回退到本表主题色，而不是写死常量。
+            const QColor color(annotation.color.isEmpty() ? sheet.defaultEdgeStyle.color
                                                           : annotation.color);
             QPainterPath path;
             const bool right = bounds.center().x() >= 0;
