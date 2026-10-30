@@ -198,10 +198,13 @@ QVector<AppError> validate(const Project& project) {
                                QStringLiteral("工作表“%1”：甘特筛选来源工作表不存在").arg(gantt->name)};
 
     // 任务：进度、排期、里程碑、关联来源、依赖（规则5；依赖图必须无环）
+    // 先整体登记ID再逐条校验：前置依赖的合法性不能依赖任务在数组中的先后顺序
     QHash<QString, const Task*> tasksById;
     for (const Task& task : project.tasks) {
         claim(task.id, "任务");
         tasksById.insert(task.id, &task);
+    }
+    for (const Task& task : project.tasks) {
         if (task.progress < 0 || task.progress > 100)
             es << AppError{"TASK_PROGRESS", "任务“" + task.title + "”进度必须在0至100之间"};
         if (codePointCount(task.title) < Limits::kTitleMinChars ||
