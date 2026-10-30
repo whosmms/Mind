@@ -38,6 +38,9 @@ struct Result
 };
 
 // 计算鱼骨图可见节点的位置。collapsed的类别/原因不参与布局（其数据保留）。
+// 注意：sizes 必须覆盖工作表内**全部**节点，包括折叠后不显示的节点——缺任何一个都返回
+// NOT_FOUND，尺寸非有限正数返回 INVALID_ARGUMENT。折叠只决定“这个节点后面还画不画原因”，
+// 不改变“每个节点都要被量出尺寸”这件事（甲的鱼骨视图按全量测量接线）。
 // 失败（原数据不变）：INVALID_ARGUMENT=不是鱼骨工作表、根不存在、存在无法从根到达的节点；
 // NOT_FOUND=某节点缺少尺寸。
 std::variant<Result, AppError> layout(const TreeSheet &sheet, const QVector<NodeSize> &sizes);

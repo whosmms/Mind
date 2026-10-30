@@ -9,6 +9,7 @@
 
 #include "commands/CommandService.h"
 #include "commands/FlowCommands.h"
+#include "commands/ReviewCommands.h"
 #include "commands/SheetCommands.h"
 #include "document/ProjectDocument.h"
 #include "domain/Domain.h"
@@ -217,9 +218,11 @@ private slots:
     void createSheetRejectsUnknownKind();
     void changeKindKeepsNodesAndUndoes();
     void changeKindRejectsFlowSheet();
-    void deleteSheetKeepsTasksAndDropsCards();
+    void deleteSheetKeepsTasks();
     void deleteSheetRejectsLastSheet();
     void deleteSheetRejectsWhenDraftUsesIt();
+    void deleteSheetRejectsWhenCardsExist();
+    void deleteSheetRejectsWhenRouteExists();
     // 鱼骨布局
     void fishboneHeadAtOriginAndCategoriesAlternate();
     void fishboneReasonsBranchOutward();
@@ -810,7 +813,7 @@ void TstFlow::changeKindRejectsFlowSheet() {
     QCOMPARE(std::get<AppError>(result).code, QStringLiteral("INVALID_ARGUMENT"));
 }
 
-void TstFlow::deleteSheetKeepsTasksAndDropsCards() {
+void TstFlow::deleteSheetKeepsTasks() {
     Project project = ProjectFactory::createMindmap(QStringLiteral("删表"));
     const ID firstId = treeOf(project).id;
     const ID rootId = treeOf(project).rootId;
@@ -820,20 +823,6 @@ void TstFlow::deleteSheetKeepsTasksAndDropsCards() {
     task.title = QStringLiteral("中心主题");
     task.source = TaskSource{firstId, rootId};
     project.tasks.append(task);
-
-    ReviewCard card;
-    card.id = QStringLiteral("card-1");
-    card.sheetId = firstId;
-    card.nodeId = rootId;
-    card.front = QStringLiteral("问");
-    card.back = QStringLiteral("答");
-    project.cards.append(card);
-
-    PresentationRoute route;
-    route.id = QStringLiteral("route-1");
-    route.sheetId = firstId;
-    route.title = QStringLiteral("讲解");
-    project.routes.append(route);
 
     ProjectDocument document;
     document.replaceProject(project);
@@ -846,17 +835,92 @@ void TstFlow::deleteSheetKeepsTasksAndDropsCards() {
 
     QVERIFY(std::holds_alternative<bool>(sheets.deleteSheet(firstId)));
     QCOMPARE(document.project().sheets.size(), 1);
-    QCOMPARE(document.project().activeSheetId, secondId);       // 删除当前表后回退到剩余表
-    QCOMPARE(document.project().tasks.size(), 1);               // 任务保留
-    QVERIFY(!document.project().tasks.first().source.has_value());  // 但不再是工作表任务
-    QVERIFY(document.project().cards.isEmpty());                // 卡片随表删除（模型要求表存在）
-    QVERIFY(document.project().routes.isEmpty());
+    QCOMPARE(document.project().activeSheetId, secondId);           // 删除当前表后回退到剩余表
+    QCOMPARE(document.project().tasks.size(), 1);                    // 任务保留
+    QVERIFY(!document.project().tasks.first().source.has_value());   // 但不再是工作表任务
 
     service.undo();
     QCOMPARE(document.project().sheets.size(), 2);
-    QCOMPARE(document.project().cards.size(), 1);
-    QCOMPARE(document.project().routes.size(), 1);
     QVERIFY(document.project().tasks.first().source.has_value());
+}
+
+// 甲复核 PR28（BUG-020）：以前删表会把表上的复习卡片一起删掉。规范§7.1要求“源节点删除保留
+// 卡片快照并标missing，提供移除或转独立卡片”——学习状态（status/lastReviewedAt/custom）
+// 是用户攒出来的，不能因为删了一张表就静默销毁。卡片sheetId必须指向存在的表（CARD_SHEET），
+// 放宽该校验要先三方确认，所以本轮按影响确认阻断：有卡片就SHEET_IN_USE。
+void TstFlow::deleteSheetRejectsWhenCardsExist() {
+    Project project = ProjectFactory::createMindmap(QStringLiteral("带卡片"));
+    const ID firstId = treeOf(project).id;
+    const ID rootId = treeOf(project).rootId;
+
+    ReviewCard card;
+    card.id = QStringLiteral("card-1");
+    card.sheetId = firstId;
+    card.nodeId = rootId;
+    card.front = QStringLiteral("问");
+    card.back = QStringLiteral("答");
+    card.status = QStringLiteral("mastered");
+    card.lastReviewedAt = QDateTime::currentDateTimeUtc();
+    project.cards.append(card);
+
+    ProjectDocument document;
+    document.replaceProject(project);
+    CommandService service(&document);
+    SheetCommands sheets(&service, &document);
+    QVERIFY(std::holds_alternative<ID>(sheets.createSheet(QStringLiteral("mindmap"))));
+
+    const qint64 revisionBefore = document.sessionRevision();
+    const auto result = sheets.deleteSheet(firstId);
+    QVERIFY(std::holds_alternative<AppError>(result));
+    const AppError error = std::get<AppError>(result);
+    QCOMPARE(error.code, QStringLiteral("SHEET_IN_USE"));
+    QVERIFY(error.message.contains(QStringLiteral("复习卡片")));
+
+    // 阻断式失败：表、卡片、历史全都不动
+    QCOMPARE(document.project().sheets.size(), 2);
+    QCOMPARE(document.project().cards.size(), 1);
+    QCOMPARE(document.project().cards.first().status, QStringLiteral("mastered"));
+    QVERIFY(document.project().cards.first().lastReviewedAt.has_value());
+    QCOMPARE(document.sessionRevision(), revisionBefore);   // 不产生快照、不入历史
+
+    // 提示是可操作的，不是死路：按提示在处理路径上移除卡片后，删表即可通过
+    ReviewCommands reviews(&service, &document);
+    QVERIFY(std::holds_alternative<bool>(reviews.removeCard(QStringLiteral("card-1"))));
+    QVERIFY(std::holds_alternative<bool>(sheets.deleteSheet(firstId)));
+    QCOMPARE(document.project().sheets.size(), 1);
+    QVERIFY(document.project().cards.isEmpty());
+}
+
+// 讲解路线的步骤带用户写的讲解备注，同理不静默销毁（规范§7.2）
+void TstFlow::deleteSheetRejectsWhenRouteExists() {
+    Project project = ProjectFactory::createMindmap(QStringLiteral("带路线"));
+    const ID firstId = treeOf(project).id;
+
+    PresentationRoute route;
+    route.id = QStringLiteral("route-1");
+    route.sheetId = firstId;
+    route.title = QStringLiteral("讲解");
+    PresentationStep step;
+    step.id = QStringLiteral("step-1");
+    step.nodeId = treeOf(project).rootId;
+    step.speakerNote = QStringLiteral("开场先讲这个");
+    route.steps.append(step);
+    project.routes.append(route);
+
+    ProjectDocument document;
+    document.replaceProject(project);
+    CommandService service(&document);
+    SheetCommands sheets(&service, &document);
+    QVERIFY(std::holds_alternative<ID>(sheets.createSheet(QStringLiteral("mindmap"))));
+
+    const auto result = sheets.deleteSheet(firstId);
+    QVERIFY(std::holds_alternative<AppError>(result));
+    QCOMPARE(std::get<AppError>(result).code, QStringLiteral("SHEET_IN_USE"));
+    QVERIFY(std::get<AppError>(result).message.contains(QStringLiteral("讲解路线")));
+    QCOMPARE(document.project().sheets.size(), 2);
+    QCOMPARE(document.project().routes.size(), 1);
+    QCOMPARE(document.project().routes.first().steps.first().speakerNote,
+             QStringLiteral("开场先讲这个"));
 }
 
 void TstFlow::deleteSheetRejectsLastSheet() {

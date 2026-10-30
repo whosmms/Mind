@@ -174,8 +174,31 @@ std::variant<bool, AppError> SheetCommands::deleteSheet(const ID& sheetId) {
                                 .arg(draft.title)};
         }
     }
+    // 复习卡片带着用户的学习状态（status/lastReviewedAt/custom），删表不能连带销毁（规范§7.1
+    // 「源节点删除保留卡片快照、提供移除或转独立卡片」）。卡片sheetId必须指向存在的表（CARD_SHEET），
+    // 所以“保留卡片”要先放宽校验器规则——那是三方确认后另做的事；在此之前按影响确认阻断删除。
+    int cardCount = 0;
+    for (const ReviewCard& card : project.cards)
+        if (card.sheetId == sheetId) ++cardCount;
+    if (cardCount > 0) {
+        return AppError{"SHEET_IN_USE",
+                        QStringLiteral("该工作表上有 %1 张复习卡片，删除会丢失学习状态；"
+                                       "请先在复习页移除卡片，或把卡片来源改到其他工作表")
+                            .arg(cardCount)};
+    }
+    // 讲解路线的步骤带用户写的讲解备注，同理不静默销毁（规范§7.2）
+    int routeCount = 0;
+    for (const PresentationRoute& route : project.routes)
+        if (route.sheetId == sheetId) ++routeCount;
+    if (routeCount > 0) {
+        return AppError{"SHEET_IN_USE",
+                        QStringLiteral("该工作表上有 %1 条讲解路线，请先删除路线再删除工作表")
+                            .arg(routeCount)};
+    }
 
-    // 单事务：删表 + 任务来源清理 + 卡片来源标记 + 当前表回退
+    // 单事务：删表 + 任务来源清理 + 当前表回退。
+    // 复习卡片与讲解路线在入口处已阻断（有则SHEET_IN_USE），事务内不需要也不应该删它们；
+    // 若将来放宽为“保留卡片快照并标missing”，要同时改ProjectValidator的CARD_SHEET规则。
     const auto result = m_commands->applyEdit(
         QStringLiteral("删除工作表"), [sheetId](Project& target) {
             QVector<Sheet> kept;
@@ -189,18 +212,6 @@ std::variant<bool, AppError> SheetCommands::deleteSheet(const ID& sheetId) {
                 if (task.source.has_value() && task.source->sheetId == sheetId)
                     task.source.reset();
             }
-            // 复习卡片与讲解路线依附于工作表本身（ProjectValidator要求其sheetId必须存在），
-            // 随工作表在同一事务内删除；关联任务保留为独立任务，不删除用户排期数据。
-            QVector<ReviewCard> keptCards;
-            for (const ReviewCard& card : target.cards) {
-                if (card.sheetId != sheetId) keptCards.append(card);
-            }
-            target.cards = keptCards;
-            QVector<PresentationRoute> keptRoutes;
-            for (const PresentationRoute& route : target.routes) {
-                if (route.sheetId != sheetId) keptRoutes.append(route);
-            }
-            target.routes = keptRoutes;
             if (target.activeSheetId == sheetId && !target.sheets.isEmpty())
                 target.activeSheetId = sheetIdOf(target.sheets.first());
         });
