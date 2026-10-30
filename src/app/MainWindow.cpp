@@ -608,10 +608,17 @@ void MainWindow::writeRecoverySnapshot() {
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == m_view->viewport() && event->type() == QEvent::Leave)
+        m_dragNodeId.clear(); // 离开画布即取消，不能让下次释放沿用旧的拖动源。
     if (watched == m_view->viewport() && event->type() == QEvent::MouseMove &&
         !m_dragNodeId.isEmpty())
     {
         const auto *mouse = static_cast<QMouseEvent *>(event);
+        if (!(mouse->buttons() & Qt::LeftButton))
+        {
+            m_dragNodeId.clear();
+            return QMainWindow::eventFilter(watched, event);
+        }
         if ((mouse->position().toPoint() - m_dragStart).manhattanLength() >=
             QApplication::startDragDistance())
             statusBar()->showMessage(
@@ -634,7 +641,10 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
                 selectNode(nodeId);
                 m_view->setFocus();
                 if (event->type() == QEvent::MouseButtonDblClick)
+                {
+                    m_dragNodeId.clear();
                     renameSelectedNode();
+                }
                 return true;
             }
         }
@@ -644,8 +654,9 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
         const auto *mouse = static_cast<QMouseEvent *>(event);
         const ID dragged = m_dragNodeId;
         m_dragNodeId.clear();
-        if (!dragged.isEmpty() && (mouse->position().toPoint() - m_dragStart).manhattanLength() >=
-                                      QApplication::startDragDistance())
+        if (mouse->button() == Qt::LeftButton && !dragged.isEmpty() &&
+            (mouse->position().toPoint() - m_dragStart).manhattanLength() >=
+                QApplication::startDragDistance())
         {
             if (const auto *target = dynamic_cast<NodeItem *>(
                     m_scene->itemAt(m_view->mapToScene(mouse->position().toPoint()), QTransform())))

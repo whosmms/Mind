@@ -3558,6 +3558,12 @@ void TstUi::editorCanvasDragKeepsIdsAndRepairsFrames()
     const auto items = canvasNodes(view);
     const QPoint start = view->mapFromScene(items.value(a)->pos()),
                  end = view->mapFromScene(items.value(c)->pos());
+    const qint64 beforeDrag = window.findChild<ProjectDocument *>()->sessionRevision();
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    QEvent leave(QEvent::Leave);
+    QApplication::sendEvent(view->viewport(), &leave);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    QCOMPARE(window.findChild<ProjectDocument *>()->sessionRevision(), beforeDrag);
     QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
     QTest::mouseMove(view->viewport(), end);
     QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
