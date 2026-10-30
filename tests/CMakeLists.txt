@@ -79,3 +79,13 @@ if(MSVC)
     target_compile_options(tst_ui PRIVATE /utf-8)
 endif()
 add_test(NAME tst_ui COMMAND tst_ui)
+
+# 复习页是 QWidget：单独链接 Widgets 与 ui 源文件
+add_executable(tst_reviewpage tst_reviewpage.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ReviewPage.h
+    ${CMAKE_SOURCE_DIR}/src/ui/ReviewPage.cpp)
+target_link_libraries(tst_reviewpage PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
+if(MSVC)
+    target_compile_options(tst_reviewpage PRIVATE /utf-8)
+endif()
+add_test(NAME tst_reviewpage COMMAND tst_reviewpage)
