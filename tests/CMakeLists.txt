@@ -79,3 +79,11 @@ if(MSVC)
     target_compile_options(tst_ui PRIVATE /utf-8)
 endif()
 add_test(NAME tst_ui COMMAND tst_ui)
+
+# 提示模板：纯服务，链接 appcore 即可
+add_executable(tst_promptlibrary tst_promptlibrary.cpp)
+target_link_libraries(tst_promptlibrary PRIVATE lingya_appcore Qt6::Test)
+if(MSVC)
+    target_compile_options(tst_promptlibrary PRIVATE /utf-8)
+endif()
+add_test(NAME tst_promptlibrary COMMAND tst_promptlibrary)
