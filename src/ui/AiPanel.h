@@ -44,6 +44,7 @@ private:
     void onDraftReady(const QString& requestId, const DraftProposal& proposal);
     void onFailed(const AiError& error);
     void onCanceled(const QString& requestId);
+    void onConnectionReady(const QString& requestId, const QString& model);
     void showPreview(const QString& text);
     void setBusy(bool busy);
 

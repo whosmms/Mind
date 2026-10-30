@@ -75,7 +75,7 @@ AiPanel::AiPanel(AiService* service, QWidget* parent) : QWidget(parent), m_servi
 
     m_sourceEdit = new QPlainTextEdit(this);
     m_sourceEdit->setObjectName(QStringLiteral("aiSource"));
-    m_sourceEdit->setPlaceholderText(QStringLiteral("粘贴材料，或先选中节点后点「载入选中节点」"));
+    m_sourceEdit->setPlaceholderText(QStringLiteral("粘贴材料；也可由主窗口预填选中节点内容"));
 
     m_modeCombo = new QComboBox(this);
     m_modeCombo->addItem(QStringLiteral("faithful（只整理原文）"), QStringLiteral("faithful"));
@@ -134,6 +134,7 @@ AiPanel::AiPanel(AiService* service, QWidget* parent) : QWidget(parent), m_servi
         connect(m_service, &AiService::draftReady, this, &AiPanel::onDraftReady);
         connect(m_service, &AiService::failed, this, &AiPanel::onFailed);
         connect(m_service, &AiService::canceled, this, &AiPanel::onCanceled);
+        connect(m_service, &AiService::connectionReady, this, &AiPanel::onConnectionReady);
     }
     onStateChanged(QString(), AiService::State::Idle);
 }
@@ -176,9 +177,7 @@ void AiPanel::onGenerateMap() {
     request.maxNodes = m_maxNodesSpin->value();
     request.maxDepth = m_maxDepthSpin->value();
     m_currentRequestId = request.requestId;
-    if (!m_service->generateMap(request)) {
-        m_statusLabel->setText(QStringLiteral("无法发起请求（检查密钥或是否正在请求）"));
-    }
+    m_service->generateMap(request);   // 失败时 AiService 已同步 emit failed，不再覆盖其提示
 }
 
 void AiPanel::onGenerateDraft() {
@@ -190,9 +189,7 @@ void AiPanel::onGenerateDraft() {
     request.sheetId = m_targetSheet;
     request.mode = m_modeCombo->currentData().toString();
     m_currentRequestId = request.requestId;
-    if (!m_service->generateDraft(request)) {
-        m_statusLabel->setText(QStringLiteral("无法发起请求（检查密钥或是否正在请求）"));
-    }
+    m_service->generateDraft(request);   // 同上：不覆盖 AiService 的错误提示
 }
 
 void AiPanel::onCancel() {
@@ -224,6 +221,9 @@ void AiPanel::onStateChanged(const QString& requestId, AiService::State state) {
     case AiService::State::Canceled:
         m_statusLabel->setText(QStringLiteral("已取消"));
         break;
+    case AiService::State::Done:
+        m_statusLabel->setText(QStringLiteral("完成"));
+        break;
     case AiService::State::Idle:
         m_statusLabel->setText(QStringLiteral("就绪"));
         break;
@@ -231,6 +231,11 @@ void AiPanel::onStateChanged(const QString& requestId, AiService::State state) {
         m_statusLabel->setText(QStringLiteral("请求中…"));
         break;
     }
+}
+
+void AiPanel::onConnectionReady(const QString& requestId, const QString& model) {
+    Q_UNUSED(requestId)
+    m_statusLabel->setText(QStringLiteral("连接成功（模型 %1）").arg(model));
 }
 
 void AiPanel::onMapReady(const QString& requestId, const MapProposal& proposal) {

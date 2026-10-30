@@ -150,13 +150,53 @@ bool AiService::setKey(const QString& key, bool remember) {
     if (m_secretStore == nullptr) {
         return false;
     }
-    return m_secretStore->setApiKey(key, remember);
+    const bool ok = m_secretStore->setApiKey(key, remember);
+    if (ok) {
+        refreshProvider();   // 密钥变了：按工厂重建 provider，避免继续发给 Fake
+    }
+    return ok;
 }
 
 void AiService::clearKey() {
     if (m_secretStore != nullptr) {
         m_secretStore->clearApiKey();
+        refreshProvider();
     }
+}
+
+void AiService::setProvider(IAiProvider* provider) {
+    m_ownedProvider.reset();
+    attachProvider(provider);
+}
+
+void AiService::setProviderFactory(std::function<std::unique_ptr<IAiProvider>()> factory) {
+    m_providerFactory = std::move(factory);
+    refreshProvider();
+}
+
+void AiService::refreshProvider() {
+    if (!m_providerFactory) {
+        return;
+    }
+    m_ownedProvider = m_providerFactory();
+    attachProvider(m_ownedProvider.get());
+}
+
+void AiService::attachProvider(IAiProvider* provider) {
+    if (m_provider != nullptr) {
+        // 取消在途请求并断开旧供应方，避免它继续回调本服务
+        if (!m_currentRequestId.isEmpty()) {
+            m_provider->cancel(m_currentRequestId);
+        }
+        disconnect(m_provider, nullptr, this, nullptr);
+    }
+    m_provider = provider;
+    m_currentRequestId.clear();
+    if (m_provider != nullptr) {
+        connect(m_provider, &IAiProvider::completed, this, &AiService::onProviderCompleted);
+        connect(m_provider, &IAiProvider::failed, this, &AiService::onProviderFailed);
+    }
+    setState(State::Idle);
 }
 
 bool AiService::generateMap(const GenerateMapRequest& request) {

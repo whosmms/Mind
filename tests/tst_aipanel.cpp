@@ -22,6 +22,7 @@ private slots:
     void mapGenerationShowsPreviewAndApplies();
     void failureShowsErrorCode();
     void cancelShowsCanceled();
+    void testConnectionShowsModel();
 };
 
 void TstAiPanel::idleDisablesApply() {
@@ -92,6 +93,22 @@ void TstAiPanel::cancelShowsCanceled() {
     QTRY_VERIFY_WITH_TIMEOUT(cancelButton->isEnabled(), 1000);
     cancelButton->click();
     QTRY_VERIFY_WITH_TIMEOUT(status->text().contains(QStringLiteral("已取消")), 3000);
+}
+
+void TstAiPanel::testConnectionShowsModel() {
+    FakeAiProvider provider;
+    SessionSecretStore store;
+    AiService service(&provider, &store);
+    AiPanel panel(&service);
+    QVERIFY(service.setKey(QStringLiteral("sk-test"), false));
+
+    auto* status = panel.findChild<QLabel*>(QStringLiteral("aiStatus"));
+    auto* testButton = panel.findChild<QPushButton*>(QStringLiteral("aiTestConnection"));
+    QVERIFY(status != nullptr);
+    QVERIFY(testButton != nullptr);
+
+    testButton->click();
+    QTRY_VERIFY_WITH_TIMEOUT(status->text().contains(QStringLiteral("连接成功")), 3000);
 }
 
 QTEST_MAIN(TstAiPanel)

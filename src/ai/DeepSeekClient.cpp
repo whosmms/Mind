@@ -135,6 +135,7 @@ void DeepSeekClient::onFinished(const QString& requestId, QNetworkReply* reply) 
         error.code = QStringLiteral("TIMEOUT");
         error.message = QStringLiteral("请求超时");
         error.requestId = requestId;
+        error.retryable = true;   // 与 NETWORK_ERROR 一致：网关类失败可让 UI 提示重试
         emit failed(error);
         return;
     }

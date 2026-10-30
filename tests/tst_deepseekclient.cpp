@@ -1,11 +1,14 @@
 #include <QtTest>
 
+#include "ai/AiService.h"
 #include "ai/AiServiceFactory.h"
 #include "ai/DeepSeekClient.h"
 #include "ai/FakeAiProvider.h"
 #include "ai/SecretStore.h"
 
 #include <QHostAddress>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QSignalSpy>
 #include <QTcpServer>
@@ -24,6 +27,8 @@ class StubServer : public QTcpServer {
 public:
     QByteArray body;
     int status = 200;
+    QVector<int> statuses;     // 非空时按请求顺序取（用尽后回退 status）
+    QByteArray extraHeaders;   // 自定义响应头，如 "Retry-After: 600\r\n"
     int delayMs = 0;
     int requestCount = 0;
     QByteArray lastRequest;
@@ -41,11 +46,16 @@ public:
             }
             *handled = true;
             ++requestCount;
-            const auto respond = [this, socket] {
+            int responseStatus = status;
+            if (!statuses.isEmpty()) {
+                const int index = qMin(requestCount - 1, statuses.size() - 1);
+                responseStatus = statuses.at(index);
+            }
+            const auto respond = [this, socket, responseStatus] {
                 const QByteArray payload = body;
                 const QByteArray response =
-                    "HTTP/1.1 " + QByteArray::number(status) + " X\r\n"
-                    "Content-Type: application/json\r\n"
+                    "HTTP/1.1 " + QByteArray::number(responseStatus) + " X\r\n"
+                    "Content-Type: application/json\r\n" + extraHeaders +
                     "Content-Length: " + QByteArray::number(payload.size()) + "\r\n"
                     "Connection: close\r\n\r\n" + payload;
                 socket->write(response);
@@ -59,6 +69,21 @@ public:
         });
     }
 };
+
+// 合法的 X05 导图响应（AiService 会做 schema 校验，必须是真结构）
+QByteArray validMapResponse() {
+    const QString content = QStringLiteral(
+        R"({"title":"软件工程流程","root":{"title":"软件工程","note":"","sourceParagraphIds":[],"origin":"source","children":[{"title":"需求分析","note":"","sourceParagraphIds":[],"origin":"source","children":[]}]},"warnings":[]})");
+    const QJsonObject response{
+        {"model", QStringLiteral("deepseek-flash")},
+        {"choices",
+         QJsonArray{QJsonObject{
+             {"finish_reason", QStringLiteral("stop")},
+             {"message",
+              QJsonObject{{"role", QStringLiteral("assistant")}, {"content", content}}}}}},
+        {"usage", QJsonObject{{"prompt_tokens", 1}, {"completion_tokens", 1}, {"total_tokens", 2}}}};
+    return QJsonDocument(response).toJson(QJsonDocument::Compact);
+}
 
 }  // namespace
 
@@ -82,6 +107,10 @@ private slots:
     void networkErrorMapsToNetworkError();
     void nonJsonObjectIsUpstreamError();
     void factoryPicksProviderByKey();
+    void rateLimitThenSuccessCompletes();
+    void retryAfterOverBudgetFailsImmediately();
+    void timeoutSendsOnlyOnceAndIsRetryable();
+    void savingKeySwapsToRealProvider();
 
 private:
     QString url() const { return QStringLiteral("http://127.0.0.1:%1/chat").arg(m_port); }
@@ -95,6 +124,8 @@ void TstDeepSeekClient::init() {
     m_server.status = 200;
     m_server.delayMs = 0;
     m_server.requestCount = 0;
+    m_server.statuses.clear();
+    m_server.extraHeaders.clear();
     m_server.lastRequest.clear();
     QVERIFY(m_server.listen(QHostAddress::LocalHost, 0));
     m_port = m_server.serverPort();
@@ -277,6 +308,78 @@ void TstDeepSeekClient::factoryPicksProviderByKey() {
     withKey.setApiKey(QStringLiteral("sk-x"), false);
     auto deepseek = createAiProvider(&withKey);
     QVERIFY(dynamic_cast<DeepSeekClient*>(deepseek.get()) != nullptr);
+}
+
+void TstDeepSeekClient::rateLimitThenSuccessCompletes() {
+    m_server.statuses = {429, 200};
+
+    DeepSeekClient client(QStringLiteral("k"));
+    client.setBaseUrl(url());
+    client.setRetryDelayMs(10);
+    QSignalSpy completed(&client, &DeepSeekClient::completed);
+    QSignalSpy failed(&client, &DeepSeekClient::failed);
+
+    client.start(QStringLiteral("req-r1"), QJsonObject{});
+    QTRY_COMPARE_WITH_TIMEOUT(completed.count(), 1, 8000);
+    QCOMPARE(failed.count(), 0);
+    QCOMPARE(m_server.requestCount, 2);   // 429 → 重试一次 → 200
+}
+
+void TstDeepSeekClient::retryAfterOverBudgetFailsImmediately() {
+    m_server.status = 429;
+    m_server.body = R"({"error":{"message":"rate limited"}})";
+    m_server.extraHeaders = QByteArray("Retry-After: 600\r\n");   // 10 分钟 > 180s 预算
+
+    DeepSeekClient client(QStringLiteral("k"));
+    client.setBaseUrl(url());
+    client.setRetryDelayMs(10);
+    QSignalSpy failed(&client, &DeepSeekClient::failed);
+
+    client.start(QStringLiteral("req-r2"), QJsonObject{});
+    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 5000);
+    QCOMPARE(failed.first().at(0).value<AiError>().code, QStringLiteral("RATE_LIMITED"));
+    QCOMPARE(m_server.requestCount, 1);   // 超预算不重试
+}
+
+void TstDeepSeekClient::timeoutSendsOnlyOnceAndIsRetryable() {
+    m_server.delayMs = 2000;
+
+    DeepSeekClient client(QStringLiteral("k"));
+    client.setBaseUrl(url());
+    client.setTimeoutMs(50);
+    client.setRetryDelayMs(10);
+    QSignalSpy failed(&client, &DeepSeekClient::failed);
+
+    client.start(QStringLiteral("req-t1"), QJsonObject{});
+    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 5000);
+    const auto error = failed.first().at(0).value<AiError>();
+    QCOMPARE(error.code, QStringLiteral("TIMEOUT"));
+    QVERIFY(error.retryable);
+    QCOMPARE(m_server.requestCount, 1);   // 超时不重试
+}
+
+void TstDeepSeekClient::savingKeySwapsToRealProvider() {
+    m_server.body = validMapResponse();
+
+    SessionSecretStore store;
+    AiService service(nullptr, &store);
+    service.setProviderFactory([this, &store] { return createAiProvider(&store, nullptr, url()); });
+
+    // 初始无密钥：AiService 直接 KEY_MISSING，不发起任何请求
+    GenerateMapRequest first;
+    first.requestId = QStringLiteral("req-fake");
+    first.text = QStringLiteral("材料");
+    QVERIFY(!service.generateMap(first));
+    QCOMPARE(m_server.requestCount, 0);
+
+    // 存密钥后：工厂应重建为真实客户端，请求打到桩服务器
+    QVERIFY(service.setKey(QStringLiteral("sk-test"), false));
+    GenerateMapRequest second;
+    second.requestId = QStringLiteral("req-real");
+    second.text = QStringLiteral("材料");
+    QVERIFY(service.generateMap(second));
+    QTRY_COMPARE_WITH_TIMEOUT(m_server.requestCount, 1, 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(service.state() == AiService::State::Preview, 5000);
 }
 
 QTEST_MAIN(TstDeepSeekClient)
