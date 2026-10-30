@@ -83,6 +83,8 @@ add_test(NAME tst_ui COMMAND tst_ui)
 # 提示模板：纯服务，链接 appcore 即可
 add_executable(tst_promptlibrary tst_promptlibrary.cpp)
 target_link_libraries(tst_promptlibrary PRIVATE lingya_appcore Qt6::Test)
+# 回退文本与 qrc 模板必须一致：用例需要读取仓库内的模板原文做比对
+target_compile_definitions(tst_promptlibrary PRIVATE LINGYA_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 if(MSVC)
     target_compile_options(tst_promptlibrary PRIVATE /utf-8)
 endif()
