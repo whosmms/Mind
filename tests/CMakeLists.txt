@@ -119,3 +119,11 @@ if(MSVC)
     target_compile_options(tst_promptlibrary PRIVATE /utf-8)
 endif()
 add_test(NAME tst_promptlibrary COMMAND tst_promptlibrary)
+
+# DeepSeek 客户端：本机桩服务器测试，需要 Network
+add_executable(tst_deepseekclient tst_deepseekclient.cpp)
+target_link_libraries(tst_deepseekclient PRIVATE lingya_appcore Qt6::Test Qt6::Network)
+if(MSVC)
+    target_compile_options(tst_deepseekclient PRIVATE /utf-8)
+endif()
+add_test(NAME tst_deepseekclient COMMAND tst_deepseekclient)
