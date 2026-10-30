@@ -3,11 +3,12 @@
 项目：灵芽思维（LingyaMind），C++17 + Qt 6 Widgets + Graphics View + CMake 的
 Windows 桌面思维导图课程软件。仓库根目录即本文件所在目录。
 
-## 甲当前交付：H-026 R11鱼骨视图（2026-10-30，草稿PR待复核）
+## H-026 已合入（2026-10-30 乙回执）
 
-- `feature/a/R11-fishbone-view`基于main `9c89bcd`：鱼骨工作表改用`FishboneLayout`并绘制主骨/斜骨/支骨，导图不变；仅MainWindow与tst_ui。
-- 沙箱Linux双配置合并main a21a4d7后各22套件470项通过（非冻结Kit，冻结Kit复跑与真人未执行）。说明`docs/reviews/H-026-甲R11鱼骨视图接线.md`。
-- 遗留：鱼骨槽宽已由乙BUG-021修复；新建/切换工作表入口、R03/R07/R08/R09界面为甲后续批次。
+- `feature/a/R11-fishbone-view` 经乙复核后 `--no-ff` 合入 main，合并提交 `5e90017`；鱼骨工作表按 `kind` 改用 `FishboneLayout` 并绘制主骨/类别斜骨/原因支骨，导图仍走 `TreeLayout`。
+- 合后冻结 Kit（Windows MinGW）Debug/Release 各 22 套件 470 项通过、0 失败 0 跳过；远程分支 `feature/a/R11-fishbone-view` 已删除（INT-20261030-007）。
+- 评审与说明见 `docs/reviews/H-026-甲R11鱼骨视图接线.md`，证据见 `docs/evidence/20261030-甲R11鱼骨视图`。
+- 遗留：原因支骨为肘形（竖干线+水平）而非斜支骨，待与设计稿对齐；鱼骨表暂不画外框/概要/关系线（随 R07/R08）；新建与切换鱼骨工作表入口属甲后续批次。
 
 ## H-022已合入（2026-10-26 乙回执）
 
