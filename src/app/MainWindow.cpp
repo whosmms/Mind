@@ -373,7 +373,7 @@ MainWindow::MainWindow(QWidget* parent)
 void MainWindow::buildMenus() {
     QMenu* fileMenu = menuBar()->addMenu(QStringLiteral("文件(&F)"));
     fileMenu->addAction(QStringLiteral("新建(&N)"), QKeySequence::New, this,
-                        &MainWindow::newProject);
+                        &MainWindow::newProject)->setObjectName(QStringLiteral("newProject"));
     fileMenu->addAction(QStringLiteral("打开(&O)..."), QKeySequence::Open, this,
                         &MainWindow::openProject);
     fileMenu->addAction(QStringLiteral("保存(&S)"), QKeySequence::Save, this,

@@ -2329,10 +2329,8 @@ void TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent()
                 }
             }
         });
-    QAction *create = nullptr;
-    for (QAction *action : window.findChildren<QAction *>())
-        if (action->text().startsWith(QStringLiteral("新建")))
-            create = action;
+    // 新建工程与新建工作表是不同入口，用稳定对象名避免误开工作表窗口。
+    QAction *create = window.findChild<QAction *>(QStringLiteral("newProject"));
     QVERIFY(create != nullptr);
     create->trigger();
     QVERIFY(chinese);
