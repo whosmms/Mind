@@ -126,3 +126,19 @@ if(MSVC)
     target_compile_options(tst_reviewcommands PRIVATE /utf-8)
 endif()
 add_test(NAME tst_reviewcommands COMMAND tst_reviewcommands)
+
+# DeepSeek 客户端：本机桩服务器测试，需要 Network
+add_executable(tst_deepseekclient tst_deepseekclient.cpp)
+target_link_libraries(tst_deepseekclient PRIVATE lingya_appcore Qt6::Test Qt6::Network)
+if(MSVC)
+    target_compile_options(tst_deepseekclient PRIVATE /utf-8)
+endif()
+add_test(NAME tst_deepseekclient COMMAND tst_deepseekclient)
+
+# AI 面板：需要 appcore（AiService/FakeAiProvider）与 Widgets
+add_executable(tst_aipanel tst_aipanel.cpp)
+target_link_libraries(tst_aipanel PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
+if(MSVC)
+    target_compile_options(tst_aipanel PRIVATE /utf-8)
+endif()
+add_test(NAME tst_aipanel COMMAND tst_aipanel)

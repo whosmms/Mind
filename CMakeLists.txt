@@ -12,8 +12,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-# Qt模块仅启用规范§5.1列出的集合；M0使用Core、Widgets、Test，Network随M5接入
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Widgets Test)
+# Qt模块仅启用规范§5.1列出的集合；M5真实联网需要Network
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Widgets Network Test)
 
 # 核心库：领域、校验器、JSON序列化与文件服务（纯规则，无界面）
 add_library(lingya_core STATIC
@@ -91,6 +91,10 @@ add_library(lingya_appcore STATIC
     src/ai/AiService.cpp
     src/ai/PromptLibrary.h
     src/ai/PromptLibrary.cpp
+    src/ai/DeepSeekClient.h
+    src/ai/DeepSeekClient.cpp
+    src/ai/AiServiceFactory.h
+    src/ai/AiServiceFactory.cpp
     src/charts/TaskTableModel.h
     src/charts/TaskTableModel.cpp
     src/charts/GanttLayout.h
@@ -99,8 +103,10 @@ add_library(lingya_appcore STATIC
     src/charts/GanttView.cpp
     src/ui/IssuePanel.h
     src/ui/IssuePanel.cpp
+    src/ui/AiPanel.h
+    src/ui/AiPanel.cpp
 )
-target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets)
+target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets Qt6::Network)
 if(WIN32)
     # SecretStore 使用 Windows 凭据管理器（CredWriteW/CredReadW/CredDeleteW）
     target_link_libraries(lingya_appcore PUBLIC Advapi32)

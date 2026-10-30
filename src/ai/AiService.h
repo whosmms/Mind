@@ -4,6 +4,9 @@
 #include <QJsonObject>
 #include <QObject>
 
+#include <functional>
+#include <memory>
+
 namespace lingya {
 
 class IAiProvider;
@@ -29,6 +32,14 @@ public:
     Q_ENUM(State)
 
     AiService(IAiProvider* provider, SecretStore* secretStore, QObject* parent = nullptr);
+
+    // 装配层注入：按当前密钥构造 provider。setKey/clearKey 成功后本服务自动重建并重连，
+    // 不把“换供应方”的责任推给 UI（避免“存了密钥仍发给 Fake”）。
+    void setProviderFactory(std::function<std::unique_ptr<IAiProvider>()> factory);
+
+    // 直接更换 provider：仅供**外接/测试**使用（生产路径走 setProviderFactory 自动重建）。
+    // 先摘（旧对象还活着时 cancel+disconnect）再释放；被中止的在途请求会收到 failed(CANCELED)。
+    void setProvider(IAiProvider* provider);
 
     AiStatus status() const;
     bool setKey(const QString& key, bool remember);
@@ -57,6 +68,11 @@ private:
 
     void onProviderCompleted(const QString& requestId, const QJsonObject& response);
     void onProviderFailed(const AiError& error);
+    // 断开旧供应方并返回被中止的 requestId（无则空）；failed 由调用方在最终状态确定后发
+    QString detachProvider();
+    void attachProvider(IAiProvider* provider);
+    void notifyDropped(const QString& requestId);
+    void refreshProvider();
     void handleMapResponse(const QJsonObject& response, const QString& requestId);
     void handleDraftResponse(const QJsonObject& response, const QString& requestId);
     void handleConnectionResponse(const QJsonObject& response, const QString& requestId);
@@ -68,6 +84,8 @@ private:
 
     IAiProvider* m_provider;
     SecretStore* m_secretStore;
+    std::unique_ptr<IAiProvider> m_ownedProvider;   // 由工厂创建时归本服务所有
+    std::function<std::unique_ptr<IAiProvider>()> m_providerFactory;
     State m_state = State::Idle;
     QString m_currentRequestId;
     RequestKind m_kind = RequestKind::Map;

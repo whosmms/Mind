@@ -150,13 +150,88 @@ bool AiService::setKey(const QString& key, bool remember) {
     if (m_secretStore == nullptr) {
         return false;
     }
-    return m_secretStore->setApiKey(key, remember);
+    const QString previous = m_secretStore->apiKey();
+    const bool ok = m_secretStore->setApiKey(key, remember);
+    // 密钥没变就不重建（避免每次保存都重建 provider、打断在途请求）
+    if (ok && m_secretStore->apiKey() != previous) {
+        refreshProvider();
+    }
+    return ok;
 }
 
 void AiService::clearKey() {
     if (m_secretStore != nullptr) {
         m_secretStore->clearApiKey();
+        refreshProvider();
     }
+}
+
+void AiService::setProvider(IAiProvider* provider) {
+    // 先摘后放：旧对象还活着时 cancel+disconnect，再释放，避免在已析构对象上调用
+    const QString dropped = detachProvider();
+    m_ownedProvider.reset();
+    attachProvider(provider);
+    // 最终状态已定（attachProvider 里 setState(Idle)），最后再告知被中止的请求
+    notifyDropped(dropped);
+}
+
+void AiService::setProviderFactory(std::function<std::unique_ptr<IAiProvider>()> factory) {
+    m_providerFactory = std::move(factory);
+    refreshProvider();
+}
+
+void AiService::refreshProvider() {
+    if (!m_providerFactory) {
+        return;
+    }
+    // 顺序要紧：先摘（旧对象还活着时 cancel+disconnect），再释放，最后创建并挂接。
+    // 若先执行 m_ownedProvider = factory()，旧对象会被 delete，m_provider 随即悬空，
+    // 后续 cancel/disconnect 就是在已释放对象上调用（UB）。
+    const QString dropped = detachProvider();
+    m_ownedProvider.reset();
+    m_ownedProvider = m_providerFactory();
+    attachProvider(m_ownedProvider.get());
+    notifyDropped(dropped);
+}
+
+QString AiService::detachProvider() {
+    QString dropped;
+    if (m_provider != nullptr) {
+        // 取消在途请求并断开旧供应方，避免它继续回调本服务
+        if (!m_currentRequestId.isEmpty()) {
+            dropped = m_currentRequestId;
+            m_provider->cancel(dropped);
+        }
+        disconnect(m_provider, nullptr, this, nullptr);
+    }
+    m_provider = nullptr;
+    m_currentRequestId.clear();
+    return dropped;
+}
+
+void AiService::attachProvider(IAiProvider* provider) {
+    m_provider = provider;
+    m_currentRequestId.clear();
+    if (m_provider != nullptr) {
+        connect(m_provider, &IAiProvider::completed, this, &AiService::onProviderCompleted);
+        connect(m_provider, &IAiProvider::failed, this, &AiService::onProviderFailed);
+    }
+    setState(State::Idle);
+}
+
+void AiService::notifyDropped(const QString& requestId) {
+    // 必须在最终 setState(Idle) 之后发：否则 stateChanged→面板写"就绪"会把中止提示盖掉。
+    // 重建导致的在途请求不是"用户主动取消"，要显式告知 UI（§10.4 一次请求一个终态）。
+    // 已知不一致：此处在 state()==Idle 时发 failed（终态信号与状态不同步）。面板按信号收尾，
+    // 不读 state()，所以当前无影响；将来若有人按 state 判断终态，需先统一这两者。
+    if (requestId.isEmpty()) {
+        return;
+    }
+    AiError error;
+    error.code = QStringLiteral("CANCELED");
+    error.message = QStringLiteral("供应方已更换，请求已中止");
+    error.requestId = requestId;
+    emit failed(error);
 }
 
 bool AiService::generateMap(const GenerateMapRequest& request) {
