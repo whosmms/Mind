@@ -75,6 +75,8 @@ add_library(lingya_appcore STATIC
     src/commands/FlowCommands.cpp
     src/commands/SheetCommands.h
     src/commands/SheetCommands.cpp
+    src/commands/AiCommands.h
+    src/commands/AiCommands.cpp
     src/ai/AiTypes.h
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h

@@ -33,6 +33,13 @@ if(MSVC)
 endif()
 add_test(NAME tst_nodecommands COMMAND tst_nodecommands)
 
+add_executable(tst_aicommands tst_aicommands.cpp)
+target_link_libraries(tst_aicommands PRIVATE lingya_appcore Qt6::Test)
+if(MSVC)
+    target_compile_options(tst_aicommands PRIVATE /utf-8)
+endif()
+add_test(NAME tst_aicommands COMMAND tst_aicommands)
+
 add_executable(tst_flow tst_flow.cpp)
 target_link_libraries(tst_flow PRIVATE lingya_appcore Qt6::Test)
 if(MSVC)
