@@ -118,8 +118,10 @@ templates/、third-party.md、AGENTS.md）。
   - 待补：R13 里程碑编辑与拖拽信号接线（甲）、R11 鱼骨视图改用 FishboneLayout（甲）；PR #28 合并
   - 注：交接文档中“H-020”同时指甲的节点局部样式与丙的 R13 甘特完整视图，编号冲突待统一
 - `[~]` **M4**：四项离线特色断网演示
-  - 已有证据：X01 ReviewService/ReviewSession（H-009）、X03 双向联动（H-003）、X04 CheckService（H-003）
-  - 待补：X01 复习页、X04 问题侧栏 UI（丙）；X02 分支讲解（甲）；断网演示
+  - 已有证据：X01 ReviewService/ReviewSession（H-009）、X01 复习页（de349e0，翻面/三档/进度，乙复核通过）、
+    X03 双向联动（H-003）、X04 CheckService（H-003）
+  - 待补：X01 复习页接入 MainWindow 与卡片状态写回命令（甲接线 / L-017）、X04 问题侧栏 UI（丙）、
+    X02 分支讲解（甲）；断网演示
 - `[ ]` **M5**：两项真实联网演示成功；失败不影响原图（AiService/SecretStore/AiValidator 已有，DeepSeekClient 未打通）
 - `[ ]` **M6**：全量回归、干净 Windows 安装包验证、依赖许可证清单
 
