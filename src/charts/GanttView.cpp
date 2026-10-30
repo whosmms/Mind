@@ -66,24 +66,26 @@ const GanttBar* findBar(const QVector<GanttBar>& bars, const ID& taskId) {
     return nullptr;
 }
 
-// FS 依赖：前置结束点 → 后继开始点右拐折线 + 箭头
-void addDependency(QGraphicsScene* scene, const GanttBar& pred, const GanttBar& succ) {
+// FS 依赖：前置结束点 → 后继开始点右拐折线 + 箭头；中转竖线避开中间行任务条（L-020）
+void addDependency(QGraphicsScene* scene, const QVector<GanttBar>& bars, const GanttBar& pred,
+                   const GanttBar& succ, int pixelsPerDay) {
     const qreal x1 = pred.milestone ? pred.startX + pred.width / 2.0 + kMilestoneRadius
                                     : pred.startX + pred.width;
     const qreal y1 = rowCenter(pred.row);
     const qreal x2 =
         succ.milestone ? succ.startX + succ.width / 2.0 - kMilestoneRadius : succ.startX;
     const qreal y2 = rowCenter(succ.row);
-    const qreal midX = (x1 + x2) / 2.0;
+    const int routeX = freeRouteX(bars, static_cast<int>((x1 + x2) / 2.0), pred.row, succ.row,
+                                  pixelsPerDay);
 
     QPainterPath path;
     path.moveTo(x1, y1);
-    path.lineTo(midX, y1);
-    path.lineTo(midX, y2);
+    path.lineTo(routeX, y1);
+    path.lineTo(routeX, y2);
     path.lineTo(x2, y2);
     scene->addPath(path, QPen(primaryColor(), 1.0, Qt::DashLine));
 
-    const qreal direction = (x2 >= midX) ? 1.0 : -1.0;
+    const qreal direction = (x2 >= routeX) ? 1.0 : -1.0;
     QPolygonF head;
     head << QPointF(x2, y2) << QPointF(x2 - direction * kArrowSize, y2 - kArrowSize * 0.6)
          << QPointF(x2 - direction * kArrowSize, y2 + kArrowSize * 0.6);
@@ -237,7 +239,7 @@ void GanttView::rebuild() {
         for (const ID& predecessorId : task.predecessorIds) {
             const GanttBar* predecessor = findBar(result.bars, predecessorId);
             if (predecessor != nullptr && predecessor->hasDates) {
-                addDependency(target, *predecessor, *successor);
+                addDependency(target, result.bars, *predecessor, *successor, m_pixelsPerDay);
             }
         }
     }

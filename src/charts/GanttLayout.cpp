@@ -90,4 +90,29 @@ GanttDateRange shiftTaskDates(const QDate& start, const QDate& end, int deltaDay
     return GanttDateRange{start, end};
 }
 
+int freeRouteX(const QVector<GanttBar>& bars, int preferredX, int rowFrom, int rowTo,
+               int pixelsPerDay) {
+    if (pixelsPerDay <= 0) {
+        return preferredX;
+    }
+    const int lo = qMin(rowFrom, rowTo);
+    const int hi = qMax(rowFrom, rowTo);
+    const auto blocked = [&bars, lo, hi](int x) {
+        for (const GanttBar& bar : bars) {
+            if (!bar.hasDates || bar.row < lo || bar.row > hi) {
+                continue;
+            }
+            if (x >= bar.startX && x <= bar.startX + bar.width) {
+                return true;
+            }
+        }
+        return false;
+    };
+    int x = preferredX;
+    for (int attempt = 0; attempt < 12 && blocked(x); ++attempt) {
+        x += pixelsPerDay;   // 向右挪一天，直到不再压住中间行的任务条
+    }
+    return x;
+}
+
 }  // namespace lingya
