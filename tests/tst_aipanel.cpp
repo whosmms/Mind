@@ -24,6 +24,7 @@ private slots:
     void cancelShowsCanceled();
     void testConnectionShowsModel();
     void providerRebuildCancelsBeforeDestroy();
+    void providerRebuildShowsAbortedStatus();
 };
 
 void TstAiPanel::idleDisablesApply() {
@@ -161,6 +162,29 @@ void TstAiPanel::providerRebuildCancelsBeforeDestroy() {
     QVERIFY2(cancelIndex >= 0, "旧 provider 的 cancel 未被调用");
     QVERIFY2(destroyedIndex >= 0, "旧 provider 未被析构");
     QVERIFY2(cancelIndex < destroyedIndex, "cancel 在析构之后调用（在已释放对象上）");
+}
+
+void TstAiPanel::providerRebuildShowsAbortedStatus() {
+    QStringList log;
+    SessionSecretStore store;
+    QVERIFY(store.setApiKey(QStringLiteral("k1"), false));
+
+    AiService service(nullptr, &store);
+    AiPanel panel(&service);
+    service.setProviderFactory(
+        [&log] { return std::unique_ptr<IAiProvider>(new RecordingProvider(&log)); });
+
+    auto* status = panel.findChild<QLabel*>(QStringLiteral("aiStatus"));
+    auto* mapButton = panel.findChild<QPushButton*>(QStringLiteral("aiGenerateMap"));
+    QVERIFY(status != nullptr);
+    QVERIFY(mapButton != nullptr);
+
+    mapButton->click();   // RecordingProvider 不完成，面板停在"请求中…"
+    QVERIFY(status->text().contains(QStringLiteral("请求中")));
+
+    // 换密钥触发重建：在途请求要显式告知用户，不能被随后的"就绪"盖掉
+    QVERIFY(service.setKey(QStringLiteral("k2"), false));
+    QTRY_VERIFY_WITH_TIMEOUT(status->text().contains(QStringLiteral("中止")), 3000);
 }
 
 QTEST_MAIN(TstAiPanel)

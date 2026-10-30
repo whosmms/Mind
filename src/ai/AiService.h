@@ -67,7 +67,10 @@ private:
 
     void onProviderCompleted(const QString& requestId, const QJsonObject& response);
     void onProviderFailed(const AiError& error);
+    // 断开旧供应方并返回被中止的 requestId（无则空）；failed 由调用方在最终状态确定后发
+    QString detachProvider();
     void attachProvider(IAiProvider* provider);
+    void notifyDropped(const QString& requestId);
     void refreshProvider();
     void handleMapResponse(const QJsonObject& response, const QString& requestId);
     void handleDraftResponse(const QJsonObject& response, const QString& requestId);
