@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstDomain">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0478"/>
+  </TestFunction>
+  <TestFunction name="limitsMatchSpec">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0354"/>
+  </TestFunction>
+  <TestFunction name="factoryProducesValidProject">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2296"/>
+  </TestFunction>
+  <TestFunction name="rejectsTwoRoots">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0689"/>
+  </TestFunction>
+  <TestFunction name="rejectsOrphanParent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.032"/>
+  </TestFunction>
+  <TestFunction name="rejectsCycle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0707"/>
+  </TestFunction>
+  <TestFunction name="rejectsDuplicateIdsAcrossSheets">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0925"/>
+  </TestFunction>
+  <TestFunction name="rejectsEmptyOrOverlongTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1087"/>
+  </TestFunction>
+  <TestFunction name="rejectsBadLayoutKind">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0717"/>
+  </TestFunction>
+  <TestFunction name="rejectsTaskDateOrder">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0797"/>
+  </TestFunction>
+  <TestFunction name="rejectsSingleDateOnly">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0646"/>
+  </TestFunction>
+  <TestFunction name="rejectsMilestoneSpanningDays">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.069"/>
+  </TestFunction>
+  <TestFunction name="rejectsTaskDependencyCycle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0762"/>
+  </TestFunction>
+  <TestFunction name="rejectsTaskSourceMissing">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0521"/>
+  </TestFunction>
+  <TestFunction name="rejectsTaskProgressOutOfRange">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1104"/>
+  </TestFunction>
+  <TestFunction name="rejectsTaskPredecessorMissing">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0655"/>
+  </TestFunction>
+  <TestFunction name="acceptsCrossMonthRange">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0646"/>
+  </TestFunction>
+  <TestFunction name="acceptsCrossYearRange">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.039"/>
+  </TestFunction>
+  <TestFunction name="rejectsCrossParentAnnotation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0494"/>
+  </TestFunction>
+  <TestFunction name="rejectsNonContiguousAnnotation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0634"/>
+  </TestFunction>
+  <TestFunction name="acceptsContiguousAnnotation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0476"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0075"/>
+  </TestFunction>
+  <Duration msecs="4.8692"/>
+</TestCase>

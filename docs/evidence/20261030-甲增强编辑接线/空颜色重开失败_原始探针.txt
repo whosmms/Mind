@@ -1,0 +1,26 @@
+********* Start testing of TstUi *********
+Config: Using QtTest library 6.8.3, Qt 6.8.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 13.1.0), windows 11
+PASS   : TstUi::initTestCase()
+QWARN  : TstUi::editorAnnotationsFollowStructure() QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : TstUi::editorAnnotationsFollowStructure() This plugin does not support propagateSizeHints()
+QINFO  : TstUi::editorAnnotationsFollowStructure() frame-created
+QWARN  : TstUi::editorAnnotationsFollowStructure() This plugin does not support propagateSizeHints()
+QINFO  : TstUi::editorAnnotationsFollowStructure() summary-created
+QINFO  : TstUi::editorAnnotationsFollowStructure() frame-member-deleted
+QINFO  : TstUi::editorAnnotationsFollowStructure() frame-member-moved
+QWARN  : TstUi::editorAnnotationsFollowStructure() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorAnnotationsFollowStructure() Î´Ó¦´ğ´°¿Ú "ÎŞ·¨´ò¿ª"
+QWARN  : TstUi::editorAnnotationsFollowStructure() "project.sheets[0].annotations[0].color£ºÑÕÉ«±ØĞëÎª#RRGGBBÊ®Áù½øÖÆ£»project.sheets[0].annotations[1].color£ºÑÕÉ«±ØĞëÎª#RRGGBBÊ®Áù½øÖÆ"
+FAIL!  : TstUi::editorAnnotationsFollowStructure() æ–°å¢äº¤äº’ç•™ä¸‹äº†æœªåº”ç­”çš„æ¨¡æ€çª—å£
+D:/mind/.worktrees/button-api/tests/tst_ui.cpp(187) : failure location
+FAIL!  : TstUi::editorAnnotationsFollowStructure() 'reopened.openFile(files.filePath("annotations.lingya"))' returned FALSE. ()
+D:/mind/.worktrees/button-api/tests/tst_ui.cpp(3613) : failure location
+QWARN  : TstUi::editorFilterRestoresExpansionAndKeepsNewChild() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::editorFilterRestoresExpansionAndKeepsNewChild() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorFilterRestoresExpansionAndKeepsNewChild()
+QWARN  : TstUi::editorGanttDatesUseCommand() This plugin does not support propagateSizeHints()
+PASS   : TstUi::editorGanttDatesUseCommand()
+PASS   : TstUi::cleanupTestCase()
+Totals: 4 passed, 1 failed, 0 skipped, 0 blacklisted, 5027ms
+********* Finished testing of TstUi *********

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstAi">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1836"/>
+  </TestFunction>
+  <TestFunction name="acceptsValidMap">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0745"/>
+  </TestFunction>
+  <TestFunction name="rejectsEmptyTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0241"/>
+  </TestFunction>
+  <TestFunction name="rejectsTooManyNodes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.9942"/>
+  </TestFunction>
+  <TestFunction name="rejectsTooDeep">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0303"/>
+  </TestFunction>
+  <TestFunction name="rejectsBadOrigin">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.014"/>
+  </TestFunction>
+  <TestFunction name="acceptsValidDraft">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0246"/>
+  </TestFunction>
+  <TestFunction name="rejectsDraftWithoutSections">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0089"/>
+  </TestFunction>
+  <TestFunction name="rejectsUnknownSourceNode">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0124"/>
+  </TestFunction>
+  <TestFunction name="rejectsEmptySection">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0096"/>
+  </TestFunction>
+  <TestFunction name="serviceRequiresKey">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.08"/>
+  </TestFunction>
+  <TestFunction name="serviceEmitsProposalOnSuccess">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.8955"/>
+  </TestFunction>
+  <TestFunction name="serviceRejectsConcurrentRequest">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0486"/>
+  </TestFunction>
+  <TestFunction name="serviceCancelMovesToCanceled">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.034"/>
+  </TestFunction>
+  <TestFunction name="serviceEmitsErrorOnProviderFailure">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.5075"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0068"/>
+  </TestFunction>
+  <Duration msecs="18.9781"/>
+</TestCase>
