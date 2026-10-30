@@ -30,6 +30,7 @@ class TstProjectJson : public QObject {
 private slots:
     void m0VerticalSlice();
     void roundTripAllTypes();
+    void annotationEmptyColorRoundTrip();
     void loadsMinimalFixture();
     void rejectsUnknownFieldFixture();
     void loadsLongChineseFixture();
@@ -270,6 +271,46 @@ void TstProjectJson::roundTripAllTypes() {
     QCOMPARE(back.cards.first().status, QStringLiteral("review"));
     QCOMPARE(back.routes.first().steps.size(), 2);
     QCOMPARE(back.drafts.first().sections.at(1).origin, QStringLiteral("supplement"));
+}
+
+// 批注颜色空串=主题色（NodeCommands::createAnnotation 的契约，NodeCommands.h:104），
+// 写出保留空串、读取必须接受，否则“保存成功、重开失败”（BUG-022）。
+void TstProjectJson::annotationEmptyColorRoundTrip() {
+    Project p = ProjectFactory::createMindmap(QStringLiteral("空色批注"));
+    TreeSheet& tree = std::get<TreeSheet>(p.sheets[0]);
+    const ID a = addChild(tree, tree.rootId, QStringLiteral("甲"));
+    const ID b = addChild(tree, tree.rootId, QStringLiteral("乙"));
+    GroupAnnotation frame;
+    frame.id = uuid();
+    frame.parentId = tree.rootId;
+    frame.kind = QStringLiteral("boundary");
+    frame.memberIds << a << b;
+    frame.text = QStringLiteral("外框");
+    frame.color = QString();   // 空串=主题色
+    tree.annotations.push_back(frame);
+    QVERIFY(ProjectValidator::validate(p).isEmpty());
+
+    const QByteArray bytes = ProjectJson::toBytes(p);
+    const auto parsed = ProjectJson::fromBytes(bytes);
+    QVERIFY2(std::holds_alternative<Project>(parsed), "空色外框保存后应能重开（BUG-022）");
+    const Project back = std::get<Project>(parsed);
+    QCOMPARE(std::get<TreeSheet>(back.sheets[0]).annotations.first().color, QString());
+    QCOMPARE(ProjectJson::toBytes(back), bytes);   // 往返幂等，空串原样保留
+
+    // 空串是唯一豁免：非#RRGGBB仍必须被拒，避免把宽松读取变成不校验
+    QJsonObject root = QJsonDocument::fromJson(bytes).object();
+    QJsonArray sheets = root.value(QStringLiteral("sheets")).toArray();
+    QJsonObject sheet = sheets.at(0).toObject();
+    QJsonArray annotations = sheet.value(QStringLiteral("annotations")).toArray();
+    QJsonObject badFrame = annotations.at(0).toObject();
+    badFrame[QStringLiteral("color")] = QStringLiteral("theme");
+    annotations[0] = badFrame;
+    sheet[QStringLiteral("annotations")] = annotations;
+    sheets[0] = sheet;
+    root[QStringLiteral("sheets")] = sheets;
+    const auto bad = ProjectJson::fromBytes(QJsonDocument(root).toJson(QJsonDocument::Compact));
+    QVERIFY(std::holds_alternative<AppError>(bad));
+    QCOMPARE(std::get<AppError>(bad).code, QStringLiteral("INVALID_PROJECT"));
 }
 
 void TstProjectJson::loadsMinimalFixture() {

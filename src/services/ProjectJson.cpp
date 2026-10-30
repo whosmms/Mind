@@ -485,6 +485,13 @@ struct Reader {
         if (!isHexColor(s)) errs->append(path + "." + key + "：颜色必须为#RRGGBB十六进制");
         return s;
     }
+    // 批注颜色允许空串（=主题色，见NodeCommands::createAnnotation），非空时仍要求#RRGGBB（BUG-022）
+    QString hexColorOrEmpty(const QString& key) const {
+        const QString s = str(key);
+        if (!s.isEmpty() && !isHexColor(s))
+            errs->append(path + "." + key + "：颜色必须为空或#RRGGBB十六进制");
+        return s;
+    }
     std::optional<QString> optHexColor(const QString& key) const {
         auto s = optStr(key);
         if (s.has_value() && !isHexColor(*s)) {
@@ -666,7 +673,8 @@ GroupAnnotation readAnnotation(const QJsonObject& o, const QString& path, QStrin
     ga.kind = r.enumVal("kind", {"boundary", "summary"});
     ga.memberIds = r.strList("memberIds");
     ga.text = r.str("text");
-    ga.color = r.hexColor("color");
+    // 空串=主题色（NodeCommands::createAnnotation 的契约），写盘原样保留空串（BUG-022）
+    ga.color = r.hexColorOrEmpty("color");
     return ga;
 }
 

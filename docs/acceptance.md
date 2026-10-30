@@ -110,8 +110,10 @@ templates/、third-party.md、AGENTS.md）。
   - 注：搜索属 S02（配套交付体验），门禁在 M6，不计入 R06
 - `[~]` **M2**：R02/R03/R05/R07至R10
   - 已有证据：R10 均衡布局（4fbd131）、R03/R05/R07/R08/R09 命令族（1dc5ad7 已合main，含片段载荷与ProjectValidator修BUG-015）；
-    R08 外框/概要随动（`repairAnnotations` + 校验器 `ANNOTATION_SCOPE`：移动/删除/新增同级后成员跨父与不连续不再产生，DEV-20261030-008）
-  - 待补：R05 样式面板、R07/R08/R09 界面接线（甲）
+    R08 外框/概要随动（`repairAnnotations` + 校验器 `ANNOTATION_SCOPE`：移动/删除/新增同级后成员跨父与不连续不再产生，DEV-20261030-008）、
+    空色批注往返（BUG-022：`hexColorOrEmpty` 空串放行、非空仍校验，DEV-20261030-011）、
+    切表语义（`ProjectDocument::setActiveSheet`：不进历史、不递增会话修订，D-M1-08）
+  - 待补：R05 样式面板、R07/R08/R09 界面接线与切表改调 `setActiveSheet`（甲，BUG-023）、R08 界面侧传主题色可不再兜底
   - 注：R02（图标/链接/备注）已由 PR #20 合入并有三类内容重开证据，不缺；大纲属 R06
 - `[~]` **M3**：R11 至 R13
   - 已有证据：R13 甘特完整视图（523e70e）、R13 拖拽改期（7f4968f，乙复核修正命中测试与野指针后合入）、

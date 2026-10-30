@@ -27,6 +27,12 @@ public:
     // 保存成功后由保存流程调用；失败不能清除脏标记（§5.1）。不发信号，由调用方notifyChanged()
     void setClean();
 
+    // 切换当前工作表（视图定位，不是内容编辑）：只改activeSheetId、置脏并notifyChanged()；
+    // 不进撤销历史、不递增sessionRevision——否则Ctrl+Z撤的是“切换工作表”、剪切令牌
+    // （按sessionRevision比对）与AI提案的expectedRevision会被切表误判失效（§5.1、D-M1-08）。
+    // 表不存在返回false且不改数据；与当前相同则短路（返回true，不通知）。
+    bool setActiveSheet(const ID& sheetId);
+
     // 变更通知唯一出口：在栈操作/保存完成后调用，保证槽内canUndo/canRedo已就绪（D-M0-13）
     void notifyChanged();
 

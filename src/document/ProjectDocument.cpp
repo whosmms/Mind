@@ -1,5 +1,8 @@
 #include "document/ProjectDocument.h"
 
+#include <algorithm>
+#include <variant>
+
 namespace lingya {
 
 
@@ -44,6 +47,23 @@ void ProjectDocument::setClean() {
     // M1补充：记录clean时的sessionRevision，保存期间发生新编辑则不清除脏标记（§5.1）。
     // 不在此处发信号：由调用方在完成状态变更后统一notifyChanged()。
     m_dirty = false;
+}
+
+bool ProjectDocument::setActiveSheet(const ID& sheetId) {
+    // 视图定位不是内容编辑：不经SnapshotCommand，所以不压撤销记录、不递增sessionRevision（D-M1-08）。
+    // activeSheetId随工程存盘，改了就确实与磁盘上的版本不同，因此置脏。
+    if (sheetId.isEmpty()) return false;
+    const bool exists = std::any_of(m_project.sheets.cbegin(), m_project.sheets.cend(),
+                                    [&sheetId](const Sheet& sheet) {
+                                        return std::visit([](const auto& s) { return s.id; }, sheet) ==
+                                               sheetId;
+                                    });
+    if (!exists) return false;
+    if (m_project.activeSheetId == sheetId) return true;
+    m_project.activeSheetId = sheetId;
+    m_dirty = true;
+    notifyChanged();
+    return true;
 }
 
 }  // namespace lingya

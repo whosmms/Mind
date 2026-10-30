@@ -381,3 +381,23 @@
 - 代价与边界：位置数值整体变化（骨更靠右/更密），按旧坐标写死期望的用例或截图需重算；
   不改变 API、不写业务数据。已用 `fishboneSlotFollowsSubtreeExtent` 卡住“推进距离不得超过实宽 + 两根净间距”。
 
+
+## D-M1-08 切换工作表属视图定位，不进内容历史、不递增会话修订（2026-10-30，BUG-023）
+
+- 日期：2026-10-30；来源：甲 M2 分支（`feature/a/M2-editor-completion`）用
+  `applyEdit("切换工作表", [](Project& p){ p.activeSheetId = id; })` 实现切表，乙复核时发现连带副作用。
+- 背景：`applyEdit` 走 `SnapshotCommand`，一次事务既压撤销记录又 `++sessionRevision`。切表本意只是换一个视图焦点，
+  却因此：①Ctrl+Z 撤的是「切换工作表」，而不是上一次编辑；②剪切令牌按 `sessionRevision` 比对
+  （`MainWindow` 的 `m_cutRevision`），「剪切 → 切到别的表看一眼 → 切回来粘贴」被判「剪切已失效」；
+  ③AI 采用按 `expectedRevision` 判 `STALE_SOURCE`，切表即让「源没变」的提案被判过期。
+- 决策：`ProjectDocument::setActiveSheet(const ID&)` 只做三件事——改 `activeSheetId`、置脏、`notifyChanged()`
+  （视图按新表重建）；**不压撤销记录、不递增 `sessionRevision`**。表不存在返回 `false` 且不改数据，
+  与当前相同则短路不通知。口径与 §5.1「视口变化单独记录，不触发内容历史」一致。
+- 仍置脏：`activeSheetId` 随工程写盘（`ProjectJson` 的 `activeSheetId` 键），切表后的内容与磁盘版本的确不同，
+  关窗提示保存属正确行为；本决定只切断「历史与修订」，不动「脏标记」。
+- 备选未取：
+  1. **沿用 `applyEdit` 但把切表排除在历史外**（在 `CommandService` 加"不入历史"参数）：多一条特例分支，
+     且仍会动 `sessionRevision`，AI 采用与剪切令牌的问题照旧。
+  2. **切表完全不置脏**：会造成「关了再开回到原表」与用户直觉相反，且 `activeSheetId` 已写进文件。
+  3. **把 `activeSheetId` 移出存盘格式**（纯会话状态）：格式变更，需迁移旧文件，收益不足以抵消成本。
+- 回退：`setActiveSheet` 是纯新增 API，调用点只有 `MainWindow` 的切表一处；回退即改回直接赋值。

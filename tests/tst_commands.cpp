@@ -18,6 +18,7 @@ private slots:
     void invalidEditLeavesProjectUnchanged();
     void historyLimitedTo50();
     void replaceProjectClearsHistory();
+    void setActiveSheetKeepsHistoryAndRevision();
 
 private:
     static QString uuid() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
@@ -120,6 +121,39 @@ void TstCommands::replaceProjectClearsHistory() {
     service.clearHistory();
     QVERIFY(!service.canUndo());
     QVERIFY(!service.canRedo());
+}
+
+// 切表是视图定位，不是内容编辑（D-M1-08）：改 activeSheetId、置脏、通知视图重建，
+// 但既不压撤销记录，也不递增 sessionRevision——否则 Ctrl+Z 撤的是“切换工作表”，
+// 剪切令牌与 AI 提案的 expectedRevision 会被切表误判失效。
+void TstCommands::setActiveSheetKeepsHistoryAndRevision() {
+    ProjectDocument doc;
+    Project project = ProjectFactory::createMindmap(QStringLiteral("切表测试"));
+    const Project other = ProjectFactory::createFlowchart(QStringLiteral("切表测试"));
+    const Sheet second = other.sheets.first();
+    const ID secondId = std::visit([](const auto& s) { return s.id; }, second);
+    project.sheets.push_back(second);
+    doc.replaceProject(project);
+    CommandService service(&doc);
+    doc.setClean();
+    const qint64 revisionBefore = doc.sessionRevision();
+    QSignalSpy spy(&doc, &ProjectDocument::changed);
+
+    QVERIFY(doc.setActiveSheet(secondId));
+    QCOMPARE(doc.project().activeSheetId, secondId);
+    QCOMPARE(doc.sessionRevision(), revisionBefore);   // 不递增会话修订（AI 采用/剪切令牌的依据）
+    QVERIFY(!service.canUndo());                       // 不压撤销记录
+    QVERIFY(doc.isModified());                         // activeSheetId 随工程存盘，确属未保存修改
+    QCOMPARE(spy.count(), 1);                          // 仍要通知视图重建
+
+    // 与当前相同则短路：不再发信号
+    QVERIFY(doc.setActiveSheet(secondId));
+    QCOMPARE(spy.count(), 1);
+
+    // 表不存在：不改数据、不发信号
+    QVERIFY(!doc.setActiveSheet(uuid()));
+    QCOMPARE(doc.project().activeSheetId, secondId);
+    QCOMPARE(spy.count(), 1);
 }
 
 QTEST_MAIN(TstCommands)
