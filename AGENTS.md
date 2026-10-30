@@ -10,6 +10,14 @@ Windows 桌面思维导图课程软件。仓库根目录即本文件所在目录
 - 评审与说明见 `docs/reviews/H-026-甲R11鱼骨视图接线.md`，证据见 `docs/evidence/20261030-甲R11鱼骨视图`。
 - 遗留：原因支骨为肘形（竖干线+水平）而非斜支骨，待与设计稿对齐；鱼骨表暂不画外框/概要/关系线（随 R07/R08）；新建与切换鱼骨工作表入口属甲后续批次。
 
+## H-027 已合入（2026-10-30 乙回执）
+
+- `feature/c/M5-deepseek-client` 经乙非作者复核后 `--no-ff` 合入 main，合并提交 `1e5ae0f`（第二父 `33207c2`）；含 `DeepSeekClient`（HTTP 供应方）、`AiServiceFactory`、`AiService` 按密钥重建（`detachProvider`/`attachProvider`/`notifyDropped` 三段）、`AiPanel`。
+- 合后冻结 Kit（Windows MinGW）Debug/Release 各 24 套件 500 项通过、0 失败 0 跳过；远程分支 `feature/c/M5-deepseek-client` 已删除（INT-20261030-008）。
+- 交接文档里丙的 `§39` 与 main 的 `§39`（乙 R08）撞号，合入时整段顺延为 `§43`（`§43.1–§43.10`），接线清单在 `§43.8`。**新分支请基于当时最新 main 起**，否则章号还会撞。
+- 评审与五轮问题见 `docs/reviews/H-027-丙M5合入回执.md`，缺陷登记 BUG-024。
+- 遗留：`AiPanel` 未接 MainWindow（甲 / L-027）、真实密钥两项联网演示未做（丙 / L-028）；`notifyDropped` 在 `state()==Idle` 时发 `failed` 只加注释留档。不宣称 M5 门禁通过。
+
 ## H-022已合入（2026-10-26 乙回执）
 
 - `feature/a/M2-node-tags` 经乙非作者复核后 `--no-ff` 合入 main，合并提交 `dc2a6af`；合后双配置各 16 套件 340 项通过、0 失败 0 跳过；远程分支已删除，仓库仅剩 main（INT-20261026-001）。

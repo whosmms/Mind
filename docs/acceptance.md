@@ -128,7 +128,8 @@ templates/、third-party.md、AGENTS.md）。
     X03 双向联动（H-003）、X04 CheckService（H-003）
   - 待补：X01 复习页接入 MainWindow 并连 `cardGraded`（甲接线 / L-017）、X04 问题侧栏接入（丙已交付 d0ec831，甲接线 / L-022）、
     X02 分支讲解（甲）；断网演示
-- `[~]` **M5**：两项真实联网演示成功；失败不影响原图（AiService/SecretStore/AiValidator/AiCommands 已合main ff41630，DeepSeekClient 未打通）
+- `[~]` **M5**：两项真实联网演示成功；失败不影响原图（AiService/SecretStore/AiValidator/AiCommands 已合main ff41630；`DeepSeekClient`/`AiService` 重建/AiPanel 已合 `1e5ae0f`，H-027，合后双配置各 24 套件 500 项通过）
+  - 待补：AiPanel 接入 MainWindow（甲接线 / L-027）、真实密钥两项联网演示（丙 / L-028）；故不宣称 M5 门禁通过
 - `[ ]` **M6**：全量回归、干净 Windows 安装包验证、依赖许可证清单
 
 **缺陷登记**：见[缺陷总表](缺陷总表.md)（BUG-001 至今，含已退回 BUG-014）。
