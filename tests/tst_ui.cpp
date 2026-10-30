@@ -2611,6 +2611,9 @@ void TstUi::ownedListPreservesRepeatedExtension()
     window.show();
     QVERIFY(QTest::qWaitForWindowActive(&window));
     QTest::keyClick(window.windowHandle(), Qt::Key_S, Qt::ControlModifier);
+    // Ctrl+S 后必须回到未修改态（保存成功与否的判据）。这里用 QTRY 而不是立即断言：
+    // 键事件到落盘之间没有同步点，Linux 沙箱上曾偶发抢跑。
+    QTRY_VERIFY_WITH_TIMEOUT(!window.findChild<ProjectDocument *>()->isModified(), 2000);
     const auto original =
         UserFileService::openOwned(root.path(), user, QStringLiteral("复验.lingya"));
     const auto changed =
