@@ -1,5 +1,13 @@
 #include <QtTest>
 
+// 崩溃链路用例用 _exit 绕过析构（模拟进程被杀）：POSIX 下由 unistd.h 声明，
+// Windows 走 <process.h>。此前靠外部 -include unistd.h 才编得过 Linux 沙箱，属可移植性缺口。
+#if defined(Q_OS_WIN)
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "charts/GanttView.h"
 #include "commands/CommandService.h"
 #include "commands/NodeCommands.h"
