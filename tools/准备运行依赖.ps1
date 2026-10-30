@@ -54,10 +54,43 @@ foreach ($deployConfig in $deployConfigs) {
         }
     }
     $deploySuffix = if ($deployQtFlavor -eq 'debug') { 'd' } else { '' }
+    # windeployqt只部署与当前会话匹配的那个平台插件，构建目录里通常只有qwindows。
+    # 自动测试用QT_QPA_PLATFORM=offscreen；插件不在程序目录、PATH又没Qt时，Qt找不到平台插件会
+    # 弹模态框并挂住进程（命令行跑测试也一样，屏幕上会凭空多出一个报错窗口）。
+    # 因此额外补齐offscreen与minimal，让构建目录自洽。
+    $deployExtraPlatforms = Join-Path (Join-Path $env:QT_KIT_DIR 'plugins') 'platforms'
+    foreach ($deployPlatform in @('qoffscreen', 'qminimal')) {
+        $deployPlatformSource = Join-Path $deployExtraPlatforms ($deployPlatform + '.dll')
+        if (-not (Test-Path -LiteralPath $deployPlatformSource -PathType Leaf)) {
+            Write-Host "提示：Qt Kit 未提供 ${deployPlatform}.dll，跳过（${deployConfig}）。"
+            continue
+        }
+        $deployPlatformTarget = Join-Path (Join-Path $deployDirectory 'platforms') ($deployPlatform + $deploySuffix + '.dll')
+        if (-not (Test-Path -LiteralPath $deployPlatformTarget) -or
+            (Get-FileHash -LiteralPath $deployPlatformSource).Hash -ne (Get-FileHash -LiteralPath $deployPlatformTarget).Hash) {
+            Copy-Item -LiteralPath $deployPlatformSource -Destination $deployPlatformTarget -Force
+        }
+    }
+    # 测试 exe 在 build\<cfg>\tests\，而 Qt 只找「可执行文件同级 platforms」，不会回落到
+    # build\<cfg>\platforms。直接跑 tests\tst_*.exe 时找不到插件就弹模态框挂住（屏幕上多一个
+    # 「no Qt platform plugin」窗口，命令行还看不到输出）。这里把 platforms 同步一份到 tests\。
+    $deployTestsDir = Join-Path $deployDirectory 'tests'
+    if (Test-Path -LiteralPath $deployTestsDir -PathType Container) {
+        $deployTestsPlatforms = Join-Path $deployTestsDir 'platforms'
+        if (-not (Test-Path -LiteralPath $deployTestsPlatforms -PathType Container)) {
+            New-Item -ItemType Directory -Path $deployTestsPlatforms -Force | Out-Null
+        }
+        foreach ($deployPlugin in (Get-ChildItem -LiteralPath (Join-Path $deployDirectory 'platforms') -Filter '*.dll' -File)) {
+            $deployPluginTarget = Join-Path $deployTestsPlatforms $deployPlugin.Name
+            if (-not (Test-Path -LiteralPath $deployPluginTarget -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $deployPlugin.FullName).Hash -ne (Get-FileHash -LiteralPath $deployPluginTarget).Hash) {
+                Copy-Item -LiteralPath $deployPlugin.FullName -Destination $deployPluginTarget -Force
+            }
+        }
+    }
     foreach ($deployRequired in @("Qt6Core${deploySuffix}.dll", "Qt6Gui${deploySuffix}.dll", "Qt6Widgets${deploySuffix}.dll", "platforms\qwindows${deploySuffix}.dll")) {
         if (-not (Test-Path -LiteralPath (Join-Path $deployDirectory $deployRequired) -PathType Leaf)) {
             throw "部署后仍缺少必要文件：$deployRequired"
-        }
-    }
+        }    }
     Write-Host "${deployConfig}运行依赖已准备（Qt ${deployQtFlavor}），可直接打开${deployExe}。请保留整个构建目录中的DLL与插件。"
 }

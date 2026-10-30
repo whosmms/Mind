@@ -116,3 +116,5 @@ if ($diagCopies.Count -eq 0) {
 "  4) 文件齐全、第 4 段仍失败：把这整段输出发出来，再查是否混入了别的 Qt 版本的 qwindows.dll"
 "  5) 第 5 段若出现 [依赖 PATH，别双击]：那是评审/临时构建留下的旧副本，程序目录不自洽；"
 "     报「无法定位程序输入点 ... 于 xxx.exe 上」就是它。删掉即可，要跑请用 tools\打开灵芽思维.ps1"
+"  6) 跑测试请用 tools\跑测试.ps1（已固定 QT_QPA_PLATFORM=offscreen 且插件根指向构建目录）；"
+"     手工跑 tests\tst_*.exe 时若漏了这两项，就会弹「no Qt platform plugin」框并挂住，命令行无输出"

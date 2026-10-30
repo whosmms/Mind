@@ -142,3 +142,18 @@ if(MSVC)
     target_compile_options(tst_aipanel PRIVATE /utf-8)
 endif()
 add_test(NAME tst_aipanel COMMAND tst_aipanel)
+
+# 统一以 offscreen 跑 ctest（规范§19.1：自动测试不得在开发机桌面弹窗）。
+# 用例只被平台插件拖住时，表现是弹模态「no Qt platform plugin」框并挂死，命令行里看不到任何输出；
+# 所以平台与插件根目录都由这里定死，不依赖外层终端变量：
+#   QT_QPA_PLATFORM=offscreen  前台就不会出现真窗口
+#   QT_PLUGIN_PATH=<build>     测试 exe 在 build/<cfg>/tests/，而 platforms\ 在 build/<cfg>/，
+#                              不指根目录的话 Qt 只能回落到 Qt 安装目录，换机就成败不定
+# platforms\qoffscreen.dll 由 tools\准备运行依赖.ps1 一并部署。
+# TIMEOUT 是兜底：万一将来又缺插件，用例在 300 秒内失败，而不是一直挂着等点「确定」。
+get_property(tst_registered DIRECTORY PROPERTY TESTS)
+if(tst_registered)
+    set_tests_properties(${tst_registered} PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_PLUGIN_PATH=${CMAKE_BINARY_DIR}"
+        TIMEOUT 300)
+endif()
