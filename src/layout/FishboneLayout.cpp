@@ -71,17 +71,18 @@ double span(const TreeSheet &sheet, const ID &nodeId, const QHash<ID, Extent> &d
     return selfHeight + total;
 }
 
-// 各层最大宽度：决定该主骨沿主轴需要占用的长度（分支包围盒决定骨间距）
-void measure(const TreeSheet &sheet, const ID &nodeId, const QHash<ID, Extent> &dims, int depth,
-             QVector<double> &widthByDepth)
+// 子树沿主轴实际占用的最左距离（相对类别中心）。每一层只左移 kDepthShift，
+// 所以取“各层 (深度×位移 + 半宽)”的最大值——而不是把每层最大宽度相加：
+// 相加等于假设每层都在前一层左边再让出一个整宽，而实际只让 kDepthShift，
+// 6类×8原因、三层文本各500px 的样例会被撑成近万像素画布（甲复核 #37）。
+double leftExtent(const TreeSheet &sheet, const ID &nodeId, const QHash<ID, Extent> &dims, int depth)
 {
-    if (widthByDepth.size() <= depth)
-        widthByDepth.resize(depth + 1, 0.0);
-    widthByDepth[depth] = std::max(widthByDepth.at(depth), dims.value(nodeId).width);
+    double extent = depth * kDepthShift + dims.value(nodeId).width / 2.0;
     if (isCollapsed(sheet, nodeId))
-        return;
+        return extent;
     for (const auto &child : childList(sheet, nodeId))
-        measure(sheet, child.second, dims, depth + 1, widthByDepth);
+        extent = std::max(extent, leftExtent(sheet, child.second, dims, depth + 1));
+    return extent;
 }
 
 void placeSubtree(const TreeSheet &sheet, const ID &nodeId, const QPointF &center, int side,
@@ -153,14 +154,12 @@ std::variant<Result, AppError> layout(const TreeSheet &sheet, const QVector<Node
     int index = 0;
     for (const auto &category : childList(sheet, sheet.rootId)) {
         const ID categoryId = category.second;
-        QVector<double> widthByDepth;
-        measure(sheet, categoryId, dims, 0, widthByDepth);
-        double slotWidth = 0.0;
-        for (int depth = 0; depth < widthByDepth.size(); ++depth)
-            slotWidth += widthByDepth.at(depth) + kDepthShift;
-        slotWidth = std::max(slotWidth, dims.value(categoryId).width + kSlotGap) + kSlotGap;
+        // 槽宽 = 类别自身伸向鱼头的一半 + 子树向左的实际最远距离 + 一根骨之间的净间距。
+        // 用实际范围而不是“各层最大宽度之和”，同类样例的画布宽度能降到原来的 1/2～1/3。
+        const double categoryHalf = dims.value(categoryId).width / 2.0;
+        const double slotWidth = categoryHalf + leftExtent(sheet, categoryId, dims, 0) + kSlotGap;
 
-        const double centerX = cursorX - slotWidth / 2.0;
+        const double centerX = cursorX - categoryHalf;
         cursorX -= slotWidth;
 
         const int side = (index % 2 == 0) ? -1 : 1;   // 偶数在上（负y），奇数在下（正y）
