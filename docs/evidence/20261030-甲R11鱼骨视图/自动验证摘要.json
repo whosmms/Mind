@@ -1,7 +1,7 @@
 {
   "记录": "H-026 / DEV-20261030-004 甲R11鱼骨视图改接FishboneLayout",
-  "基线main": "d16a92b（已普通合并入本分支）",
-  "被测": "feature/a/R11-fishbone-view 合并main d16a92b后（提交号见PR）",
+  "基线main": "a21a4d7（含乙BUG-018~021修复与cf53231去掉-include依赖，已普通合并入本分支）",
+  "被测": "feature/a/R11-fishbone-view 合并main a21a4d7后（提交号见PR）",
   "环境": {
     "说明": "沙箱Linux补充证据，不是冻结Windows MinGW Kit",
     "系统": "Ubuntu 22.04 x86_64",
@@ -9,7 +9,7 @@
     "编译器": "GCC 11.4.0",
     "构建": "CMake 4.x pip + Ninja",
     "平台": "QT_QPA_PLATFORM=offscreen",
-    "额外编译参数": "-include unistd.h（tst_ui.cpp的_exit在Linux需要该头文件；未改仓库）",
+    "额外编译参数": "无（cf53231后tst_ui自带unistd.h，不再需要-include）",
     "字体": "Noto Sans CJK（Linux），截图字形与Windows微软雅黑不同"
   },
   "冻结Kit复跑": "未执行：沙箱没有Windows MinGW 13.1工具链，需甲本机或非作者在Windows复跑",
@@ -36,10 +36,25 @@
       "skip": 0
     }
   },
+  "说明": "main a21a4d7为22套件468项（与乙自报一致）；本分支+2项（tst_ui 72→74）",
+  "合入main d16a92b后": {
+    "Debug": {
+      "pass": 459,
+      "fail": 0,
+      "skip": 0,
+      "suites": 22
+    },
+    "Release": {
+      "pass": 459,
+      "fail": 0,
+      "skip": 0,
+      "suites": 22
+    }
+  },
   "Debug": {
     "suites": 22,
     "totals": {
-      "pass": 459,
+      "pass": 470,
       "fail": 0,
       "skip": 0
     },
@@ -75,7 +90,7 @@
         "skip": 0
       },
       "tst_domain": {
-        "pass": 19,
+        "pass": 22,
         "fail": 0,
         "skip": 0
       },
@@ -85,12 +100,12 @@
         "skip": 0
       },
       "tst_flow": {
-        "pass": 37,
+        "pass": 40,
         "fail": 0,
         "skip": 0
       },
       "tst_ganttview": {
-        "pass": 25,
+        "pass": 26,
         "fail": 0,
         "skip": 0
       },
@@ -100,7 +115,7 @@
         "skip": 0
       },
       "tst_nodecommands": {
-        "pass": 58,
+        "pass": 62,
         "fail": 0,
         "skip": 0
       },
@@ -159,7 +174,7 @@
   "Release": {
     "suites": 22,
     "totals": {
-      "pass": 459,
+      "pass": 470,
       "fail": 0,
       "skip": 0
     },
@@ -195,7 +210,7 @@
         "skip": 0
       },
       "tst_domain": {
-        "pass": 19,
+        "pass": 22,
         "fail": 0,
         "skip": 0
       },
@@ -205,12 +220,12 @@
         "skip": 0
       },
       "tst_flow": {
-        "pass": 37,
+        "pass": 40,
         "fail": 0,
         "skip": 0
       },
       "tst_ganttview": {
-        "pass": 25,
+        "pass": 26,
         "fail": 0,
         "skip": 0
       },
@@ -220,7 +235,7 @@
         "skip": 0
       },
       "tst_nodecommands": {
-        "pass": 58,
+        "pass": 62,
         "fail": 0,
         "skip": 0
       },
@@ -276,5 +291,25 @@
       }
     }
   },
-  "说明": "乙main d16a92b自报22套件457项；本分支合并后+2项（tst_ui 72→74）"
+  "同环境main a21a4d7": {
+    "Debug": {
+      "pass": 468,
+      "fail": 0,
+      "skip": 0
+    },
+    "Release": {
+      "pass": 468,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "BUG-021后鱼骨几何（深层样例，Linux字体）": {
+    "画布宽": {
+      "修复前": 9644,
+      "修复后": 3284
+    },
+    "单骨实宽": "470–536像素，修复前后相同",
+    "相邻类别中心距": "约500–566像素（修复前约1630–1700）",
+    "截图": "深层鱼骨画布_自动.png已按a21a4d7重拍"
+  }
 }
