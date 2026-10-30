@@ -1,4 +1,4 @@
-# 只验证当前电脑，不代替另外两名成员的复现或真实界面验收。
+﻿# 只验证当前电脑，不代替另外两名成员的复现或真实界面验收。
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release', 'Both')]

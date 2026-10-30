@@ -1,4 +1,4 @@
-# 将当前Kit的运行库放到构建目录，支持直接启动exe；不修改永久PATH。
+﻿# 将当前Kit的运行库放到构建目录，支持直接启动exe；不修改永久PATH。
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release', 'Both')]

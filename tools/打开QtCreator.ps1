@@ -1,4 +1,4 @@
-# 使用本项目的独立Qt Creator设置，不修改其他Qt Creator安装或全局PATH。
+﻿# 使用本项目的独立Qt Creator设置，不修改其他Qt Creator安装或全局PATH。
 [CmdletBinding()]
 param(
     [string]$ToolsRoot = (Join-Path (Split-Path $PSScriptRoot -Parent | Split-Path -Parent) '.tools')

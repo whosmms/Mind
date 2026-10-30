@@ -1,4 +1,4 @@
-# 在当前终端临时启用冻结工具链，不修改系统或用户的永久 PATH。
+﻿# 在当前终端临时启用冻结工具链，不修改系统或用户的永久 PATH。
 [CmdletBinding()]
 param(
     [string]$ToolsRoot = (Join-Path (Split-Path $PSScriptRoot -Parent | Split-Path -Parent) '.tools')

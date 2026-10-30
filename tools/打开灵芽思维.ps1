@@ -1,4 +1,4 @@
-# 开发用入口：先构建、补齐当前Kit依赖，再启动现有工程。
+﻿# 开发用入口：先构建、补齐当前Kit依赖，再启动现有工程。
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')]
