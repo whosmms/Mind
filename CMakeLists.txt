@@ -46,6 +46,10 @@ add_library(lingya_core STATIC
     src/features/ReviewSession.cpp
     src/layout/TreeLayout.h
     src/layout/TreeLayout.cpp
+    src/layout/FlowLayout.h
+    src/layout/FlowLayout.cpp
+    src/layout/FishboneLayout.h
+    src/layout/FishboneLayout.cpp
 )
 target_include_directories(lingya_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(lingya_core PUBLIC Qt6::Core)
@@ -67,6 +71,10 @@ add_library(lingya_appcore STATIC
     src/commands/TaskCommands.cpp
     src/commands/NodeCommands.h
     src/commands/NodeCommands.cpp
+    src/commands/FlowCommands.h
+    src/commands/FlowCommands.cpp
+    src/commands/SheetCommands.h
+    src/commands/SheetCommands.cpp
     src/ai/AiTypes.h
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
