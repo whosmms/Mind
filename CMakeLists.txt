@@ -100,6 +100,8 @@ add_executable(lingya
     src/app/LoginDialog.cpp
     src/app/UserFilesDialog.h
     src/app/UserFilesDialog.cpp
+    src/ui/ReviewPage.h
+    src/ui/ReviewPage.cpp
     src/graphics/NodeItem.h
     src/graphics/NodeItem.cpp
     resources/resources.qrc
