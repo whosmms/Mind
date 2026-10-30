@@ -18,6 +18,8 @@ class ProjectDocument;
 // addChild、addSibling、renameNode、deleteSubtree、moveSubtree、updateNodeMeta、setStyle、
 // addRelation、updateRelation、removeRelation、createAnnotation、updateAnnotation、addComment、
 // resolveComment、pasteFragment、addTask、updateTask、linkTask、unlinkTask、applyAIMap、
+// M3（乙，2026-10-30）：流程图命令见commands/FlowCommands（节点/连线/自动布局/批注），
+// 工作表命令见commands/SheetCommands（新建/改名/换结构/删除）；
 // saveTextDraft、changeSheetKind、deleteSheet（规范§5.1清单）。
 class CommandService : public QObject {
     Q_OBJECT
