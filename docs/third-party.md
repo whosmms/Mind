@@ -5,9 +5,9 @@
 
 | 组件 | 版本 | 来源 | 授权 | 用途 | 随包义务 |
 |---|---|---|---|---|---|
-| Qt 6 | 6.8或更新的稳定Qt 6，待乙实测冻结 | Qt官方安装器 | LGPLv3（动态链接） | 全部界面、数据与网络基础 | 随包提供LGPL许可文本与来源说明；保留动态链接，不静态编译Qt |
-| Qt模块：Core/Gui/Widgets/Network/Svg/Concurrent/Test | 随Qt 6.8 | 同上 | 同上 | 构建目标按需链接；M0实际使用Core、Widgets、Test，Network随M5 | 同上；新增模块先登记（统一规范§5.1） |
-| MinGW 64位（Qt官方配套） | 与冻结Qt匹配，官方基线13.1 | Qt官方安装器 | GPL+运行时例外 | 编译与调试工具链 | 开发工具，不随应用分发；部署运行库经windeployqt收集 |
+| Qt 6 | **6.8.3**（win64_mingw，2026-10-24三机复现后冻结） | Qt官方安装器/官方存档 | LGPLv3（动态链接） | 全部界面、数据与网络基础 | 随包提供LGPL许可文本与来源说明；保留动态链接，不静态编译Qt |
+| Qt模块：Core/Gui/Widgets/Network/Svg/Concurrent/Test | 随Qt 6.8.3（已安装七模块） | 同上 | 同上 | `CMakeLists.txt`当前实际链接Core、Widgets、Test三项；Network随M5接真实请求时加入`find_package`与链接，Svg/Concurrent暂未使用 | 同上；新增模块先登记（统一规范§5.1） |
+| MinGW 64位（Qt官方配套） | **13.1.0**（`D:\Qt\Tools\mingw1310_64`） | Qt官方安装器 | GPL+运行时例外 | 编译与调试工具链 | 开发工具，不随应用分发；部署运行库经windeployqt收集 |
 | CMake | ≥3.21，与Qt要求取高者 | Kit配套或官方发行 | BSD-3 | 构建系统 | 开发工具，不随应用分发 |
 | Ninja | Kit配套版本 | 同上 | Apache-2.0 | 构建执行器 | 开发工具，不随应用分发 |
 | Inno Setup | 待M6安装时登记 | jrsoftware.org | Inno Setup License | 打包安装程序（M6） | 安装器制作工具；许可文本按要求随源码保留 |
@@ -18,6 +18,10 @@
 - 本项目不引入上述清单之外的任何第三方库；新增必须固定版本与校验值并经乙登记。
 - 应用自身图标与提示模板为项目原创资源，不属第三方组件。
 - 各组件的完整版本号在环境冻结后回填 docs/environment.md；本文件不虚构未安装版本。
+- **冻结依据（2026-10-24）**：Qt 6.8.3 + MinGW 13.1.0 + CMake 3.30.5 + Ninja 1.12.1 + clang-format 19.1.7，
+  甲乙丙三机同版本、同提交各自构建与测试通过，登记见 `docs/environment.md` 三段环境记录；
+  此后不再接受“随Qt 6.8”这类浮动表述，替换版本须走全队一次性迁移（统一规范§5.1）。
+- Qt补丁号来自实际安装与`qmake --version`核对，不按文档推测。
 
 
 ## 甲本机开发工具安装补充（2026-10-24，H-002）
