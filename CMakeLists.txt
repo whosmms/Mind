@@ -91,6 +91,8 @@ add_library(lingya_appcore STATIC
     src/ai/PromptLibrary.cpp
     src/ai/DeepSeekClient.h
     src/ai/DeepSeekClient.cpp
+    src/ai/AiServiceFactory.h
+    src/ai/AiServiceFactory.cpp
     src/charts/TaskTableModel.h
     src/charts/TaskTableModel.cpp
     src/charts/GanttLayout.h
