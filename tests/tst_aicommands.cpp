@@ -10,6 +10,7 @@
 #include "domain/Limits.h"
 #include "domain/ProjectFactory.h"
 #include "domain/ProjectValidator.h"
+#include "services/ProjectJson.h"
 
 using namespace lingya;
 
@@ -119,6 +120,8 @@ private slots:
     void saveDraftRejectsUnknownSourceNode();
     void saveDraftRejectsNonTreeSheet();
     void saveDraftRejectsEmptySections();
+    // 存盘往返
+    void appliedDataSurvivesSaveAndReload();
 };
 
 void TstAiCommands::applyMapAsSheetCreatesEditableTree() {
@@ -497,6 +500,71 @@ void TstAiCommands::saveDraftRejectsEmptySections() {
     QVERIFY(std::holds_alternative<AppError>(blank));
     QCOMPARE(std::get<AppError>(blank).code, QStringLiteral("SCHEMA_INVALID"));
     QVERIFY(document.project().drafts.isEmpty());
+}
+
+
+void TstAiCommands::appliedDataSurvivesSaveAndReload() {
+    ProjectDocument document;
+    document.replaceProject(ProjectFactory::createMindmap(QStringLiteral("往返")));
+    CommandService service(&document);
+    AiCommands ai(&service, &document);
+
+    const GeneratedNode root = gen(QStringLiteral("软件工程"), {gen(QStringLiteral("设计"), {},
+                                                                   QString(), QStringLiteral("supplement"))},
+                                   QString(), QStringLiteral("source"),
+                                   {QStringLiteral("p1"), QStringLiteral("p2")});
+    AiApplyOptions options;
+    options.requestId = QStringLiteral("req-9");
+    const auto applied =
+        ai.applyMapAsSheet(proposalOf(root, QStringLiteral("软件工程流程")), options);
+    QVERIFY(std::holds_alternative<ID>(applied));
+    const ID sheetId = std::get<ID>(applied);
+
+    const ID newRootId = std::get<TreeSheet>(document.project().sheets.last()).rootId;
+    QVector<DraftSection> sections;
+    sections.append(sectionOf(QStringLiteral("概述"), QStringLiteral("概述正文。"), {newRootId}));
+    sections.append(sectionOf(QStringLiteral("补充"), QStringLiteral("补充正文。"), QStringList(),
+                              QStringLiteral("supplement")));
+    const auto saved = ai.saveDraft(draftOf(QStringLiteral("摘要稿"), sections), sheetId,
+                                    QStringLiteral("summary"), document.sessionRevision());
+    QVERIFY(std::holds_alternative<ID>(saved));
+    const QDateTime createdBefore = document.project().drafts.first().createdAt;
+
+    // 写盘→读回：来源标记与文稿段落必须逐字段保留，且读回后仍通过校验
+    const QByteArray bytes = ProjectJson::toBytes(document.project());
+    const auto reloaded = ProjectJson::fromBytes(bytes);
+    QVERIFY(std::holds_alternative<Project>(reloaded));
+    const Project& project = std::get<Project>(reloaded);
+    QVERIFY(ProjectValidator::validate(project).isEmpty());
+
+    QCOMPARE(project.sheets.size(), 2);
+    const TreeSheet& sheet = std::get<TreeSheet>(project.sheets.last());
+    QCOMPARE(sheet.name, QStringLiteral("软件工程流程"));
+    QCOMPARE(sheet.nodes.size(), 2);
+    const TreeNode& rootNode = sheet.nodes.value(sheet.rootId);
+    QVERIFY(rootNode.provenance.has_value());
+    QCOMPARE(rootNode.provenance->kind, QStringLiteral("ai"));
+    QCOMPARE(rootNode.provenance->requestId, QStringLiteral("req-9"));
+    QCOMPARE(rootNode.provenance->model, QStringLiteral("deepseek-flash"));
+    QCOMPARE(rootNode.provenance->sourceParagraphIds,
+             QStringList({QStringLiteral("p1"), QStringLiteral("p2")}));
+    QCOMPARE(rootNode.provenance->origin, QStringLiteral("source"));
+    const TreeNode* child = childTitled(sheet, sheet.rootId, QStringLiteral("设计"));
+    QVERIFY(child != nullptr);
+    QVERIFY(child->provenance.has_value());
+    QCOMPARE(child->provenance->origin, QStringLiteral("supplement"));
+
+    QCOMPARE(project.drafts.size(), 1);
+    const TextDraft& draft = project.drafts.first();
+    QCOMPARE(draft.title, QStringLiteral("摘要稿"));
+    QCOMPARE(draft.purpose, QStringLiteral("summary"));
+    QCOMPARE(draft.sourceSheetId, sheetId);
+    QCOMPARE(draft.sourceRevision, document.sessionRevision() - 1);
+    QCOMPARE(draft.sections.size(), 2);
+    QCOMPARE(draft.sections.at(0).heading, QStringLiteral("概述"));
+    QCOMPARE(draft.sections.at(0).sourceNodeIds, QStringList({rootNode.id}));
+    QCOMPARE(draft.sections.at(1).origin, QStringLiteral("supplement"));
+    QCOMPARE(draft.createdAt, createdBefore);
 }
 
 QTEST_GUILESS_MAIN(TstAiCommands)

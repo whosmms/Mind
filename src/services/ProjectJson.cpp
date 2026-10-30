@@ -594,7 +594,10 @@ void readBaseNode(Reader& r, Node& n, const QStringList& extraKeys) {
             prov.kind = pr.enumVal("kind", {"ai"});
             prov.requestId = pr.str("requestId");
             prov.model = pr.str("model");
-            prov.sourceParagraphIds = pr.strList("sourceParagraphIds");
+            // 空数组在写出时被省略（writeProvenance），读取必须把“键缺失”当作空集合，
+            // 否则origin=supplement的节点会出现“保存成功、重开失败”（BUG-016）。
+            if (pr.has("sourceParagraphIds"))
+                prov.sourceParagraphIds = pr.strList("sourceParagraphIds");
             prov.origin = pr.enumVal("origin", {"source", "supplement"});
             n.provenance = prov;
         } else {
