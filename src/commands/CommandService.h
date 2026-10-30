@@ -23,7 +23,9 @@ class ProjectDocument;
 // TaskCommands（丙）：addTask、updateTask、linkTask、unlinkTask；
 // FlowCommands：流程图节点/连线/自动布局/批注；
 // SheetCommands：createSheet、renameSheet、changeSheetKind、deleteSheet；
-// AiCommands：applyAIMap（applyMapAsSheet/applyMapAsBranch）、saveTextDraft。
+// AiCommands：applyAIMap（applyMapAsSheet/applyMapAsBranch）、saveTextDraft；
+// ReviewCommands：gradeCard（自评写回status与lastReviewedAt）、addCard/removeCard、
+//   refreshFromSource/keepCustom/makeStandalone（源变化三处置，§7.1）。
 // 规范§5.1清单至M5已全部有实现；界面接线与工具栏/菜单入口仍由甲负责。
 class CommandService : public QObject {
     Q_OBJECT
