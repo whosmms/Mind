@@ -3,8 +3,10 @@
 #include <QBrush>
 #include <QColor>
 #include <QFont>
+#include <QGraphicsItem>
 #include <QGraphicsScene>
 #include <QGraphicsTextItem>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPen>
@@ -125,10 +127,16 @@ int GanttView::rowForTask(const ID& taskId) const {
 
 void GanttView::rebuild() {
     QGraphicsScene* target = scene();
+    // 重建会销毁全部图元：拖拽期间若数据被外部刷新（setTasks/撤销/另存），
+    // 保留m_dragItem会成为野指针，下一次鼠标移动就会崩溃，故先复位拖拽状态。
+    m_dragMode = DragMode::None;
+    m_dragItem = nullptr;
+    m_dragTaskId.clear();
     target->clear();
 
     GanttLayout layout(m_pixelsPerDay);
     const GanttLayoutResult result = layout.compute(m_tasks);
+    m_rangeStart = result.rangeStart;
 
     // 未排期任务：不画条，单独列在底部
     QStringList unscheduled;
@@ -209,9 +217,14 @@ void GanttView::rebuild() {
 
         const int progress = task != nullptr ? qBound(0, task->progress, 100) : 0;
         if (progress > 0) {
+            // 填充作为任务条的子图元：①整体平移预览时随条一起移动，不会留在原地；
+            // ②命中测试可从填充回溯到带任务ID的父图元，进度越满也能抓住条。
+            // 子图元坐标相对父图元的pos（本类中恒为原点），故沿用与父矩形相同的绝对坐标
             const QRectF fillRect(barRect.x(), barRect.y(),
                                   barRect.width() * progress / 100.0, barRect.height());
-            target->addRect(fillRect, Qt::NoPen, QBrush(primaryColor()));
+            auto* fill = target->addRect(fillRect, Qt::NoPen, QBrush(primaryColor()));
+            fill->setParentItem(item);
+            fill->setPos(0.0, 0.0);
         }
     }
 
@@ -247,6 +260,110 @@ void GanttView::rebuild() {
             visibleBounds = visibleBounds.united(item->sceneBoundingRect());
     }
     target->setSceneRect(visibleBounds);
+}
+
+void GanttView::mousePressEvent(QMouseEvent* event) {
+    if (event->button() != Qt::LeftButton || !m_rangeStart.isValid()) {
+        QGraphicsView::mousePressEvent(event);
+        return;
+    }
+    // 命中点最上层可能是进度填充或文字，向上回溯到带任务ID的任务条本体
+    QGraphicsItem* item = itemAt(event->pos());
+    while (item != nullptr && !item->data(kBarDataRole).isValid()) {
+        item = item->parentItem();
+    }
+    if (item == nullptr) {
+        QGraphicsView::mousePressEvent(event);
+        return;
+    }
+    const ID taskId = item->data(kBarDataRole).toString();
+    const Task* task = nullptr;
+    for (const Task& candidate : m_tasks) {
+        if (candidate.id == taskId) {
+            task = &candidate;
+            break;
+        }
+    }
+    if (task == nullptr || !task->startDate.has_value() || !task->endDate.has_value()) {
+        QGraphicsView::mousePressEvent(event);
+        return;
+    }
+
+    m_dragTaskId = taskId;
+    m_dragItem = item;
+    m_dragOriginalStart = *task->startDate;
+    m_dragOriginalEnd = *task->endDate;
+    m_dragPressScenePos = mapToScene(event->pos());
+
+    // 条两端 8px 内拖动改端，其余整体平移；里程碑只能整体移动
+    const GanttLayout layout(m_pixelsPerDay);
+    const int startX = layout.xForDate(m_dragOriginalStart, m_rangeStart);
+    const int endX = layout.xForDate(m_dragOriginalEnd, m_rangeStart) + m_pixelsPerDay;
+    const qreal x = m_dragPressScenePos.x();
+    if (task->milestone) {
+        m_dragMode = DragMode::Move;
+    } else if (qAbs(x - startX) <= 8.0) {
+        m_dragMode = DragMode::ResizeStart;
+    } else if (qAbs(x - endX) <= 8.0) {
+        m_dragMode = DragMode::ResizeEnd;
+    } else {
+        m_dragMode = DragMode::Move;
+    }
+    event->accept();
+}
+
+void GanttView::mouseMoveEvent(QMouseEvent* event) {
+    if (m_dragMode == DragMode::None) {
+        QGraphicsView::mouseMoveEvent(event);
+        return;
+    }
+    const GanttLayout layout(m_pixelsPerDay);
+    const QDate pressDate = layout.dateForX(qRound(m_dragPressScenePos.x()), m_rangeStart);
+    const QDate currentDate = layout.dateForX(qRound(mapToScene(event->pos()).x()), m_rangeStart);
+    const int deltaDays = pressDate.daysTo(currentDate);
+
+    // 整体平移时给位移预览；改端只改一端，不做整条位移以免误导
+    if (m_dragItem != nullptr) {
+        m_dragItem->setPos(m_dragMode == DragMode::Move ? deltaDays * m_pixelsPerDay : 0.0, 0.0);
+    }
+    event->accept();
+}
+
+void GanttView::mouseReleaseEvent(QMouseEvent* event) {
+    if (m_dragMode == DragMode::None) {
+        QGraphicsView::mouseReleaseEvent(event);
+        return;
+    }
+    const GanttLayout layout(m_pixelsPerDay);
+    const QDate pressDate = layout.dateForX(qRound(m_dragPressScenePos.x()), m_rangeStart);
+    const QDate currentDate = layout.dateForX(qRound(mapToScene(event->pos()).x()), m_rangeStart);
+    const int deltaDays = pressDate.daysTo(currentDate);
+
+    GanttDragMode dragMode = GanttDragMode::Move;
+    if (m_dragMode == DragMode::ResizeStart) {
+        dragMode = GanttDragMode::ResizeStart;
+    } else if (m_dragMode == DragMode::ResizeEnd) {
+        dragMode = GanttDragMode::ResizeEnd;
+    }
+    const GanttDateRange shifted =
+        shiftTaskDates(m_dragOriginalStart, m_dragOriginalEnd, deltaDays, dragMode);
+
+    if (m_dragItem != nullptr) {
+        m_dragItem->setPos(0.0, 0.0);
+    }
+    const ID taskId = m_dragTaskId;
+    const bool changed =
+        shifted.start != m_dragOriginalStart || shifted.end != m_dragOriginalEnd;
+
+    m_dragMode = DragMode::None;
+    m_dragItem = nullptr;
+    m_dragTaskId.clear();
+
+    rebuild();   // 先回到模型状态；调用方提交后由 setTasks 再刷新
+    if (changed) {
+        emit taskDatesEdited(taskId, shifted.start, shifted.end);
+    }
+    event->accept();
 }
 
 }  // namespace lingya
