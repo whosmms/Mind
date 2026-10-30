@@ -96,6 +96,8 @@ std::optional<ReviewCard> ReviewService::refreshCard(const ReviewCard& card, con
     ReviewCard updated = *fresh;
     updated.id = card.id;           // 保留卡片 ID
     updated.status = card.status;   // 保留学习状态
+    // 保留最近复习时间：刷新正反面不应让“最近复习”倒退回空（BUG-017）
+    updated.lastReviewedAt = card.lastReviewedAt;
     return updated;
 }
 
