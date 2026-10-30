@@ -127,6 +127,11 @@ int GanttView::rowForTask(const ID& taskId) const {
 
 void GanttView::rebuild() {
     QGraphicsScene* target = scene();
+    // 重建会销毁全部图元：拖拽期间若数据被外部刷新（setTasks/撤销/另存），
+    // 保留m_dragItem会成为野指针，下一次鼠标移动就会崩溃，故先复位拖拽状态。
+    m_dragMode = DragMode::None;
+    m_dragItem = nullptr;
+    m_dragTaskId.clear();
     target->clear();
 
     GanttLayout layout(m_pixelsPerDay);
@@ -212,9 +217,14 @@ void GanttView::rebuild() {
 
         const int progress = task != nullptr ? qBound(0, task->progress, 100) : 0;
         if (progress > 0) {
+            // 填充作为任务条的子图元：①整体平移预览时随条一起移动，不会留在原地；
+            // ②命中测试可从填充回溯到带任务ID的父图元，进度越满也能抓住条。
+            // 子图元坐标相对父图元的pos（本类中恒为原点），故沿用与父矩形相同的绝对坐标
             const QRectF fillRect(barRect.x(), barRect.y(),
                                   barRect.width() * progress / 100.0, barRect.height());
-            target->addRect(fillRect, Qt::NoPen, QBrush(primaryColor()));
+            auto* fill = target->addRect(fillRect, Qt::NoPen, QBrush(primaryColor()));
+            fill->setParentItem(item);
+            fill->setPos(0.0, 0.0);
         }
     }
 
@@ -257,8 +267,12 @@ void GanttView::mousePressEvent(QMouseEvent* event) {
         QGraphicsView::mousePressEvent(event);
         return;
     }
+    // 命中点最上层可能是进度填充或文字，向上回溯到带任务ID的任务条本体
     QGraphicsItem* item = itemAt(event->pos());
-    if (item == nullptr || !item->data(kBarDataRole).isValid()) {
+    while (item != nullptr && !item->data(kBarDataRole).isValid()) {
+        item = item->parentItem();
+    }
+    if (item == nullptr) {
         QGraphicsView::mousePressEvent(event);
         return;
     }

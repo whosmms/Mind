@@ -12,6 +12,7 @@
 #include <QGraphicsPolygonItem>
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
+#include <QSignalSpy>
 #include <QScrollBar>
 
 using namespace lingya;
@@ -34,6 +35,9 @@ private slots:
   void timeAxisDrawsTicks();
   void rowForTaskMatchesTableOrder();
   void unscheduledListShowsTasks();
+  void dragFilledBarMovesWholeBar();
+  void dragStartEdgeResizesStart();
+  void rebuildDuringDragDropsState();
   void shiftTaskDatesMove();
   void shiftTaskDatesResizeClamps();
   void shiftTaskDatesInvalidInput();
@@ -56,6 +60,20 @@ Task makeTask(const QString& title, const QDate& start, const QDate& end,
     task.milestone = milestone;
     task.progress = progress;
     return task;
+}
+
+QGraphicsItem* barItemFor(GanttView& view, const ID& taskId) {
+    for (QGraphicsItem* item : view.scene()->items()) {
+        if (item->data(GanttView::kBarDataRole).toString() == taskId) {
+            return item;
+        }
+    }
+    return nullptr;
+}
+
+// 场景坐标 → 视口坐标（QTest 的鼠标事件按视口坐标投递）
+QPoint viewportPointFor(GanttView& view, const QPointF& scenePoint) {
+    return view.viewport()->mapFrom(&view, view.mapFromScene(scenePoint));
 }
 
 int barItemCount(GanttView& view) {
@@ -289,6 +307,93 @@ void TstGanttView::milestoneDependenciesReachMarkers()
     const QRectF succBounds = succMarker->polygon().boundingRect();
     QCOMPARE(QPointF(first.x, first.y), QPointF(predBounds.right(), predBounds.center().y()));
     QCOMPARE(QPointF(last.x, last.y), QPointF(succBounds.left(), succBounds.center().y()));
+}
+
+void TstGanttView::dragFilledBarMovesWholeBar() {
+    // 进度100%时整条都被填充覆盖：命中点最上层是填充矩形，不能因此判定“没点到任务条”
+    GanttView view;
+    view.resize(1000, 400);
+    view.setTasks(
+        {makeTask(QStringLiteral("已完成"), QDate(2026, 1, 5), QDate(2026, 1, 9), false, 100)});
+    view.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+
+    GanttLayout layout(view.pixelsPerDay());
+    const auto result = layout.compute(view.tasks());
+    const int startX = layout.xForDate(QDate(2026, 1, 5), result.rangeStart);
+    const int endX = layout.xForDate(QDate(2026, 1, 9), result.rangeStart) + view.pixelsPerDay();
+    const QPointF sceneCenter((startX + endX) / 2.0, 34 + 4 + 10);
+
+    QSignalSpy spy(&view, &GanttView::taskDatesEdited);
+    QTest::mousePress(view.viewport(), Qt::LeftButton, Qt::NoModifier,
+                      viewportPointFor(view, sceneCenter));
+    // 平移预览：任务条与作为子图元的进度填充一起移动
+    const int shiftPixels = 3 * view.pixelsPerDay();
+    QTest::mouseMove(view.viewport(),
+                     viewportPointFor(view, sceneCenter + QPointF(shiftPixels, 0)));
+    QGraphicsItem* bar = barItemFor(view, QStringLiteral("已完成"));
+    QVERIFY(bar != nullptr);
+    QCOMPARE(bar->pos().x(), qreal(shiftPixels));
+    QVERIFY(!bar->childItems().isEmpty());   // 填充挂在条下，随条移动
+
+    QTest::mouseRelease(view.viewport(), Qt::LeftButton, Qt::NoModifier,
+                        viewportPointFor(view, sceneCenter + QPointF(shiftPixels, 0)));
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("已完成"));
+    QCOMPARE(spy.at(0).at(1).toDate(), QDate(2026, 1, 8));
+    QCOMPARE(spy.at(0).at(2).toDate(), QDate(2026, 1, 12));
+    QCOMPARE(barItemFor(view, QStringLiteral("已完成"))->pos().x(), qreal(0));   // 松开后回到模型状态
+}
+
+void TstGanttView::dragStartEdgeResizesStart() {
+    GanttView view;
+    view.resize(1000, 400);
+    view.setTasks(
+        {makeTask(QStringLiteral("任务"), QDate(2026, 1, 5), QDate(2026, 1, 9), false, 40)});
+    view.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+
+    GanttLayout layout(view.pixelsPerDay());
+    const auto result = layout.compute(view.tasks());
+    const int startX = layout.xForDate(QDate(2026, 1, 5), result.rangeStart);
+    const QPointF sceneEdge(startX + 4, 34 + 4 + 10);   // 起点侧 8px 内
+
+    QSignalSpy spy(&view, &GanttView::taskDatesEdited);
+    QTest::mousePress(view.viewport(), Qt::LeftButton, Qt::NoModifier,
+                      viewportPointFor(view, sceneEdge));
+    QTest::mouseMove(view.viewport(),
+                     viewportPointFor(view, sceneEdge - QPointF(2 * view.pixelsPerDay(), 0)));
+    QTest::mouseRelease(view.viewport(), Qt::LeftButton, Qt::NoModifier,
+                        viewportPointFor(view, sceneEdge - QPointF(2 * view.pixelsPerDay(), 0)));
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(1).toDate(), QDate(2026, 1, 3));   // 只改起点
+    QCOMPARE(spy.at(0).at(2).toDate(), QDate(2026, 1, 9));   // 终点不动
+}
+
+void TstGanttView::rebuildDuringDragDropsState() {
+    // 拖拽期间数据被外部刷新（撤销/另存/表格编辑）会销毁图元，不能留下野指针
+    GanttView view;
+    view.resize(1000, 400);
+    const Task task =
+        makeTask(QStringLiteral("任务"), QDate(2026, 1, 5), QDate(2026, 1, 9), false, 60);
+    view.setTasks({task});
+    view.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+
+    GanttLayout layout(view.pixelsPerDay());
+    const auto result = layout.compute(view.tasks());
+    const QPointF sceneCenter(
+        layout.xForDate(QDate(2026, 1, 7), result.rangeStart), 34 + 4 + 10);
+    QSignalSpy spy(&view, &GanttView::taskDatesEdited);
+
+    QTest::mousePress(view.viewport(), Qt::LeftButton, Qt::NoModifier,
+                      viewportPointFor(view, sceneCenter));
+    view.setTasks({task});   // 重建：拖拽状态必须被清掉
+    QTest::mouseMove(view.viewport(),
+                     viewportPointFor(view, sceneCenter + QPointF(4 * view.pixelsPerDay(), 0)));
+    QTest::mouseRelease(view.viewport(), Qt::LeftButton, Qt::NoModifier,
+                        viewportPointFor(view, sceneCenter + QPointF(4 * view.pixelsPerDay(), 0)));
+    QCOMPARE(spy.count(), 0);   // 重建已取消本次拖拽，不应提交
 }
 
 void TstGanttView::shiftTaskDatesMove() {
