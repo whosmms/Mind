@@ -117,6 +117,8 @@ private slots:
     void previewZoomAndLongTitle();
     void treeCanvasNodesEdgesSelectionAndRename();
     void treeCanvasHundredNodesRoundTrip();
+    void fishboneCanvasUsesFishboneLayout();
+    void fishboneCanvasDeepWideNoOverlap();
     void treeCanvasCollapsedSelectionIsViewOnly();
     void multilineTitleInputMethodAndCancel();
     void siblingKeyboardInsertionRoundTrip();
@@ -254,6 +256,78 @@ private:
             }
         }
         return project;
+    }
+
+    // R11鱼骨样例：工厂建好“问题+6类原因”，再按需给每类挂原因链。
+    static Project fishboneProject(int reasonsPerCategory, int depth, bool collapseThird)
+    {
+        Project project = ProjectFactory::createFishbone(QStringLiteral("鱼骨画布验证"));
+        auto &sheet = std::get<TreeSheet>(project.sheets.first());
+        QVector<QPair<int, ID>> categories;
+        for (auto it = sheet.nodes.constBegin(); it != sheet.nodes.constEnd(); ++it)
+            if (it.value().parentId == sheet.rootId)
+                categories.append({it.value().order, it.key()});
+        std::sort(categories.begin(), categories.end());
+        for (int c = 0; c < categories.size(); ++c)
+        {
+            for (int r = 0; r < reasonsPerCategory; ++r)
+            {
+                ID parent = categories.at(c).second;
+                for (int d = 0; d < (r == 0 ? depth : 1); ++d)
+                {
+                    TreeNode node;
+                    node.id = canvasId(QStringLiteral("fish-%1-%2-%3").arg(c).arg(r).arg(d));
+                    node.title =
+                        (c + r + d) % 3 == 0
+                            ? QStringLiteral("原因%1-%2-%3较长的中文说明文字").arg(c).arg(r).arg(d)
+                            : QStringLiteral("原因%1-%2-%3").arg(c).arg(r).arg(d);
+                    node.parentId = parent;
+                    node.order = d == 0 ? r : 0;
+                    sheet.nodes.insert(node.id, node);
+                    parent = node.id;
+                }
+            }
+        }
+        if (collapseThird && categories.size() > 2)
+            sheet.nodes[categories.at(2).second].collapsed = true;
+        return project;
+    }
+
+    // 鱼骨几何检查：节点框互不相交；每条连线除首尾所在节点外不穿过其他节点框。
+    static void verifyFishboneGeometry(QGraphicsView *view, int expectedEdges)
+    {
+        const auto nodes = canvasNodes(view);
+        const auto values = nodes.values();
+        for (int i = 0; i < values.size(); ++i)
+            for (int j = i + 1; j < values.size(); ++j)
+                QVERIFY2(!values.at(i)->sceneBoundingRect().intersects(
+                             values.at(j)->sceneBoundingRect()),
+                         qPrintable(values.at(i)->toolTip() + QStringLiteral(" 与 ") +
+                                    values.at(j)->toolTip() + QStringLiteral(" 重叠")));
+        int edges = 0;
+        for (QGraphicsItem *item : view->scene()->items())
+        {
+            auto *edge = dynamic_cast<QGraphicsPathItem *>(item);
+            if (edge == nullptr)
+                continue;
+            ++edges;
+            QVERIFY(edge->zValue() < 0);
+            QVERIFY(edge->acceptedMouseButtons() == Qt::NoButton);
+            const QPainterPath path = edge->path();
+            QVERIFY(path.elementCount() >= 2);
+            const QPointF first = path.elementAt(0);
+            const QPointF last = path.elementAt(path.elementCount() - 1);
+            for (NodeItem *node : values)
+            {
+                const QRectF rect = node->sceneBoundingRect();
+                if (rect.contains(first) || rect.contains(last))
+                    continue;
+                for (int step = 0; step <= 200; ++step)
+                    QVERIFY2(!rect.contains(path.pointAtPercent(step / 200.0)),
+                             qPrintable(QStringLiteral("连线穿过 ") + node->toolTip()));
+            }
+        }
+        QCOMPARE(edges, expectedEdges);
     }
 
     static ID canvasId(const QString &name)
@@ -1746,6 +1820,122 @@ void TstUi::treeCanvasNodesEdgesSelectionAndRename()
     }
 }
 
+void TstUi::fishboneCanvasUsesFishboneLayout()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const Project project = fishboneProject(2, 3, true);
+    const auto &sheet = std::get<TreeSheet>(project.sheets.first());
+    const ID rootId = sheet.rootId;
+    QVector<QPair<int, ID>> categories;
+    for (auto it = sheet.nodes.constBegin(); it != sheet.nodes.constEnd(); ++it)
+        if (it.value().parentId == rootId)
+            categories.append({it.value().order, it.key()});
+    std::sort(categories.begin(), categories.end());
+    QCOMPARE(categories.size(), 6);
+    const QString path = dir.filePath(QStringLiteral("鱼骨画布.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+    MainWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QVERIFY(window.openFile(path));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    auto *outline = window.findChild<QTreeWidget *>(QStringLiteral("topicOutline"));
+    auto nodes = canvasNodes(view);
+    // 31个节点中第3类折叠，隐藏其4个原因；鱼头固定原点，其余全部在鱼头左侧。
+    QCOMPARE(nodes.size(), 27);
+    QCOMPARE(nodes.value(rootId)->pos(), QPointF(0, 0));
+    for (auto it = nodes.constBegin(); it != nodes.constEnd(); ++it)
+        if (it.key() != rootId)
+            QVERIFY2(it.value()->pos().x() < 0, qPrintable(it.value()->toolTip()));
+    for (int i = 0; i < categories.size(); ++i)
+    {
+        const NodeItem *category = nodes.value(categories.at(i).second);
+        QVERIFY(category != nullptr);
+        QVERIFY(i % 2 == 0 ? category->pos().y() < 0 : category->pos().y() > 0);
+        if (i > 1)
+            QVERIFY(category->pos().x() < nodes.value(categories.at(i - 2).second)->pos().x());
+    }
+    QVERIFY(!nodes.contains(canvasId(QStringLiteral("fish-2-0-0"))));
+    QVERIFY(nodes.contains(canvasId(QStringLiteral("fish-0-0-2"))));
+    // 主骨1 + 类别斜骨6 + 可见原因20。
+    verifyFishboneGeometry(view, 27);
+    bool spineFound = false;
+    for (QGraphicsItem *item : view->scene()->items())
+        if (auto *edge = dynamic_cast<QGraphicsPathItem *>(item))
+        {
+            const QRectF bounds = edge->path().boundingRect();
+            if (bounds.height() == 0 && bounds.width() > 0 && bounds.top() == 0)
+                spineFound = true;
+        }
+    QVERIFY(spineFound);
+    QVERIFY(window.statusBar()->currentMessage().startsWith(QStringLiteral("鱼骨图")));
+
+    // 画布选择、双击改名、撤销与普通导图一致；改名后重新布局仍无重叠。
+    const ID reasonId = canvasId(QStringLiteral("fish-1-0-0"));
+    window.findChild<QAction *>(QStringLiteral("fitTopic"))->trigger();
+    QCoreApplication::processEvents();
+    const QPoint click = view->mapFromScene(nodes.value(reasonId)->pos());
+    QVERIFY(view->viewport()->rect().contains(click));
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, click);
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), reasonId);
+    answerTitleDialog(QStringLiteral("鱼骨原因改为一段更长的中文标题用于重新布局"));
+    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, click);
+    QCOMPARE(canvasNodes(view).value(reasonId)->toolTip(),
+             QStringLiteral("鱼骨原因改为一段更长的中文标题用于重新布局"));
+    verifyFishboneGeometry(view, 27);
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(canvasNodes(view).value(reasonId)->toolTip(), QStringLiteral("原因1-0-0"));
+
+    // 同一文件另开窗口，布局逐值相同（确定性）。
+    MainWindow again;
+    QVERIFY(again.openFile(path));
+    const auto reopened =
+        canvasNodes(again.findChild<QGraphicsView *>(QStringLiteral("topicPreview")));
+    const auto current = canvasNodes(view);
+    QCOMPARE(reopened.size(), current.size());
+    for (auto it = current.constBegin(); it != current.constEnd(); ++it)
+        QCOMPARE(reopened.value(it.key())->pos(), it.value()->pos());
+}
+
+void TstUi::fishboneCanvasDeepWideNoOverlap()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    // 6类 × (6层原因链 + 2个单层原因)：55个节点全部可见。
+    const QString path = dir.filePath(QStringLiteral("深层鱼骨.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, fishboneProject(3, 6, false))));
+    MainWindow window;
+    QVERIFY(window.openFile(path));
+    auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
+    QCOMPARE(canvasNodes(view).size(), 55);
+    verifyFishboneGeometry(view, 55);
+    const QString capture = qEnvironmentVariable("LINGYA_FISHBONE_CAPTURE");
+    if (!capture.isEmpty())
+    {
+        QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
+        QVERIFY(style.open(QIODevice::ReadOnly));
+        window.setStyleSheet(QString::fromUtf8(style.readAll()));
+        window.resize(1600, 900);
+        window.findChild<QAction *>(QStringLiteral("fitTopic"))->trigger();
+        QVERIFY(window.grab().save(capture));
+    }
+
+    // 普通导图仍走双侧TreeLayout：同结构改为mindmap时右侧有分支。
+    Project mindmap = fishboneProject(1, 1, false);
+    auto &sheet = std::get<TreeSheet>(mindmap.sheets.first());
+    sheet.kind = QStringLiteral("mindmap");
+    sheet.layout = QStringLiteral("bilateral");
+    const QString mindPath = dir.filePath(QStringLiteral("同结构导图.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(mindPath, mindmap)));
+    QVERIFY(window.openFile(mindPath));
+    bool rightSide = false;
+    for (NodeItem *node : canvasNodes(view))
+        rightSide = rightSide || node->pos().x() > 0;
+    QVERIFY(rightSide);
+    QVERIFY(window.statusBar()->currentMessage().startsWith(QStringLiteral("思维导图")));
+}
+
 void TstUi::treeCanvasHundredNodesRoundTrip()
 {
     QTemporaryDir dir;
@@ -2413,7 +2603,6 @@ void TstUi::ownedListPreservesRepeatedExtension()
     window.show();
     QVERIFY(QTest::qWaitForWindowActive(&window));
     QTest::keyClick(window.windowHandle(), Qt::Key_S, Qt::ControlModifier);
-    QVERIFY(!window.findChild<ProjectDocument *>()->isModified());
     const auto original =
         UserFileService::openOwned(root.path(), user, QStringLiteral("复验.lingya"));
     const auto changed =

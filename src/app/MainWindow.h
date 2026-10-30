@@ -121,6 +121,7 @@ private:
     bool confirmDiscard();          // 换工程/关闭时提供保存、放弃、取消（原设计§8）
     void loadNewDocument(Project project);
     void rebuildCanvas();
+    void addFishboneEdges(const TreeSheet &display);
     void onDocumentChanged();
     void updateStatusLine();        // 状态栏统一拼装：文档状态+恢复快照备注
     void showLoginDialog();

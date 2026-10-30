@@ -1,5 +1,6 @@
 #include "app/MainWindow.h"
 
+#include "layout/FishboneLayout.h"
 #include "layout/TreeLayout.h"
 #include <QAction>
 #include <QCloseEvent>
@@ -45,6 +46,8 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <limits>
+#include <optional>
 
 #include "app/LoginDialog.h"
 #include "app/RecoveryDialog.h"
@@ -1391,15 +1394,43 @@ void MainWindow::rebuildCanvas() {
         const QRectF bounds = measured.boundingRect();
         sizes.append({it.key(), bounds.width(), bounds.height()});
     }
-    const auto layout = TreeLayout::layout(display, sizes);
-    if (const auto *error = std::get_if<AppError>(&layout))
+    // R11：鱼骨图使用乙的FishboneLayout（鱼头在原点、主骨向左、类别上下交替），
+    // 其余树图仍用TreeLayout。两者都返回中心点坐标，图元创建方式相同。
+    const bool fishbone = display.kind == QStringLiteral("fishbone");
+    QVector<TreeLayout::NodePosition> positions;
+    std::optional<AppError> layoutError;
+    if (fishbone)
     {
-        m_canvasError = error->message;
-        m_scene->addText(QStringLiteral("无法显示导图：%1").arg(error->message), canvasFont());
+        QVector<FishboneLayout::NodeSize> fishSizes;
+        fishSizes.reserve(sizes.size());
+        for (const auto &size : sizes)
+            fishSizes.append({size.id, size.width, size.height});
+        const auto fish = FishboneLayout::layout(display, fishSizes);
+        if (const auto *error = std::get_if<AppError>(&fish))
+            layoutError = *error;
+        else
+            for (const auto &position : std::get<FishboneLayout::Result>(fish).positions)
+                positions.append({position.id, position.x, position.y});
+    }
+    else
+    {
+        const auto tree = TreeLayout::layout(display, sizes);
+        if (const auto *error = std::get_if<AppError>(&tree))
+            layoutError = *error;
+        else
+            positions = std::get<QVector<TreeLayout::NodePosition>>(tree);
+    }
+    if (layoutError.has_value())
+    {
+        m_canvasError = layoutError->message;
+        m_scene->addText(QStringLiteral("%1：%2").arg(fishbone ? QStringLiteral("无法显示鱼骨图")
+                                                               : QStringLiteral("无法显示导图"),
+                                                      layoutError->message),
+                         canvasFont());
         m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
         return;
     }
-    for (const auto &position : std::get<QVector<TreeLayout::NodePosition>>(layout))
+    for (const auto &position : positions)
     {
         const auto node = display.nodes.value(position.id);
         const NodeStyle style = NodeItem::resolvedStyle(display.defaultNodeStyle, node.style);
@@ -1410,7 +1441,9 @@ void MainWindow::rebuildCanvas() {
         m_scene->addItem(item);
         m_nodeItems.insert(position.id, item);
     }
-    for (auto it = m_nodeItems.constBegin(); it != m_nodeItems.constEnd(); ++it)
+    if (fishbone)
+        addFishboneEdges(display);
+    for (auto it = m_nodeItems.constBegin(); !fishbone && it != m_nodeItems.constEnd(); ++it)
     {
         const auto parentId = display.nodes.value(it.key()).parentId;
         if (!parentId.has_value() || !m_nodeItems.contains(*parentId))
@@ -1435,6 +1468,101 @@ void MainWindow::rebuildCanvas() {
     focusSelectedNode();
 }
 
+// R11鱼骨连线（只读显示，不写业务数据）：
+// 1. 主骨：从鱼头左缘水平向左，覆盖全部类别；
+// 2. 类别斜骨：从类别靠主骨一侧的边缘中点按45°连到主骨；
+// 3. 原因支骨：FishboneLayout把子节点向外逐个堆叠并左移一层，因此每个父节点在其全部后代
+//    右缘之外取一条竖向“干线”，再水平接到每个子节点右缘。干线位于后代包围盒右侧，
+//    只经过该父节点自己的子树所占的竖向区间，不穿过其他节点。
+void MainWindow::addFishboneEdges(const TreeSheet &display)
+{
+    const NodeItem *head = m_nodeItems.value(display.rootId, nullptr);
+    if (head == nullptr)
+        return;
+    QPen pen(QColor(display.defaultEdgeStyle.color), display.defaultEdgeStyle.width);
+    if (display.defaultEdgeStyle.dashed)
+        pen.setStyle(Qt::DashLine);
+    QPen spinePen = pen;
+    spinePen.setWidthF(qMax(2.0, display.defaultEdgeStyle.width * 2));
+    spinePen.setStyle(Qt::SolidLine);
+    const auto addEdge = [this](const QPainterPath &path, const QPen &edgePen)
+    {
+        auto *edge = m_scene->addPath(path, edgePen);
+        edge->setZValue(-1);
+        edge->setAcceptedMouseButtons(Qt::NoButton);
+    };
+    const auto visibleChildren = [this, &display](const ID &parentId)
+    {
+        QVector<QPair<int, ID>> ordered;
+        for (auto it = display.nodes.constBegin(); it != display.nodes.constEnd(); ++it)
+            if (it.value().parentId == parentId && m_nodeItems.contains(it.key()))
+                ordered.append({it.value().order, it.key()});
+        std::sort(ordered.begin(), ordered.end());
+        QVector<ID> ids;
+        for (const auto &pair : ordered)
+            ids.append(pair.second);
+        return ids;
+    };
+
+    const QPointF headLeft = head->mapToScene(head->horizontalAnchor(false));
+    const qreal spineY = head->pos().y();
+    const qreal maxAttachX = headLeft.x() - 12;
+    qreal tailX = headLeft.x() - 96;
+    QVector<ID> stack;
+    for (const ID &categoryId : visibleChildren(display.rootId))
+    {
+        const NodeItem *category = m_nodeItems.value(categoryId);
+        const QRectF rect = category->mapRectToScene(category->nodeRect());
+        const bool upper = category->pos().y() < spineY;
+        const QPointF inner(category->pos().x(), upper ? rect.bottom() : rect.top());
+        const qreal attachX = qMin(maxAttachX, inner.x() + qAbs(inner.y() - spineY));
+        QPainterPath bone(inner);
+        bone.lineTo(attachX, spineY);
+        addEdge(bone, pen);
+        tailX = qMin(tailX, rect.left() - 24);
+        stack.append(categoryId);
+    }
+    QPainterPath spine(headLeft);
+    spine.lineTo(tailX, spineY);
+    addEdge(spine, spinePen);
+
+    while (!stack.isEmpty())
+    {
+        const ID parentId = stack.takeLast();
+        const QVector<ID> children = visibleChildren(parentId);
+        if (children.isEmpty())
+            continue;
+        const NodeItem *parent = m_nodeItems.value(parentId);
+        const QRectF parentRect = parent->mapRectToScene(parent->nodeRect());
+        qreal trunkX = -std::numeric_limits<qreal>::infinity();
+        QVector<ID> descendants = children;
+        for (int i = 0; i < descendants.size(); ++i)
+        {
+            const NodeItem *node = m_nodeItems.value(descendants.at(i));
+            trunkX = qMax(trunkX, node->sceneBoundingRect().right() + 10);
+            descendants += visibleChildren(descendants.at(i));
+        }
+        const bool upper = parent->pos().y() < spineY;
+        QPointF start;
+        if (trunkX >= parentRect.left() + 6 && trunkX <= parentRect.right() - 6)
+            start = QPointF(trunkX, upper ? parentRect.top() : parentRect.bottom());
+        else
+            start = parent->mapToScene(parent->horizontalAnchor(trunkX > parentRect.right()));
+        for (const ID &childId : children)
+        {
+            const NodeItem *child = m_nodeItems.value(childId);
+            const QPointF end = child->mapToScene(child->horizontalAnchor(true));
+            QPainterPath branch(start);
+            if (start.x() != trunkX)
+                branch.lineTo(trunkX, start.y());
+            branch.lineTo(trunkX, end.y());
+            branch.lineTo(end);
+            addEdge(branch, pen);
+            stack.append(childId);
+        }
+    }
+}
+
 void MainWindow::onDocumentChanged() {
     rebuildOutline();
     rebuildCanvas();
@@ -1457,7 +1585,12 @@ void MainWindow::onDocumentChanged() {
 void MainWindow::updateStatusLine() {
     const QString state =
         m_doc->isModified() ? QStringLiteral("已修改") : QStringLiteral("已保存");
-    QString line = QStringLiteral("思维导图 · 大纲与画布同步 · 修订 %1 · %2")
+    const TreeSheet *sheet = activeTreeSheet();
+    const QString kindLabel = sheet != nullptr && sheet->kind == QStringLiteral("fishbone")
+                                  ? QStringLiteral("鱼骨图")
+                                  : QStringLiteral("思维导图");
+    QString line = QStringLiteral("%1 · 大纲与画布同步 · 修订 %2 · %3")
+                       .arg(kindLabel)
                        .arg(m_doc->sessionRevision())
                        .arg(state);
     // 恢复快照与正式保存分别显示状态（原设计§8）：备注为最近一次快照写入时间或失败提示
