@@ -23,6 +23,7 @@ private slots:
     void failureShowsErrorCode();
     void cancelShowsCanceled();
     void testConnectionShowsModel();
+    void providerRebuildCancelsBeforeDestroy();
 };
 
 void TstAiPanel::idleDisablesApply() {
@@ -109,6 +110,57 @@ void TstAiPanel::testConnectionShowsModel() {
 
     testButton->click();
     QTRY_VERIFY_WITH_TIMEOUT(status->text().contains(QStringLiteral("连接成功")), 3000);
+}
+
+namespace {
+
+// 记录 start/cancel/析构顺序：只断言"不崩"不够，UB 有时不崩（如去掉在途请求）
+class RecordingProvider : public IAiProvider {
+public:
+    explicit RecordingProvider(QStringList* log, QObject* parent = nullptr)
+        : IAiProvider(parent), m_log(log) {}
+    ~RecordingProvider() override {
+        m_log->append(QStringLiteral("destroyed"));
+    }
+
+    void start(const QString&, const QJsonObject&) override {
+        m_log->append(QStringLiteral("start"));
+    }
+    void cancel(const QString&) override {
+        m_log->append(QStringLiteral("cancel"));
+    }
+
+private:
+    QStringList* m_log;
+};
+
+}  // namespace
+
+void TstAiPanel::providerRebuildCancelsBeforeDestroy() {
+    QStringList log;
+    SessionSecretStore store;
+    QVERIFY(store.setApiKey(QStringLiteral("k1"), false));
+
+    AiService service(nullptr, &store);
+    service.setProviderFactory(
+        [&log] { return std::unique_ptr<IAiProvider>(new RecordingProvider(&log)); });
+
+    GenerateMapRequest request;
+    request.requestId = QStringLiteral("req-1");
+    request.text = QStringLiteral("材料");
+    QVERIFY(service.generateMap(request));   // 在途：RecordingProvider 不会完成
+
+    // 密钥相同：不重建（避免打断在途请求）
+    QVERIFY(service.setKey(QStringLiteral("k1"), false));
+    QCOMPARE(log.count(QStringLiteral("start")), 1);
+    QCOMPARE(log.count(QStringLiteral("destroyed")), 0);
+
+    QVERIFY(service.setKey(QStringLiteral("k2"), false));
+    const int cancelIndex = log.indexOf(QStringLiteral("cancel"));
+    const int destroyedIndex = log.indexOf(QStringLiteral("destroyed"));
+    QVERIFY2(cancelIndex >= 0, "旧 provider 的 cancel 未被调用");
+    QVERIFY2(destroyedIndex >= 0, "旧 provider 未被析构");
+    QVERIFY2(cancelIndex < destroyedIndex, "cancel 在析构之后调用（在已释放对象上）");
 }
 
 QTEST_MAIN(TstAiPanel)

@@ -177,7 +177,13 @@ void AiPanel::onGenerateMap() {
     request.maxNodes = m_maxNodesSpin->value();
     request.maxDepth = m_maxDepthSpin->value();
     m_currentRequestId = request.requestId;
-    m_service->generateMap(request);   // 失败时 AiService 已同步 emit failed，不再覆盖其提示
+    const QString before = m_statusLabel->text();
+    if (!m_service->generateMap(request)) {
+        // AiService 已同步 emit failed 时不覆盖它的具体提示；BUSY 不发 failed，需要兜底
+        if (m_statusLabel->text() == before) {
+            m_statusLabel->setText(QStringLiteral("正在请求中，请稍候"));
+        }
+    }
 }
 
 void AiPanel::onGenerateDraft() {
@@ -189,7 +195,12 @@ void AiPanel::onGenerateDraft() {
     request.sheetId = m_targetSheet;
     request.mode = m_modeCombo->currentData().toString();
     m_currentRequestId = request.requestId;
-    m_service->generateDraft(request);   // 同上：不覆盖 AiService 的错误提示
+    const QString before = m_statusLabel->text();
+    if (!m_service->generateDraft(request)) {
+        if (m_statusLabel->text() == before) {
+            m_statusLabel->setText(QStringLiteral("正在请求中，请稍候"));
+        }
+    }
 }
 
 void AiPanel::onCancel() {
