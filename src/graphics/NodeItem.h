@@ -27,6 +27,7 @@ public:
   QPointF horizontalAnchor(bool right) const;
   QRectF textRect() const;
   NodeStyle nodeStyle() const;
+  void setCutPending(bool pending);
   // 稳定ID用于画布事件定位；可见边框用于连线端点，均不持有领域对象指针。
   void setNodeId(const QString &id);
   QString nodeId() const;
@@ -41,6 +42,7 @@ private:
     QRectF m_textRect;
     QIcon m_icon;
     NodeStyle m_style;
+    bool m_cutPending = false;
     QPainterPath m_shape;
     QRectF m_iconRect;
 };

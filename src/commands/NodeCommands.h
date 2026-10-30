@@ -23,6 +23,7 @@ struct NodeMetaUpdate {
 struct RelationUpdate {
     std::optional<QString> label;
     std::optional<QString> arrow;
+    std::optional<EdgeStyle> style; // R07：不提供时保留已有颜色、宽度和虚线
 };
 
 // 外框/概要补丁（R08）：成员整表替换，仍须满足“同父连续兄弟、至少2个”的规则。
