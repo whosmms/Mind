@@ -75,6 +75,8 @@ add_library(lingya_appcore STATIC
     src/ai/SecretStore.cpp
     src/ai/AiService.h
     src/ai/AiService.cpp
+    src/ai/PromptLibrary.h
+    src/ai/PromptLibrary.cpp
     src/charts/TaskTableModel.h
     src/charts/TaskTableModel.cpp
     src/charts/GanttLayout.h
