@@ -42,6 +42,8 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget* parent = nullptr);
+    // 任务徽标图元的数据键，供宿主与消费者测试定位；不是持久化字段。
+    static constexpr int kTaskBadgeRole = 0x21C2;
 
     // 打开指定路径的工程（命令行参数/文件关联入口）；成功返回true，失败弹中文提示并保持原工程
     bool openFile(const QString& path);
@@ -185,6 +187,8 @@ private:
     TaskTableModel *m_taskModel = nullptr;
     IssuePanel *m_issuePanel = nullptr;
     ID m_selectedTaskId;
+    bool m_refreshingViews = false;
+    bool m_checksDirty = true;
     QPoint m_dragStart;
     ID m_cutNodeId, m_cutSheetId, m_cutProjectId;
     qint64 m_cutRevision = -1;

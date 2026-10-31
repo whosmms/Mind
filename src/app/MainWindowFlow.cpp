@@ -766,7 +766,7 @@ bool MainWindow::handleFlowEvent(QObject *watched, QEvent *event)
                 moving->setPos(m_flowDragOrigin);
             if (mouse->button() == Qt::LeftButton && next != m_flowDragOrigin)
             {
-                if (findChild<QAction *>("flowSnap")->isChecked())
+                if (auto *snap = findChild<QAction *>("flowSnap"); snap && snap->isChecked())
                     next = {std::round(next.x() / 20) * 20, std::round(next.y() / 20) * 20};
                 const auto result =
                     FlowCommands(m_commands, m_doc).moveNode(activeFlowSheet()->id, movingId, next);

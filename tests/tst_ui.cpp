@@ -56,6 +56,8 @@
 #include <QProcess>
 #include <QPushButton>
 #include <QScopeGuard>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QSettings>
 #include <QStackedWidget>
 #include <QStatusBar>
@@ -4051,6 +4053,9 @@ void TstUi::flowNodesShapesAndNoOp()
                   dialog->reject();
               });
     QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    // 动作可被宿主隐藏/迁移；缺失时刷新不应崩溃。
+    delete window.findChild<QAction *>("renameTopic");
+    doc->notifyChanged();
 }
 
 void TstUi::flowEdgesEditCycleAndRoundTrip()
@@ -4214,6 +4219,17 @@ void TstUi::flowDragAndLayoutAreSingleTransactions()
     QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, nextPress + QPoint(60, 20));
     QCOMPARE(doc->sessionRevision(), beforeLeave);
     QCOMPARE(canvasNodes(view).value(id)->pos(), position);
+    delete window.findChild<QAction *>("flowSnap");
+    const QPoint freePress = view->mapFromScene(canvasNodes(view).value(id)->pos());
+    const QPoint freeEnd = freePress + QPoint(45, 30);
+    QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, freePress);
+    QMouseEvent freeMove(QEvent::MouseMove, freeEnd, viewport->mapToGlobal(freeEnd), Qt::NoButton,
+                         Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(viewport, &freeMove);
+    QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, freeEnd);
+    QCOMPARE(doc->sessionRevision(), beforeLeave + 1);
+    QVERIFY(std::get<FlowSheet>(doc->project().sheets.first()).nodes.value(id).position !=
+            position);
 }
 
 void TstUi::flowPortsCreateEdgeAndCancel()
@@ -4277,6 +4293,8 @@ void TstUi::offlineTasksMilestoneAndSelection()
     MainWindow window;
     Project project = canvasProject(2, 1);
     const ID branch = canvasId("branch-0");
+    std::get<TreeSheet>(project.sheets.first()).nodes[branch].title =
+        QStringLiteral("多行中文标题\n第二行文字\n第三行文字");
     loadEditorFixture(window, project);
     chooseTopic(window, branch);
     auto *doc = window.findChild<ProjectDocument *>();
@@ -4285,6 +4303,25 @@ void TstUi::offlineTasksMilestoneAndSelection()
     window.findChild<QAction *>("linkSelectedTask")->trigger();
     QCOMPARE(doc->project().tasks.size(), 1);
     const ID task = doc->project().tasks.first().id;
+    auto *badgeView = window.findChild<QGraphicsView *>("topicPreview");
+    bool foundBadge = false;
+    for (auto *item : badgeView->scene()->items())
+        if (item->data(MainWindow::kTaskBadgeRole).toString() == task)
+        {
+            const auto *node = dynamic_cast<NodeItem *>(item->parentItem());
+            QVERIFY(node);
+            QVERIFY(!item->sceneBoundingRect().intersects(node->mapRectToScene(node->textRect())));
+            foundBadge = true;
+        }
+    QVERIFY(foundBadge);
+    const QString badgeCapture = qEnvironmentVariable("LINGYA_TASK_BADGE_CAPTURE");
+    if (!badgeCapture.isEmpty())
+    {
+        window.show();
+        window.findChild<QAction *>("fitTopic")->trigger();
+        QTest::qWait(30);
+        QVERIFY(window.grab().save(badgeCapture));
+    }
     const qint64 revision = doc->sessionRevision();
     runEditor(
         window, "editTaskProperties", "taskDialog",
@@ -4322,7 +4359,7 @@ void TstUi::offlineTasksMilestoneAndSelection()
     auto *view = window.findChild<QGraphicsView *>("topicPreview");
     bool badge = false;
     for (auto *item : view->scene()->items())
-        if (item->data(0x21C2).toString() == task)
+        if (item->data(MainWindow::kTaskBadgeRole).toString() == task)
             badge = true;
     QVERIFY(badge);
     commands->undo();
@@ -4360,6 +4397,37 @@ void TstUi::offlineTasksMilestoneAndSelection()
     QVERIFY(saved.milestone);
     QCOMPARE(saved.progress, 45);
     QCOMPARE(saved.title, QStringLiteral("已同步的任务名称"));
+    const auto guardRevision = doc->sessionRevision();
+    delete window.findChild<QAction *>("linkSelectedTask");
+    delete window.findChild<QAction *>("addReviewCard");
+    delete window.findChild<QPushButton *>("locateTaskSource");
+    doc->notifyChanged();
+    QCOMPARE(doc->sessionRevision(), guardRevision);
+
+    MainWindow scrollWindow;
+    Project scrolling = canvasProject(1, 0);
+    const auto &scrollTree = std::get<TreeSheet>(scrolling.sheets.first());
+    for (int i = 0; i < 60; ++i)
+    {
+        Task row;
+        row.id = canvasId(QStringLiteral("scroll-task-%1").arg(i));
+        row.title = i == 0 ? scrollTree.nodes.value(scrollTree.rootId).title
+                           : QStringLiteral("独立任务%1").arg(i);
+        if (i == 0)
+            row.source = TaskSource{scrollTree.id, scrollTree.rootId};
+        scrolling.tasks.append(row);
+    }
+    loadEditorFixture(scrollWindow, scrolling);
+    scrollWindow.show();
+    scrollWindow.findChild<QWidget *>("taskDock")->show();
+    QTest::qWait(30);
+    auto *scrollTable = scrollWindow.findChild<QTableView *>("taskTable");
+    scrollTable->setCurrentIndex(scrollTable->model()->index(0, 0));
+    auto *bar = scrollTable->verticalScrollBar();
+    QVERIFY(bar->maximum() > 10);
+    bar->setValue(10);
+    QVERIFY(scrollWindow.renameRootTo(QStringLiteral("刷新后不抢滚动位置")));
+    QCOMPARE(bar->value(), 10);
 }
 
 void TstUi::offlineReviewGradesAndSourceChanges()
@@ -4387,6 +4455,15 @@ void TstUi::offlineReviewGradesAndSourceChanges()
                       QVERIFY(dialog->grab().save(capture));
                   }
                   page->findChild<QPushButton *>("reviewReveal")->click();
+                  auto *scroll = dialog->findChild<QScrollArea *>("reviewScroll");
+                  QVERIFY(scroll && scroll->widget() == page);
+                  scroll->setFixedHeight(150);
+                  QTest::qWait(20);
+                  QVERIFY(scroll->verticalScrollBar()->maximum() > 0);
+                  scroll->verticalScrollBar()->setValue(scroll->verticalScrollBar()->maximum());
+                  auto *grade = page->findChild<QPushButton *>("reviewAgain");
+                  QVERIFY(scroll->viewport()->rect().intersects(
+                      QRect(grade->mapTo(scroll->viewport(), QPoint()), grade->size())));
                   page->findChild<QPushButton *>("reviewAgain")->click();
                   QCOMPARE(doc->sessionRevision(), revision);
                   QVERIFY(!page->isFinished());
@@ -4433,14 +4510,25 @@ void TstUi::offlineCheckLocatesAndRefreshes()
     auto &tree = std::get<TreeSheet>(project.sheets.first());
     const ID target = canvasId("branch-0"), firstSheet = tree.id;
     tree.nodes[target].title = QStringLiteral("   "); // 合法长度但未命名，C01按trimmed检查。
+    Task linked;
+    linked.id = canvasId("issue-linked-task");
+    linked.title = tree.nodes.value(tree.rootId).title;
+    linked.source = TaskSource{tree.id, tree.rootId};
+    project.tasks.append(linked);
+    Task standalone;
+    standalone.id = canvasId("issue-independent-task");
+    standalone.title = QStringLiteral("独立任务");
+    project.tasks.append(standalone);
     const auto second = ProjectFactory::createFlowchart(QStringLiteral("第二表")).sheets.first();
     project.sheets.append(second);
     loadEditorFixture(window, project);
     auto *doc = window.findChild<ProjectDocument *>();
     auto *sheets = window.findChild<QComboBox *>("sheetSelector");
     sheets->setCurrentIndex(1);
-    window.findChild<QAction *>("checkProject")->trigger();
     auto *panel = window.findChild<IssuePanel *>();
+    QVERIFY(panel && panel->issues().isEmpty()); // 隐藏时延后检查。
+    window.show();
+    window.findChild<QAction *>("checkProject")->trigger();
     QVERIFY(panel);
     bool found = false;
     for (const auto &issue : panel->issues())
@@ -4467,6 +4555,29 @@ void TstUi::offlineCheckLocatesAndRefreshes()
         if (issue.targetId == target && issue.ruleId == "C01")
             found = true;
     QVERIFY(found);
+    auto *issueDock = window.findChild<QWidget *>("issueDock");
+    issueDock->hide();
+    QVERIFY(std::holds_alternative<bool>(
+        TaskCommands(window.findChild<CommandService *>(), doc)
+            .renameNode(firstSheet, target, QStringLiteral("隐藏时修改"))));
+    found = false;
+    for (const auto &issue : panel->issues())
+        if (issue.targetId == target && issue.ruleId == "C01")
+            found = true;
+    QVERIFY(found); // 隐藏期间保留上次结果；重新显示时再刷新。
+    issueDock->show();
+    QTest::qWait(20);
+    for (const auto &issue : panel->issues())
+        QVERIFY(issue.targetId != target || issue.ruleId != "C01");
+    const auto locateRevision = doc->sessionRevision();
+    panel->locateRequested(firstSheet, linked.id);
+    auto *stack = qobject_cast<QStackedWidget *>(window.centralWidget());
+    QVERIFY(qobject_cast<GanttView *>(stack->currentWidget()));
+    QCOMPARE(doc->project().activeSheetId, firstSheet);
+    panel->locateRequested({}, standalone.id);
+    QVERIFY(qobject_cast<GanttView *>(stack->currentWidget()));
+    QCOMPARE(doc->sessionRevision(), locateRevision);
+    QVERIFY(!window.findChild<QPushButton *>("locateTaskSource")->isEnabled());
 }
 
 void TstUi::ganttSheetFilterKeepsProjectAndHistory()
@@ -4474,7 +4585,9 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     MainWindow window;
     Project project = deletionProject();
     const ID firstSheet = project.activeSheetId;
-    const Sheet other = ProjectFactory::createMindmap(QStringLiteral("另一树图")).sheets.first();
+    std::get<TreeSheet>(project.sheets.first()).name = QStringLiteral("来源树图");
+    Sheet other = ProjectFactory::createMindmap(QStringLiteral("另一树图")).sheets.first();
+    std::get<TreeSheet>(other).name = QStringLiteral("另一来源");
     const auto &otherTree = std::get<TreeSheet>(other);
     const ID otherSheet = otherTree.id;
     Task task;
@@ -4485,9 +4598,15 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     task.endDate = QDate(2026, 11, 2);
     project.tasks.append(task);
     project.sheets.append(other);
+    Sheet empty = ProjectFactory::createMindmap(QStringLiteral("无任务树图")).sheets.first();
+    auto &emptyTree = std::get<TreeSheet>(empty);
+    emptyTree.name = QStringLiteral("无任务来源");
+    const ID emptySheet = emptyTree.id;
+    project.sheets.append(empty);
     Sheet gantt = ProjectFactory::createGantt(QStringLiteral("筛选视图")).sheets.first();
     auto &ganttSheet = std::get<GanttSheet>(gantt);
     const ID ganttId = ganttSheet.id;
+    ganttSheet.name = QStringLiteral("限定来源甘特");
     ganttSheet.filter.sourceSheetId = firstSheet;
     ganttSheet.filter.includeStandalone = false;
     project.sheets.append(gantt);
@@ -4523,6 +4642,22 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     for (const auto &visible : view->tasks())
         foundOther |= visible.id == task.id;
     QVERIFY(foundOther);
+    commands->undo();
+    QCOMPARE(view->tasks().size(), 1);
+    QVERIFY(std::holds_alternative<bool>(commands->applyEdit(
+        QStringLiteral("测试空筛选"),
+        [ganttId, emptySheet](Project &p)
+        {
+            for (auto &sheet : p.sheets)
+                if (auto *g = std::get_if<GanttSheet>(&sheet); g && g->id == ganttId)
+                {
+                    g->filter.sourceSheetId = emptySheet;
+                    g->filter.includeStandalone = false;
+                }
+        })));
+    QVERIFY(view->tasks().isEmpty());
+    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("当前筛选无任务")));
+    QCOMPARE(doc->project().tasks.size(), 3);
     commands->undo();
     QCOMPARE(view->tasks().size(), 1);
     const QString fixture = qEnvironmentVariable("LINGYA_GANTT_FIXTURE");

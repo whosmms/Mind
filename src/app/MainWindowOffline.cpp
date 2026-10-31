@@ -34,6 +34,8 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QScreen>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStackedWidget>
@@ -130,7 +132,8 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
             else
             {
                 selectTask(std::get<ID>(result));
-                findChild<QDockWidget *>("taskDock")->show();
+                if (auto *dock = findChild<QDockWidget *>("taskDock"))
+                    dock->show();
             }
         });
     newTask->setObjectName("newTask");
@@ -156,7 +159,8 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
             else
             {
                 selectTask(std::get<ID>(result));
-                findChild<QDockWidget *>("taskDock")->show();
+                if (auto *dock = findChild<QDockWidget *>("taskDock"))
+                    dock->show();
             }
         });
     link->setObjectName("linkSelectedTask");
@@ -189,9 +193,19 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
                                   [this, issuesDock]
                                   {
                                       m_issuePanel->setIssues(currentIssues(m_doc->project()));
+                                      m_checksDirty = false;
                                       issuesDock->show();
                                   });
     check->setObjectName("checkProject");
+    connect(issuesDock, &QDockWidget::visibilityChanged, this,
+            [this](bool visible)
+            {
+                if (visible && m_checksDirty)
+                {
+                    m_issuePanel->setIssues(currentIssues(m_doc->project()));
+                    m_checksDirty = false;
+                }
+            });
     connect(m_issuePanel, &IssuePanel::locateRequested, this, &MainWindow::locateIssue);
     connect(
         m_issuePanel, &IssuePanel::actionRequested, this,
@@ -239,6 +253,8 @@ void MainWindow::refreshOfflineViews()
     if (!m_taskModel)
         return;
     const QSignalBlocker blocker(m_taskTable->selectionModel());
+    const int scrollX = m_taskTable->horizontalScrollBar()->value();
+    const int scrollY = m_taskTable->verticalScrollBar()->value();
     m_taskModel->setTasks(m_doc->project().tasks);
     bool found = false;
     for (int row = 0; row < m_taskModel->tasks().size(); ++row)
@@ -251,16 +267,25 @@ void MainWindow::refreshOfflineViews()
     if (!found)
     {
         m_selectedTaskId.clear();
-        findChild<QPushButton *>("locateTaskSource")->setEnabled(false);
+        if (auto *locate = findChild<QPushButton *>("locateTaskSource"))
+            locate->setEnabled(false);
     }
     else
         selectTask(m_selectedTaskId);
-    if (m_issuePanel)
+    m_taskTable->horizontalScrollBar()->setValue(scrollX);
+    m_taskTable->verticalScrollBar()->setValue(scrollY);
+    m_checksDirty = true;
+    if (auto *dock = findChild<QDockWidget *>("issueDock");
+        m_issuePanel && dock && !dock->isHidden())
+    {
         m_issuePanel->setIssues(currentIssues(m_doc->project()));
+        m_checksDirty = false;
+    }
     const auto *tree = activeTreeSheet();
     const bool node = tree && tree->nodes.contains(m_selectedNodeId);
-    findChild<QAction *>("linkSelectedTask")->setEnabled(node);
-    findChild<QAction *>("addReviewCard")->setEnabled(node);
+    for (const auto &name : {"linkSelectedTask", "addReviewCard"})
+        if (auto *action = findChild<QAction *>(name))
+            action->setEnabled(node);
 }
 
 void MainWindow::addTaskBadges()
@@ -285,7 +310,7 @@ void MainWindow::addTaskBadges()
         if (badge->boundingRect().width() > rect.width() - 8)
             badge->setScale((rect.width() - 8) / badge->boundingRect().width());
         badge->setPos(rect.left() + 4, rect.top() + 1);
-        badge->setData(0x21C2, task.id);
+        badge->setData(kTaskBadgeRole, task.id);
         badge->setToolTip(QStringLiteral("点击编辑任务：%1").arg(task.title));
     }
 }
@@ -300,11 +325,13 @@ void MainWindow::selectTask(ID taskId, bool locateSource)
         if (task.id != taskId)
             continue;
         m_selectedTaskId = taskId;
-        findChild<QPushButton *>("locateTaskSource")->setEnabled(task.source.has_value());
+        if (auto *locate = findChild<QPushButton *>("locateTaskSource"))
+            locate->setEnabled(task.source.has_value());
         {
             const QSignalBlocker blocker(m_taskTable->selectionModel());
             m_taskTable->setCurrentIndex(m_taskModel->index(row, 0));
-            m_taskTable->scrollTo(m_taskModel->index(row, 0));
+            if (!m_refreshingViews)
+                m_taskTable->scrollTo(m_taskModel->index(row, 0));
         }
         if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
             for (auto *item : gantt->scene()->items())
@@ -362,6 +389,8 @@ void MainWindow::editTask(ID taskId)
     end->setDate(initial.endDate.value_or(QDate::currentDate()));
     auto *milestone = new QCheckBox(QStringLiteral("里程碑（起止须同日）"), &dialog);
     milestone->setObjectName("taskMilestone");
+    milestone->setToolTip(
+        QStringLiteral("未排期里程碑保留在任务表，设置同日起止日期后才显示在时间轴。"));
     milestone->setChecked(initial.milestone);
     auto *progress = new QSpinBox(&dialog);
     progress->setObjectName("taskProgress");
@@ -528,7 +557,11 @@ void MainWindow::manageReviewCards(ID cardId)
     layout->addWidget(notice);
     layout->addWidget(filter);
     layout->addWidget(list);
-    layout->addWidget(page);
+    auto *reviewScroll = new QScrollArea(&dialog);
+    reviewScroll->setObjectName("reviewScroll");
+    reviewScroll->setWidgetResizable(true);
+    reviewScroll->setWidget(page);
+    layout->addWidget(reviewScroll, 1);
     layout->addWidget(error);
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
     buttons->button(QDialogButtonBox::Close)->setText(QStringLiteral("关闭"));
@@ -646,8 +679,6 @@ void MainWindow::manageReviewCards(ID cardId)
     connect(standalone, &QPushButton::clicked, &dialog, [=] { mutate(2); });
     connect(remove, &QPushButton::clicked, &dialog, [=] { mutate(3); });
     connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    for (const auto &name : {"reviewFront", "reviewBack"})
-        page->findChild<QLabel *>(name)->setMinimumHeight(54);
     list->setMaximumHeight(100);
     reload();
     begin();
@@ -662,8 +693,9 @@ void MainWindow::locateIssue(ID sheetId, ID targetId)
         {
             const ID id = task.id;
             showGanttView();
-            selectTask(id, true);
-            findChild<QDockWidget *>("taskDock")->show();
+            selectTask(id);
+            if (auto *dock = findChild<QDockWidget *>("taskDock"))
+                dock->show();
             return;
         }
     if (!sheetId.isEmpty() && !m_doc->setActiveSheet(sheetId))

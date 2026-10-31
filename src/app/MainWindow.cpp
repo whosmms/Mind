@@ -39,6 +39,7 @@
 #include <QPainterPath>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScopedValueRollback>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSet>
@@ -492,6 +493,9 @@ void MainWindow::showGanttView()
     }
     if (m_doc->project().tasks.isEmpty())
         statusBar()->showMessage(QStringLiteral("暂无任务。打开含排期任务的工程后可查看时间轴。"));
+    else if (visibleGanttTasks().isEmpty())
+        statusBar()->showMessage(
+            QStringLiteral("当前筛选无任务（工程共 %1 项）").arg(m_doc->project().tasks.size()));
 }
 
 void MainWindow::setCanvasZoom(qreal zoom)
@@ -664,10 +668,10 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
         {
             const QPointF position = m_view->mapToScene(mouse->position().toPoint());
             auto *hit = m_scene->itemAt(position, QTransform());
-            if (hit && hit->data(0x21C2).isValid())
+            if (hit && hit->data(kTaskBadgeRole).isValid())
             {
                 m_dragNodeId.clear();
-                editTask(hit->data(0x21C2).toString());
+                editTask(hit->data(kTaskBadgeRole).toString());
                 return true;
             }
             if (const auto *item = owningNode(hit))
@@ -1565,6 +1569,7 @@ void MainWindow::rebuildOutline()
             {
                 auto *item = new QTreeWidgetItem(m_outline);
                 item->setText(0, node.title);
+                item->setToolTip(0, node.title);
                 item->setData(0, Qt::UserRole, node.id);
                 if (node.id == m_selectedNodeId)
                     m_outline->setCurrentItem(item);
@@ -1746,7 +1751,8 @@ void MainWindow::syncCanvasSelection()
     if (flow)
     {
         m_deleteAction->setEnabled(flowNode || !m_selectedFlowEdge.isEmpty());
-        findChild<QAction *>("renameTopic")->setEnabled(flowNode);
+        if (auto *rename = findChild<QAction *>("renameTopic"))
+            rename->setEnabled(flowNode);
     }
 }
 
@@ -1962,6 +1968,7 @@ void MainWindow::addFishboneEdges(const TreeSheet &display)
 }
 
 void MainWindow::onDocumentChanged() {
+    const QScopedValueRollback<bool> refreshing(m_refreshingViews, true);
     const bool sameSheet = m_outlineSheetId == m_doc->project().activeSheetId;
     const auto previousAnnotations = m_annotationMembers;
     rebuildSheets();
@@ -2003,13 +2010,19 @@ void MainWindow::updateStatusLine() {
     const QString state =
         m_doc->isModified() ? QStringLiteral("已修改") : QStringLiteral("已保存");
     const TreeSheet *sheet = activeTreeSheet();
-    const QString kindLabel = sheet != nullptr && sheet->kind == QStringLiteral("fishbone")
-                                  ? QStringLiteral("鱼骨图")
-                                  : QStringLiteral("思维导图");
+    const QString kindLabel =
+        sheet               ? (sheet->kind == QStringLiteral("fishbone") ? QStringLiteral("鱼骨图")
+                                                                         : QStringLiteral("思维导图"))
+        : activeFlowSheet() ? QStringLiteral("流程图")
+                            : QStringLiteral("甘特图");
     QString line = QStringLiteral("%1 · 大纲与画布同步 · 修订 %2 · %3")
                        .arg(kindLabel)
                        .arg(m_doc->sessionRevision())
                        .arg(state);
+    if (!sheet && !activeFlowSheet() && !m_doc->project().tasks.isEmpty() &&
+        visibleGanttTasks().isEmpty())
+        line +=
+            QStringLiteral(" · 当前筛选无任务（工程共 %1 项）").arg(m_doc->project().tasks.size());
     // 恢复快照与正式保存分别显示状态（原设计§8）：备注为最近一次快照写入时间或失败提示
     if (!m_recoveryNote.isEmpty()) line += QStringLiteral(" · ") + m_recoveryNote;
     if (!m_canvasError.isEmpty())
