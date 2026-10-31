@@ -45,6 +45,8 @@ private slots:
   void shiftTaskDatesInvalidInput();
   void freeRouteXAvoidsBlockingBars();
   void shortCrossMonthShowsSingleMonthLabel();
+  void monthBoundaryLineDoesNotCrossLabel();
+  void monthBoundaryLineVisibleInAxisBand();
   void longRangeShowsBothMonthLabels();
   void midMonthRangeShowsYearAndMonth();
   void longUnscheduledNamesRemainScrollable_data();
@@ -519,6 +521,73 @@ void TstGanttView::longRangeShowsBothMonthLabels()
         }
     }
     QCOMPARE(monthLabels, 3); // 10、11、12 三个月界
+}
+
+void TstGanttView::monthBoundaryLineDoesNotCrossLabel() {
+    // P3 52.3：几何断言替代「长度 7 + 1 连字符」启发式——不许任何竖线落进标签文字矩形
+    GanttView view;
+    view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 31), QDate(2026, 11, 2))});
+
+    QRectF labelRect;
+    for (QGraphicsItem* item : view.scene()->items()) {
+        if (item->type() != QGraphicsTextItem::Type) {
+            continue;
+        }
+        auto* text = static_cast<QGraphicsTextItem*>(item);
+        const QString content = text->toPlainText();
+        if (content.length() == 7 && content.count(QLatin1Char('-')) == 1) {
+            const qreal margin = text->document()->documentMargin();
+            labelRect = text->sceneBoundingRect().adjusted(margin, margin, -margin, -margin);
+            break;
+        }
+    }
+    QVERIFY2(labelRect.isValid(), "没有找到月份标签");
+
+    for (QGraphicsItem* item : view.scene()->items()) {
+        if (item->type() != QGraphicsLineItem::Type) {
+            continue;
+        }
+        auto* line = static_cast<QGraphicsLineItem*>(item);
+        const QLineF segment = line->line();
+        if (!qFuzzyCompare(segment.x1() + 1.0, segment.x2() + 1.0)) {
+            continue;   // 只看竖线
+        }
+        const qreal x = segment.x1();
+        const qreal top = qMin(segment.y1(), segment.y2());
+        const qreal bottom = qMax(segment.y1(), segment.y2());
+        const bool xInside = x >= labelRect.left() && x <= labelRect.right();
+        const bool yOverlap = bottom >= labelRect.top() && top <= labelRect.bottom();
+        QVERIFY2(!(xInside && yOverlap), "月界竖线穿过了月份标签文字");
+    }
+}
+
+void TstGanttView::monthBoundaryLineVisibleInAxisBand() {
+    // P3 52.2：竖线从标签下沿起画，轴带内（kAxisHeight=34 以上）仍能看到月份分界
+    GanttView view;
+    view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 31), QDate(2026, 11, 2))});
+
+    int monthLines = 0;
+    int monthLinesVisibleInAxisBand = 0;
+    for (QGraphicsItem* item : view.scene()->items()) {
+        if (item->type() != QGraphicsLineItem::Type) {
+            continue;
+        }
+        auto* line = static_cast<QGraphicsLineItem*>(item);
+        const QLineF segment = line->line();
+        if (!qFuzzyCompare(segment.x1() + 1.0, segment.x2() + 1.0)) {
+            continue;   // 只看竖线
+        }
+        // 只查月界主线（主色 #247A62）；日号浅色分隔线本来就从 kAxisHeight-4 起，会干扰判断
+        if (line->pen().color() != QColor(0x24, 0x7A, 0x62)) {
+            continue;
+        }
+        ++monthLines;
+        if (qMin(segment.y1(), segment.y2()) < 34.0) {   // GanttView 的 kAxisHeight
+            ++monthLinesVisibleInAxisBand;
+        }
+    }
+    QVERIFY2(monthLines >= 2, "至少应有 10-31 与 11-01 两条月界主线");
+    QVERIFY2(monthLinesVisibleInAxisBand >= 1, "月界主线应在轴带内可见");
 }
 
 QTEST_MAIN(TstGanttView)
