@@ -209,6 +209,8 @@ Windows 桌面思维导图课程软件。仓库根目录即本文件所在目录
 
 ## 硬性约束摘要（全文以两份规范为准）
 
+- 后续不向本文件追加一次性交付状态、PR号、测试数字或候选路径；此类事实维护在交接文档、评审记录与README。
+
 - 一个 Git 仓库一个 main；甲乙丙角色与文件归属见统一规范§2.2；共享文件改动先登记。
 - 业务代码放 `namespace lingya`；常量 k+PascalCase；私有成员 m_ 前缀；错误码用统一规范§10.3。
 - 所有持久化修改经 CommandService；ProjectDocument 是唯一数据源；QUndoStack::push 自动

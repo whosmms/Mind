@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstReviewCommands">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0367"/>
+  </TestFunction>
+  <TestFunction name="gradeMasteredWritesStatusAndTimestamp">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3058"/>
+  </TestFunction>
+  <TestFunction name="gradeReviewedWritesReviewStatus">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.227"/>
+  </TestFunction>
+  <TestFunction name="gradeAgainChangesNothingAndSkipsHistory">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0843"/>
+  </TestFunction>
+  <TestFunction name="gradeUnknownCardReturnsNotFound">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0213"/>
+  </TestFunction>
+  <TestFunction name="gradeIsSingleUndoStep">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0549"/>
+  </TestFunction>
+  <TestFunction name="addCardExtractsFrontAndBack">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0578"/>
+  </TestFunction>
+  <TestFunction name="addCardRejectsDuplicateNode">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0447"/>
+  </TestFunction>
+  <TestFunction name="addCardRejectsNodeWithoutContent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0233"/>
+  </TestFunction>
+  <TestFunction name="removeCardAndUndoRestores">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0552"/>
+  </TestFunction>
+  <TestFunction name="refreshFromSourceKeepsIdStatusAndReviewedAt">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0964"/>
+  </TestFunction>
+  <TestFunction name="keepCustomAndMakeStandaloneChangeMode">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0821"/>
+  </TestFunction>
+  <TestFunction name="gradedCardSurvivesSaveAndReload">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.5259"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0072"/>
+  </TestFunction>
+  <Duration msecs="3.6878"/>
+</TestCase>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstCheck">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.04"/>
+  </TestFunction>
+  <TestFunction name="flagsUnnamedNode">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1807"/>
+  </TestFunction>
+  <TestFunction name="flagsLongTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0506"/>
+  </TestFunction>
+  <TestFunction name="flagsTaskDateError">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3328"/>
+  </TestFunction>
+  <TestFunction name="flagsDependencyCycle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0341"/>
+  </TestFunction>
+  <TestFunction name="flagsChangedCard">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0261"/>
+  </TestFunction>
+  <TestFunction name="flagsLowContrast">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0216"/>
+  </TestFunction>
+  <TestFunction name="sortedBySeverity">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0334"/>
+  </TestFunction>
+  <TestFunction name="flagsOrphanNode">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.028"/>
+  </TestFunction>
+  <TestFunction name="flagsRelationEndpoint">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0253"/>
+  </TestFunction>
+  <TestFunction name="flagsFlowIsolated">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.031"/>
+  </TestFunction>
+  <TestFunction name="flagsDecisionWithoutBranches">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0432"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0066"/>
+  </TestFunction>
+  <Duration msecs="2.1499"/>
+</TestCase>
