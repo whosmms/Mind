@@ -18,6 +18,7 @@ class QObject;
 class QTimer;
 class QTreeWidget;
 class QComboBox;
+class QTableView;
 
 namespace lingya {
 
@@ -28,6 +29,8 @@ class ProjectDocument;
 class RecoveryDialog;
 class LoginDialog;
 class UserFilesDialog;
+class TaskTableModel;
+class IssuePanel;
 
 // 主窗口（原设计§3 src/app/MainWindow：装配页面、服务与控制器）
 // M0范围：中文界面 + 纵向闭环“根节点→改名→保存→关闭→重开”（原设计§12 M0），
@@ -108,6 +111,24 @@ private:
     void editSelectedNodeStyle();
     void editNodeStyle(bool global);
     void buildEditorActions(QMenu *editMenu);
+    void buildFlowActions(QMenu *editMenu);
+    const FlowSheet *activeFlowSheet() const;
+    void rebuildFlowCanvas(const FlowSheet &sheet);
+    void drawFlowEdges(const FlowSheet &sheet);
+    void editFlowNode(bool create);
+    void editFlowEdge(const ID &edgeId = ID{}, const ID &sourceId = ID{},
+                      const QString &sourcePort = QString(), const ID &targetId = ID{},
+                      const QString &targetPort = QString());
+    void deleteFlowSelection();
+    void layoutFlow();
+    bool handleFlowEvent(QObject *watched, QEvent *event);
+    void buildOfflineActions(QMenu *viewMenu);
+    void refreshOfflineViews();
+    void addTaskBadges();
+    void selectTask(ID taskId, bool locateSource = false);
+    void editTask(ID taskId);
+    void manageReviewCards(ID cardId = ID{});
+    void locateIssue(ID sheetId, ID targetId);
     void rebuildSheets();
     void createSheet();
     void renameSheet();
@@ -156,6 +177,13 @@ private:
     QSet<ID> m_unfilteredCollapsed;
     bool m_filterWasActive = false;
     ID m_dragNodeId;
+    ID m_flowDragNodeId, m_flowPortNodeId, m_selectedFlowEdge;
+    QString m_flowPort;
+    QPointF m_flowDragOrigin;
+    QTableView *m_taskTable = nullptr;
+    TaskTableModel *m_taskModel = nullptr;
+    IssuePanel *m_issuePanel = nullptr;
+    ID m_selectedTaskId;
     QPoint m_dragStart;
     ID m_cutNodeId, m_cutSheetId, m_cutProjectId;
     qint64 m_cutRevision = -1;

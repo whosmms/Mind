@@ -80,6 +80,8 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
     }
     else if (m_style.shape == QStringLiteral("rect"))
         m_shape.addRect(m_rect);
+    else if (m_style.shape == QStringLiteral("capsule"))
+        m_shape.addRoundedRect(m_rect, height / 2, height / 2);
     else
         m_shape.addRoundedRect(m_rect, kNodeRadius, kNodeRadius);
     setFlag(QGraphicsItem::ItemIsSelectable);

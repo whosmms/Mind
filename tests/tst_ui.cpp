@@ -9,8 +9,11 @@
 #endif
 
 #include "charts/GanttView.h"
+#include "charts/TaskTableModel.h"
 #include "commands/CommandService.h"
+#include "commands/FlowCommands.h"
 #include "commands/NodeCommands.h"
+#include "commands/ReviewCommands.h"
 #include "commands/SheetCommands.h"
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
@@ -18,11 +21,14 @@
 #include "features/ReviewService.h"
 #include "graphics/NodeItem.h"
 #include "services/ProjectJson.h"
+#include "ui/IssuePanel.h"
+#include "ui/ReviewPage.h"
 #include <QAbstractButton>
 #include <QAction>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
+#include <QDateEdit>
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -53,6 +59,7 @@
 #include <QSettings>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QTableView>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QTreeWidget>
@@ -102,6 +109,14 @@ private slots:
     void editorSheetDeletionProtectsUserData_data();
     void editorSheetDeletionProtectsUserData();
     void editorClipboardCopyAndCut();
+    void cutTokenSurvivesSheetRoundTrip();
+    void flowNodesShapesAndNoOp();
+    void flowEdgesEditCycleAndRoundTrip();
+    void flowDragAndLayoutAreSingleTransactions();
+    void flowPortsCreateEdgeAndCancel();
+    void offlineTasksMilestoneAndSelection();
+    void offlineReviewGradesAndSourceChanges();
+    void offlineCheckLocatesAndRefreshes();
     void editorClipboardRejectsStaleAndInvalid();
     void editorCanvasDragKeepsIdsAndRepairsFrames();
     void editorGlobalStylePrecedenceAndRoundTrip();
@@ -2291,11 +2306,55 @@ void TstUi::exportManualFixtures()
     std::get<TreeSheet>(collapsed.sheets.first())
         .nodes[canvasId(QStringLiteral("branch-0"))]
         .collapsed = true;
+    Project flowSample = ProjectFactory::createFlowchart(QStringLiteral("分支与回路样例"));
+    auto &flowSheet = std::get<FlowSheet>(flowSample.sheets.first());
+    const ID startId = flowSheet.nodes.firstKey();
+    FlowNode decision;
+    decision.id = canvasId("sample-decision");
+    decision.role = "decision";
+    decision.title = QStringLiteral("验收通过？");
+    decision.position = {0, 180};
+    flowSheet.nodes.insert(decision.id, decision);
+    FlowNode end;
+    end.id = canvasId("sample-end");
+    end.role = "end";
+    end.title = QStringLiteral("完成");
+    end.position = {300, 400};
+    flowSheet.nodes.insert(end.id, end);
+    const QVector<QPair<ID, ID>> endpoints{
+        {startId, decision.id}, {decision.id, end.id}, {decision.id, startId}};
+    for (int i = 0; i < endpoints.size(); ++i)
+    {
+        FlowEdge edge;
+        edge.id = canvasId(QStringLiteral("sample-edge-%1").arg(i));
+        edge.sourceId = endpoints.at(i).first;
+        edge.targetId = endpoints.at(i).second;
+        edge.style = flowSheet.defaultEdgeStyle;
+        edge.label = i == 0   ? QStringLiteral("检查")
+                     : i == 1 ? QStringLiteral("是")
+                              : QStringLiteral("否，重试");
+        flowSheet.edges.append(edge);
+    }
+    Project offline = canvasProject(3, 1);
+    const auto &offlineTree = std::get<TreeSheet>(offline.sheets.first());
+    Task task;
+    task.id = canvasId("sample-task");
+    task.title = offlineTree.nodes.value(canvasId("branch-0")).title;
+    task.source = TaskSource{offlineTree.id, canvasId("branch-0")};
+    task.progress = 40;
+    task.startDate = QDate(2026, 10, 31);
+    task.endDate = QDate(2026, 11, 2);
+    offline.tasks.append(task);
+    const auto card = ReviewService::createCard(offline, offlineTree.id, canvasId("branch-0"));
+    QVERIFY(card.has_value());
+    offline.cards.append(*card);
     const QVector<QPair<QString, Project>> samples = {
         {QStringLiteral("01-basic.lingya"), canvasProject()},
         {QStringLiteral("02-delete-impact.lingya"), deletionProject()},
         {QStringLiteral("03-hundred-nodes.lingya"), hundred},
-        {QStringLiteral("04-collapsed.lingya"), collapsed}};
+        {QStringLiteral("04-collapsed.lingya"), collapsed},
+        {QStringLiteral("05-flow.lingya"), flowSample},
+        {QStringLiteral("06-offline.lingya"), offline}};
     for (const auto &sample : samples)
     {
         const QString path = QDir(output).filePath(sample.first);
@@ -3897,6 +3956,515 @@ void TstUi::editorGanttDatesUseCommand()
     answerDeletion(QStringLiteral("确定"));
     view->taskDatesEdited(std::get<ID>(result), QDate(2026, 11, 10), QDate(2026, 11, 2));
     QCOMPARE(view->tasks().first().startDate.value(), QDate(2026, 10, 30));
+}
+
+void TstUi::cutTokenSurvivesSheetRoundTrip()
+{
+    MainWindow window;
+    Project project = canvasProject(3, 1);
+    const ID first = project.activeSheetId;
+    const Sheet other = ProjectFactory::createFlowchart(QStringLiteral("只看一眼")).sheets.first();
+    const ID second = std::get<FlowSheet>(other).id;
+    project.sheets.append(other);
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *sheets = window.findChild<QComboBox *>("sheetSelector");
+    QVERIFY(sheets);
+    const ID source = canvasId("branch-0"), target = canvasId("branch-1");
+    chooseTopic(window, source);
+    window.findChild<QAction *>("cutTopic")->trigger();
+    const qint64 revision = doc->sessionRevision();
+    sheets->setCurrentIndex(sheets->findData(second));
+    QCOMPARE(doc->sessionRevision(), revision);
+    sheets->setCurrentIndex(sheets->findData(first));
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!commands->canUndo());
+    chooseTopic(window, target);
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QCOMPARE(
+        std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(source).parentId.value(),
+        target);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    commands->undo();
+    QCOMPARE(
+        std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(source).parentId.value(),
+        std::get<TreeSheet>(doc->project().sheets.first()).rootId);
+    QVERIFY(!commands->canUndo());
+}
+
+void TstUi::flowNodesShapesAndNoOp()
+{
+    MainWindow window;
+    loadEditorFixture(window, ProjectFactory::createFlowchart(QStringLiteral("流程图编辑")));
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    const QStringList roles{"start", "end", "process", "decision", "io"};
+    const QStringList shapes{"capsule", "capsule", "rect", "diamond", "parallelogram"};
+    for (int i = 0; i < roles.size(); ++i)
+    {
+        const qint64 revision = doc->sessionRevision();
+        runEditor(
+            window, "addFlowNode", "flowNodeDialog",
+            [&, i](QDialog *dialog)
+            {
+                dialog->findChild<QPlainTextEdit *>("flowTitle")
+                    ->setPlainText(QStringLiteral("多行中文流程%1\n第二行").arg(i));
+                auto *role = dialog->findChild<QComboBox *>("flowRole");
+                role->setCurrentIndex(role->findData(roles.at(i)));
+                dialog->findChild<QDoubleSpinBox *>("flowX")->setValue(i * 400.0);
+                dialog->findChild<QDoubleSpinBox *>("flowY")->setValue(100.0);
+                dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+            });
+        QCOMPARE(doc->sessionRevision(), revision + 1);
+        const auto *selected = window.findChild<QTreeWidget *>("topicOutline")->currentItem();
+        QVERIFY(selected);
+        const ID id = selected->data(0, Qt::UserRole).toString();
+        QCOMPARE(canvasNodes(view).value(id)->nodeStyle().shape, shapes.at(i));
+        const auto before = ProjectJson::toJson(doc->project());
+        runEditor(
+            window, "editFlowNode", "flowNodeDialog", [](QDialog *dialog)
+            { dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click(); });
+        QCOMPARE(ProjectJson::toJson(doc->project()), before);
+        QCOMPARE(doc->sessionRevision(), revision + 1);
+        commands->undo();
+        QCOMPARE(std::get<FlowSheet>(doc->project().sheets.first()).nodes.size(), i + 1);
+        commands->redo();
+    }
+    // 未编辑坐标不把原有高精度值截断为表单显示精度。
+    Project precise = doc->snapshot();
+    auto &flow = std::get<FlowSheet>(precise.sheets.first());
+    flow.nodes.first().position = {12.1234567, -34.9876543};
+    loadEditorFixture(window, precise);
+    const auto before = ProjectJson::toJson(doc->project());
+    runEditor(window, "editFlowNode", "flowNodeDialog", [](QDialog *dialog)
+              { dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click(); });
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    runEditor(window, "addFlowNode", "flowNodeDialog",
+              [](QDialog *dialog)
+              {
+                  dialog->findChild<QPlainTextEdit *>("flowTitle")
+                      ->setPlainText(QStringLiteral("取消不会新增"));
+                  dialog->reject();
+              });
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+}
+
+void TstUi::flowEdgesEditCycleAndRoundTrip()
+{
+    MainWindow window;
+    Project project = ProjectFactory::createFlowchart(QStringLiteral("判断分支和回路"));
+    auto &flow = std::get<FlowSheet>(project.sheets.first());
+    const ID start = flow.nodes.firstKey(), decision = canvasId("decision"),
+             end = canvasId("flow-end");
+    FlowNode node;
+    node.id = decision;
+    node.title = QStringLiteral("是否通过？");
+    node.role = "decision";
+    node.position = {0, 200};
+    flow.nodes.insert(node.id, node);
+    node.id = end;
+    node.title = QStringLiteral("结束");
+    node.role = "end";
+    node.position = {300, 500};
+    flow.nodes.insert(node.id, node);
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const auto addEdge = [&](const ID &a, const ID &b, const QString &label)
+    {
+        runEditor(
+            window, "editFlowEdges", "flowEdgeDialog",
+            [&](QDialog *dialog)
+            {
+                auto *source = dialog->findChild<QComboBox *>("flowSource");
+                auto *target = dialog->findChild<QComboBox *>("flowTarget");
+                source->setCurrentIndex(source->findData(a));
+                target->setCurrentIndex(target->findData(b));
+                dialog->findChild<QLineEdit *>("flowEdgeLabel")->setText(label);
+                dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
+            });
+    };
+    addEdge(start, decision, QStringLiteral("开始判断"));
+    addEdge(decision, end, QStringLiteral("是"));
+    addEdge(decision, start, QStringLiteral("否，重试"));
+    addEdge(decision, decision, QStringLiteral("自环"));
+    QCOMPARE(std::get<FlowSheet>(doc->project().sheets.first()).edges.size(), 4);
+    const qint64 revision = doc->sessionRevision();
+    addEdge(start, decision, QStringLiteral("重复应拒绝"));
+    QCOMPARE(doc->sessionRevision(), revision);
+    const ID edge = std::get<FlowSheet>(doc->project().sheets.first()).edges.at(1).id;
+    runEditor(
+        window, "editFlowEdges", "flowEdgeDialog",
+        [&](QDialog *dialog)
+        {
+            auto *record = dialog->findChild<QComboBox *>("flowEdgeRecord");
+            record->setCurrentIndex(record->findData(edge));
+            auto *arrows = dialog->findChild<QComboBox *>("flowArrow");
+            arrows->setCurrentIndex(arrows->findData("both"));
+            auto *from = dialog->findChild<QComboBox *>("flowSourcePort");
+            from->setCurrentIndex(from->findData("left"));
+            dialog->findChild<QLineEdit *>("flowEdgeLabel")->setText(QStringLiteral("是，通过"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
+        });
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    QCOMPARE(std::get<FlowSheet>(doc->project().sheets.first()).edges.at(1).arrow,
+             QStringLiteral("both"));
+    commands->undo();
+    QCOMPARE(std::get<FlowSheet>(doc->project().sheets.first()).edges.at(1).label,
+             QStringLiteral("是"));
+    commands->redo();
+    QTemporaryDir files;
+    const QString path = files.filePath(QStringLiteral("分支回路.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    const auto &again =
+        std::get<FlowSheet>(reopened.findChild<ProjectDocument *>()->project().sheets.first());
+    QCOMPARE(again.edges.size(), 4);
+    QCOMPARE(again.edges.at(1).label, QStringLiteral("是，通过"));
+    QCOMPARE(again.edges.at(1).arrow, QStringLiteral("both"));
+    auto *view = reopened.findChild<QGraphicsView *>("topicPreview");
+    int lines = 0;
+    for (auto *item : view->scene()->items())
+        if (!item->parentItem() && item->data(0x21C1).isValid())
+        {
+            auto *line = dynamic_cast<QGraphicsPathItem *>(item);
+            QVERIFY(line);
+            QVERIFY(line->path().length() > 0);
+            ++lines;
+            for (const auto *nodeItem : canvasNodes(view))
+                for (int step = 0; step <= 200; ++step)
+                    QVERIFY(!nodeItem->mapRectToScene(nodeItem->nodeRect())
+                                 .adjusted(3, 3, -3, -3)
+                                 .contains(line->path().pointAtPercent(step / 200.0)));
+        }
+    QCOMPARE(lines, 4);
+    const QString capture = qEnvironmentVariable("LINGYA_FLOW_CAPTURE");
+    if (!capture.isEmpty())
+    {
+        reopened.show();
+        reopened.findChild<QAction *>("fitTopic")->trigger();
+        QTest::qWait(30);
+        QVERIFY(reopened.grab().save(capture));
+    }
+    chooseTopic(window, decision);
+    const auto unchanged = ProjectJson::toBytes(doc->project());
+    answerDeletion(QStringLiteral("取消"));
+    window.findChild<QAction *>("deleteTopic")->trigger();
+    QCOMPARE(ProjectJson::toBytes(doc->project()), unchanged);
+    answerDeletion(QStringLiteral("删除"));
+    window.findChild<QAction *>("deleteTopic")->trigger();
+    QCOMPARE(std::get<FlowSheet>(doc->project().sheets.first()).nodes.size(), 2);
+    QVERIFY(std::get<FlowSheet>(doc->project().sheets.first()).edges.isEmpty());
+    commands->undo();
+    QCOMPARE(std::get<FlowSheet>(doc->project().sheets.first()).edges.size(), 4);
+}
+
+void TstUi::flowDragAndLayoutAreSingleTransactions()
+{
+    MainWindow window;
+    Project project = ProjectFactory::createFlowchart(QStringLiteral("自由坐标"));
+    auto &flow = std::get<FlowSheet>(project.sheets.first());
+    const ID id = flow.nodes.firstKey();
+    loadEditorFixture(window, project);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    auto *viewport = view->viewport();
+    const QPoint press = view->mapFromScene(canvasNodes(view).value(id)->pos());
+    const QPoint release = press + QPoint(83, 67);
+    window.findChild<QAction *>("flowSnap")->setChecked(true);
+    const qint64 revision = doc->sessionRevision();
+    QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, press);
+    QMouseEvent move(QEvent::MouseMove, release, viewport->mapToGlobal(release), Qt::NoButton,
+                     Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(viewport, &move);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, release);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    const auto position =
+        std::get<FlowSheet>(doc->project().sheets.first()).nodes.value(id).position;
+    QCOMPARE(std::fmod(position.x(), 20.0), 0.0);
+    QCOMPARE(std::fmod(position.y(), 20.0), 0.0);
+    commands->undo();
+    QCOMPARE(std::get<FlowSheet>(doc->project().sheets.first()).nodes.value(id).position,
+             QPointF());
+    QVERIFY(!commands->canUndo());
+    commands->redo();
+    window.findChild<QAction *>("layoutFlow")->trigger();
+    QCOMPARE(doc->sessionRevision(), revision + 4);
+    commands->undo();
+    QCOMPARE(std::get<FlowSheet>(doc->project().sheets.first()).nodes.value(id).position, position);
+    // 离开画布撤掉预览，不产生一次内容编辑。
+    const QPoint nextPress = view->mapFromScene(canvasNodes(view).value(id)->pos());
+    const qint64 beforeLeave = doc->sessionRevision();
+    QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, nextPress);
+    QMouseEvent nextMove(QEvent::MouseMove, nextPress + QPoint(60, 20),
+                         viewport->mapToGlobal(nextPress + QPoint(60, 20)), Qt::NoButton,
+                         Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(viewport, &nextMove);
+    QEvent leave(QEvent::Leave);
+    QApplication::sendEvent(viewport, &leave);
+    QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, nextPress + QPoint(60, 20));
+    QCOMPARE(doc->sessionRevision(), beforeLeave);
+    QCOMPARE(canvasNodes(view).value(id)->pos(), position);
+}
+
+void TstUi::flowPortsCreateEdgeAndCancel()
+{
+    MainWindow window;
+    Project project = ProjectFactory::createFlowchart(QStringLiteral("端口连线"));
+    auto &flow = std::get<FlowSheet>(project.sheets.first());
+    const ID first = flow.nodes.firstKey();
+    FlowNode node;
+    node.id = canvasId("port-target");
+    node.title = QStringLiteral("处理");
+    node.position = {0, 250};
+    const ID second = node.id;
+    flow.nodes.insert(node.id, node);
+    loadEditorFixture(window, project);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    const auto items = canvasNodes(view);
+    const QPoint a = view->mapFromScene(
+        items.value(first)->mapToScene(QPointF(0, items.value(first)->nodeRect().bottom())));
+    const QPoint b = view->mapFromScene(
+        items.value(second)->mapToScene(QPointF(0, items.value(second)->nodeRect().top())));
+    const qint64 revision = doc->sessionRevision();
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
+    QTimer::singleShot(0, &window,
+                       [&]
+                       {
+                           auto *dialog = window.findChild<QDialog *>("flowEdgeDialog");
+                           QVERIFY(dialog);
+                           dialog->reject();
+                       });
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
+    QTimer::singleShot(
+        0, &window,
+        [&]
+        {
+            auto *dialog = window.findChild<QDialog *>("flowEdgeDialog");
+            QVERIFY(dialog);
+            QCOMPARE(dialog->findChild<QComboBox *>("flowSource")->currentData().toString(), first);
+            QCOMPARE(dialog->findChild<QComboBox *>("flowTarget")->currentData().toString(),
+                     second);
+            dialog->findChild<QLineEdit *>("flowEdgeLabel")->setText(QStringLiteral("继续"));
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
+            dialog->reject();
+        });
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    const auto &edge = std::get<FlowSheet>(doc->project().sheets.first()).edges.first();
+    QCOMPARE(edge.sourcePort, QStringLiteral("bottom"));
+    QCOMPARE(edge.targetPort, QStringLiteral("top"));
+    window.findChild<CommandService *>()->undo();
+    QVERIFY(std::get<FlowSheet>(doc->project().sheets.first()).edges.isEmpty());
+}
+
+void TstUi::offlineTasksMilestoneAndSelection()
+{
+    MainWindow window;
+    Project project = canvasProject(2, 1);
+    const ID branch = canvasId("branch-0");
+    loadEditorFixture(window, project);
+    chooseTopic(window, branch);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *table = window.findChild<QTableView *>("taskTable");
+    window.findChild<QAction *>("linkSelectedTask")->trigger();
+    QCOMPARE(doc->project().tasks.size(), 1);
+    const ID task = doc->project().tasks.first().id;
+    const qint64 revision = doc->sessionRevision();
+    runEditor(
+        window, "editTaskProperties", "taskDialog",
+        [&](QDialog *dialog)
+        {
+            dialog->findChild<QLineEdit *>("taskTitle")
+                ->setText(QStringLiteral("已同步的任务名称"));
+            dialog->findChild<QPushButton *>("renameTask")->click();
+            QCOMPARE(doc->sessionRevision(), revision + 1);
+            QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(branch).title,
+                     QStringLiteral("已同步的任务名称"));
+            dialog->findChild<QCheckBox *>("taskScheduled")->setChecked(true);
+            dialog->findChild<QDateEdit *>("taskStart")->setDate(QDate(2026, 10, 31));
+            dialog->findChild<QDateEdit *>("taskEnd")->setDate(QDate(2026, 11, 2));
+            dialog->findChild<QCheckBox *>("taskMilestone")->setChecked(true);
+            auto *apply = dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok);
+            apply->click();
+            QVERIFY(dialog->isVisible());
+            QVERIFY(!dialog->findChild<QLabel *>("taskError")->text().isEmpty());
+            QCOMPARE(doc->sessionRevision(), revision + 1);
+            dialog->findChild<QDateEdit *>("taskEnd")->setDate(QDate(2026, 10, 31));
+            dialog->findChild<QSpinBox *>("taskProgress")->setValue(45);
+            const QString capture = qEnvironmentVariable("LINGYA_TASK_CAPTURE");
+            if (!capture.isEmpty())
+            {
+                QTest::qWait(30);
+                QVERIFY(dialog->grab().save(capture));
+            }
+            apply->click();
+        });
+    QCOMPARE(doc->sessionRevision(), revision + 2);
+    QVERIFY(doc->project().tasks.first().milestone);
+    QCOMPARE(doc->project().tasks.first().progress, 45);
+    QCOMPARE(table->currentIndex().row(), 0);
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    bool badge = false;
+    for (auto *item : view->scene()->items())
+        if (item->data(0x21C2).toString() == task)
+            badge = true;
+    QVERIFY(badge);
+    commands->undo();
+    QVERIFY(!doc->project().tasks.first().milestone);
+    QCOMPARE(doc->project().tasks.first().progress, 0);
+    commands->redo();
+    const qint64 noOpRevision = doc->sessionRevision();
+    runEditor(window, "editTaskProperties", "taskDialog", [](QDialog *dialog)
+              { dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click(); });
+    QCOMPARE(doc->sessionRevision(), noOpRevision);
+    window.findChild<QAction *>("showGantt")->trigger();
+    window.show();
+    QTest::qWait(30);
+    auto *gantt = window.findChild<GanttView *>();
+    QVERIFY(gantt);
+    for (auto *item : gantt->scene()->items())
+        if (item->data(GanttView::kBarDataRole).toString() == task)
+        {
+            QTest::mouseClick(gantt->viewport(), Qt::LeftButton, Qt::NoModifier,
+                              gantt->mapFromScene(item->sceneBoundingRect().center()));
+            break;
+        }
+    QCOMPARE(table->currentIndex().row(), 0);
+    QCOMPARE(window.findChild<QTreeWidget *>("topicOutline")
+                 ->currentItem()
+                 ->data(0, Qt::UserRole)
+                 .toString(),
+             branch);
+    QTemporaryDir files;
+    const QString path = files.filePath("milestone.lingya");
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    const auto &saved = reopened.findChild<ProjectDocument *>()->project().tasks.first();
+    QVERIFY(saved.milestone);
+    QCOMPARE(saved.progress, 45);
+    QCOMPARE(saved.title, QStringLiteral("已同步的任务名称"));
+}
+
+void TstUi::offlineReviewGradesAndSourceChanges()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 1));
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const ID branch = canvasId("branch-0");
+    chooseTopic(window, branch);
+    window.findChild<QAction *>("addReviewCard")->trigger();
+    QCOMPARE(doc->project().cards.size(), 1);
+    const ID card = doc->project().cards.first().id;
+    const qint64 revision = doc->sessionRevision();
+    runEditor(window, "showReviewCards", "reviewCardsDialog",
+              [&](QDialog *dialog)
+              {
+                  auto *page = dialog->findChild<ReviewPage *>();
+                  QVERIFY(page);
+                  QCOMPARE(page->totalCount(), 1);
+                  const QString capture = qEnvironmentVariable("LINGYA_REVIEW_CAPTURE");
+                  if (!capture.isEmpty())
+                  {
+                      QTest::qWait(30);
+                      QVERIFY(dialog->grab().save(capture));
+                  }
+                  page->findChild<QPushButton *>("reviewReveal")->click();
+                  page->findChild<QPushButton *>("reviewAgain")->click();
+                  QCOMPARE(doc->sessionRevision(), revision);
+                  QVERIFY(!page->isFinished());
+                  page->findChild<QPushButton *>("reviewReveal")->click();
+                  page->findChild<QPushButton *>("reviewMastered")->click();
+                  QCOMPARE(doc->project().cards.first().status, QStringLiteral("mastered"));
+                  QVERIFY(doc->project().cards.first().lastReviewedAt.has_value());
+                  QVERIFY(page->isFinished());
+              });
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    commands->undo();
+    QCOMPARE(doc->project().cards.first().status, QStringLiteral("new"));
+    commands->redo();
+    const ID sheet = doc->project().activeSheetId;
+    QVERIFY(std::holds_alternative<bool>(
+        TaskCommands(commands, doc).renameNode(sheet, branch, QStringLiteral("源内容有变化"))));
+    QCOMPARE(ReviewService::detectSourceState(doc->project().cards.first(), doc->project()),
+             QStringLiteral("changed"));
+    runEditor(window, "showReviewCards", "reviewCardsDialog",
+              [&](QDialog *dialog)
+              {
+                  auto *page = dialog->findChild<ReviewPage *>();
+                  QCOMPARE(page->totalCount(), 0);
+                  dialog->findChild<QPushButton *>("refreshReviewCard")->click();
+                  QCOMPARE(doc->project().cards.first().id, card);
+                  QCOMPARE(doc->project().cards.first().front, QStringLiteral("源内容有变化"));
+                  QCOMPARE(doc->project().cards.first().status, QStringLiteral("mastered"));
+                  dialog->findChild<QPushButton *>("startReview")->click();
+                  QCOMPARE(page->totalCount(), 1);
+              });
+    QTemporaryDir files;
+    const QString path = files.filePath("review.lingya");
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    QCOMPARE(reopened.findChild<ProjectDocument *>()->project().cards.first().status,
+             QStringLiteral("mastered"));
+}
+
+void TstUi::offlineCheckLocatesAndRefreshes()
+{
+    MainWindow window;
+    Project project = canvasProject(2, 0);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const ID target = canvasId("branch-0"), firstSheet = tree.id;
+    tree.nodes[target].title = QStringLiteral("   "); // 合法长度但未命名，C01按trimmed检查。
+    const auto second = ProjectFactory::createFlowchart(QStringLiteral("第二表")).sheets.first();
+    project.sheets.append(second);
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *sheets = window.findChild<QComboBox *>("sheetSelector");
+    sheets->setCurrentIndex(1);
+    window.findChild<QAction *>("checkProject")->trigger();
+    auto *panel = window.findChild<IssuePanel *>();
+    QVERIFY(panel);
+    bool found = false;
+    for (const auto &issue : panel->issues())
+        if (issue.targetId == target && issue.ruleId == "C01")
+            found = true;
+    QVERIFY(found);
+    const qint64 revision = doc->sessionRevision();
+    panel->locateRequested(firstSheet, target);
+    QCOMPARE(doc->project().activeSheetId, firstSheet);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(window.findChild<QTreeWidget *>("topicOutline")
+                 ->currentItem()
+                 ->data(0, Qt::UserRole)
+                 .toString(),
+             target);
+    QVERIFY(std::holds_alternative<bool>(
+        TaskCommands(window.findChild<CommandService *>(), doc)
+            .renameNode(firstSheet, target, QStringLiteral("已修正主题"))));
+    for (const auto &issue : panel->issues())
+        QVERIFY(issue.targetId != target || issue.ruleId != "C01");
+    window.findChild<CommandService *>()->undo();
+    found = false;
+    for (const auto &issue : panel->issues())
+        if (issue.targetId == target && issue.ruleId == "C01")
+            found = true;
+    QVERIFY(found);
 }
 
 QTEST_MAIN(TstUi)
