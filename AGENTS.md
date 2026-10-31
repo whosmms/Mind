@@ -5,6 +5,8 @@ Windows 桌面思维导图课程软件。仓库根目录即本文件所在目录
 
 ## 甲待复核 H-033（2026-10-31）
 
+草稿评审：[PR #39](https://github.com/whosmms/Mind/pull/39)，待乙丙接收，未合main。
+
 - 分支 `feature/a/M3-offline-host` 基于 `main=e4daeb5`；原PR38已由乙接收并清理远程，不恢复旧引用。
 - 复用乙FlowCommands/FlowLayout与丙TaskTableModel/ReviewPage/IssuePanel，接通流程图节点/端口/连线/自由移动/自动布局，任务表与里程碑、复习自评持久化、检查定位/刷新。详见 `docs/reviews/H-033-甲流程图与离线宿主接线.md`。
 - 产品被测 `d05760e`：冻结Debug/Release各24套件522通过、0失败0跳过（UI95），48份XML在 `docs/evidence/20261031-甲流程与离线宿主`；未自批合main、未代签真人。切表API修复归乙，本批新增剪切往返切表回归。

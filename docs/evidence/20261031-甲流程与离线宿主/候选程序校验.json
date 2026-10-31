@@ -81,5 +81,5 @@
     }
   ],
   "validation": "产品d05760e：冻结Debug/Release各24套件522通过，0失败0跳过；六份样例严格往返，截图专项6项另计。非本人真人/跨机验收。",
-  "pullRequest": "待创建"
+  "pullRequest": "https://github.com/whosmms/Mind/pull/39"
 }
