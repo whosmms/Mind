@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstTasks">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0393"/>
+  </TestFunction>
+  <TestFunction name="addTaskAppendsAndIsUndoable">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2421"/>
+  </TestFunction>
+  <TestFunction name="updateTaskRejectsInvalidDate">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.069"/>
+  </TestFunction>
+  <TestFunction name="removeTaskCleansDependencies">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1095"/>
+  </TestFunction>
+  <TestFunction name="linkTaskEnforcesOneNodeOneTask">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.044"/>
+  </TestFunction>
+  <TestFunction name="unlinkTaskKeepsTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0451"/>
+  </TestFunction>
+  <TestFunction name="renameNodeSyncsTaskTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0591"/>
+  </TestFunction>
+  <TestFunction name="renameTaskSyncsNodeTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0556"/>
+  </TestFunction>
+  <TestFunction name="titleMismatchDetectsConflict">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0438"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0071"/>
+  </TestFunction>
+  <Duration msecs="2.0259"/>
+</TestCase>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstGanttView">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.2009"/>
+  </TestFunction>
+  <TestFunction name="emptySceneHasNoItems">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.9525"/>
+  </TestFunction>
+  <TestFunction name="drawsBarsForDatedTasks">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="3.4474"/>
+  </TestFunction>
+  <TestFunction name="milestoneDrawsOneItem">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1764"/>
+  </TestFunction>
+  <TestFunction name="skipsTaskWithInvalidDates">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.476"/>
+  </TestFunction>
+  <TestFunction name="sceneRectTracksRowsAndRange">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1594"/>
+  </TestFunction>
+  <TestFunction name="dateForXHandlesNegativeX">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0085"/>
+  </TestFunction>
+  <TestFunction name="setPixelsPerDayFallsBackToDefault">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0651"/>
+  </TestFunction>
+  <TestFunction name="progressFillsBar">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.4404"/>
+  </TestFunction>
+  <TestFunction name="dependencyDrawsArrow">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3738"/>
+  </TestFunction>
+  <TestFunction name="timeAxisDrawsTicks">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1904"/>
+  </TestFunction>
+  <TestFunction name="rowForTaskMatchesTableOrder">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2171"/>
+  </TestFunction>
+  <TestFunction name="unscheduledListShowsTasks">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2841"/>
+  </TestFunction>
+  <TestFunction name="dragFilledBarMovesWholeBar">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.5393"/>
+  </TestFunction>
+  <TestFunction name="dragStartEdgeResizesStart">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.0807"/>
+  </TestFunction>
+  <TestFunction name="rebuildDuringDragDropsState">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.0612"/>
+  </TestFunction>
+  <TestFunction name="shiftTaskDatesMove">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0107"/>
+  </TestFunction>
+  <TestFunction name="shiftTaskDatesResizeClamps">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0084"/>
+  </TestFunction>
+  <TestFunction name="shiftTaskDatesInvalidInput">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.008"/>
+  </TestFunction>
+  <TestFunction name="freeRouteXAvoidsBlockingBars">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0133"/>
+  </TestFunction>
+  <TestFunction name="shortCrossMonthShowsSingleMonthLabel">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2513"/>
+  </TestFunction>
+  <TestFunction name="longRangeShowsBothMonthLabels">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.2158"/>
+  </TestFunction>
+  <TestFunction name="midMonthRangeShowsYearAndMonth">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2684"/>
+  </TestFunction>
+  <TestFunction name="longUnscheduledNamesRemainScrollable">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[only-unscheduled]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[mixed]]></DataTag>
+    </Incident>
+    <Duration msecs="6.154"/>
+  </TestFunction>
+  <TestFunction name="milestoneDependenciesReachMarkers">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[default-day-width]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[wide-day]]></DataTag>
+    </Incident>
+    <Duration msecs="0.4367"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0078"/>
+  </TestFunction>
+  <Duration msecs="23.4839"/>
+</TestCase>

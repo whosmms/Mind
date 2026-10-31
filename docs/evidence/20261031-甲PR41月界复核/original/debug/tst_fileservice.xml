@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstFileService">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0405"/>
+  </TestFunction>
+  <TestFunction name="saveLoadRoundtripWithChineseAndSpaces">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="10.8401"/>
+  </TestFunction>
+  <TestFunction name="loadRejectsMissingFile">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.7511"/>
+  </TestFunction>
+  <TestFunction name="loadRejectsOversizedFile">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="6.0814"/>
+  </TestFunction>
+  <TestFunction name="loadRejectsBadBytes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.6988"/>
+  </TestFunction>
+  <TestFunction name="saveCreatesBackupWithPreviousContent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="25.013"/>
+  </TestFunction>
+  <TestFunction name="backupFailureKeepsOriginalFile">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="11.1466"/>
+  </TestFunction>
+  <TestFunction name="saveRejectsUnwritablePath">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.6728"/>
+  </TestFunction>
+  <TestFunction name="saveRejectsEmptyPath">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.096"/>
+  </TestFunction>
+  <TestFunction name="saveRejectsInvalidProject">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="3.001"/>
+  </TestFunction>
+  <TestFunction name="stampReflectsContent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="19.4884"/>
+  </TestFunction>
+  <TestFunction name="saveDetectsExternalModification">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="10.5268"/>
+  </TestFunction>
+  <TestFunction name="saveDetectsExternalDeletion">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="8.1485"/>
+  </TestFunction>
+  <TestFunction name="saveSucceedsWithMatchingStamp">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="17.0723"/>
+  </TestFunction>
+  <TestFunction name="recentFilesMostRecentFirstAndDedup">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.0368"/>
+  </TestFunction>
+  <TestFunction name="recentFilesTruncateToLimit">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="4.5768"/>
+  </TestFunction>
+  <TestFunction name="recentFilesRemoveEntry">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="7.2511"/>
+  </TestFunction>
+  <TestFunction name="recentFilesToleratesBlankEntries">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.3571"/>
+  </TestFunction>
+  <TestFunction name="recentFilesChineseAndSpacesRoundtrip">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.6934"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0093"/>
+  </TestFunction>
+  <Duration msecs="145.149"/>
+</TestCase>

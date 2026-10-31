@@ -1,0 +1,88 @@
+#include "charts/GanttView.h"
+#include <QApplication>
+#include <QDir>
+#include <QFontDatabase>
+#include <QGraphicsScene>
+#include <QGraphicsLineItem>
+#include <QGraphicsTextItem>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QRegularExpression>
+#include <QTextDocument>
+#include <algorithm>
+#include <cstdio>
+
+// 独立评审探针：只读丙现有图元，不改工程或生产源码。
+int main(int argc, char **argv) {
+    QApplication app(argc, argv);
+    QFontDatabase::addApplicationFont(QDir(qEnvironmentVariable("WINDIR")).filePath("Fonts/msyh.ttc"));
+    QApplication::setFont(QFont(QStringLiteral("Microsoft YaHei"), 10));
+    const bool expectLegacyOverlap = app.arguments().contains("--legacy");
+    QJsonArray results;
+    bool allValid = true;
+    bool observedLegacyOverlap = false;
+    struct Range { const char *name; QDate start, end; };
+    const Range ranges[] = {
+        {"短跨月", QDate(2026, 10, 31), QDate(2026, 11, 2)},
+        {"短跨年", QDate(2026, 12, 31), QDate(2027, 1, 2)},
+        {"闰年跨月", QDate(2028, 2, 29), QDate(2028, 3, 2)},
+        {"完整三月", QDate(2026, 10, 1), QDate(2026, 12, 1)},
+        {"月中起点", QDate(2026, 10, 30), QDate(2026, 11, 3)}
+    };
+    for (const auto &range : ranges) {
+        for (int pixelsPerDay : {8, 16, 24, 48, 60, 64, 72, 120}) {
+            lingya::Task task;
+            task.id = "review-only-task";
+            task.title = QStringLiteral("评审任务");
+            task.startDate = range.start;
+            task.endDate = range.end;
+            lingya::GanttView view;
+            view.setPixelsPerDay(pixelsPerDay);
+            view.setTasks({task});
+            QVector<QGraphicsTextItem *> labels;
+            for (auto *item : view.scene()->items()) {
+                if (auto *text = dynamic_cast<QGraphicsTextItem *>(item);
+                    text && qFuzzyIsNull(text->pos().y()) &&
+                    QRegularExpression("^\\d{4}-\\d{2}$").match(text->toPlainText()).hasMatch())
+                    labels.append(text);
+            }
+            std::sort(labels.begin(), labels.end(), [](auto *a, auto *b) { return a->pos().x() < b->pos().x(); });
+            qreal previousRight = -1.0e9;
+            bool overlap = false;
+            bool gridCutsText = false;
+            QJsonArray texts;
+            for (auto *label : labels) {
+                // QTextDocument的边距透明；比较实际文字内容区域，避免把透明边距交叠误报为压字。
+                const qreal margin = label->document()->documentMargin();
+                const QRectF content = label->mapRectToScene(label->boundingRect().adjusted(margin, margin, -margin, -margin));
+                overlap |= content.left() < previousRight;
+                previousRight = content.right();
+                for (auto *item : view.scene()->items()) {
+                    if (auto *line = dynamic_cast<QGraphicsLineItem *>(item)) {
+                        const QPointF from = line->mapToScene(line->line().p1());
+                        const QPointF to = line->mapToScene(line->line().p2());
+                        gridCutsText |= qFuzzyCompare(from.x(), to.x()) &&
+                                        from.x() > content.left() && from.x() < content.right() &&
+                                        qMin(from.y(), to.y()) < content.bottom() &&
+                                        qMax(from.y(), to.y()) > content.top();
+                    }
+                }
+                texts.append(label->toPlainText());
+            }
+            observedLegacyOverlap |= overlap;
+            allValid &= !overlap && !gridCutsText && !labels.isEmpty() && view.tasks().size() == 1 &&
+                        view.tasks().first().startDate == task.startDate &&
+                        view.tasks().first().endDate == task.endDate;
+            results.append(QJsonObject{{"range", QString::fromUtf8(range.name)}, {"pixelsPerDay", pixelsPerDay},
+                                       {"labels", texts}, {"textOverlap", overlap}, {"gridCutsText", gridCutsText}});
+        }
+    }
+    const bool success = expectLegacyOverlap ? observedLegacyOverlap : allValid;
+    const QJsonObject output{{"legacy", expectLegacyOverlap}, {"success", success},
+                             {"fontDpi", qEnvironmentVariable("QT_FONT_DPI")},
+                             {"scenarios", results}};
+    const QByteArray json = QJsonDocument(output).toJson();
+    std::fwrite(json.constData(), 1, static_cast<size_t>(json.size()), stdout);
+    return success ? 0 : 1;
+}
