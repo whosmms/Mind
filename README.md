@@ -28,6 +28,19 @@ X01/X02/X04 与真实联网未代做，不宣称阶段门禁通过。
 与 [交接文档 §46](docs/交接文档.md)。登记项：定位命中筛选内任务时同样会展开全量（状态栏已提示）；恢复筛选后
 任务表可能仍选中筛选外任务。真人/DPI/跨机与丙体验接收未签。
 
+## R13 月界避让已合入（2026-10-31 乙回执）
+
+PR [#41](https://github.com/whosmms/Mind/pull/41)（丙 `feature/c/M3-gantt-month-axis`，tip `a79d348`）与甲复核补丁
+`1cd75d7` 由 [PR #42](https://github.com/whosmms/Mind/pull/42) 以 merge commit 合入 main，合并提交 `05bb15a`，
+远程 `feature/c/M3-gantt-month-axis` 与 `review/a/R13-month-axis` 已删除。原 PR41 因文档 §46 与文末追加冲突不可直合，
+改为合入甲合成分支，丙三个提交作者与内容原样保留。
+修复 `OBS-A-20261031-001`：短区间跨月时两个 `yyyy-MM` 不再互压（丙），月界竖线不再穿过保留的月份标题（甲补丁）。
+乙在冻结 Kit 独立复跑两组双配置：各 24 套件 526 通过、0 失败 0 跳过（`tst_ganttview` 28、`tst_ui` 97），CTest 各 24/24；
+反证（避让条件改恒真）令新用例在 `tst_ganttview.cpp:465` 实红；截图经像素测量确认标签行无贯穿竖线。
+详见[集成回执](docs/reviews/PR41-乙集成回执.md)、[甲复核](docs/reviews/PR41-甲非作者复核与月界线补丁.md) 与
+[交接文档 §49](docs/交接文档.md)。登记：轴带内不再显示月份分界（3 天窗口分界仅任务区可见）；月份标签识别仍为启发式。
+真人操作/输入法/DPI/无 Qt 跨机未签，不宣称阶段门禁通过。
+
 ## H-031 已合入（2026-10-30 乙回执）
 
 `feature/a/M2-editor-completion`（tip `546cac4`）经乙复核后 `--no-ff` 合入 main，合并提交 `fb17fff`，远程分支已删除。
