@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstSession">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0428"/>
+  </TestFunction>
+  <TestFunction name="createAccountAcceptsAndRejectsDuplicate">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="8.8223"/>
+  </TestFunction>
+  <TestFunction name="createAccountValidatesUserName">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.6376"/>
+  </TestFunction>
+  <TestFunction name="createAccountValidatesPassword">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.7545"/>
+  </TestFunction>
+  <TestFunction name="loginSucceedsAndRejectsBadCredentials">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="10.3957"/>
+  </TestFunction>
+  <TestFunction name="loginNormalizesUserName">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="10.5891"/>
+  </TestFunction>
+  <TestFunction name="accountFileStoresNoPlaintextPassword">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="10.0028"/>
+  </TestFunction>
+  <TestFunction name="corruptAccountStoreRejected">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.9617"/>
+  </TestFunction>
+  <TestFunction name="userDirLayout">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.6558"/>
+  </TestFunction>
+  <TestFunction name="saveOwnedWritesAndRoundtrips">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="10.3326"/>
+  </TestFunction>
+  <TestFunction name="saveOwnedRejectsTraversalNames">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.7619"/>
+  </TestFunction>
+  <TestFunction name="saveOwnedOverwritesWithBackup">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="13.6267"/>
+  </TestFunction>
+  <TestFunction name="listOwnedNewestFirstAndSkipsForeign">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="8.0639"/>
+  </TestFunction>
+  <TestFunction name="classifyOwnOthersPublic">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.7613"/>
+  </TestFunction>
+  <TestFunction name="openOwnedRejectsMissingFile">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.6897"/>
+  </TestFunction>
+  <TestFunction name="accountNamesCannotShareDirectoryIdentity">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="8.745"/>
+  </TestFunction>
+  <TestFunction name="malformedUsersCollectionKeepsAccountStore">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.6342"/>
+  </TestFunction>
+  <TestFunction name="duplicateDirectoryIdentityRejectedOnLoad">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="15.957"/>
+  </TestFunction>
+  <TestFunction name="windowsAccountNamesRejected">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[尾点目录别名]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[保留设备名]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[设备名带扩展]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[串行设备名]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[上标设备名]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[冒号流名]]></DataTag>
+    </Incident>
+    <Duration msecs="0.0593"/>
+  </TestFunction>
+  <TestFunction name="ownedNameRejectsStreamBeforeCreatingFolder">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.7731"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0333"/>
+  </TestFunction>
+  <Duration msecs="107.828"/>
+</TestCase>

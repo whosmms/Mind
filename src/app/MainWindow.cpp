@@ -451,7 +451,7 @@ void MainWindow::buildMenus() {
     QMenu* viewMenu = menuBar()->addMenu(QStringLiteral("视图(&V)"));
     viewMenu->addAction(QStringLiteral("思维导图(&M)"), this, [this] { m_centralStack->setCurrentIndex(0); });
     auto *ganttAction =
-        viewMenu->addAction(QStringLiteral("甘特图(&G)"), this, &MainWindow::showGanttView);
+        viewMenu->addAction(QStringLiteral("甘特图(&G)"), this, [this] { showGanttView(); });
     ganttAction->setObjectName(QStringLiteral("showGantt"));
     viewMenu->addAction(
         findChild<QDockWidget *>(QStringLiteral("outlineDock"))->toggleViewAction());
@@ -477,8 +477,9 @@ void MainWindow::buildMenus() {
     buildOfflineActions(viewMenu);
 }
 
-void MainWindow::showGanttView()
+void MainWindow::showGanttView(bool forTaskLocation)
 {
+    m_ganttTaskLocation = forTaskLocation;
     if (qobject_cast<QLabel *>(m_ganttPage) != nullptr)
     {
         auto *gantt = new GanttView(this);
@@ -491,6 +492,7 @@ void MainWindow::showGanttView()
             gantt->setTasks(visibleGanttTasks());
         m_centralStack->setCurrentIndex(1);
     }
+    updateStatusLine();
     if (m_doc->project().tasks.isEmpty())
         statusBar()->showMessage(QStringLiteral("暂无任务。打开含排期任务的工程后可查看时间轴。"));
     else if (visibleGanttTasks().isEmpty())
@@ -1522,6 +1524,7 @@ void MainWindow::loadNewDocument(Project project) {
     m_cutToken.clear();
     m_unfilteredCollapsed.clear();
     m_filterWasActive = false;
+    m_ganttTaskLocation = false;
     m_outlineSheetId.clear();
     m_displaySheetId.clear();
     {
@@ -1970,6 +1973,8 @@ void MainWindow::addFishboneEdges(const TreeSheet &display)
 void MainWindow::onDocumentChanged() {
     const QScopedValueRollback<bool> refreshing(m_refreshingViews, true);
     const bool sameSheet = m_outlineSheetId == m_doc->project().activeSheetId;
+    if (!sameSheet)
+        m_ganttTaskLocation = false;
     const auto previousAnnotations = m_annotationMembers;
     rebuildSheets();
     rebuildOutline();
@@ -2023,6 +2028,8 @@ void MainWindow::updateStatusLine() {
         visibleGanttTasks().isEmpty())
         line +=
             QStringLiteral(" · 当前筛选无任务（工程共 %1 项）").arg(m_doc->project().tasks.size());
+    if (m_ganttTaskLocation && m_centralStack->currentIndex() == 1)
+        line += QStringLiteral(" · 问题定位临时显示全部任务；点击“视图→甘特图”恢复工作表筛选");
     // 恢复快照与正式保存分别显示状态（原设计§8）：备注为最近一次快照写入时间或失败提示
     if (!m_recoveryNote.isEmpty()) line += QStringLiteral(" · ") + m_recoveryNote;
     if (!m_canvasError.isEmpty())

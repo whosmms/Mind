@@ -150,7 +150,7 @@ private:
     void rebuildOutline();
     void rebuildTagFilter();
     void applyOutlineTagFilter();
-    void showGanttView();
+    void showGanttView(bool forTaskLocation = false);
     QVector<Task> visibleGanttTasks() const;
     void setCanvasZoom(qreal zoom);
     void fitCanvas();
@@ -187,6 +187,7 @@ private:
     TaskTableModel *m_taskModel = nullptr;
     IssuePanel *m_issuePanel = nullptr;
     ID m_selectedTaskId;
+    bool m_ganttTaskLocation = false; // 问题定位临时全量显示，不写回工作表筛选。
     bool m_refreshingViews = false;
     bool m_checksDirty = true;
     QPoint m_dragStart;

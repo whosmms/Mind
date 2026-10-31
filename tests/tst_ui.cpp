@@ -4674,6 +4674,46 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     QVERIFY(reopened.openFile(path));
     QCOMPARE(reopened.findChild<GanttView *>()->tasks().size(), 1);
     QCOMPARE(reopened.findChild<ProjectDocument *>()->project().tasks.size(), 3);
+
+    const auto savedProject = ProjectJson::toJson(doc->project());
+    const auto locateRevision = doc->sessionRevision();
+    const bool undoAvailable = commands->canUndo();
+    auto *issues = window.findChild<IssuePanel *>();
+    QVERIFY(issues);
+    issues->locateRequested(otherSheet, task.id);
+    QVERIFY(view->rowForTask(task.id) >= 0);
+    QCOMPARE(view->tasks().size(), 3);
+    QCOMPARE(doc->project().activeSheetId, ganttId);
+    QCOMPARE(doc->sessionRevision(), locateRevision);
+    QCOMPARE(ProjectJson::toJson(doc->project()), savedProject);
+    QCOMPARE(commands->canUndo(), undoAvailable);
+    QVERIFY(!doc->isModified());
+    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("临时显示全部任务")));
+    QCOMPARE(window.findChild<QTableView *>("taskTable")->currentIndex().row(), 2);
+    Task changed = task;
+    changed.progress = 25;
+    QVERIFY(std::holds_alternative<bool>(TaskCommands(commands, doc).updateTask(changed)));
+    QCOMPARE(view->tasks().size(), 3); // 修正问题后刷新仍保留定位上下文。
+    commands->undo();
+    QCOMPARE(view->tasks().size(), 3);
+    window.findChild<QAction *>("showGantt")->trigger();
+    QCOMPARE(view->tasks().size(), 1);
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("临时显示全部任务")));
+    const ID standaloneId = doc->project().tasks.at(1).id;
+    QVERIFY(!doc->project().tasks.at(1).source.has_value());
+    issues->locateRequested({}, standaloneId);
+    QVERIFY(view->rowForTask(standaloneId) >= 0);
+    const auto switchRevision = doc->sessionRevision();
+    auto *selector = window.findChild<QComboBox *>("sheetSelector");
+    selector->setCurrentIndex(selector->findData(firstSheet));
+    selector->setCurrentIndex(selector->findData(ganttId));
+    QCOMPARE(view->tasks().size(), 1);
+    QCOMPARE(doc->sessionRevision(), switchRevision);
+    issues->locateRequested({}, standaloneId);
+    QCOMPARE(view->tasks().size(), 3);
+    doc->setClean(); // 本用例已保存，换会话只验证临时状态清理。
+    QVERIFY(window.openFile(path));
+    QCOMPARE(view->tasks().size(), 1); // 新会话不能沿用临时定位模式。
 }
 
 void TstUi::ganttClickKeepsPageDuringDrag()
