@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstNodeCommands">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0362"/>
+  </TestFunction>
+  <TestFunction name="relationStyleIsAtomicAndValidated">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.5251"/>
+  </TestFunction>
+  <TestFunction name="addChildToRootCreatesAndUndoes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0714"/>
+  </TestFunction>
+  <TestFunction name="addChildNormalizesSiblingOrder">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0906"/>
+  </TestFunction>
+  <TestFunction name="addChildRejectsInvalidInput">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0239"/>
+  </TestFunction>
+  <TestFunction name="addChildNormalizesTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0397"/>
+  </TestFunction>
+  <TestFunction name="addChildEnforcesTitleLimit">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0664"/>
+  </TestFunction>
+  <TestFunction name="addChildEnforcesNodeLimit">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.2751"/>
+  </TestFunction>
+  <TestFunction name="renameNodeSyncsTaskAndRevision">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0691"/>
+  </TestFunction>
+  <TestFunction name="renameNodeNoOpKeepsHistoryClean">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0205"/>
+  </TestFunction>
+  <TestFunction name="renameNodeRepairsMismatchedTask">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0413"/>
+  </TestFunction>
+  <TestFunction name="renameTaskSyncsNodeAndRevision">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0443"/>
+  </TestFunction>
+  <TestFunction name="renameTaskNoOpKeepsHistoryClean">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0398"/>
+  </TestFunction>
+  <TestFunction name="renameRejectsOverlongTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0624"/>
+  </TestFunction>
+  <TestFunction name="addSiblingInsertsAfterReferenceWithNormalizedOrders">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.102"/>
+  </TestFunction>
+  <TestFunction name="addSiblingAtEndKeepsAppendingOrder">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0904"/>
+  </TestFunction>
+  <TestFunction name="addSiblingRejectsRootReference">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0247"/>
+  </TestFunction>
+  <TestFunction name="addSiblingRejectsMissingReference">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.018"/>
+  </TestFunction>
+  <TestFunction name="addSiblingNormalizesTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0551"/>
+  </TestFunction>
+  <TestFunction name="addSiblingSingleHistoryUndoRestores">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0577"/>
+  </TestFunction>
+  <TestFunction name="deleteSubtreeRemovesNodesAndReferences">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1204"/>
+  </TestFunction>
+  <TestFunction name="deleteSubtreeKeepAsStandaloneClearsTaskSource">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0584"/>
+  </TestFunction>
+  <TestFunction name="deleteSubtreeDeleteTogetherRemovesTaskAndDependencies">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0649"/>
+  </TestFunction>
+  <TestFunction name="deleteSubtreeMarksReviewCardsMissing">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0638"/>
+  </TestFunction>
+  <TestFunction name="deleteSubtreeKeepsRoutesAndDrafts">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.091"/>
+  </TestFunction>
+  <TestFunction name="deleteSubtreeRejectsRoot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0186"/>
+  </TestFunction>
+  <TestFunction name="deleteSubtreeBumpsParentRevision">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0426"/>
+  </TestFunction>
+  <TestFunction name="deleteSubtreeUndoRestoresEverythingInOneStep">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0638"/>
+  </TestFunction>
+  <TestFunction name="updateMetaNoteSetsAndUndoes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0542"/>
+  </TestFunction>
+  <TestFunction name="updateMetaNoteRejectsOverlong">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0834"/>
+  </TestFunction>
+  <TestFunction name="updateMetaIconSetsAndClears">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0559"/>
+  </TestFunction>
+  <TestFunction name="updateMetaLinkValidatesProtocol">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0668"/>
+  </TestFunction>
+  <TestFunction name="updateMetaTagsReplaceTrimAndLimits">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0507"/>
+  </TestFunction>
+  <TestFunction name="updateMetaNoOpShortCircuits">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0183"/>
+  </TestFunction>
+  <TestFunction name="updateMetaRejectsMissingNode">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0185"/>
+  </TestFunction>
+  <TestFunction name="setStyleAppliesAndUndoes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0571"/>
+  </TestFunction>
+  <TestFunction name="setStyleClearsOverride">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.045"/>
+  </TestFunction>
+  <TestFunction name="setStyleRejectsInvalidValues">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.026"/>
+  </TestFunction>
+  <TestFunction name="setStyleNoOpShortCircuits">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0166"/>
+  </TestFunction>
+  <TestFunction name="moveSubtreeReordersSiblingsAcrossParents">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1237"/>
+  </TestFunction>
+  <TestFunction name="moveSubtreeRejectsRootCycleAndBadReference">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0398"/>
+  </TestFunction>
+  <TestFunction name="moveSubtreeNoOpShortCircuits">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0374"/>
+  </TestFunction>
+  <TestFunction name="moveSubtreeOutOfFrameRemovesAnnotation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0909"/>
+  </TestFunction>
+  <TestFunction name="moveSubtreeIntoFrameJoinsAnnotation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1136"/>
+  </TestFunction>
+  <TestFunction name="moveSubtreeReordersInsideFrameKeepsAnnotation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1082"/>
+  </TestFunction>
+  <TestFunction name="addSiblingInsideFrameJoinsAnnotation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1218"/>
+  </TestFunction>
+  <TestFunction name="setSheetStyleAppliesAndShortCircuits">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0734"/>
+  </TestFunction>
+  <TestFunction name="addRelationCreatesAndRejectsInvalid">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0852"/>
+  </TestFunction>
+  <TestFunction name="updateRelationKeepsUntouchedFields">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.099"/>
+  </TestFunction>
+  <TestFunction name="removeRelationDeletesAndReportsMissing">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0726"/>
+  </TestFunction>
+  <TestFunction name="createAnnotationRequiresContiguousSiblings">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0799"/>
+  </TestFunction>
+  <TestFunction name="createAnnotationStoresMembersInTreeOrder">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0775"/>
+  </TestFunction>
+  <TestFunction name="updateAnnotationRevalidatesMembers">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.145"/>
+  </TestFunction>
+  <TestFunction name="removeAnnotationDeletesAndReportsMissing">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0921"/>
+  </TestFunction>
+  <TestFunction name="addCommentNormalizesTimestamps">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0695"/>
+  </TestFunction>
+  <TestFunction name="resolveCommentShortCircuitsWhenUnchanged">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0972"/>
+  </TestFunction>
+  <TestFunction name="copyFragmentCollapsesAncestorsAndKeepsInternalRefs">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1093"/>
+  </TestFunction>
+  <TestFunction name="copyFragmentKeepsOnlyInternalReferences">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0584"/>
+  </TestFunction>
+  <TestFunction name="pasteFragmentRemapsIdsRelationsAndTasks">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1803"/>
+  </TestFunction>
+  <TestFunction name="fragmentJsonRoundTrips">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.4115"/>
+  </TestFunction>
+  <TestFunction name="fragmentJsonRejectsBadEnvelope">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0213"/>
+  </TestFunction>
+  <TestFunction name="pasteFragmentRejectsEmptyOrMissingParent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0602"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0053"/>
+  </TestFunction>
+  <Duration msecs="8.7482"/>
+</TestCase>
