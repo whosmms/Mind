@@ -4574,6 +4574,7 @@ void TstUi::offlineCheckLocatesAndRefreshes()
     panel->locateRequested(firstSheet, linked.id);
     auto *stack = qobject_cast<QStackedWidget *>(window.centralWidget());
     QVERIFY(qobject_cast<GanttView *>(stack->currentWidget()));
+    QVERIFY(window.statusBar()->currentMessage().startsWith(QStringLiteral("甘特图")));
     QCOMPARE(doc->project().activeSheetId, firstSheet);
     panel->locateRequested({}, standalone.id);
     QVERIFY(qobject_cast<GanttView *>(stack->currentWidget()));
@@ -4707,6 +4708,9 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     issues->locateRequested(otherSheet, task.id);
     QVERIFY(view->rowForTask(task.id) >= 0);
     QCOMPARE(view->tasks().size(), 3);
+    issues->locateRequested(otherSheet, task.id); // 全量态下再次定位筛选外任务。
+    QCOMPARE(view->tasks().size(), 3);
+    QVERIFY(view->rowForTask(task.id) >= 0);
     QCOMPARE(doc->project().activeSheetId, ganttId);
     QCOMPARE(doc->sessionRevision(), locateRevision);
     QCOMPARE(ProjectJson::toJson(doc->project()), savedProject);
@@ -4728,27 +4732,43 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     auto *table = window.findChild<QTableView *>("taskTable");
     QCOMPARE(table->currentIndex().row(), 2); // 全工程任务表保留编辑上下文。
     const QString capture = qEnvironmentVariable("LINGYA_GANTT_FEEDBACK_CAPTURE");
+    window.resize(900, 620);
+    window.show();
+    QTest::qWait(30);
+    QVERIFY(QFontMetricsF(window.statusBar()->font())
+                .horizontalAdvance(window.statusBar()->currentMessage()) <
+            window.statusBar()->width() - 20);
     if (!capture.isEmpty())
     {
-        window.resize(900, 620);
-        window.show();
-        QTest::qWait(30);
-        QVERIFY(QFontMetricsF(window.statusBar()->font())
-                    .horizontalAdvance(window.statusBar()->currentMessage()) <
-                window.statusBar()->width() - 20);
         QVERIFY(window.grab().save(capture));
     }
     table->setCurrentIndex(table->model()->index(0, 0));
     QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    QVERIFY(taskHighlighted(project.tasks.first().id));
+    const auto clearSnapshot = ProjectJson::toJson(doc->project());
+    const auto clearRevision = doc->sessionRevision();
+    const bool clearDirty = doc->isModified();
+    table->clearSelection();
+    QVERIFY(!table->selectionModel()->hasSelection());
+    QVERIFY(!table->currentIndex().isValid());
+    QVERIFY(view->scene()->selectedItems().isEmpty());
+    QVERIFY(!window.findChild<QPushButton *>("locateTaskSource")->isEnabled());
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    QCOMPARE(ProjectJson::toJson(doc->project()), clearSnapshot);
+    QCOMPARE(doc->sessionRevision(), clearRevision);
+    QCOMPARE(doc->isModified(), clearDirty);
     table->setCurrentIndex(table->model()->index(2, 0));
     QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    table->setCurrentIndex({});
+    QVERIFY(!table->selectionModel()->hasSelection());
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
     issues->locateRequested(otherSheet, task.id);
     QCOMPARE(view->tasks().size(), 3);
+    QVERIFY(QFontMetricsF(window.statusBar()->font())
+                .horizontalAdvance(window.statusBar()->currentMessage()) <
+            window.statusBar()->width() - 20);
     if (!capture.isEmpty())
     {
-        QVERIFY(QFontMetricsF(window.statusBar()->font())
-                    .horizontalAdvance(window.statusBar()->currentMessage()) <
-                window.statusBar()->width() - 20);
         QVERIFY(window.grab().save(capture + QStringLiteral("-临时全量.png")));
     }
     const auto beforeInside = ProjectJson::toJson(doc->project());
