@@ -1,0 +1,16 @@
+[
+  {
+    "configuration": "debug",
+    "suites": 24,
+    "passed": 522.0,
+    "failed": 0.0,
+    "skipped": 0.0
+  },
+  {
+    "configuration": "release",
+    "suites": 24,
+    "passed": 522.0,
+    "failed": 0.0,
+    "skipped": 0.0
+  }
+]
