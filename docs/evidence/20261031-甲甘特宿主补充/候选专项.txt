@@ -1,0 +1,12 @@
+********* Start testing of TstUi *********
+Config: Using QtTest library 6.8.3, Qt 6.8.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 13.1.0), windows 11
+PASS   : TstUi::initTestCase()
+QWARN  : TstUi::ganttSheetFilterKeepsProjectAndHistory() QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+PASS   : TstUi::ganttSheetFilterKeepsProjectAndHistory()
+QWARN  : TstUi::ganttClickKeepsPageDuringDrag() This plugin does not support propagateSizeHints()
+QWARN  : TstUi::ganttClickKeepsPageDuringDrag() This plugin does not support propagateSizeHints()
+PASS   : TstUi::ganttClickKeepsPageDuringDrag()
+PASS   : TstUi::cleanupTestCase()
+Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 199ms
+********* Finished testing of TstUi *********
