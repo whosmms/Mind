@@ -58,6 +58,8 @@ QVector<Issue> currentIssues(const Project &project)
 } // namespace
 QVector<Task> MainWindow::visibleGanttTasks() const
 {
+    if (m_ganttTaskLocation)
+        return m_doc->project().tasks;
     const GanttSheet *active = nullptr;
     for (const auto &sheet : m_doc->project().sheets)
         if (const auto *gantt = std::get_if<GanttSheet>(&sheet);
@@ -692,8 +694,15 @@ void MainWindow::locateIssue(ID sheetId, ID targetId)
         if (task.id == targetId)
         {
             const ID id = task.id;
-            showGanttView();
+            showGanttView(true);
             selectTask(id);
+            if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
+                for (auto *item : gantt->scene()->items())
+                    if (item->data(GanttView::kBarDataRole).toString() == id)
+                    {
+                        gantt->ensureVisible(item, 20, 20);
+                        break;
+                    }
             if (auto *dock = findChild<QDockWidget *>("taskDock"))
                 dock->show();
             return;
