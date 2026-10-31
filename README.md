@@ -4,6 +4,10 @@
 **新成员与AI协助从这里开始：先读 [AGENTS.md](AGENTS.md)，再读
 [docs/三人协作开发统一规范.md](docs/三人协作开发统一规范.md)。**
 
+## 甲H-035待复核：甘特定位筛选与提示
+
+`fix/a/M3-task-filter-feedback` 基于main cc24745处理H-034乙回执三条体验意见：只在目标被工作表筛选排除时临时全量定位；恢复筛选后，全工程任务表保留选择并提示“所选任务在筛选外”；临时提示缩短。只有甲宿主与既有UI回归，无Domain/JSON/CMake或乙丙源码改动。详见[H-035说明](docs/reviews/H-035-甘特定位筛选与提示.md)。本批待评审，不冒充main已含；未代签阶段门禁。
+
 ## H-033 已合入（2026-10-31 乙回执）
 
 `feature/a/M3-offline-host`（tip `835c3a3`）经乙非作者复核后，经 PR #39 以 merge commit 合入 main，合并提交

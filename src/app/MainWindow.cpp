@@ -2028,8 +2028,23 @@ void MainWindow::updateStatusLine() {
         visibleGanttTasks().isEmpty())
         line +=
             QStringLiteral(" · 当前筛选无任务（工程共 %1 项）").arg(m_doc->project().tasks.size());
-    if (m_ganttTaskLocation && m_centralStack->currentIndex() == 1)
-        line += QStringLiteral(" · 问题定位临时显示全部任务；点击“视图→甘特图”恢复工作表筛选");
+    if (m_centralStack->currentIndex() == 1)
+    {
+        if (m_ganttTaskLocation)
+            line += QStringLiteral(" · 临时全量（甘特图恢复筛选）");
+        else if (!m_selectedTaskId.isEmpty())
+        {
+            bool selectedVisible = false;
+            for (const auto &task : visibleGanttTasks())
+                if (task.id == m_selectedTaskId)
+                {
+                    selectedVisible = true;
+                    break;
+                }
+            if (!selectedVisible)
+                line += QStringLiteral(" · 所选任务在筛选外");
+        }
+    }
     // 恢复快照与正式保存分别显示状态（原设计§8）：备注为最近一次快照写入时间或失败提示
     if (!m_recoveryNote.isEmpty()) line += QStringLiteral(" · ") + m_recoveryNote;
     if (!m_canvasError.isEmpty())

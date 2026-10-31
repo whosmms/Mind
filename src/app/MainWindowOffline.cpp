@@ -56,9 +56,9 @@ QVector<Issue> currentIssues(const Project &project)
     return CheckService::checkProject(display);
 }
 } // namespace
-QVector<Task> MainWindow::visibleGanttTasks() const
+QVector<Task> MainWindow::visibleGanttTasks(bool includeLocationOverride) const
 {
-    if (m_ganttTaskLocation)
+    if (includeLocationOverride && m_ganttTaskLocation)
         return m_doc->project().tasks;
     const GanttSheet *active = nullptr;
     for (const auto &sheet : m_doc->project().sheets)
@@ -344,6 +344,8 @@ void MainWindow::selectTask(ID taskId, bool locateSource)
                 }
         if (locateSource && task.source && m_doc->setActiveSheet(task.source->sheetId))
             selectNode(task.source->nodeId);
+        if (!m_refreshingViews)
+            updateStatusLine();
         return;
     }
 }
@@ -694,7 +696,15 @@ void MainWindow::locateIssue(ID sheetId, ID targetId)
         if (task.id == targetId)
         {
             const ID id = task.id;
-            showGanttView(true);
+            bool outsideFilter = true;
+            // 按工作表原筛选判断，不沿用上一次问题定位的临时全量副本。
+            for (const auto &visible : visibleGanttTasks(false))
+                if (visible.id == id)
+                {
+                    outsideFilter = false;
+                    break;
+                }
+            showGanttView(outsideFilter);
             selectTask(id);
             if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
                 for (auto *item : gantt->scene()->items())
