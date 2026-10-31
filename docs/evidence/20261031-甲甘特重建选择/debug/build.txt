@@ -1,0 +1,6 @@
+[1/8] Automatic MOC for target lingya
+[2/7] Automatic MOC for target tst_ui
+[3/6] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindow.cpp.obj
+[4/6] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui.cpp.obj
+[5/6] Linking CXX executable lingya.exe
+[6/6] Linking CXX executable tests\tst_ui.exe
