@@ -492,6 +492,8 @@ void MainWindow::showGanttView(bool forTaskLocation)
             gantt->setTasks(visibleGanttTasks());
         m_centralStack->setCurrentIndex(1);
     }
+    if (!m_selectedTaskId.isEmpty())
+        selectTask(m_selectedTaskId);
     updateStatusLine();
     if (m_doc->project().tasks.isEmpty())
         statusBar()->showMessage(QStringLiteral("暂无任务。打开含排期任务的工程后可查看时间轴。"));

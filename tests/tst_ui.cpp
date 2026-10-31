@@ -4378,6 +4378,7 @@ void TstUi::offlineTasksMilestoneAndSelection()
     for (auto *item : gantt->scene()->items())
         if (item->data(GanttView::kBarDataRole).toString() == task)
         {
+            QVERIFY(item->isSelected()); // 首次从来源主题进入甘特也保留选中。
             QTest::mouseClick(gantt->viewport(), Qt::LeftButton, Qt::NoModifier,
                               gantt->mapFromScene(item->sceneBoundingRect().center()));
             break;
@@ -4680,8 +4681,27 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     const bool undoAvailable = commands->canUndo();
     auto *issues = window.findChild<IssuePanel *>();
     QVERIFY(issues);
+    const auto taskHighlighted = [view](const ID &id)
+    {
+        for (auto *item : view->scene()->selectedItems())
+            if (item->data(GanttView::kBarDataRole).toString() == id)
+                return true;
+        return false;
+    };
     issues->locateRequested(firstSheet, project.tasks.first().id);
     QCOMPARE(view->tasks().size(), 1); // 定位本已可见的任务不应展开其他来源。
+    QVERIFY(taskHighlighted(project.tasks.first().id));
+    window.findChild<QAction *>("showGantt")->trigger();
+    QVERIFY(taskHighlighted(project.tasks.first().id)); // 显式重开仍保留时间轴选中。
+    const QString selectionCapture = qEnvironmentVariable("LINGYA_GANTT_SELECTION_CAPTURE");
+    if (!selectionCapture.isEmpty())
+    {
+        window.resize(900, 620);
+        window.show();
+        QTest::qWait(30);
+        QVERIFY(taskHighlighted(project.tasks.first().id));
+        QVERIFY(window.grab().save(selectionCapture));
+    }
     QCOMPARE(doc->sessionRevision(), locateRevision);
     QCOMPARE(ProjectJson::toJson(doc->project()), savedProject);
     issues->locateRequested(otherSheet, task.id);
@@ -4703,6 +4723,7 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     window.findChild<QAction *>("showGantt")->trigger();
     QCOMPARE(view->tasks().size(), 1);
     QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("临时全量")));
+    QVERIFY(!taskHighlighted(task.id)); // 筛选外目标仍只在全工程任务表保留选择。
     QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
     auto *table = window.findChild<QTableView *>("taskTable");
     QCOMPARE(table->currentIndex().row(), 2); // 全工程任务表保留编辑上下文。
