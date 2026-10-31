@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstReviewPage">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0374"/>
+  </TestFunction>
+  <TestFunction name="startsWithFrontAndHiddenBack">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.7623"/>
+  </TestFunction>
+  <TestFunction name="revealShowsBackAndEnablesGrades">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0843"/>
+  </TestFunction>
+  <TestFunction name="gradingEmitsCardIdAndMark">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1355"/>
+  </TestFunction>
+  <TestFunction name="finishesAfterAllGraded">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0567"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0051"/>
+  </TestFunction>
+  <Duration msecs="2.4301"/>
+</TestCase>
