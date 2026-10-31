@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstLayout">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0405"/>
+  </TestFunction>
+  <TestFunction name="singleRootAtOrigin">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.225"/>
+  </TestFunction>
+  <TestFunction name="chainGrowsRightByLevelSpacing">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.155"/>
+  </TestFunction>
+  <TestFunction name="rightLayoutPutsAllChildrenRight">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0769"/>
+  </TestFunction>
+  <TestFunction name="bilateralGreedyAssignmentAndSideForces">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0692"/>
+  </TestFunction>
+  <TestFunction name="greedyBalancesBySubtreeHeight">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1216"/>
+  </TestFunction>
+  <TestFunction name="contourPacksSparseSubtreeTightly">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0565"/>
+  </TestFunction>
+  <TestFunction name="tallParentContourClearsExactly">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0573"/>
+  </TestFunction>
+  <TestFunction name="sideBlockCenteredOnRoot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0394"/>
+  </TestFunction>
+  <TestFunction name="sameDepthNoOverlapMixedTree">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1139"/>
+  </TestFunction>
+  <TestFunction name="deterministicMixedTree">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1489"/>
+  </TestFunction>
+  <TestFunction name="mixedTree120NodesInvariants">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="4.3799"/>
+  </TestFunction>
+  <TestFunction name="siblingsSortedByOrderThenId">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0735"/>
+  </TestFunction>
+  <TestFunction name="siblingsKeepVerticalGap">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0375"/>
+  </TestFunction>
+  <TestFunction name="parentCenteredOnChildrenMean">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0384"/>
+  </TestFunction>
+  <TestFunction name="tallerParentKeepsSubtreeHeight">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0531"/>
+  </TestFunction>
+  <TestFunction name="collapsedSubtreeHidden">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.046"/>
+  </TestFunction>
+  <TestFunction name="collapsedRootShowsOnlyRoot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.029"/>
+  </TestFunction>
+  <TestFunction name="deterministicSameOutputTwice">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.8623"/>
+  </TestFunction>
+  <TestFunction name="missingSizeRejected">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0212"/>
+  </TestFunction>
+  <TestFunction name="nonPositiveSizeRejected">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0148"/>
+  </TestFunction>
+  <TestFunction name="orphanParentRejected">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.022"/>
+  </TestFunction>
+  <TestFunction name="cycleRejected">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0224"/>
+  </TestFunction>
+  <TestFunction name="hundredNodesNoOverlapAndFinite">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.7072"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0116"/>
+  </TestFunction>
+  <Duration msecs="11.9688"/>
+</TestCase>

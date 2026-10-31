@@ -1,0 +1,391 @@
+{
+  "sourceCommit": "bc60efa7901798441f9ae86bc2938b8b2685fa30",
+  "dateUtc": "2026-10-31T13:24:00.3585684Z",
+  "suites": [
+    {
+      "configuration": "debug",
+      "name": "tst_ai",
+      "exitCode": 0,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_aicommands",
+      "exitCode": 0,
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_aipanel",
+      "exitCode": 0,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_charts",
+      "exitCode": 0,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_check",
+      "exitCode": 0,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_checkassistant",
+      "exitCode": 0,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_commands",
+      "exitCode": 0,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_deepseekclient",
+      "exitCode": 0,
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_domain",
+      "exitCode": 0,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_fileservice",
+      "exitCode": 0,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_flow",
+      "exitCode": 0,
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_ganttview",
+      "exitCode": 0,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_layout",
+      "exitCode": 0,
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_nodecommands",
+      "exitCode": 0,
+      "passed": 63,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_projectjson",
+      "exitCode": 0,
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_promptlibrary",
+      "exitCode": 0,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_recovery",
+      "exitCode": 0,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_review",
+      "exitCode": 0,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_reviewcommands",
+      "exitCode": 0,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_reviewpage",
+      "exitCode": 0,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_secret",
+      "exitCode": 0,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_session",
+      "exitCode": 0,
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_tasks",
+      "exitCode": 0,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "debug",
+      "name": "tst_ui",
+      "exitCode": 0,
+      "passed": 97,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_ai",
+      "exitCode": 0,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_aicommands",
+      "exitCode": 0,
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_aipanel",
+      "exitCode": 0,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_charts",
+      "exitCode": 0,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_check",
+      "exitCode": 0,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_checkassistant",
+      "exitCode": 0,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_commands",
+      "exitCode": 0,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_deepseekclient",
+      "exitCode": 0,
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_domain",
+      "exitCode": 0,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_fileservice",
+      "exitCode": 0,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_flow",
+      "exitCode": 0,
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_ganttview",
+      "exitCode": 0,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_layout",
+      "exitCode": 0,
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_nodecommands",
+      "exitCode": 0,
+      "passed": 63,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_projectjson",
+      "exitCode": 0,
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_promptlibrary",
+      "exitCode": 0,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_recovery",
+      "exitCode": 0,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_review",
+      "exitCode": 0,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_reviewcommands",
+      "exitCode": 0,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_reviewpage",
+      "exitCode": 0,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_secret",
+      "exitCode": 0,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_session",
+      "exitCode": 0,
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_tasks",
+      "exitCode": 0,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "configuration": "release",
+      "name": "tst_ui",
+      "exitCode": 0,
+      "passed": 97,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "success": true
+}
