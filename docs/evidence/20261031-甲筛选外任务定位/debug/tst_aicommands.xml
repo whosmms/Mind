@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstAiCommands">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0406"/>
+  </TestFunction>
+  <TestFunction name="applyMapAsSheetCreatesEditableTree">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.4025"/>
+  </TestFunction>
+  <TestFunction name="applyMapAsSheetFallsBackToProposalTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1237"/>
+  </TestFunction>
+  <TestFunction name="applyMapAsSheetRejectsAtSheetLimit">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.173"/>
+  </TestFunction>
+  <TestFunction name="applyMapAsBranchAppendsAfterExistingChildren">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1012"/>
+  </TestFunction>
+  <TestFunction name="applyMapAsBranchRejectsMissingParent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0232"/>
+  </TestFunction>
+  <TestFunction name="applyMapAsBranchRejectsNonTreeSheet">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0231"/>
+  </TestFunction>
+  <TestFunction name="applyMapRejectsStaleRevision">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0634"/>
+  </TestFunction>
+  <TestFunction name="applyMapRejectsInvalidProposal">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0532"/>
+  </TestFunction>
+  <TestFunction name="applyMapRejectsTooLargeProposal">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1923"/>
+  </TestFunction>
+  <TestFunction name="applyMapRejectsTooDeepProposal">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0448"/>
+  </TestFunction>
+  <TestFunction name="saveDraftCreatesDraftWithSourceRevision">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0684"/>
+  </TestFunction>
+  <TestFunction name="saveDraftNormalizesPurposeAndTitle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.039"/>
+  </TestFunction>
+  <TestFunction name="saveDraftRejectsUnknownSourceNode">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.021"/>
+  </TestFunction>
+  <TestFunction name="saveDraftRejectsNonTreeSheet">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0195"/>
+  </TestFunction>
+  <TestFunction name="saveDraftRejectsEmptySections">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0212"/>
+  </TestFunction>
+  <TestFunction name="appliedDataSurvivesSaveAndReload">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.6779"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0071"/>
+  </TestFunction>
+  <Duration msecs="3.5499"/>
+</TestCase>

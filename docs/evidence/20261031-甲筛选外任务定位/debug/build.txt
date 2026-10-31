@@ -1,0 +1,7 @@
+[1/7] Automatic MOC for target lingya
+[2/7] Building CXX object CMakeFiles/lingya.dir/lingya_autogen/mocs_compilation.cpp.obj
+[3/7] Building CXX object CMakeFiles/lingya.dir/src/main.cpp.obj
+[4/7] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowFlow.cpp.obj
+[5/7] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindow.cpp.obj
+[6/7] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowOffline.cpp.obj
+[7/7] Linking CXX executable lingya.exe

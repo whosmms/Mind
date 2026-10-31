@@ -1,0 +1,99 @@
+{
+  "sourceCommit": "d9f62110049198d98e2c50e38d0355cb7c594e82",
+  "configurationHashes": [
+    {
+      "Path": "D:\\mind\\app\\build\\debug\\lingya.exe",
+      "Hash": "57532C0761F111EF6D741BD62AE5911A12EC7B2E4BDEFCA4B397C01B9E48E9EF"
+    },
+    {
+      "Path": "D:\\mind\\app\\build\\release\\lingya.exe",
+      "Hash": "E7F67FF6A546A9C74A9063AC043614DA05DA97636D5759005ECA26337C85604D"
+    }
+  ],
+  "validation": "f006350本机独立冻结双配置各24套件524通过、0失败0跳过；d9f6211仅新增乙合入回执与状态文档，src/tests/CMake相同，两配置增量构建通过，未伪称本轮重跑测试。",
+  "runtimeFiles": [
+    {
+      "configuration": "debug",
+      "path": "Qt6Core.dll",
+      "sha256": "06D84A2E85BDA1A651C65F7D159B63BEE2458A8B50274DA52B70C9E3E9188E97"
+    },
+    {
+      "configuration": "debug",
+      "path": "Qt6Gui.dll",
+      "sha256": "EF458A379A4B588FD6042A3BCC7D0B9631352745600AE933A7FAEC4C851B16BB"
+    },
+    {
+      "configuration": "debug",
+      "path": "Qt6Widgets.dll",
+      "sha256": "9076B021A060DC8C0AE5A50F3DBF9C23018D7729FE102F7A75ADBDF863FA2D0D"
+    },
+    {
+      "configuration": "debug",
+      "path": "Qt6Network.dll",
+      "sha256": "3158E8979CE542C84A61257CFE03983144241AB4D11D8099C08DB7ECF5CF8B83"
+    },
+    {
+      "configuration": "debug",
+      "path": "libgcc_s_seh-1.dll",
+      "sha256": "5E27589147CAA6D7A30F4CC058A14C455DC62233901FFFF9A1797EDE425E9F86"
+    },
+    {
+      "configuration": "debug",
+      "path": "libstdc++-6.dll",
+      "sha256": "8013488C5528BAD7966CA07F3EA2E7A9B743CACB258FE76B46A326F821CC83B0"
+    },
+    {
+      "configuration": "debug",
+      "path": "libwinpthread-1.dll",
+      "sha256": "C7C7DCED65FFF71C7BB61F80C771C562F533D26D72722D9D6091129A3B03D5CE"
+    },
+    {
+      "configuration": "debug",
+      "path": "platforms\\qwindows.dll",
+      "sha256": "FEF3FEBE3CF9FF206076DAB95F54164C67EFCFAB318E8018FA0888B61DFB6888"
+    },
+    {
+      "configuration": "release",
+      "path": "Qt6Core.dll",
+      "sha256": "06D84A2E85BDA1A651C65F7D159B63BEE2458A8B50274DA52B70C9E3E9188E97"
+    },
+    {
+      "configuration": "release",
+      "path": "Qt6Gui.dll",
+      "sha256": "EF458A379A4B588FD6042A3BCC7D0B9631352745600AE933A7FAEC4C851B16BB"
+    },
+    {
+      "configuration": "release",
+      "path": "Qt6Widgets.dll",
+      "sha256": "9076B021A060DC8C0AE5A50F3DBF9C23018D7729FE102F7A75ADBDF863FA2D0D"
+    },
+    {
+      "configuration": "release",
+      "path": "Qt6Network.dll",
+      "sha256": "3158E8979CE542C84A61257CFE03983144241AB4D11D8099C08DB7ECF5CF8B83"
+    },
+    {
+      "configuration": "release",
+      "path": "libgcc_s_seh-1.dll",
+      "sha256": "5E27589147CAA6D7A30F4CC058A14C455DC62233901FFFF9A1797EDE425E9F86"
+    },
+    {
+      "configuration": "release",
+      "path": "libstdc++-6.dll",
+      "sha256": "8013488C5528BAD7966CA07F3EA2E7A9B743CACB258FE76B46A326F821CC83B0"
+    },
+    {
+      "configuration": "release",
+      "path": "libwinpthread-1.dll",
+      "sha256": "C7C7DCED65FFF71C7BB61F80C771C562F533D26D72722D9D6091129A3B03D5CE"
+    },
+    {
+      "configuration": "release",
+      "path": "platforms\\qwindows.dll",
+      "sha256": "FEF3FEBE3CF9FF206076DAB95F54164C67EFCFAB318E8018FA0888B61DFB6888"
+    }
+  ],
+  "defaultEntry": "D:/mind/打开灵芽思维.cmd",
+  "evidence": "build/main-h033-sync-evidence",
+  "productEquivalentTo": "f00635081af6ad694fbc3289fd0ce7317049b770"
+}
