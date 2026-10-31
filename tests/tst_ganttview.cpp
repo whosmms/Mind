@@ -8,12 +8,14 @@
 #include <QFile>
 #include <QFontDatabase>
 #include <QGraphicsItem>
+#include <QGraphicsLineItem>
 #include <QGraphicsPathItem>
 #include <QGraphicsPolygonItem>
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
-#include <QSignalSpy>
 #include <QScrollBar>
+#include <QSignalSpy>
+#include <QTextDocument>
 
 using namespace lingya;
 
@@ -447,41 +449,76 @@ void TstGanttView::freeRouteXAvoidsBlockingBars() {
     QCOMPARE(freeRouteX(bars, 25, 0, 0, 10), 55);
 }
 
-void TstGanttView::shortCrossMonthShowsSingleMonthLabel() {
+void TstGanttView::shortCrossMonthShowsSingleMonthLabel()
+{
     // OBS-A-20261031-001：10-31..11-02 只有 3 天，两个 yyyy-MM 只隔一天会重叠
     GanttView view;
     view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 31), QDate(2026, 11, 2))});
 
     int monthLabels = 0;
-    for (QGraphicsItem* item : view.scene()->items()) {
-        if (item->type() != QGraphicsTextItem::Type) {
+    for (QGraphicsItem *item : view.scene()->items())
+    {
+        if (item->type() != QGraphicsTextItem::Type)
+        {
             continue;
         }
-        const QString text = static_cast<QGraphicsTextItem*>(item)->toPlainText();
-        if (text.length() == 7 && text.count(QLatin1Char('-')) == 1) {
+        const QString text = static_cast<QGraphicsTextItem *>(item)->toPlainText();
+        if (text.length() == 7 && text.count(QLatin1Char('-')) == 1)
+        {
             ++monthLabels;
         }
     }
-    QCOMPARE(monthLabels, 1);   // 第二个标签被避让掉，只剩一条月界竖线
+    QCOMPARE(monthLabels, 1); // 第二个月份文字被避让，月界仍保留。
+    for (int pixelsPerDay : {24, 48})
+    {
+        view.setPixelsPerDay(pixelsPerDay);
+        for (QGraphicsItem *item : view.scene()->items())
+        {
+            auto *label = dynamic_cast<QGraphicsTextItem *>(item);
+            if (!label || label->pos().y() != 0 ||
+                label->toPlainText() != QStringLiteral("2026-10"))
+                continue;
+            const qreal margin = label->document()->documentMargin();
+            const QRectF text = label->mapRectToScene(
+                label->boundingRect().adjusted(margin, margin, -margin, -margin));
+            for (QGraphicsItem *candidate : view.scene()->items())
+            {
+                auto *grid = dynamic_cast<QGraphicsLineItem *>(candidate);
+                if (!grid)
+                    continue;
+                const QPointF from = grid->mapToScene(grid->line().p1());
+                const QPointF to = grid->mapToScene(grid->line().p2());
+                const bool cutsText = qFuzzyCompare(from.x(), to.x()) && from.x() > text.left() &&
+                                      from.x() < text.right() &&
+                                      qMin(from.y(), to.y()) < text.bottom() &&
+                                      qMax(from.y(), to.y()) > text.top();
+                QVERIFY2(!cutsText, "月界竖线不应穿过月份标题");
+            }
+        }
+    }
 }
 
-void TstGanttView::longRangeShowsBothMonthLabels() {
-    // 区间足够宽时两个标签不该被误删
+void TstGanttView::longRangeShowsBothMonthLabels()
+{
+    // 区间足够宽时三个标签不该被误删
     GanttView view;
     view.setPixelsPerDay(60);
     view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 1), QDate(2026, 12, 1))});
 
     int monthLabels = 0;
-    for (QGraphicsItem* item : view.scene()->items()) {
-        if (item->type() != QGraphicsTextItem::Type) {
+    for (QGraphicsItem *item : view.scene()->items())
+    {
+        if (item->type() != QGraphicsTextItem::Type)
+        {
             continue;
         }
-        const QString text = static_cast<QGraphicsTextItem*>(item)->toPlainText();
-        if (text.length() == 7 && text.count(QLatin1Char('-')) == 1) {
+        const QString text = static_cast<QGraphicsTextItem *>(item)->toPlainText();
+        if (text.length() == 7 && text.count(QLatin1Char('-')) == 1)
+        {
             ++monthLabels;
         }
     }
-    QCOMPARE(monthLabels, 3);   // 10、11、12 三个月界
+    QCOMPARE(monthLabels, 3); // 10、11、12 三个月界
 }
 
 QTEST_MAIN(TstGanttView)

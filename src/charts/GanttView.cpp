@@ -175,11 +175,13 @@ void GanttView::rebuild() {
             const bool monthLabel = i == 0 || day.day() == 1;
             if (monthLabel)
             {
-                target->addLine(x, 0, x, sceneHeight, QPen(primaryColor(), 1.0));
                 const QString monthText = day.toString(QStringLiteral("yyyy-MM"));
                 const qreal width = QFontMetricsF(monthFont).horizontalAdvance(monthText);
-                if (x + 3 >= lastMonthLabelRight + 6) {
-                    auto* label = target->addText(monthText, monthFont);
+                // 月界网格从标题区下方开始，避免竖线穿过任一月份标题。
+                target->addLine(x, kAxisHeight, x, sceneHeight, QPen(primaryColor(), 1.0));
+                if (x + 3 >= lastMonthLabelRight + 6)
+                {
+                    auto *label = target->addText(monthText, monthFont);
                     label->setDefaultTextColor(primaryColor());
                     label->setPos(x + 3, 0);
                     lastMonthLabelRight = x + 3 + width;
