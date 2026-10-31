@@ -3,6 +3,7 @@
 #include <QBrush>
 #include <QColor>
 #include <QFont>
+#include <QFontMetricsF>
 #include <QGraphicsItem>
 #include <QGraphicsScene>
 #include <QGraphicsTextItem>
@@ -165,6 +166,9 @@ void GanttView::rebuild() {
         monthFont.setBold(true);
 
         const int totalDays = result.totalWidth / m_pixelsPerDay;
+        // 月界标签避让：短区间跨月时两个 yyyy-MM 只隔一天，会压在一起（OBS-A-20261031-001）。
+        // 记录上一个已画标签的右边界，与它会重叠时只画竖线不画字。
+        qreal lastMonthLabelRight = -1.0e9;
         for (int i = 0; i < totalDays; ++i) {
             const QDate day = result.rangeStart.addDays(i);
             const qreal x = i * m_pixelsPerDay;
@@ -172,9 +176,14 @@ void GanttView::rebuild() {
             if (monthLabel)
             {
                 target->addLine(x, 0, x, sceneHeight, QPen(primaryColor(), 1.0));
-                auto* label = target->addText(day.toString(QStringLiteral("yyyy-MM")), monthFont);
-                label->setDefaultTextColor(primaryColor());
-                label->setPos(x + 3, 0);
+                const QString monthText = day.toString(QStringLiteral("yyyy-MM"));
+                const qreal width = QFontMetricsF(monthFont).horizontalAdvance(monthText);
+                if (x + 3 >= lastMonthLabelRight + 6) {
+                    auto* label = target->addText(monthText, monthFont);
+                    label->setDefaultTextColor(primaryColor());
+                    label->setPos(x + 3, 0);
+                    lastMonthLabelRight = x + 3 + width;
+                }
             }
             if (day.day() != 1 && m_pixelsPerDay >= 16)
             {

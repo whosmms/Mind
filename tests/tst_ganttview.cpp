@@ -42,6 +42,8 @@ private slots:
   void shiftTaskDatesResizeClamps();
   void shiftTaskDatesInvalidInput();
   void freeRouteXAvoidsBlockingBars();
+  void shortCrossMonthShowsSingleMonthLabel();
+  void longRangeShowsBothMonthLabels();
   void midMonthRangeShowsYearAndMonth();
   void longUnscheduledNamesRemainScrollable_data();
   void longUnscheduledNamesRemainScrollable();
@@ -443,6 +445,43 @@ void TstGanttView::freeRouteXAvoidsBlockingBars() {
     QCOMPARE(freeRouteX(bars, 60, 2, 2, 10), 60);
     // 只看 row0：A 是 0..50，25 被挡 → 55
     QCOMPARE(freeRouteX(bars, 25, 0, 0, 10), 55);
+}
+
+void TstGanttView::shortCrossMonthShowsSingleMonthLabel() {
+    // OBS-A-20261031-001：10-31..11-02 只有 3 天，两个 yyyy-MM 只隔一天会重叠
+    GanttView view;
+    view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 31), QDate(2026, 11, 2))});
+
+    int monthLabels = 0;
+    for (QGraphicsItem* item : view.scene()->items()) {
+        if (item->type() != QGraphicsTextItem::Type) {
+            continue;
+        }
+        const QString text = static_cast<QGraphicsTextItem*>(item)->toPlainText();
+        if (text.length() == 7 && text.count(QLatin1Char('-')) == 1) {
+            ++monthLabels;
+        }
+    }
+    QCOMPARE(monthLabels, 1);   // 第二个标签被避让掉，只剩一条月界竖线
+}
+
+void TstGanttView::longRangeShowsBothMonthLabels() {
+    // 区间足够宽时两个标签不该被误删
+    GanttView view;
+    view.setPixelsPerDay(60);
+    view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 1), QDate(2026, 12, 1))});
+
+    int monthLabels = 0;
+    for (QGraphicsItem* item : view.scene()->items()) {
+        if (item->type() != QGraphicsTextItem::Type) {
+            continue;
+        }
+        const QString text = static_cast<QGraphicsTextItem*>(item)->toPlainText();
+        if (text.length() == 7 && text.count(QLatin1Char('-')) == 1) {
+            ++monthLabels;
+        }
+    }
+    QCOMPARE(monthLabels, 3);   // 10、11、12 三个月界
 }
 
 QTEST_MAIN(TstGanttView)
