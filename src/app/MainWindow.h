@@ -149,6 +149,7 @@ private:
     void rebuildTagFilter();
     void applyOutlineTagFilter();
     void showGanttView();
+    QVector<Task> visibleGanttTasks() const;
     void setCanvasZoom(qreal zoom);
     void fitCanvas();
     void selectNode(const ID &nodeId);

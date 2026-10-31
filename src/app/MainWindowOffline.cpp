@@ -54,6 +54,28 @@ QVector<Issue> currentIssues(const Project &project)
     return CheckService::checkProject(display);
 }
 } // namespace
+QVector<Task> MainWindow::visibleGanttTasks() const
+{
+    const GanttSheet *active = nullptr;
+    for (const auto &sheet : m_doc->project().sheets)
+        if (const auto *gantt = std::get_if<GanttSheet>(&sheet);
+            gantt && gantt->id == m_doc->project().activeSheetId)
+        {
+            active = gantt;
+            break;
+        }
+    // 从树图/流程图的“视图→甘特图”进入时，保持工程全部任务的既有行为。
+    if (!active)
+        return m_doc->project().tasks;
+    QVector<Task> visible;
+    for (const auto &task : m_doc->project().tasks)
+        if (task.source ? (!active->filter.sourceSheetId ||
+                           task.source->sheetId == *active->filter.sourceSheetId)
+                        : active->filter.includeStandalone)
+            visible.append(task);
+    return visible;
+}
+
 void MainWindow::buildOfflineActions(QMenu *viewMenu)
 {
     auto *dock = new QDockWidget(QStringLiteral("任务表（全部工作表）"), this);
@@ -72,6 +94,10 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
     auto *edit = new QPushButton(QStringLiteral("编辑任务 / 里程碑…"), panel);
     edit->setObjectName("editTask");
     layout->addWidget(edit);
+    auto *locate = new QPushButton(QStringLiteral("定位关联主题"), panel);
+    locate->setObjectName("locateTaskSource");
+    locate->setEnabled(false);
+    layout->addWidget(locate);
     dock->setWidget(panel);
     addDockWidget(Qt::BottomDockWidgetArea, dock);
     dock->hide();
@@ -80,10 +106,12 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
             [this](const QModelIndex &index)
             {
                 if (index.isValid() && index.row() < m_taskModel->tasks().size())
-                    selectTask(m_taskModel->tasks().at(index.row()).id, true);
+                    selectTask(m_taskModel->tasks().at(index.row()).id,
+                               m_centralStack->currentWidget() != m_ganttPage);
             });
     connect(m_taskTable, &QTableView::doubleClicked, this, [this] { editTask(m_selectedTaskId); });
     connect(edit, &QPushButton::clicked, this, [this] { editTask(m_selectedTaskId); });
+    connect(locate, &QPushButton::clicked, this, [this] { selectTask(m_selectedTaskId, true); });
     auto *menu = menuBar()->addMenu(QStringLiteral("离线工具"));
     menu->addAction(QStringLiteral("编辑所选任务…"), this, [this] { editTask(m_selectedTaskId); })
         ->setObjectName("editTaskProperties");
@@ -221,7 +249,12 @@ void MainWindow::refreshOfflineViews()
             break;
         }
     if (!found)
+    {
         m_selectedTaskId.clear();
+        findChild<QPushButton *>("locateTaskSource")->setEnabled(false);
+    }
+    else
+        selectTask(m_selectedTaskId);
     if (m_issuePanel)
         m_issuePanel->setIssues(currentIssues(m_doc->project()));
     const auto *tree = activeTreeSheet();
@@ -267,6 +300,7 @@ void MainWindow::selectTask(ID taskId, bool locateSource)
         if (task.id != taskId)
             continue;
         m_selectedTaskId = taskId;
+        findChild<QPushButton *>("locateTaskSource")->setEnabled(task.source.has_value());
         {
             const QSignalBlocker blocker(m_taskTable->selectionModel());
             m_taskTable->setCurrentIndex(m_taskModel->index(row, 0));

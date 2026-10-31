@@ -481,11 +481,13 @@ void MainWindow::showGanttView()
     if (qobject_cast<QLabel *>(m_ganttPage) != nullptr)
     {
         auto *gantt = new GanttView(this);
-        gantt->setTasks(m_doc->project().tasks);
+        gantt->setTasks(visibleGanttTasks());
         setGanttView(gantt);
     }
     else
     {
+        if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
+            gantt->setTasks(visibleGanttTasks());
         m_centralStack->setCurrentIndex(1);
     }
     if (m_doc->project().tasks.isEmpty())
@@ -524,13 +526,13 @@ void MainWindow::setGanttView(QGraphicsView* view) {
                             const auto result = TaskCommands(m_commands, m_doc).updateTask(changed);
                             if (const auto *error = std::get_if<AppError>(&result))
                             {
-                                gantt->setTasks(m_doc->project().tasks);
+                                gantt->setTasks(visibleGanttTasks());
                                 showNotice(this, QMessageBox::Warning,
                                            QStringLiteral("无法修改排期"), error->message);
                             }
                             return;
                         }
-                    gantt->setTasks(m_doc->project().tasks);
+                    gantt->setTasks(visibleGanttTasks());
                 });
     // 替换甘特页内容：移除旧页（占位或旧视图）后插入新视图，页序保持不变
     const int ganttIndex = m_centralStack->indexOf(m_ganttPage);
@@ -629,7 +631,9 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
              item = item->parentItem())
             if (item->data(GanttView::kBarDataRole).isValid())
             {
-                selectTask(item->data(GanttView::kBarDataRole).toString(), true);
+                // 鼠标按下仍属于甘特拖动；此时切表会把接收后续移动/释放的视图隐藏。
+                // 只同步选中，关联主题的跳转由任务表中的独立按钮触发。
+                selectTask(item->data(GanttView::kBarDataRole).toString());
                 break;
             }
     }
@@ -1979,7 +1983,7 @@ void MainWindow::onDocumentChanged() {
     if (!m_cutNodeId.isEmpty() && m_cutRevision != m_doc->sessionRevision())
         m_editorNote += QStringLiteral(" 剪切标记因源修订变化已失效，请重新剪切。");
     if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
-        gantt->setTasks(m_doc->project().tasks);
+        gantt->setTasks(visibleGanttTasks());
     refreshOfflineViews();
     updateStatusLine();
     // 标题栏显示文件基名（有路径时）或工程标题；打开文件后用户看到的是自己认识的文件名

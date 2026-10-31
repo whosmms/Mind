@@ -115,6 +115,8 @@ private slots:
     void flowDragAndLayoutAreSingleTransactions();
     void flowPortsCreateEdgeAndCancel();
     void offlineTasksMilestoneAndSelection();
+    void ganttSheetFilterKeepsProjectAndHistory();
+    void ganttClickKeepsPageDuringDrag();
     void offlineReviewGradesAndSourceChanges();
     void offlineCheckLocatesAndRefreshes();
     void editorClipboardRejectsStaleAndInvalid();
@@ -4465,6 +4467,153 @@ void TstUi::offlineCheckLocatesAndRefreshes()
         if (issue.targetId == target && issue.ruleId == "C01")
             found = true;
     QVERIFY(found);
+}
+
+void TstUi::ganttSheetFilterKeepsProjectAndHistory()
+{
+    MainWindow window;
+    Project project = deletionProject();
+    const ID firstSheet = project.activeSheetId;
+    const Sheet other = ProjectFactory::createMindmap(QStringLiteral("另一树图")).sheets.first();
+    const auto &otherTree = std::get<TreeSheet>(other);
+    const ID otherSheet = otherTree.id;
+    Task task;
+    task.id = canvasId("other-sheet-task");
+    task.title = otherTree.nodes.value(otherTree.rootId).title;
+    task.source = TaskSource{otherSheet, otherTree.rootId};
+    task.startDate = QDate(2026, 10, 31);
+    task.endDate = QDate(2026, 11, 2);
+    project.tasks.append(task);
+    project.sheets.append(other);
+    Sheet gantt = ProjectFactory::createGantt(QStringLiteral("筛选视图")).sheets.first();
+    auto &ganttSheet = std::get<GanttSheet>(gantt);
+    const ID ganttId = ganttSheet.id;
+    ganttSheet.filter.sourceSheetId = firstSheet;
+    ganttSheet.filter.includeStandalone = false;
+    project.sheets.append(gantt);
+    project.activeSheetId = ganttId;
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *view = window.findChild<GanttView *>();
+    QVERIFY(view);
+    QCOMPARE(view->tasks().size(), 1);
+    QCOMPARE(view->tasks().first().id, project.tasks.first().id);
+    QCOMPARE(doc->project().tasks.size(), 3);
+    QVERIFY(!commands->canUndo());
+    QVERIFY(!doc->isModified());
+    const auto revision = doc->sessionRevision();
+    window.findChild<QAction *>("showGantt")->trigger();
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(view->tasks().size(), 1);
+    const auto result = commands->applyEdit(QStringLiteral("测试已有筛选字段"),
+                                            [ganttId, otherSheet](Project &p)
+                                            {
+                                                for (auto &sheet : p.sheets)
+                                                    if (auto *g = std::get_if<GanttSheet>(&sheet);
+                                                        g && g->id == ganttId)
+                                                    {
+                                                        g->filter.sourceSheetId = otherSheet;
+                                                        g->filter.includeStandalone = true;
+                                                    }
+                                            });
+    QVERIFY(std::holds_alternative<bool>(result));
+    QCOMPARE(view->tasks().size(), 2);
+    bool foundOther = false;
+    for (const auto &visible : view->tasks())
+        foundOther |= visible.id == task.id;
+    QVERIFY(foundOther);
+    commands->undo();
+    QCOMPARE(view->tasks().size(), 1);
+    const QString fixture = qEnvironmentVariable("LINGYA_GANTT_FIXTURE");
+    if (!fixture.isEmpty())
+    {
+        QVERIFY(!QFile::exists(fixture));
+        QVERIFY(std::holds_alternative<qint64>(FileService::save(fixture, doc->project())));
+        QVERIFY(std::holds_alternative<Project>(FileService::load(fixture)));
+    }
+    QTemporaryDir files;
+    const QString path = files.filePath(QStringLiteral("甘特筛选.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    QCOMPARE(reopened.findChild<GanttView *>()->tasks().size(), 1);
+    QCOMPARE(reopened.findChild<ProjectDocument *>()->project().tasks.size(), 3);
+}
+
+void TstUi::ganttClickKeepsPageDuringDrag()
+{
+    MainWindow window;
+    Project project = canvasProject(2, 1);
+    const ID sourceSheet = project.activeSheetId;
+    Task task;
+    task.id = canvasId("gantt-click-task");
+    task.title = QStringLiteral("阶段1");
+    task.source = TaskSource{sourceSheet, canvasId("branch-0")};
+    task.startDate = QDate(2026, 10, 31);
+    task.endDate = QDate(2026, 11, 2);
+    project.tasks.append(task);
+    const Sheet gantt = ProjectFactory::createGantt(QStringLiteral("任务视图")).sheets.first();
+    const ID ganttId = std::get<GanttSheet>(gantt).id;
+    project.sheets.append(gantt);
+    project.activeSheetId = ganttId;
+    loadEditorFixture(window, project);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *view = window.findChild<GanttView *>();
+    auto *stack = qobject_cast<QStackedWidget *>(window.centralWidget());
+    QCOMPARE(stack->currentWidget(), view);
+    const auto revision = doc->sessionRevision();
+    QPoint press;
+    bool found = false;
+    for (auto *item : view->scene()->items())
+        if (item->data(GanttView::kBarDataRole).toString() == task.id)
+        {
+            press = view->mapFromScene(item->sceneBoundingRect().center());
+            found = true;
+            break;
+        }
+    QVERIFY(found);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, press);
+    const ID sheetAtPress = doc->project().activeSheetId;
+    QWidget *pageAtPress = stack->currentWidget();
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, press);
+    QCOMPARE(sheetAtPress, ganttId);
+    QCOMPARE(pageAtPress, view);
+    QCOMPARE(doc->sessionRevision(), revision);
+    auto *table = window.findChild<QTableView *>("taskTable");
+    QCOMPARE(table->currentIndex().row(), 0);
+    // 保持甘特表为活动表时真实拖动，松手一次命令；撤销后仍能留在原甘特表继续操作。
+    const QPoint shifted = press + QPoint(view->pixelsPerDay(), 0);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, press);
+    QMouseEvent move(QEvent::MouseMove, shifted, view->viewport()->mapToGlobal(shifted),
+                     Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(view->viewport(), &move);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, shifted);
+    QCOMPARE(doc->project().activeSheetId, ganttId);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    QCOMPARE(doc->project().tasks.first().startDate.value(), QDate(2026, 11, 1));
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(doc->project().tasks.first().startDate.value(), QDate(2026, 10, 31));
+    const auto locateRevision = doc->sessionRevision();
+    auto *locate = window.findChild<QPushButton *>("locateTaskSource");
+    QVERIFY(locate && locate->isEnabled());
+    const QString capture = qEnvironmentVariable("LINGYA_GANTT_HOST_CAPTURE");
+    if (!capture.isEmpty())
+    {
+        window.findChild<QWidget *>("taskDock")->show();
+        QTest::qWait(30);
+        QVERIFY(window.grab().save(capture));
+    }
+    locate->click();
+    QCOMPARE(doc->project().activeSheetId, sourceSheet);
+    QCOMPARE(doc->sessionRevision(), locateRevision);
+    QCOMPARE(window.findChild<QTreeWidget *>("topicOutline")
+                 ->currentItem()
+                 ->data(0, Qt::UserRole)
+                 .toString(),
+             canvasId("branch-0"));
 }
 
 QTEST_MAIN(TstUi)
