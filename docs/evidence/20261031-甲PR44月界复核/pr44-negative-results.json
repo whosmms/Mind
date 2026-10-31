@@ -1,0 +1,16 @@
+[
+  {
+    "name": "zero",
+    "passed": 2,
+    "failed": 1,
+    "line": "560",
+    "description": "'!(xInside && yOverlap)' returned FALSE. (月界竖线穿过了月份标签文字)"
+  },
+  {
+    "name": "axis",
+    "passed": 2,
+    "failed": 1,
+    "line": "590",
+    "description": "'monthLinesVisibleInAxisBand >= 1' returned FALSE. (月界主线应在轴带内可见)"
+  }
+]
