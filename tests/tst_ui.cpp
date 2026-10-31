@@ -4378,6 +4378,7 @@ void TstUi::offlineTasksMilestoneAndSelection()
     for (auto *item : gantt->scene()->items())
         if (item->data(GanttView::kBarDataRole).toString() == task)
         {
+            QVERIFY(item->isSelected()); // 首次从来源主题进入甘特也保留选中。
             QTest::mouseClick(gantt->viewport(), Qt::LeftButton, Qt::NoModifier,
                               gantt->mapFromScene(item->sceneBoundingRect().center()));
             break;
@@ -4573,6 +4574,7 @@ void TstUi::offlineCheckLocatesAndRefreshes()
     panel->locateRequested(firstSheet, linked.id);
     auto *stack = qobject_cast<QStackedWidget *>(window.centralWidget());
     QVERIFY(qobject_cast<GanttView *>(stack->currentWidget()));
+    QVERIFY(window.statusBar()->currentMessage().startsWith(QStringLiteral("甘特图")));
     QCOMPARE(doc->project().activeSheetId, firstSheet);
     panel->locateRequested({}, standalone.id);
     QVERIFY(qobject_cast<GanttView *>(stack->currentWidget()));
@@ -4680,15 +4682,41 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     const bool undoAvailable = commands->canUndo();
     auto *issues = window.findChild<IssuePanel *>();
     QVERIFY(issues);
+    const auto taskHighlighted = [view](const ID &id)
+    {
+        for (auto *item : view->scene()->selectedItems())
+            if (item->data(GanttView::kBarDataRole).toString() == id)
+                return true;
+        return false;
+    };
+    issues->locateRequested(firstSheet, project.tasks.first().id);
+    QCOMPARE(view->tasks().size(), 1); // 定位本已可见的任务不应展开其他来源。
+    QVERIFY(taskHighlighted(project.tasks.first().id));
+    window.findChild<QAction *>("showGantt")->trigger();
+    QVERIFY(taskHighlighted(project.tasks.first().id)); // 显式重开仍保留时间轴选中。
+    const QString selectionCapture = qEnvironmentVariable("LINGYA_GANTT_SELECTION_CAPTURE");
+    if (!selectionCapture.isEmpty())
+    {
+        window.resize(900, 620);
+        window.show();
+        QTest::qWait(30);
+        QVERIFY(taskHighlighted(project.tasks.first().id));
+        QVERIFY(window.grab().save(selectionCapture));
+    }
+    QCOMPARE(doc->sessionRevision(), locateRevision);
+    QCOMPARE(ProjectJson::toJson(doc->project()), savedProject);
     issues->locateRequested(otherSheet, task.id);
     QVERIFY(view->rowForTask(task.id) >= 0);
     QCOMPARE(view->tasks().size(), 3);
+    issues->locateRequested(otherSheet, task.id); // 全量态下再次定位筛选外任务。
+    QCOMPARE(view->tasks().size(), 3);
+    QVERIFY(view->rowForTask(task.id) >= 0);
     QCOMPARE(doc->project().activeSheetId, ganttId);
     QCOMPARE(doc->sessionRevision(), locateRevision);
     QCOMPARE(ProjectJson::toJson(doc->project()), savedProject);
     QCOMPARE(commands->canUndo(), undoAvailable);
     QVERIFY(!doc->isModified());
-    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("临时显示全部任务")));
+    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("临时全量")));
     QCOMPARE(window.findChild<QTableView *>("taskTable")->currentIndex().row(), 2);
     Task changed = task;
     changed.progress = 25;
@@ -4698,7 +4726,59 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     QCOMPARE(view->tasks().size(), 3);
     window.findChild<QAction *>("showGantt")->trigger();
     QCOMPARE(view->tasks().size(), 1);
-    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("临时显示全部任务")));
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("临时全量")));
+    QVERIFY(!taskHighlighted(task.id)); // 筛选外目标仍只在全工程任务表保留选择。
+    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    auto *table = window.findChild<QTableView *>("taskTable");
+    QCOMPARE(table->currentIndex().row(), 2); // 全工程任务表保留编辑上下文。
+    const QString capture = qEnvironmentVariable("LINGYA_GANTT_FEEDBACK_CAPTURE");
+    window.resize(900, 620);
+    window.show();
+    QTest::qWait(30);
+    QVERIFY(QFontMetricsF(window.statusBar()->font())
+                .horizontalAdvance(window.statusBar()->currentMessage()) <
+            window.statusBar()->width() - 20);
+    if (!capture.isEmpty())
+    {
+        QVERIFY(window.grab().save(capture));
+    }
+    table->setCurrentIndex(table->model()->index(0, 0));
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    QVERIFY(taskHighlighted(project.tasks.first().id));
+    const auto clearSnapshot = ProjectJson::toJson(doc->project());
+    const auto clearRevision = doc->sessionRevision();
+    const bool clearDirty = doc->isModified();
+    table->clearSelection();
+    QVERIFY(!table->selectionModel()->hasSelection());
+    QVERIFY(!table->currentIndex().isValid());
+    QVERIFY(view->scene()->selectedItems().isEmpty());
+    QVERIFY(!window.findChild<QPushButton *>("locateTaskSource")->isEnabled());
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    QCOMPARE(ProjectJson::toJson(doc->project()), clearSnapshot);
+    QCOMPARE(doc->sessionRevision(), clearRevision);
+    QCOMPARE(doc->isModified(), clearDirty);
+    table->setCurrentIndex(table->model()->index(2, 0));
+    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    table->setCurrentIndex({});
+    QVERIFY(!table->selectionModel()->hasSelection());
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    issues->locateRequested(otherSheet, task.id);
+    QCOMPARE(view->tasks().size(), 3);
+    QVERIFY(QFontMetricsF(window.statusBar()->font())
+                .horizontalAdvance(window.statusBar()->currentMessage()) <
+            window.statusBar()->width() - 20);
+    if (!capture.isEmpty())
+    {
+        QVERIFY(window.grab().save(capture + QStringLiteral("-临时全量.png")));
+    }
+    const auto beforeInside = ProjectJson::toJson(doc->project());
+    const auto insideRevision = doc->sessionRevision();
+    issues->locateRequested(firstSheet, project.tasks.first().id);
+    QCOMPARE(view->tasks().size(), 1); // 从临时全量转向筛选内任务也恢复原筛选。
+    QCOMPARE(ProjectJson::toJson(doc->project()), beforeInside);
+    QCOMPARE(doc->sessionRevision(), insideRevision);
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("临时全量")));
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
     const ID standaloneId = doc->project().tasks.at(1).id;
     QVERIFY(!doc->project().tasks.at(1).source.has_value());
     issues->locateRequested({}, standaloneId);

@@ -47,6 +47,13 @@ namespace lingya
 {
 namespace
 {
+bool taskMatchesGanttFilter(const Task &task, const GanttSheet *filter)
+{
+    return !filter || (task.source ? (!filter->filter.sourceSheetId ||
+                                      task.source->sheetId == *filter->filter.sourceSheetId)
+                                   : filter->filter.includeStandalone);
+}
+
 QVector<Issue> currentIssues(const Project &project)
 {
     Project display = project;
@@ -56,28 +63,46 @@ QVector<Issue> currentIssues(const Project &project)
     return CheckService::checkProject(display);
 }
 } // namespace
-QVector<Task> MainWindow::visibleGanttTasks() const
+const GanttSheet *MainWindow::ganttTaskFilter(bool includeLocationOverride) const
 {
-    if (m_ganttTaskLocation)
-        return m_doc->project().tasks;
-    const GanttSheet *active = nullptr;
+    if (includeLocationOverride && m_ganttTaskLocation)
+        return nullptr;
     for (const auto &sheet : m_doc->project().sheets)
         if (const auto *gantt = std::get_if<GanttSheet>(&sheet);
             gantt && gantt->id == m_doc->project().activeSheetId)
-        {
-            active = gantt;
-            break;
-        }
+            return gantt;
+    return nullptr;
+}
+
+QVector<Task> MainWindow::visibleGanttTasks(bool includeLocationOverride) const
+{
+    const GanttSheet *active = ganttTaskFilter(includeLocationOverride);
     // 从树图/流程图的“视图→甘特图”进入时，保持工程全部任务的既有行为。
     if (!active)
         return m_doc->project().tasks;
     QVector<Task> visible;
     for (const auto &task : m_doc->project().tasks)
-        if (task.source ? (!active->filter.sourceSheetId ||
-                           task.source->sheetId == *active->filter.sourceSheetId)
-                        : active->filter.includeStandalone)
+        if (taskMatchesGanttFilter(task, active))
             visible.append(task);
     return visible;
+}
+
+bool MainWindow::isTaskVisibleInGantt(const ID &taskId, bool includeLocationOverride) const
+{
+    const GanttSheet *filter = ganttTaskFilter(includeLocationOverride);
+    for (const auto &task : m_doc->project().tasks)
+        if (task.id == taskId)
+            return taskMatchesGanttFilter(task, filter);
+    return false;
+}
+
+bool MainWindow::hasVisibleGanttTasks() const
+{
+    const GanttSheet *filter = ganttTaskFilter();
+    for (const auto &task : m_doc->project().tasks)
+        if (taskMatchesGanttFilter(task, filter))
+            return true;
+    return false;
 }
 
 void MainWindow::buildOfflineActions(QMenu *viewMenu)
@@ -112,6 +137,14 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
                 if (index.isValid() && index.row() < m_taskModel->tasks().size())
                     selectTask(m_taskModel->tasks().at(index.row()).id,
                                m_centralStack->currentWidget() != m_ganttPage);
+                else
+                    selectTask({});
+            });
+    connect(m_taskTable->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+            [this]
+            {
+                if (!m_taskTable->selectionModel()->hasSelection())
+                    selectTask({});
             });
     connect(m_taskTable, &QTableView::doubleClicked, this, [this] { editTask(m_selectedTaskId); });
     connect(edit, &QPushButton::clicked, this, [this] { editTask(m_selectedTaskId); });
@@ -321,6 +354,22 @@ void MainWindow::selectTask(ID taskId, bool locateSource)
 {
     if (!m_taskModel)
         return;
+    if (taskId.isEmpty())
+    {
+        m_selectedTaskId.clear();
+        {
+            const QSignalBlocker blocker(m_taskTable->selectionModel());
+            m_taskTable->clearSelection();
+            m_taskTable->setCurrentIndex({});
+        }
+        if (auto *locate = findChild<QPushButton *>("locateTaskSource"))
+            locate->setEnabled(false);
+        if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
+            gantt->scene()->clearSelection();
+        if (!m_refreshingViews)
+            updateStatusLine();
+        return;
+    }
     for (int row = 0; row < m_taskModel->tasks().size(); ++row)
     {
         const Task task = m_taskModel->tasks().at(row);
@@ -344,6 +393,8 @@ void MainWindow::selectTask(ID taskId, bool locateSource)
                 }
         if (locateSource && task.source && m_doc->setActiveSheet(task.source->sheetId))
             selectNode(task.source->nodeId);
+        if (!m_refreshingViews)
+            updateStatusLine();
         return;
     }
 }
@@ -694,7 +745,8 @@ void MainWindow::locateIssue(ID sheetId, ID targetId)
         if (task.id == targetId)
         {
             const ID id = task.id;
-            showGanttView(true);
+            // 按工作表原筛选判断，不沿用上一次问题定位的临时全量副本。
+            showGanttView(!isTaskVisibleInGantt(id, false));
             selectTask(id);
             if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
                 for (auto *item : gantt->scene()->items())

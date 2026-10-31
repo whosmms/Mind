@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "bc60efa7901798441f9ae86bc2938b8b2685fa30",
+  "dateUtc": "2026-10-31T13:27:28.3241011Z",
+  "configurations": [
+    {
+      "configuration": "debug",
+      "result": "精简PATH持续3秒，非真人或跨机验收"
+    },
+    {
+      "configuration": "release",
+      "result": "精简PATH持续3秒，非真人或跨机验收"
+    }
+  ]
+}

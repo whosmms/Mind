@@ -1,0 +1,22 @@
+[1/24] Automatic MOC for target lingya_appcore
+[2/23] Building CXX object CMakeFiles/lingya_appcore.dir/src/charts/GanttView.cpp.obj
+[3/23] Linking CXX static library liblingya_appcore.a
+[4/23] Automatic MOC for target tst_ganttview
+[5/22] Building CXX object tests/CMakeFiles/tst_ganttview.dir/tst_ganttview.cpp.obj
+[6/22] Linking CXX executable tests\tst_commands.exe
+[7/22] Linking CXX executable tests\tst_tasks.exe
+[8/22] Linking CXX executable lingya.exe
+[9/22] Linking CXX executable tests\tst_nodecommands.exe
+[10/22] Linking CXX executable tests\tst_aicommands.exe
+[11/22] Linking CXX executable tests\tst_charts.exe
+[12/22] Linking CXX executable tests\tst_ai.exe
+[13/22] Linking CXX executable tests\tst_secret.exe
+[14/22] Linking CXX executable tests\tst_ganttview.exe
+[15/22] Linking CXX executable tests\tst_flow.exe
+[16/22] Linking CXX executable tests\tst_reviewpage.exe
+[17/22] Linking CXX executable tests\tst_checkassistant.exe
+[18/22] Linking CXX executable tests\tst_promptlibrary.exe
+[19/22] Linking CXX executable tests\tst_reviewcommands.exe
+[20/22] Linking CXX executable tests\tst_deepseekclient.exe
+[21/22] Linking CXX executable tests\tst_aipanel.exe
+[22/22] Linking CXX executable tests\tst_ui.exe

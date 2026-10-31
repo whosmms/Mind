@@ -1,0 +1,27 @@
+[1/29] Automatic MOC for target lingya
+[2/29] Automatic MOC for target tst_ui
+[3/28] Automatic MOC for target tst_ganttview
+[4/27] Building CXX object CMakeFiles/lingya.dir/lingya_autogen/mocs_compilation.cpp.obj
+[5/27] Building CXX object CMakeFiles/lingya.dir/src/main.cpp.obj
+[6/27] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowFlow.cpp.obj
+[7/27] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindow.cpp.obj
+[8/27] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowOffline.cpp.obj
+[9/27] Building CXX object tests/CMakeFiles/tst_ganttview.dir/tst_ganttview.cpp.obj
+[10/27] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui.cpp.obj
+[11/27] Linking CXX executable tests\tst_commands.exe
+[12/27] Linking CXX executable tests\tst_tasks.exe
+[13/27] Linking CXX executable lingya.exe
+[14/27] Linking CXX executable tests\tst_nodecommands.exe
+[15/27] Linking CXX executable tests\tst_aicommands.exe
+[16/27] Linking CXX executable tests\tst_charts.exe
+[17/27] Linking CXX executable tests\tst_ai.exe
+[18/27] Linking CXX executable tests\tst_secret.exe
+[19/27] Linking CXX executable tests\tst_ganttview.exe
+[20/27] Linking CXX executable tests\tst_flow.exe
+[21/27] Linking CXX executable tests\tst_reviewpage.exe
+[22/27] Linking CXX executable tests\tst_checkassistant.exe
+[23/27] Linking CXX executable tests\tst_promptlibrary.exe
+[24/27] Linking CXX executable tests\tst_reviewcommands.exe
+[25/27] Linking CXX executable tests\tst_deepseekclient.exe
+[26/27] Linking CXX executable tests\tst_aipanel.exe
+[27/27] Linking CXX executable tests\tst_ui.exe

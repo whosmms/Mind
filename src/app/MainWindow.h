@@ -151,7 +151,10 @@ private:
     void rebuildTagFilter();
     void applyOutlineTagFilter();
     void showGanttView(bool forTaskLocation = false);
-    QVector<Task> visibleGanttTasks() const;
+    QVector<Task> visibleGanttTasks(bool includeLocationOverride = true) const;
+    const GanttSheet *ganttTaskFilter(bool includeLocationOverride = true) const;
+    bool isTaskVisibleInGantt(const ID &taskId, bool includeLocationOverride = true) const;
+    bool hasVisibleGanttTasks() const;
     void setCanvasZoom(qreal zoom);
     void fitCanvas();
     void selectNode(const ID &nodeId);

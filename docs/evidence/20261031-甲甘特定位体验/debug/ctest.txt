@@ -1,0 +1,53 @@
+Test project D:/mind/.worktrees/button-api/build/debug
+      Start  1: tst_domain
+ 1/24 Test  #1: tst_domain .......................   Passed    0.03 sec
+      Start  2: tst_projectjson
+ 2/24 Test  #2: tst_projectjson ..................   Passed    0.10 sec
+      Start  3: tst_check
+ 3/24 Test  #3: tst_check ........................   Passed    0.03 sec
+      Start  4: tst_review
+ 4/24 Test  #4: tst_review .......................   Passed    0.03 sec
+      Start  5: tst_fileservice
+ 5/24 Test  #5: tst_fileservice ..................   Passed    0.18 sec
+      Start  6: tst_recovery
+ 6/24 Test  #6: tst_recovery .....................   Passed    0.39 sec
+      Start  7: tst_layout
+ 7/24 Test  #7: tst_layout .......................   Passed    0.04 sec
+      Start  8: tst_session
+ 8/24 Test  #8: tst_session ......................   Passed    0.15 sec
+      Start  9: tst_commands
+ 9/24 Test  #9: tst_commands .....................   Passed    0.29 sec
+      Start 10: tst_tasks
+10/24 Test #10: tst_tasks ........................   Passed    0.32 sec
+      Start 11: tst_nodecommands
+11/24 Test #11: tst_nodecommands .................   Passed    0.07 sec
+      Start 12: tst_aicommands
+12/24 Test #12: tst_aicommands ...................   Passed    0.06 sec
+      Start 13: tst_flow
+13/24 Test #13: tst_flow .........................   Passed    0.07 sec
+      Start 14: tst_charts
+14/24 Test #14: tst_charts .......................   Passed    0.22 sec
+      Start 15: tst_ai
+15/24 Test #15: tst_ai ...........................   Passed    0.27 sec
+      Start 16: tst_secret
+16/24 Test #16: tst_secret .......................   Passed    0.08 sec
+      Start 17: tst_ganttview
+17/24 Test #17: tst_ganttview ....................   Passed    0.25 sec
+      Start 18: tst_ui
+18/24 Test #18: tst_ui ...........................   Passed    3.23 sec
+      Start 19: tst_reviewpage
+19/24 Test #19: tst_reviewpage ...................   Passed    0.14 sec
+      Start 20: tst_checkassistant
+20/24 Test #20: tst_checkassistant ...............   Passed    0.32 sec
+      Start 21: tst_promptlibrary
+21/24 Test #21: tst_promptlibrary ................   Passed    0.10 sec
+      Start 22: tst_reviewcommands
+22/24 Test #22: tst_reviewcommands ...............   Passed    0.07 sec
+      Start 23: tst_deepseekclient
+23/24 Test #23: tst_deepseekclient ...............   Passed   12.11 sec
+      Start 24: tst_aipanel
+24/24 Test #24: tst_aipanel ......................   Passed    0.48 sec
+
+100% tests passed, 0 tests failed out of 24
+
+Total Test time (real) =  19.03 sec
