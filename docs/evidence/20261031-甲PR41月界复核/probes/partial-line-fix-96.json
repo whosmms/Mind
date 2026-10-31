@@ -1,0 +1,404 @@
+{
+    "fontDpi": "96",
+    "legacy": false,
+    "scenarios": [
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10"
+            ],
+            "pixelsPerDay": 8,
+            "range": "短跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10"
+            ],
+            "pixelsPerDay": 16,
+            "range": "短跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10"
+            ],
+            "pixelsPerDay": 24,
+            "range": "短跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": true,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 48,
+            "range": "短跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 60,
+            "range": "短跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 64,
+            "range": "短跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 72,
+            "range": "短跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 120,
+            "range": "短跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-12"
+            ],
+            "pixelsPerDay": 8,
+            "range": "短跨年",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-12"
+            ],
+            "pixelsPerDay": 16,
+            "range": "短跨年",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-12"
+            ],
+            "pixelsPerDay": 24,
+            "range": "短跨年",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": true,
+            "labels": [
+                "2026-12",
+                "2027-01"
+            ],
+            "pixelsPerDay": 48,
+            "range": "短跨年",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-12",
+                "2027-01"
+            ],
+            "pixelsPerDay": 60,
+            "range": "短跨年",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-12",
+                "2027-01"
+            ],
+            "pixelsPerDay": 64,
+            "range": "短跨年",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-12",
+                "2027-01"
+            ],
+            "pixelsPerDay": 72,
+            "range": "短跨年",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-12",
+                "2027-01"
+            ],
+            "pixelsPerDay": 120,
+            "range": "短跨年",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2028-02"
+            ],
+            "pixelsPerDay": 8,
+            "range": "闰年跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2028-02"
+            ],
+            "pixelsPerDay": 16,
+            "range": "闰年跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2028-02"
+            ],
+            "pixelsPerDay": 24,
+            "range": "闰年跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": true,
+            "labels": [
+                "2028-02",
+                "2028-03"
+            ],
+            "pixelsPerDay": 48,
+            "range": "闰年跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2028-02",
+                "2028-03"
+            ],
+            "pixelsPerDay": 60,
+            "range": "闰年跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2028-02",
+                "2028-03"
+            ],
+            "pixelsPerDay": 64,
+            "range": "闰年跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2028-02",
+                "2028-03"
+            ],
+            "pixelsPerDay": 72,
+            "range": "闰年跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2028-02",
+                "2028-03"
+            ],
+            "pixelsPerDay": 120,
+            "range": "闰年跨月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11",
+                "2026-12"
+            ],
+            "pixelsPerDay": 8,
+            "range": "完整三月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11",
+                "2026-12"
+            ],
+            "pixelsPerDay": 16,
+            "range": "完整三月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11",
+                "2026-12"
+            ],
+            "pixelsPerDay": 24,
+            "range": "完整三月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11",
+                "2026-12"
+            ],
+            "pixelsPerDay": 48,
+            "range": "完整三月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11",
+                "2026-12"
+            ],
+            "pixelsPerDay": 60,
+            "range": "完整三月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11",
+                "2026-12"
+            ],
+            "pixelsPerDay": 64,
+            "range": "完整三月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11",
+                "2026-12"
+            ],
+            "pixelsPerDay": 72,
+            "range": "完整三月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11",
+                "2026-12"
+            ],
+            "pixelsPerDay": 120,
+            "range": "完整三月",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10"
+            ],
+            "pixelsPerDay": 8,
+            "range": "月中起点",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10"
+            ],
+            "pixelsPerDay": 16,
+            "range": "月中起点",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": true,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 24,
+            "range": "月中起点",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 48,
+            "range": "月中起点",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 60,
+            "range": "月中起点",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 64,
+            "range": "月中起点",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 72,
+            "range": "月中起点",
+            "textOverlap": false
+        },
+        {
+            "gridCutsText": false,
+            "labels": [
+                "2026-10",
+                "2026-11"
+            ],
+            "pixelsPerDay": 120,
+            "range": "月中起点",
+            "textOverlap": false
+        }
+    ],
+    "success": false
+}
