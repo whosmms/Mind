@@ -1,0 +1,43 @@
+{
+  "batch": "DEV-20261103-001/002 R03跨表剪切命令层",
+  "author": "乙",
+  "commit_basis": "e99caaa（产品提交）；重编后 Debug/Release 各 24 套件 532 用例 0 失败 0 跳过，ctest 各 24/24",
+  "configurations": {
+    "debug": {
+      "suites": 24,
+      "cases": 532,
+      "failures": 0,
+      "skipped": 0
+    },
+    "release": {
+      "suites": 24,
+      "cases": 532,
+      "failures": 0,
+      "skipped": 0
+    }
+  },
+  "suite_spot": {
+    "tst_nodecommands": {
+      "before": 63,
+      "after": 67
+    }
+  },
+  "negative_controls": [
+    {
+      "name": "A 取消卡片sheetId同步",
+      "result": "moveSubtreeToSheetKeepsIdsAndSyncsTaskAndCard 失败",
+      "file": "反证A-不同步卡片归属-红.xml"
+    },
+    {
+      "name": "B 关闭CROSS_SHEET_IMPACT预检",
+      "result": "moveSubtreeToSheetBlocksCrossBoundaryImpact 失败",
+      "file": "反证B-关闭影响预检-红.xml"
+    }
+  ],
+  "not_covered": [
+    "界面接线（甲）",
+    "路线/文稿确认后的迁移策略（丙定）",
+    "CARD_SHEET只查表存在性，未加节点归属规则（破坏性变更需三人确认）",
+    "真人DPI/输入法/无Qt跨机"
+  ]
+}
