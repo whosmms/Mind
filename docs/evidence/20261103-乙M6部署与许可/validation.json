@@ -1,0 +1,81 @@
+{
+  "batch": "DEV-20261103-003 / M6 依赖清单与部署核对",
+  "author": "乙",
+  "date": "2026-11-03",
+  "baseline_commit": "b80dc0d",
+  "configuration": "Release",
+  "toolchain": {
+    "qt": "6.8.3 mingw_64",
+    "mingw": "13.1.0",
+    "cmake": "3.30.5",
+    "ninja": "1.12.1"
+  },
+  "deploy_method": "空目录仅放 lingya.exe，执行 windeployqt --release --compiler-runtime --no-translations",
+  "result": {
+    "files": 18,
+    "bytes": 39246917,
+    "megabytes": 37.43
+  },
+  "checks": [
+    {
+      "name": "PE导入闭合",
+      "method": "objdump -p lingya.exe 与 Qt6Core/Gui/Network/Widgets.dll",
+      "result": "pass",
+      "detail": "全部非系统依赖均在部署目录内，含仅被Qt6Core间接导入的libwinpthread-1.dll"
+    },
+    {
+      "name": "精简PATH启动",
+      "method": "PATH=只含 C:/WINDOWS/system32 下启动，timeout 8秒",
+      "result": "pass",
+      "detail": "退出码124（存活8秒），复跑两次一致"
+    },
+    {
+      "name": "插件加载来源",
+      "method": "QT_ASSUME_STDERR_HAS_CONSOLE=1 QT_DEBUG_PLUGINS=1",
+      "result": "pass",
+      "detail": "staging目录出现22次、Qt安装目录(6.8.3)出现0次，未回落到内置前缀"
+    },
+    {
+      "name": "启动阶段插件集合",
+      "method": "从调试日志提取",
+      "result": "pass",
+      "detail": "platforms/qwindows、imageformats/qgif+qico+qjpeg、styles/qmodernwindowsstyle"
+    }
+  ],
+  "not_covered": [
+    "干净 Windows 机器验证（本次仅本机精简PATH）",
+    "tls/qschannelbackend 真实 HTTPS 请求（需真实密钥联网，M5 未过项 L-028）",
+    "中文输入法、非100% DPI、多显示器",
+    "D3D12 后端（windeployqt 提示缺 dxcompiler.dll/dxil.dll）",
+    "安装器与正式安装包（Inno Setup 未落地）"
+  ],
+  "license_gaps": [
+    "仓库无任何 LICENSE/COPYING 文件，项目自身许可未声明",
+    "部署包未附 LGPL-3.0 全文（LGPLv3 §4 要求）",
+    "未提供 Qt 源码获取方式（LGPLv3 §4(d)）",
+    "D3Dcompiler_47.dll 的 Microsoft 可再分发声明文本本机工具链未带"
+  ],
+  "conclusion": "全量回归(双配置各24套件532用例0失败0跳过)与依赖清单/部署闭包(本机口径)均通过；M6 门禁未闭合——干净机、真实HTTPS、项目LICENSE与LGPL文本随包仍未完成，不宣告通过",
+  "full_regression": {
+    "baseline": "b80dc0d",
+    "method": "逐套运行 tests/tst_*.exe -o xml,xml；按 Incident 口径统计（与既往批次一致）",
+    "debug": {
+      "suites": 24,
+      "cases": 532,
+      "failures": 0,
+      "skipped": 0,
+      "ctest": "24/24"
+    },
+    "release": {
+      "suites": 24,
+      "cases": 532,
+      "failures": 0,
+      "skipped": 0,
+      "ctest": "24/24"
+    },
+    "xml_archived": {
+      "debug": 24,
+      "release": 24
+    }
+  }
+}

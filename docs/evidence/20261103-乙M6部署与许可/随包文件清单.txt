@@ -1,0 +1,100 @@
+灵芽思维（LingyaMind）Release 随包文件清单 —— M6 依赖清单实测
+====================================================================================================
+生成时间：2026-11-03（乙）｜基线提交：b80dc0d｜配置：Release
+生成方式：空目录仅放 lingya.exe → windeployqt --release --compiler-runtime --no-translations
+工具链：Qt 6.8.3 (mingw_64) / MinGW 13.1.0 / CMake 3.30.5 / Ninja 1.12.1
+
+一、文件表（18 个文件，合计 37.43 MB / 39246917 字节）
+
+文件（相对部署根）                                        字节  SHA256（前 16 位）
+----------------------------------------------------------------------------------------------------
+D3Dcompiler_47.dll                          4669440  2e3526354dbcd9cf
+Qt6Core.dll                                 6986928  06d84a2e85bda1a6
+Qt6Gui.dll                                 11041960  ef458a379a4b588f
+Qt6Network.dll                              2012840  3158e8979ce542c8
+Qt6Widgets.dll                              7025320  9076b021a060dc8c
+generic/qtuiotouchplugin.dll                  97464  8cebbf5de9d64c86
+imageformats/qgif.dll                         48824  3feb73bf829b33f6
+imageformats/qico.dll                         49848  4ebcd838e56f9b39
+imageformats/qjpeg.dll                       643256  5b24f1fd458bb665
+libgcc_s_seh-1.dll                           109056  5e27589147caa6d7
+libstdc++-6.dll                             2243072  8013488c5528bad7
+libwinpthread-1.dll                           53248  c7c7dced65fff71c
+lingya.exe                                  2461477  d092059e9de7c6af
+networkinformation/qnetworklistmanager.dll     100024  e57a13f285d4d952
+platforms/qwindows.dll                      1102008  fef3febe3cf9ff20
+styles/qmodernwindowsstyle.dll               240312  c6c8b32622ed43fe
+tls/qcertonlybackend.dll                     103608  2b65fc60dbe119c7
+tls/qschannelbackend.dll                     258232  c7386dcca3c42775
+----------------------------------------------------------------------------------------------------
+
+二、按许可分组（附依据）
+
+[Qt 6.8.3（The Qt Company Ltd.）] 13 个文件
+    - Qt6Core.dll
+    - Qt6Gui.dll
+    - Qt6Network.dll
+    - Qt6Widgets.dll
+    - generic/qtuiotouchplugin.dll
+    - imageformats/qgif.dll
+    - imageformats/qico.dll
+    - imageformats/qjpeg.dll
+    - networkinformation/qnetworklistmanager.dll
+    - platforms/qwindows.dll
+    - styles/qmodernwindowsstyle.dll
+    - tls/qcertonlybackend.dll
+    - tls/qschannelbackend.dll
+    LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+          本项目按 LGPL-3.0-only 使用（动态链接，未静态编译、未修改 Qt 源码）
+          依据：D:/Qt/6.8.3/mingw_64/sbom/qtbase-6.8.3.spdx.json（SPDX-2.3，2025-03-17），逐文件 licenseConcluded 核对一致
+
+[GCC / MinGW-w64 运行时] 2 个文件
+    - libgcc_s_seh-1.dll
+    - libstdc++-6.dll
+    GPL-3.0-or-later WITH GCC Runtime Library Exception 3.1
+          依据：D:/Qt/Tools/mingw1310_64/licenses/gcc/COPYING.RUNTIME
+
+[mingw-w64 winpthreads] 1 个文件
+    - libwinpthread-1.dll
+    MIT
+          依据：D:/Qt/Tools/mingw1310_64/licenses/winpthreads/COPYING
+
+[Microsoft DirectX 运行时组件] 1 个文件
+    - D3Dcompiler_47.dll
+    Microsoft 可再分发组件（本机工具链未带许可文本，正式发布包需补 Microsoft 声明）
+          版本资源：Microsoft Corporation 10.0.26100.9457 (WinBuild.160101.0800)
+
+[本项目自身] 1 个文件
+    - lingya.exe
+    未声明 —— 仓库内无 LICENSE/COPYING 文件，属 M6 待决项（需甲乙丙共同确认许可）
+
+三、未随包但构成运行依赖的系统组件
+
+  KERNEL32/USER32/GDI32/SHELL32/ole32/ADVAPI32/AUTHZ/MPR/NETAPI32/USERENV/VERSION/
+  WINMM/WS2_32/DNSAPI/IPHLPAPI/Secur32/WINHTTP/DWrite/UxTheme/d3d11/dxgi/dwmapi/
+  msvcrt/api-ms-win-core-synch-l1-2-0 —— Windows 操作系统自带，不随包分发，无随包义务。
+  （Advapi32 亦为 SecretStore 调用 Windows 凭据管理器所需，属系统 API，非第三方库。）
+
+四、本次实测结论与未覆盖项
+
+  1) 依赖闭合：objdump -p 读取 lingya.exe 及四个 Qt 运行库的 PE 导入表，全部非系统依赖均在
+     本清单内（含仅被 Qt6Core 间接导入的 libwinpthread-1.dll）。
+  2) 部署自洽：在 PATH 仅含 C://WINDOWS//system32 的环境下启动，8 秒存活、无平台插件错误；
+     QT_ASSUME_STDERR_HAS_CONSOLE=1 + QT_DEBUG_PLUGINS=1 的加载日志中，插件路径出现 staging
+     目录 22 次、Qt 安装目录 0 次，证明未回落到 D:/Qt 内置前缀。
+  3) 启动阶段实际加载的插件：platforms/qwindows、imageformats/qgif+qico+qjpeg、
+     styles/qmodernwindowsstyle。tls/ 与 networkinformation/ 为按需加载，本次启动未触发。
+  4) 未覆盖（不得据此宣告通过）：
+     - tls/qschannelbackend 未经真实 HTTPS 请求验证（需真实密钥联网，属 M5 未过项 L-028）
+     - 未在干净 Windows 机器验证（本项仅为本机精简 PATH 验证）
+     - 未验证中文输入法、非 100% DPI、多显示器
+     - windeployqt 提示缺 dxcompiler.dll/dxil.dll（D3D12 着色器编译器），Widgets 应用走
+       D3D11/软件渲染，本次启动无影响；如后续启用 Qt Quick/RHI 的 D3D12 后端需补。
+
+五、随包义务待办（M6 未闭合部分）
+
+  [ ] 部署包内附 LGPL-3.0 全文与本清单（LGPLv3 §4：随目标代码提供许可文本）
+  [ ] 提供 Qt 源码获取方式（LGPLv3 §4(d)：书面要约或链接至 Qt 官方对应版本源码）
+  [ ] 项目自身 LICENSE 未定，需甲乙丙共同确认后补入
+  [ ] D3Dcompiler_47.dll 的 Microsoft 可再分发声明文本（本机工具链未带）
+  [ ] 安装器（Inno Setup）尚未落地，未生成正式安装包

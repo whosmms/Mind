@@ -1,0 +1,120 @@
+qt.core.plugin.factoryloader: checking directory path "D:/mind/app/build/staging-m6/platforms" ...
+qt.core.plugin.factoryloader: looking at "qwindows.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/app/build/staging-m6/platforms/qwindows.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QPA.QPlatformIntegrationFactoryInterface.5.3",
+    "MetaData": {
+        "Keys": [
+            "windows"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QWindowsIntegrationPlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("windows")
+qt.core.library: "D:/mind/app/build/staging-m6/platforms/qwindows.dll" loaded library
+qt.core.plugin.factoryloader: checking directory path "D:/mind/app/build/staging-m6/platformthemes" ...
+qt.core.plugin.factoryloader: checking directory path "D:/mind/app/build/staging-m6/styles" ...
+qt.core.plugin.factoryloader: looking at "qmodernwindowsstyle.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/app/build/staging-m6/styles/qmodernwindowsstyle.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QStyleFactoryInterface",
+    "MetaData": {
+        "Keys": [
+            "windowsvista",
+            "windows11"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QModernWindowsStylePlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("windowsvista", "windows11")
+qt.core.library: "D:/mind/app/build/staging-m6/styles/qmodernwindowsstyle.dll" loaded library
+qt.core.plugin.factoryloader: checking directory path "D:/mind/app/build/staging-m6/accessible" ...
+qt.core.plugin.factoryloader: checking directory path "D:/mind/app/build/staging-m6/iconengines" ...
+qt.core.plugin.factoryloader: checking directory path "D:/mind/app/build/staging-m6/imageformats" ...
+qt.core.plugin.factoryloader: looking at "qgif.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/app/build/staging-m6/imageformats/qgif.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QImageIOHandlerFactoryInterface",
+    "MetaData": {
+        "Keys": [
+            "gif"
+        ],
+        "MimeTypes": [
+            "image/gif"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QGifPlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("gif")
+qt.core.plugin.factoryloader: looking at "qico.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/app/build/staging-m6/imageformats/qico.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QImageIOHandlerFactoryInterface",
+    "MetaData": {
+        "Keys": [
+            "ico",
+            "cur"
+        ],
+        "MimeTypes": [
+            "image/vnd.microsoft.icon",
+            "image/vnd.microsoft.icon"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QICOPlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("ico", "cur")
+qt.core.plugin.factoryloader: looking at "qjpeg.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/app/build/staging-m6/imageformats/qjpeg.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QImageIOHandlerFactoryInterface",
+    "MetaData": {
+        "Keys": [
+            "jpg",
+            "jpeg",
+            "jfif"
+        ],
+        "MimeTypes": [
+            "image/jpeg",
+            "image/jpeg",
+            "image/jpeg"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QJpegPlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("jpg", "jpeg", "jfif")
+qt.core.library: "D:/mind/app/build/staging-m6/imageformats/qgif.dll" loaded library
+qt.core.library: "D:/mind/app/build/staging-m6/imageformats/qico.dll" loaded library
+qt.core.library: "D:/mind/app/build/staging-m6/imageformats/qjpeg.dll" loaded library
+qt.core.plugin.factoryloader: checking directory path "D:/mind/app/build/staging-m6/accessiblebridge" ...
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::~QObject: Timers cannot be stopped from another thread
+"D:/mind/app/build/staging-m6/imageformats/qgif.dll" unloaded library 
+"D:/mind/app/build/staging-m6/imageformats/qico.dll" unloaded library 
+"D:/mind/app/build/staging-m6/imageformats/qjpeg.dll" unloaded library 
+"D:/mind/app/build/staging-m6/platforms/qwindows.dll" unloaded library 
+"D:/mind/app/build/staging-m6/styles/qmodernwindowsstyle.dll" unloaded library 
