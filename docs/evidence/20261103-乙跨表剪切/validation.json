@@ -1,7 +1,7 @@
 {
   "batch": "DEV-20261103-001/002 R03跨表剪切命令层",
   "author": "乙",
-  "commit_basis": "待填",
+  "commit_basis": "e99caaa（产品提交）；重编后 Debug/Release 各 24 套件 532 用例 0 失败 0 跳过，ctest 各 24/24",
   "configurations": {
     "debug": {
       "suites": 24,
