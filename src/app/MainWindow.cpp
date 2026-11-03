@@ -2035,9 +2035,9 @@ void MainWindow::updateStatusLine() {
     if (ganttDisplayed)
     {
         if (m_ganttTaskLocation)
-            line += QStringLiteral(" · 临时全量（点“视图→甘特图”恢复筛选）");
+            line += QStringLiteral(" · 已临时显示全部任务 · 点“视图→甘特图”恢复筛选");
         else if (!m_selectedTaskId.isEmpty() && !isTaskVisibleInGantt(m_selectedTaskId))
-            line += QStringLiteral(" · 所选任务在筛选外");
+            line += QStringLiteral(" · 所选任务在筛选外，甘特暂不显示");
     }
     // 恢复快照与正式保存分别显示状态（原设计§8）：备注为最近一次快照写入时间或失败提示
     if (!m_recoveryNote.isEmpty()) line += QStringLiteral(" · ") + m_recoveryNote;

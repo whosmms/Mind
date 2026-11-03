@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstCommands">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0425"/>
+  </TestFunction>
+  <TestFunction name="renameThroughService">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1428"/>
+  </TestFunction>
+  <TestFunction name="undoRestoresBefore">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0236"/>
+  </TestFunction>
+  <TestFunction name="redoReapplies">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0325"/>
+  </TestFunction>
+  <TestFunction name="invalidEditLeavesProjectUnchanged">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.019"/>
+  </TestFunction>
+  <TestFunction name="historyLimitedTo50">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2463"/>
+  </TestFunction>
+  <TestFunction name="replaceProjectClearsHistory">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0167"/>
+  </TestFunction>
+  <TestFunction name="setActiveSheetKeepsHistoryAndRevision">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0478"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0083"/>
+  </TestFunction>
+  <Duration msecs="2.2177"/>
+</TestCase>

@@ -4,6 +4,12 @@
 **新成员与AI协助从这里开始：先读 [AGENTS.md](AGENTS.md)，再读
 [docs/三人协作开发统一规范.md](docs/三人协作开发统一规范.md)。**
 
+## 甲H-036待复核：甘特状态提示文案
+
+草稿评审：[PR #45](https://github.com/whosmms/Mind/pull/45)，待乙丙非作者接收，未合main。
+
+分支`fix/a/M3-gantt-status-copy`基于main8596415，跟进[交接§52.1](docs/交接文档.md)：临时范围改为动词开头的完整提示，筛选外选择说明“甘特暂不显示”；不改变菜单、筛选、历史或修订。只改甲MainWindow.cpp与既有tst_ui，补900/800双档宽度与失败诊断。被测eec5615，Debug/Release各24套件526通过、0失败0跳过（UI97），48新XML与四张截图见[H-036说明](docs/reviews/H-036-甘特状态提示文案跟进.md)；候选`D:/mind/人工验收/甘特状态提示_20261031`。待乙丙复核，未合main，不新增真人步骤；丙的月份分界/几何断言仍由其维护。
+
 ## H-035 已合入（2026-10-31 乙回执）
 
 [PR #43](https://github.com/whosmms/Mind/pull/43)（`fix/a/M3-task-filter-feedback`，tip `98b464e`）经乙两轮复核后以

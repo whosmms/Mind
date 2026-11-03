@@ -4716,7 +4716,7 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     QCOMPARE(ProjectJson::toJson(doc->project()), savedProject);
     QCOMPARE(commands->canUndo(), undoAvailable);
     QVERIFY(!doc->isModified());
-    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("临时全量")));
+    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("已临时显示全部任务")));
     QCOMPARE(window.findChild<QTableView *>("taskTable")->currentIndex().row(), 2);
     Task changed = task;
     changed.progress = 25;
@@ -4726,21 +4726,35 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     QCOMPARE(view->tasks().size(), 3);
     window.findChild<QAction *>("showGantt")->trigger();
     QCOMPARE(view->tasks().size(), 1);
-    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("临时全量")));
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("已临时显示全部任务")));
     QVERIFY(!taskHighlighted(task.id)); // 筛选外目标仍只在全工程任务表保留选择。
     QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
     auto *table = window.findChild<QTableView *>("taskTable");
     QCOMPARE(table->currentIndex().row(), 2); // 全工程任务表保留编辑上下文。
+    QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("甘特暂不显示")));
     const QString capture = qEnvironmentVariable("LINGYA_GANTT_FEEDBACK_CAPTURE");
-    window.resize(900, 620);
-    window.show();
-    QTest::qWait(30);
-    QVERIFY(QFontMetricsF(window.statusBar()->font())
-                .horizontalAdvance(window.statusBar()->currentMessage()) <
-            window.statusBar()->width() - 20);
-    if (!capture.isEmpty())
+    for (const int width : {900, 800})
     {
-        QVERIFY(window.grab().save(capture));
+        window.resize(width, 620);
+        window.show();
+        QTest::qWait(30);
+        QCOMPARE(window.width(), width);
+        const auto *bar = window.statusBar();
+        const qreal measured = QFontMetricsF(bar->font()).horizontalAdvance(bar->currentMessage());
+        const int available = bar->width() - 20;
+        const QString diagnostic =
+            QStringLiteral("窗口%1px；文本%2px，可用%3px；字体%4；逻辑DPI%5；提示：%6")
+                .arg(width)
+                .arg(measured, 0, 'f', 1)
+                .arg(available)
+                .arg(bar->font().toString())
+                .arg(bar->logicalDpiX())
+                .arg(bar->currentMessage());
+        QVERIFY2(measured < available, qPrintable(diagnostic));
+        qInfo().noquote() << diagnostic;
+        if (!capture.isEmpty())
+            QVERIFY(
+                window.grab().save(width == 900 ? capture : capture + QStringLiteral("-800.png")));
     }
     table->setCurrentIndex(table->model()->index(0, 0));
     QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
@@ -4764,12 +4778,30 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
     issues->locateRequested(otherSheet, task.id);
     QCOMPARE(view->tasks().size(), 3);
-    QVERIFY(QFontMetricsF(window.statusBar()->font())
-                .horizontalAdvance(window.statusBar()->currentMessage()) <
-            window.statusBar()->width() - 20);
-    if (!capture.isEmpty())
+    QVERIFY(window.statusBar()->currentMessage().contains(
+        QStringLiteral("已临时显示全部任务 · 点“视图→甘特图”恢复筛选")));
+    for (const int width : {900, 800})
     {
-        QVERIFY(window.grab().save(capture + QStringLiteral("-临时全量.png")));
+        window.resize(width, 620);
+        QTest::qWait(30);
+        QCOMPARE(window.width(), width);
+        const auto *bar = window.statusBar();
+        const qreal measured = QFontMetricsF(bar->font()).horizontalAdvance(bar->currentMessage());
+        const int available = bar->width() - 20;
+        const QString diagnostic =
+            QStringLiteral("窗口%1px；文本%2px，可用%3px；字体%4；逻辑DPI%5；提示：%6")
+                .arg(width)
+                .arg(measured, 0, 'f', 1)
+                .arg(available)
+                .arg(bar->font().toString())
+                .arg(bar->logicalDpiX())
+                .arg(bar->currentMessage());
+        QVERIFY2(measured < available, qPrintable(diagnostic));
+        qInfo().noquote() << diagnostic;
+        if (!capture.isEmpty())
+            QVERIFY(
+                window.grab().save(capture + (width == 900 ? QStringLiteral("-临时全量.png")
+                                                           : QStringLiteral("-临时全量-800.png"))));
     }
     const auto beforeInside = ProjectJson::toJson(doc->project());
     const auto insideRevision = doc->sessionRevision();
@@ -4777,7 +4809,7 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     QCOMPARE(view->tasks().size(), 1); // 从临时全量转向筛选内任务也恢复原筛选。
     QCOMPARE(ProjectJson::toJson(doc->project()), beforeInside);
     QCOMPARE(doc->sessionRevision(), insideRevision);
-    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("临时全量")));
+    QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("已临时显示全部任务")));
     QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
     const ID standaloneId = doc->project().tasks.at(1).id;
     QVERIFY(!doc->project().tasks.at(1).source.has_value());
