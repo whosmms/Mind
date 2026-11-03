@@ -77,6 +77,19 @@ public:
                                              const ID& newParentId,
                                              const ID& beforeNodeId = ID{});
 
+    // R03 跨表剪切（设计规范§5.3第408行"跨工作表移动的卡片和路线引用同步改sheetId；
+    // 不兼容的注释进入影响确认"）：把源表子树整体移到目标表newParentId下，单事务、一次撤销。
+    // 与moveSubtree相反，节点/任务/卡片ID全部保留：任务source.sheetId与卡片sheetId
+    // 随移入目标表，卡片学习记录不丢。关系/外框/批注只随迁两端都在子树内的部分；
+    // 跨边界的引用、路线步骤与文稿sourceNodeIds不做静默丢弃，统一返回CROSS_SHEET_IMPACT
+    // 影响清单并阻断，由界面确认后再决定（确认后的迁移策略另立，本命令不预设）。
+    // 拒绝：空参数、源目标同一表（请用moveSubtree）、根节点、目标父级不存在、
+    // 参照节点不是目标父级子节点。
+    std::variant<bool, AppError> moveSubtreeToSheet(const ID& sourceSheetId, const ID& nodeId,
+                                                    const ID& targetSheetId,
+                                                    const ID& newParentId,
+                                                    const ID& beforeNodeId = ID{});
+
     // 按补丁更新节点元数据（note/iconId/link/tags）：单事务、可撤销、contentRevision+1；
     // 补丁产生的值与当前值完全相同时无操作短路，不入历史（D-M1-02显式例外）。
     std::variant<bool, AppError> updateNodeMeta(const ID& sheetId, const ID& nodeId,

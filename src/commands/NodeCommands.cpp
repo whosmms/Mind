@@ -735,6 +735,229 @@ std::variant<bool, AppError> NodeCommands::moveSubtree(const ID& sheetId, const 
     return true;
 }
 
+std::variant<bool, AppError> NodeCommands::moveSubtreeToSheet(const ID& sourceSheetId,
+                                                             const ID& nodeId,
+                                                             const ID& targetSheetId,
+                                                             const ID& newParentId,
+                                                             const ID& beforeNodeId) {
+    if (sourceSheetId.isEmpty() || nodeId.isEmpty() || targetSheetId.isEmpty() ||
+        newParentId.isEmpty()) {
+        return AppError{"INVALID_ARGUMENT",
+                        QStringLiteral("工作表ID、节点ID、目标表ID与新父级ID不能为空")};
+    }
+    if (sourceSheetId == targetSheetId) {
+        return AppError{"INVALID_ARGUMENT",
+                        QStringLiteral("源表与目标表相同，同表移动请用moveSubtree")};
+    }
+    const TreeSheet* source = findTree(m_document->project(), sourceSheetId);
+    if (source == nullptr) {
+        return AppError{"NOT_FOUND", QStringLiteral("源树图工作表不存在：%1").arg(sourceSheetId)};
+    }
+    const TreeSheet* target = findTree(m_document->project(), targetSheetId);
+    if (target == nullptr) {
+        return AppError{"NOT_FOUND",
+                        QStringLiteral("目标树图工作表不存在：%1").arg(targetSheetId)};
+    }
+    if (!source->nodes.contains(nodeId)) {
+        return AppError{"NOT_FOUND", QStringLiteral("节点不存在：%1").arg(nodeId)};
+    }
+    if (nodeId == source->rootId) {
+        return AppError{"INVALID_ARGUMENT",
+                        QStringLiteral("根节点不能跨表移动；整表调整请用工作表菜单")};
+    }
+    if (!target->nodes.contains(newParentId)) {
+        return AppError{"NOT_FOUND", QStringLiteral("目标父级不存在：%1").arg(newParentId)};
+    }
+    if (!beforeNodeId.isEmpty()) {
+        if (beforeNodeId == nodeId) {
+            return AppError{"INVALID_ARGUMENT", QStringLiteral("参照节点不能是自身")};
+        }
+        const auto before = target->nodes.constFind(beforeNodeId);
+        if (before == target->nodes.constEnd()) {
+            return AppError{"NOT_FOUND", QStringLiteral("参照节点不存在：%1").arg(beforeNodeId)};
+        }
+        if (!before->parentId.has_value() || *before->parentId != newParentId) {
+            return AppError{"INVALID_ARGUMENT",
+                            QStringLiteral("参照节点必须是目标父级的子节点")};
+        }
+    }
+
+    // 影响预检（设计规范§5.3）：「跨工作表移动的卡片和路线引用同步改sheetId；
+    // 不兼容的注释进入影响确认」。卡片与任务可无损同步，其余四类引用跨表后无法自洽，
+    // 一律先列清单阻断，不静默丢弃、也不假装迁移成功。
+    const Project& project = m_document->project();
+    const QSet<ID> moving = subtreeIds(*source, nodeId);
+
+    int routeCount = 0;
+    QStringList routeTitles;
+    for (const PresentationRoute& route : project.routes) {
+        if (route.sheetId != sourceSheetId) continue;
+        for (const PresentationStep& step : route.steps) {
+            if (!moving.contains(step.nodeId)) continue;
+            ++routeCount;
+            if (!route.title.isEmpty()) routeTitles.append(route.title);
+            break;
+        }
+    }
+    int draftCount = 0;
+    QStringList draftTitles;
+    for (const TextDraft& draft : project.drafts) {
+        if (draft.sourceSheetId != sourceSheetId) continue;
+        bool hit = false;
+        for (const DraftSection& section : draft.sections) {
+            for (const QString& sourceNodeId : section.sourceNodeIds) {
+                if (!moving.contains(sourceNodeId)) continue;
+                hit = true;
+                break;
+            }
+            if (hit) break;
+        }
+        if (!hit) continue;
+        ++draftCount;
+        if (!draft.title.isEmpty()) draftTitles.append(draft.title);
+    }
+    int crossingRelations = 0;
+    for (const Relation& relation : source->relations) {
+        const bool sourceInside = moving.contains(relation.sourceId);
+        const bool targetInside = moving.contains(relation.targetId);
+        if (sourceInside != targetInside) ++crossingRelations;
+    }
+    int splitAnnotations = 0;
+    for (const GroupAnnotation& annotation : source->annotations) {
+        bool anyInside = moving.contains(annotation.parentId);
+        bool allInside = moving.contains(annotation.parentId);
+        for (const QString& member : annotation.memberIds) {
+            if (moving.contains(member))
+                anyInside = true;
+            else
+                allInside = false;
+        }
+        if (anyInside && !allInside) ++splitAnnotations;
+    }
+
+    if (routeCount > 0 || draftCount > 0 || crossingRelations > 0 || splitAnnotations > 0) {
+        QStringList parts;
+        if (routeCount > 0)
+            parts.append(QStringLiteral("讲解路线%1条%2").arg(routeCount).arg(
+                routeTitles.isEmpty() ? QString()
+                                      : QStringLiteral("（%1）").arg(routeTitles.join(
+                                            QStringLiteral("、")))));
+        if (draftCount > 0)
+            parts.append(QStringLiteral("文稿%1篇%2").arg(draftCount).arg(
+                draftTitles.isEmpty() ? QString()
+                                      : QStringLiteral("（%1）").arg(draftTitles.join(
+                                            QStringLiteral("、")))));
+        if (crossingRelations > 0)
+            parts.append(QStringLiteral("跨表连线%1条").arg(crossingRelations));
+        if (splitAnnotations > 0)
+            parts.append(QStringLiteral("半个外框/概要%1处").arg(splitAnnotations));
+        return AppError{
+            "CROSS_SHEET_IMPACT",
+            QStringLiteral("跨表移动会牵动%1，未执行，源节点保留。请先调整这些引用，"
+                           "或改用复制（复制不带走复习记录与讲解路线）。")
+                .arg(parts.join(QStringLiteral("、")))};
+    }
+
+    const auto result = m_commands->applyEdit(
+        QStringLiteral("跨表移动主题"),
+        [sourceSheetId, targetSheetId, nodeId, newParentId, beforeNodeId](Project& project) {
+            TreeSheet* src = findTree(project, sourceSheetId);
+            TreeSheet* dst = findTree(project, targetSheetId);
+            if (src == nullptr || dst == nullptr) return;
+            const auto it = src->nodes.find(nodeId);
+            if (it == src->nodes.end() || !it->parentId.has_value()) return;
+            const ID oldParentId = *it->parentId;
+            const QSet<ID> moving = subtreeIds(*src, nodeId);
+
+            // 1 源表：旧父级兄弟序回填连续order（排除被移动根）
+            QVector<ID> oldSequence = siblingSequence(*src, oldParentId);
+            oldSequence.removeAll(nodeId);
+            for (int i = 0; i < oldSequence.size(); ++i)
+                src->nodes[oldSequence.at(i)].order = i;
+            if (src->nodes.contains(oldParentId)) ++src->nodes[oldParentId].contentRevision;
+
+            // 2 源表：摘出整体落在子树内的关系/外框/批注，保留原ID一并迁走。
+            // 跨边界的部分已在上方预检阻断，这里不会静默丢弃。
+            QVector<Relation> keptRelations;
+            QVector<Relation> movedRelations;
+            for (const Relation& relation : src->relations) {
+                if (moving.contains(relation.sourceId) && moving.contains(relation.targetId))
+                    movedRelations.append(relation);
+                else
+                    keptRelations.append(relation);
+            }
+            src->relations = keptRelations;
+
+            QVector<GroupAnnotation> keptAnnotations;
+            QVector<GroupAnnotation> movedAnnotations;
+            for (const GroupAnnotation& annotation : src->annotations) {
+                bool allInside = moving.contains(annotation.parentId);
+                for (const QString& member : annotation.memberIds)
+                    if (!moving.contains(member)) allInside = false;
+                if (allInside)
+                    movedAnnotations.append(annotation);
+                else
+                    keptAnnotations.append(annotation);
+            }
+            src->annotations = keptAnnotations;
+
+            QVector<Comment> keptComments;
+            QVector<Comment> movedComments;
+            for (const Comment& comment : src->comments) {
+                if (moving.contains(comment.nodeId))
+                    movedComments.append(comment);
+                else
+                    keptComments.append(comment);
+            }
+            src->comments = keptComments;
+
+            // 3 取出节点并从源表移除
+            QVector<QPair<ID, TreeNode>> pending;
+            pending.reserve(moving.size());
+            for (const ID& id : moving) pending.append({id, src->nodes.value(id)});
+            for (const auto& pair : pending) src->nodes.remove(pair.first);
+
+            // 4 目标表：先占插入位，再落节点，最后写回连续order
+            QVector<ID> sequence = siblingSequence(*dst, newParentId);
+            int at = beforeNodeId.isEmpty() ? sequence.size() : sequence.indexOf(beforeNodeId);
+            if (at < 0) at = sequence.size();
+            sequence.insert(at, nodeId);
+            for (int i = 0; i < sequence.size(); ++i) dst->nodes[sequence.at(i)].order = i;
+
+            for (const auto& pair : pending) {
+                TreeNode node = pair.second;
+                if (pair.first == nodeId) node.parentId = newParentId;
+                if (node.contentRevision < 1) node.contentRevision = 1;
+                dst->nodes.insert(pair.first, node);
+            }
+            ++dst->nodes[newParentId].contentRevision;
+
+            dst->relations += movedRelations;
+            dst->annotations += movedAnnotations;
+            dst->comments += movedComments;
+
+            // 5 源表外框/概要随动：成员已移走，按既有规则剔除或整框移除
+            repairAnnotations(*src, {});
+
+            // 6 任务与卡片：ID不变，sheetId跟随（设计规范§5.3），学习记录不丢
+            for (Task& task : project.tasks) {
+                if (!task.source.has_value()) continue;
+                if (task.source->sheetId != sourceSheetId) continue;
+                if (!moving.contains(task.source->nodeId)) continue;
+                task.source = TaskSource{targetSheetId, task.source->nodeId};
+            }
+            for (ReviewCard& card : project.cards) {
+                if (card.sheetId != sourceSheetId) continue;
+                if (!moving.contains(card.nodeId)) continue;
+                card.sheetId = targetSheetId;
+            }
+        });
+    if (const auto* error = std::get_if<AppError>(&result)) {
+        return *error;
+    }
+    return true;
+}
+
 std::variant<bool, AppError> NodeCommands::setSheetStyle(const ID& sheetId,
                                                          const NodeStyle& nodeStyle,
                                                          const EdgeStyle& edgeStyle) {
