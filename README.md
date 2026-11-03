@@ -4,11 +4,24 @@
 **新成员与AI协助从这里开始：先读 [AGENTS.md](AGENTS.md)，再读
 [docs/三人协作开发统一规范.md](docs/三人协作开发统一规范.md)。**
 
-## 甲H-036待复核：甘特状态提示文案
+## R13 月界与 H-036 文案 已合入（2026-11-03 乙回执）
 
-草稿评审：[PR #45](https://github.com/whosmms/Mind/pull/45)，待乙丙非作者接收，未合main。
+三条件合入 main，均 `--no-ff`、未 squash、未 rebase、未改写作者提交，远程分支合入后删除：
+丙 `feature/c/R13-axis-band`（`9b302ea`）→ `3d80142`；甲复核 `review/a/R13-axis-band`（`286f664`，带入
+[PR44 复核稿](docs/reviews/PR44-甲非作者复核.md) 与 `docs/evidence/20261031-甲PR44月界复核` 48 份 XML）→ `2a084ab`；
+甲 `fix/a/M3-gantt-status-copy`（`c107ac7`）→ `1fd7b78`。唯一冲突在开发日志尾部（双侧追加），按规范 22.1 落为
+丙 DEV-009 → 甲 PR44 复核 → 甲 DEV-010，双方原文完整保留。
 
-分支`fix/a/M3-gantt-status-copy`基于main8596415，跟进[交接§52.1](docs/交接文档.md)：临时范围改为动词开头的完整提示，筛选外选择说明“甘特暂不显示”；不改变菜单、筛选、历史或修订。只改甲MainWindow.cpp与既有tst_ui，补900/800双档宽度与失败诊断。被测eec5615，Debug/Release各24套件526通过、0失败0跳过（UI97），48新XML与四张截图见[H-036说明](docs/reviews/H-036-甘特状态提示文案跟进.md)；候选`D:/mind/人工验收/甘特状态提示_20261031`。待乙丙复核，未合main，不新增真人步骤；丙的月份分界/几何断言仍由其维护。
+[PR #44](https://github.com/whosmms/Mind/pull/44)：月界主线改从月份标签下沿（`kMonthLineTop = 22`）起画，轴带内恢复月份分界且不穿字；
+新增 `monthBoundaryLineDoesNotCrossLabel`、`monthBoundaryLineVisibleInAxisBand` 两项。
+[PR #45](https://github.com/whosmms/Mind/pull/45)：状态行改为“已临时显示全部任务 · 点‘视图→甘特图’恢复筛选”与
+“所选任务在筛选外，甘特暂不显示”，并把宽度断言扩到 900/800 双档、失败时输出实测宽度与字体。
+
+乙在冻结 Kit 独立复跑：合前丙各 24 套件 528、甲各 526（均 0 失败 0 跳过，UI97/甘特30），合并后 main Debug/Release
+各 24 套件 **528**、CTest 各 24/24，且合并树 `src`/`tests` 与合前预演合成树逐字节一致。反证见
+[乙独立复核](docs/reviews/PR44-PR45-乙独立复核.md)、[交接文档 §54](docs/交接文档.md)。登记 P3 若干（`kMonthLineTop` 应由
+字体度量推导、穿字用例与既有 `cutsText` 重复、窗口无最小宽度等），并更正 §52.3 前提：几何相交检查 main 早已存在，
+真正遗留的“月份标签识别改几何”单列待办。丙对 §52.1 文案的体验签核、真人 DPI/输入法/跨机均未签，不宣告 M3/M4 门禁。
 
 ## H-035 已合入（2026-10-31 乙回执）
 
