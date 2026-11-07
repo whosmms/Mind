@@ -210,6 +210,8 @@ private slots:
     void moveSubtreeIntoFrameJoinsAnnotation();
     void moveSubtreeReordersInsideFrameKeepsAnnotation();
     void moveSubtreeToSheetKeepsIdsAndSyncsTaskAndCard();
+    void moveSubtreeToSheetOrdersExistingSiblings_data();
+    void moveSubtreeToSheetOrdersExistingSiblings();
     void moveSubtreeToSheetCarriesInternalRelationsFramesComments();
     void moveSubtreeToSheetBlocksCrossBoundaryImpact();
     void moveSubtreeToSheetRejectsRootSameSheetAndBadParent();
@@ -2353,6 +2355,54 @@ void TstNodeCommands::moveSubtreeToSheetRejectsRootSameSheetAndBadParent() {
 
     QCOMPARE(doc.sessionRevision(), revision);
     QVERIFY(!service.canUndo());
+}
+
+void TstNodeCommands::moveSubtreeToSheetOrdersExistingSiblings_data()
+{
+    QTest::addColumn<bool>("insertBeforeSecond");
+    QTest::newRow("追加已有同级之后") << false;
+    QTest::newRow("插入两个同级之间") << true;
+}
+
+void TstNodeCommands::moveSubtreeToSheetOrdersExistingSiblings()
+{
+    QFETCH(bool, insertBeforeSecond);
+    RichTree fixture = makeRichTree();
+    const ID destination = QStringLiteral("order-target");
+    auto &target = addSecondTreeSheet(fixture.project, destination, QStringLiteral("已有同级"));
+    const ID root = target.rootId;
+    for (int i = 0; i < 2; ++i)
+    {
+        TreeNode node;
+        node.id = QStringLiteral("existing-%1").arg(i);
+        node.parentId = root;
+        node.order = i;
+        node.title = QStringLiteral("已有主题%1").arg(i);
+        node.contentRevision = 1;
+        target.nodes.insert(node.id, node);
+    }
+    ProjectDocument doc;
+    doc.replaceProject(fixture.project);
+    CommandService commands(&doc);
+    NodeCommands nodes(&commands, &doc);
+    const auto result =
+        nodes.moveSubtreeToSheet(fixture.sheetId, QStringLiteral("a"), destination, root,
+                                 insertBeforeSecond ? QStringLiteral("existing-1") : ID{});
+    QVERIFY(std::holds_alternative<bool>(result));
+    const auto &moved = treeWithId(doc.project(), destination);
+    QCOMPARE(moved.nodes.value(QStringLiteral("a")).order, insertBeforeSecond ? 1 : 2);
+    QCOMPARE(moved.nodes.value(QStringLiteral("existing-0")).order, 0);
+    QCOMPARE(moved.nodes.value(QStringLiteral("existing-1")).order, insertBeforeSecond ? 2 : 1);
+    QCOMPARE(moved.nodes.value(QStringLiteral("a-1")).order, 0);
+    QCOMPARE(moved.nodes.value(QStringLiteral("a-2")).order, 1);
+    QCOMPARE(childOrders(doc.project(), fixture.rootId), (QVector<int>{0, 1}));
+    commands.undo();
+    QVERIFY(!commands.canUndo());
+    QCOMPARE(treeWithId(doc.project(), fixture.sheetId).nodes.value(QStringLiteral("a")).order, 0);
+    QCOMPARE(treeWithId(doc.project(), destination).nodes.size(), 3);
+    commands.redo();
+    QCOMPARE(treeWithId(doc.project(), destination).nodes.value(QStringLiteral("a")).order,
+             insertBeforeSecond ? 1 : 2);
 }
 
 QTEST_GUILESS_MAIN(TstNodeCommands)

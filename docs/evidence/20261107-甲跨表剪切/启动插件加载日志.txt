@@ -1,0 +1,113 @@
+qt.core.plugin.factoryloader: checking directory path "D:/mind/人工验收/跨表剪切_20261107/program/platforms" ...
+qt.core.plugin.factoryloader: looking at "qwindows.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/人工验收/跨表剪切_20261107/program/platforms/qwindows.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QPA.QPlatformIntegrationFactoryInterface.5.3",
+    "MetaData": {
+        "Keys": [
+            "windows"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QWindowsIntegrationPlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("windows")
+qt.core.library: "D:/mind/人工验收/跨表剪切_20261107/program/platforms/qwindows.dll" loaded library
+qt.core.plugin.factoryloader: checking directory path "D:/mind/人工验收/跨表剪切_20261107/program/platformthemes" ...
+qt.core.plugin.factoryloader: checking directory path "D:/mind/人工验收/跨表剪切_20261107/program/styles" ...
+qt.core.plugin.factoryloader: looking at "qmodernwindowsstyle.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/人工验收/跨表剪切_20261107/program/styles/qmodernwindowsstyle.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QStyleFactoryInterface",
+    "MetaData": {
+        "Keys": [
+            "windowsvista",
+            "windows11"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QModernWindowsStylePlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("windowsvista", "windows11")
+qt.core.library: "D:/mind/人工验收/跨表剪切_20261107/program/styles/qmodernwindowsstyle.dll" loaded library
+qt.core.plugin.factoryloader: checking directory path "D:/mind/人工验收/跨表剪切_20261107/program/accessible" ...
+qt.core.plugin.factoryloader: checking directory path "D:/mind/人工验收/跨表剪切_20261107/program/iconengines" ...
+qt.core.plugin.factoryloader: checking directory path "D:/mind/人工验收/跨表剪切_20261107/program/imageformats" ...
+qt.core.plugin.factoryloader: looking at "qgif.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qgif.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QImageIOHandlerFactoryInterface",
+    "MetaData": {
+        "Keys": [
+            "gif"
+        ],
+        "MimeTypes": [
+            "image/gif"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QGifPlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("gif")
+qt.core.plugin.factoryloader: looking at "qico.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qico.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QImageIOHandlerFactoryInterface",
+    "MetaData": {
+        "Keys": [
+            "ico",
+            "cur"
+        ],
+        "MimeTypes": [
+            "image/vnd.microsoft.icon",
+            "image/vnd.microsoft.icon"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QICOPlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("ico", "cur")
+qt.core.plugin.factoryloader: looking at "qjpeg.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qjpeg.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QImageIOHandlerFactoryInterface",
+    "MetaData": {
+        "Keys": [
+            "jpg",
+            "jpeg",
+            "jfif"
+        ],
+        "MimeTypes": [
+            "image/jpeg",
+            "image/jpeg",
+            "image/jpeg"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QJpegPlugin",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("jpg", "jpeg", "jfif")
+qt.core.library: "D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qgif.dll" loaded library
+qt.core.library: "D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qico.dll" loaded library
+qt.core.library: "D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qjpeg.dll" loaded library
+qt.core.plugin.factoryloader: checking directory path "D:/mind/人工验收/跨表剪切_20261107/program/accessiblebridge" ...

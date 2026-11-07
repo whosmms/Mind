@@ -1,0 +1,139 @@
+{
+  "sourceCommit": "2e5070275797162fa46882a2c5ed6e53faa3f728",
+  "baseMain": "308a7ce8d25b1a1d469b8b6167e521d3a36941e1",
+  "configuration": "Release",
+  "files": [
+    {
+      "path": "D3Dcompiler_47.dll",
+      "sha256": "0F89C19165FD83A05E39BEA601A06007E6A8814D55E2ADF913902926231F843E"
+    },
+    {
+      "path": "libgcc_s_seh-1.dll",
+      "sha256": "5E27589147CAA6D7A30F4CC058A14C455DC62233901FFFF9A1797EDE425E9F86"
+    },
+    {
+      "path": "libstdc++-6.dll",
+      "sha256": "8013488C5528BAD7966CA07F3EA2E7A9B743CACB258FE76B46A326F821CC83B0"
+    },
+    {
+      "path": "libwinpthread-1.dll",
+      "sha256": "C7C7DCED65FFF71C7BB61F80C771C562F533D26D72722D9D6091129A3B03D5CE"
+    },
+    {
+      "path": "lingya.exe",
+      "sha256": "E44A4FAC9462D08612101DE9A8C276BB82AAB3650728C5C6F4AF10410ACADFC9"
+    },
+    {
+      "path": "Qt6Core.dll",
+      "sha256": "06D84A2E85BDA1A651C65F7D159B63BEE2458A8B50274DA52B70C9E3E9188E97"
+    },
+    {
+      "path": "Qt6Gui.dll",
+      "sha256": "EF458A379A4B588FD6042A3BCC7D0B9631352745600AE933A7FAEC4C851B16BB"
+    },
+    {
+      "path": "Qt6Network.dll",
+      "sha256": "3158E8979CE542C84A61257CFE03983144241AB4D11D8099C08DB7ECF5CF8B83"
+    },
+    {
+      "path": "Qt6Widgets.dll",
+      "sha256": "9076B021A060DC8C0AE5A50F3DBF9C23018D7729FE102F7A75ADBDF863FA2D0D"
+    },
+    {
+      "path": "generic\\qtuiotouchplugin.dll",
+      "sha256": "8CEBBF5DE9D64C86D8D5DA1F50A2026523C2C8934F37ED24314F9058FC9927DE"
+    },
+    {
+      "path": "imageformats\\qgif.dll",
+      "sha256": "3FEB73BF829B33F64D7D7DEF5433913C0C81370E41ADB8ADC788A91E62CD2AEC"
+    },
+    {
+      "path": "imageformats\\qico.dll",
+      "sha256": "4EBCD838E56F9B398F4DFDA58E53B16ECC5F290A87871C0BA433FB805D93DC21"
+    },
+    {
+      "path": "imageformats\\qjpeg.dll",
+      "sha256": "5B24F1FD458BB66564C7D691D234C497472AB8CD9D9658EBD12AF808A14CD51D"
+    },
+    {
+      "path": "networkinformation\\qnetworklistmanager.dll",
+      "sha256": "E57A13F285D4D952B5F136F3A55EA79C0CA10C1F96BB7CACF3A8D49AB55B874E"
+    },
+    {
+      "path": "platforms\\qwindows.dll",
+      "sha256": "FEF3FEBE3CF9FF206076DAB95F54164C67EFCFAB318E8018FA0888B61DFB6888"
+    },
+    {
+      "path": "styles\\qmodernwindowsstyle.dll",
+      "sha256": "C6C8B32622ED43FEBFFCD3A61FC1EBE7ED443676EDEC6948D06C29B9B8139186"
+    },
+    {
+      "path": "tls\\qcertonlybackend.dll",
+      "sha256": "2B65FC60DBE119C73804824F9A2B6093CF495AEA588654810B4707FD3C40EC89"
+    },
+    {
+      "path": "tls\\qschannelbackend.dll",
+      "sha256": "C7386DCCA3C4277547D878CFA71C07B957A108E3538BE07900BF9BE18EEC89B8"
+    },
+    {
+      "path": "qt.conf",
+      "sha256": "E6047C864B52BC6648ECD2C44629751A10C148B05F743D425F97FB6305CC9640"
+    }
+  ],
+  "fixtureHashes": [
+    {
+      "path": "01-basic.lingya",
+      "sha256": "3A3B28496D9483FBA669CAE517129CC76E89AD022202C11F1B64FEAB88C3F40E"
+    },
+    {
+      "path": "02-delete-impact.lingya",
+      "sha256": "A27D238376703CBC74FCD2161392A3BFAD5D10A7CE6B999988F6BC709A1BD1DB"
+    },
+    {
+      "path": "03-hundred-nodes.lingya",
+      "sha256": "8F8AB2666B573D7576CE1B6260016ECFA0BE218948E484AF72A865B71AC6A1EE"
+    },
+    {
+      "path": "04-collapsed.lingya",
+      "sha256": "D7ED2ABA84F3F94CD80D4AC49064B08945148EB5CB4A4F592F54DB0B9B565E24"
+    },
+    {
+      "path": "05-flow.lingya",
+      "sha256": "0E58197A39183221B663A67DBDB18286174629320D191D40049D7DDCACCB063E"
+    },
+    {
+      "path": "06-offline.lingya",
+      "sha256": "FC3F1CC7AF670F2703F6B7EE877C08E064A272E8E32676D883DDDDE320836291"
+    },
+    {
+      "path": "08-跨表保留学习记录_导图.lingya",
+      "sha256": "679DAB082ED2005B8BD3E054E2D2035C5810A4A863E517E39C0F783BCAFCB245"
+    },
+    {
+      "path": "09-跨表保留学习记录_鱼骨.lingya",
+      "sha256": "D635C11AA708317327A17525A6BAFA442028F1B92AECE2778571428CC91CA711"
+    },
+    {
+      "path": "10-讲解路线阻断.lingya",
+      "sha256": "7C1940BAC1181BA74D962642A46302438E4CC323E9CAC2A1D4EA5A7E0E8DA4FF"
+    },
+    {
+      "path": "11-文稿引用阻断.lingya",
+      "sha256": "54EDB8460E079A87C48F268B42C5C7D0C4D66E338E18FB4E0ACED405891E0A0C"
+    }
+  ],
+  "nativeStartup": {
+    "aliveMilliseconds": 8000,
+    "loadedLibraries": [
+      "D:/mind/人工验收/跨表剪切_20261107/program/platforms/qwindows.dll",
+      "D:/mind/人工验收/跨表剪切_20261107/program/styles/qmodernwindowsstyle.dll",
+      "D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qgif.dll",
+      "D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qico.dll",
+      "D:/mind/人工验收/跨表剪切_20261107/program/imageformats/qjpeg.dll"
+    ],
+    "logEncoding": "gb2312",
+    "stoppedOnlyOwnProcess": true
+  },
+  "fixtureVerifierExitCode": 0,
+  "validation": "本轮Debug/Release各24套件538通过、0失败0跳过；UI样例专项7另计，4组跨表样例严格重开、10样例严格加载另计。精简PATH Windows平台8秒存活且加载路径闭合，不代签真人/跨机。"
+}

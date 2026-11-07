@@ -926,7 +926,11 @@ std::variant<bool, AppError> NodeCommands::moveSubtreeToSheet(const ID& sourceSh
 
             for (const auto& pair : pending) {
                 TreeNode node = pair.second;
-                if (pair.first == nodeId) node.parentId = newParentId;
+                if (pair.first == nodeId)
+                {
+                    node.parentId = newParentId;
+                    node.order = at;
+                }
                 if (node.contentRevision < 1) node.contentRevision = 1;
                 dst->nodes.insert(pair.first, node);
             }
