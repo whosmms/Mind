@@ -10,6 +10,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -18,7 +19,6 @@
 #include <QScopeGuard>
 #include <QScreen>
 #include <QScrollBar>
-#include <QShortcut>
 #include <QSignalBlocker>
 #include <QStatusBar>
 #include <QTimer>
@@ -26,9 +26,39 @@
 #include <QTreeWidgetItemIterator>
 #include <QUuid>
 #include <QVBoxLayout>
+#include <functional>
 
 namespace lingya
 {
+namespace
+{
+class PresentationPlayer : public QDialog
+{
+  public:
+    using QDialog::QDialog;
+    std::function<void(int)> keyAction;
+
+  protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress)
+        {
+            auto *key = static_cast<QKeyEvent *>(event);
+            const bool plain =
+                key->modifiers() == Qt::NoModifier || key->modifiers() == Qt::KeypadModifier;
+            if (plain && (key->key() == Qt::Key_Right || key->key() == Qt::Key_Left ||
+                          key->key() == Qt::Key_Space || key->key() == Qt::Key_Escape))
+            {
+                key->accept();
+                if (event->type() == QEvent::KeyPress && !key->isAutoRepeat() && keyAction)
+                    keyAction(key->key());
+                return true;
+            }
+        }
+        return QDialog::eventFilter(watched, event);
+    }
+};
+} // namespace
 void MainWindow::managePresentation()
 {
     const auto *active = activeTreeSheet();
@@ -281,7 +311,7 @@ void MainWindow::playPresentation(const PresentationRoute &route)
             m_outline->horizontalScrollBar()->setValue(outlineH);
             m_outline->verticalScrollBar()->setValue(outlineV);
         });
-    QDialog player(this);
+    PresentationPlayer player(this);
     player.setObjectName("presentationPlayer");
     player.setWindowTitle(route.title);
     player.setWindowFlag(Qt::Window);
@@ -377,16 +407,20 @@ void MainWindow::playPresentation(const PresentationRoute &route)
     connect(pause, &QPushButton::clicked, &player, togglePause);
     connect(exit, &QPushButton::clicked, &player, &QDialog::reject);
     connect(showNote, &QCheckBox::toggled, note, &QWidget::setVisible);
-    for (const auto key : {Qt::Key_Right, Qt::Key_Left, Qt::Key_Space})
+    player.keyAction = [&](int key)
     {
-        auto *shortcut = new QShortcut(QKeySequence(key), &player);
         if (key == Qt::Key_Right)
-            connect(shortcut, &QShortcut::activated, &player, goNext);
+            goNext();
         else if (key == Qt::Key_Left)
-            connect(shortcut, &QShortcut::activated, &player, goPrevious);
-        else
-            connect(shortcut, &QShortcut::activated, &player, togglePause);
-    }
+            goPrevious();
+        else if (key == Qt::Key_Space)
+            togglePause();
+        else if (key == Qt::Key_Escape)
+            player.reject();
+    };
+    player.installEventFilter(&player);
+    for (auto *widget : player.findChildren<QWidget *>())
+        widget->installEventFilter(&player);
     QTimer tick(&player);
     tick.setInterval(200);
     connect(&tick, &QTimer::timeout, &player,

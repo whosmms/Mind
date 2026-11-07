@@ -84,6 +84,7 @@ add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowProperties.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowExport.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowPresentation.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowAi.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/HomePage.h
     ${CMAKE_SOURCE_DIR}/src/ui/HomePage.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowFlow.cpp
@@ -153,7 +154,7 @@ if(MSVC)
 endif()
 add_test(NAME tst_aipanel COMMAND tst_aipanel)
 
-foreach(completion_test tst_presentation tst_export)
+foreach(completion_test tst_presentation tst_export tst_aicompletion)
     add_executable(${completion_test} ${completion_test}.cpp)
     target_link_libraries(${completion_test} PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
     if(MSVC)

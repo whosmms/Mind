@@ -347,7 +347,8 @@ void MainWindow::buildEditorChrome()
     group(start, QStringLiteral("文件"),
           {{"newProject", QStringLiteral("新建"), Glyph::File},
            {"openProject", QStringLiteral("打开"), Glyph::File},
-           {"saveProject", QStringLiteral("保存"), Glyph::Save}});
+           {"saveProject", QStringLiteral("保存"), Glyph::Save},
+           {"exportSheet", QStringLiteral("导出"), Glyph::Save}});
     group(start, QStringLiteral("主题"),
           {{"addChildTopic", QStringLiteral("子主题"), Glyph::Branch},
            {"addSiblingTopic", QStringLiteral("同级"), Glyph::Sibling},
@@ -463,7 +464,8 @@ void MainWindow::buildEditorChrome()
            {"toggleTasks", QStringLiteral("任务表"), Glyph::Task},
            {"checkProject", QStringLiteral("检查"), Glyph::Check}});
     group(view, QStringLiteral("学习"),
-          {{"showReviewCards", QStringLiteral("复习"), Glyph::Review}});
+          {{"showReviewCards", QStringLiteral("复习"), Glyph::Review},
+           {"managePresentation", QStringLiteral("讲解"), Glyph::Review}});
     auto *flow = page(QStringLiteral("流程"));
     group(flow, QStringLiteral("流程图"),
           {{"addFlowNode", QStringLiteral("新节点"), Glyph::Add},
@@ -477,6 +479,11 @@ void MainWindow::buildEditorChrome()
            {"editTaskProperties", QStringLiteral("任务属性"), Glyph::Edit},
            {"toggleTasks", QStringLiteral("任务表"), Glyph::Task},
            {"checkProject", QStringLiteral("检查"), Glyph::Check}});
+    auto *creation = page(QStringLiteral("创作"));
+    group(creation, QStringLiteral("辅助创作"),
+          {{"showAiWorkspace", QStringLiteral("AI创作"), Glyph::Branch},
+           {"manageDrafts", QStringLiteral("文字稿"), Glyph::Note},
+           {"exportSheet", QStringLiteral("导出"), Glyph::Save}});
     connect(m_centralStack, &QStackedWidget::currentChanged, this,
             [this] { updateEditorChrome(); });
 

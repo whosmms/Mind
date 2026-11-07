@@ -90,6 +90,9 @@ private:
     QString m_currentRequestId;
     RequestKind m_kind = RequestKind::Map;
     QVector<DraftSourceNode> m_draftSource;
+    QStringList m_mapParagraphIds;
+    int m_mapMaxNodes = 50, m_mapMaxDepth = 4;
+    bool m_faithful = true;
     MapProposal m_lastMap;
     DraftProposal m_lastDraft;
 };

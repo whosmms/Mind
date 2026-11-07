@@ -1,5 +1,6 @@
 #include "ai/AiService.h"
 
+#include "ai/AiMaterial.h"
 #include "ai/AiValidator.h"
 #include "ai/IAiProvider.h"
 #include "ai/PromptLibrary.h"
@@ -27,6 +28,21 @@ QString extractContent(const QJsonObject& response) {
         .toObject()
         .value(QStringLiteral("content"))
         .toString();
+}
+
+AiUsage responseUsage(const QJsonObject &response)
+{
+    const auto usage = response.value("usage").toObject();
+    const auto count = [&](const QString &key)
+    {
+        const auto value = usage.value(key);
+        const auto number = value.toInteger(-1);
+        return value.isDouble() && number >= 0 && number <= 9007199254740991LL &&
+                       double(number) == value.toDouble()
+                   ? number
+                   : qint64(0);
+    };
+    return {count("prompt_tokens"), count("completion_tokens"), count("total_tokens")};
 }
 
 GeneratedNode parseNode(const QJsonObject& object) {
@@ -81,11 +97,13 @@ QJsonObject buildMapBody(const GenerateMapRequest& request) {
     const QJsonObject user{
         {QStringLiteral("role"), QStringLiteral("user")},
         {QStringLiteral("content"),
-         QStringLiteral("模式%1；maxNodes=%2；maxDepth=%3。材料：%4")
+         QStringLiteral("模式%1；maxNodes=%2；maxDepth=%3。附加要求：%4。材料JSON：%5")
              .arg(request.mode)
              .arg(request.maxNodes)
              .arg(request.maxDepth)
-             .arg(request.text)}};
+             .arg(request.requirements)
+             .arg(QString::fromUtf8(QJsonDocument(AiMaterial::mapJson(request.text))
+                                        .toJson(QJsonDocument::Compact)))}};
     return QJsonObject{
         {QStringLiteral("model"), QString::fromLatin1(kModel)},
         {QStringLiteral("messages"), QJsonArray{system, user}},
@@ -95,21 +113,20 @@ QJsonObject buildMapBody(const GenerateMapRequest& request) {
 }
 
 QJsonObject buildDraftBody(const GenerateDraftRequest& request) {
-    QStringList lines;
-    for (const DraftSourceNode& node : request.source) {
-        lines << QStringLiteral("%1：%2").arg(node.title, node.note);
-    }
     const QJsonObject system{
         {QStringLiteral("role"), QStringLiteral("system")},
         {QStringLiteral("content"), PromptLibrary::draftPrompt()}};
     const QJsonObject user{
         {QStringLiteral("role"), QStringLiteral("user")},
         {QStringLiteral("content"),
-         QStringLiteral("purpose=%1；tone=%2；targetChars=%3；模式%4。来源：%5")
+         QStringLiteral("purpose=%1；tone=%2；targetChars=%3；模式%4；附加要求：%"
+                        "5。来源JSON（id用于sourceNodeIds）：%6")
              .arg(request.purpose, request.tone)
              .arg(request.targetChars)
              .arg(request.mode)
-             .arg(lines.join(QStringLiteral("；")))}};
+             .arg(request.requirements)
+             .arg(QString::fromUtf8(
+                 QJsonDocument(AiMaterial::draftJson(request)).toJson(QJsonDocument::Compact)))}};
     return QJsonObject{
         {QStringLiteral("model"), QString::fromLatin1(kModel)},
         {QStringLiteral("messages"), QJsonArray{system, user}},
@@ -241,6 +258,17 @@ bool AiService::generateMap(const GenerateMapRequest& request) {
     if (!ensureKey(request.requestId)) {
         return false;
     }
+    if (const auto error = AiMaterial::validateMapInput(request))
+    {
+        fail(error->code, error->message, request.requestId);
+        return false;
+    }
+    m_mapMaxNodes = request.maxNodes;
+    m_mapMaxDepth = request.maxDepth;
+    m_faithful = request.mode == "faithful";
+    m_mapParagraphIds.clear();
+    for (const auto &p : AiMaterial::mapJson(request.text).value("paragraphs").toArray())
+        m_mapParagraphIds.append(p.toObject().value("id").toString());
     setState(State::Requesting);
     m_provider->start(request.requestId, buildMapBody(request));
     return true;
@@ -253,6 +281,12 @@ bool AiService::generateDraft(const GenerateDraftRequest& request) {
     if (!ensureKey(request.requestId)) {
         return false;
     }
+    if (const auto error = AiMaterial::validateDraftInput(request))
+    {
+        fail(error->code, error->message, request.requestId);
+        return false;
+    }
+    m_faithful = request.mode == "faithful";
     m_draftSource = request.source;
     setState(State::Requesting);
     m_provider->start(request.requestId, buildDraftBody(request));
@@ -333,10 +367,32 @@ void AiService::handleMapResponse(const QJsonObject& response, const QString& re
         fail(QStringLiteral("SCHEMA_INVALID"), QStringLiteral("AI返回不是合法JSON对象"), requestId);
         return;
     }
-    const MapProposal proposal = parseMapProposal(document.object());
-    const AiValidationResult validation = AiValidator::validateMapProposal(proposal);
+    MapProposal proposal = parseMapProposal(document.object());
+    proposal.model = response.value("model").toString(QStringLiteral("未报告"));
+    proposal.usage = responseUsage(response);
+    const AiValidationResult validation =
+        AiValidator::validateMapProposal(proposal, m_mapMaxNodes, m_mapMaxDepth);
     if (!validation.ok) {
         fail(validation.code, validation.message, requestId);
+        return;
+    }
+    bool validSources = true;
+    std::function<void(const GeneratedNode &)> check = [&](const GeneratedNode &node)
+    {
+        if (m_faithful && node.origin == "supplement")
+            validSources = false;
+        if (node.origin == "source" && node.sourceParagraphIds.isEmpty())
+            validSources = false;
+        for (const auto &id : node.sourceParagraphIds)
+            if (!m_mapParagraphIds.contains(id))
+                validSources = false;
+        for (const auto &child : node.children)
+            check(child);
+    };
+    check(proposal.root);
+    if (!validSources)
+    {
+        fail("SCHEMA_INVALID", QStringLiteral("提案引用了未知材料分段或不符合忠实模式"), requestId);
         return;
     }
     m_lastMap = proposal;
@@ -357,12 +413,23 @@ void AiService::handleDraftResponse(const QJsonObject& response, const QString& 
         fail(QStringLiteral("SCHEMA_INVALID"), QStringLiteral("AI返回不是合法JSON对象"), requestId);
         return;
     }
-    const DraftProposal proposal = parseDraftProposal(document.object());
+    DraftProposal proposal = parseDraftProposal(document.object());
+    proposal.model = response.value("model").toString(QStringLiteral("未报告"));
+    proposal.usage = responseUsage(response);
     const AiValidationResult validation = AiValidator::validateDraftProposal(proposal, m_draftSource);
     if (!validation.ok) {
         fail(validation.code, validation.message, requestId);
         return;
     }
+    if (m_faithful)
+        for (const auto &section : proposal.sections)
+            if (section.origin == "supplement")
+            {
+                fail("SCHEMA_INVALID",
+                     QStringLiteral("忠实模式的文稿包含补充段落，请重新生成或明确选择允许补充"),
+                     requestId);
+                return;
+            }
     m_lastDraft = proposal;
     setState(State::Preview);
     m_currentRequestId.clear();

@@ -99,6 +99,11 @@ void TstExport::outlineIncludesCollapsedAndNotes()
 }
 void TstExport::nodeSnapshotIgnoresSelection()
 {
+    BaseNode supplement;
+    supplement.title = QStringLiteral("待核实内容");
+    supplement.provenance = Provenance{};
+    supplement.provenance->origin = "supplement";
+    QCOMPARE(NodeItem::displayTitle(supplement), QStringLiteral("[AI补充] 待核实内容"));
     NodeItem node("中文主题", QFont("Microsoft YaHei", 12));
     const auto paint = [&]
     {

@@ -44,8 +44,9 @@ void FakeAiProvider::finish() {
     switch (m_mode) {
     case FailureMode::Success: {
         // 规范§10.4的X05返回示例；content为JSON字符串，外形与真实接口一致
-        const auto child = [](const char* title) {
-            return QJsonObject{{"title", QLatin1String(title)},
+        const auto child = [](const char *title)
+        {
+            return QJsonObject{{"title", QString::fromUtf8(title)},
                                {"note", QString()},
                                {"sourceParagraphIds", QJsonArray{"p1"}},
                                {"origin", "source"},

@@ -36,6 +36,7 @@ class UserFilesDialog;
 class TaskTableModel;
 class IssuePanel;
 class HomePage;
+class AiService;
 
 // 主窗口（原设计§3 src/app/MainWindow：装配页面、服务与控制器）
 // M0范围：中文界面 + 纵向闭环“根节点→改名→保存→关闭→重开”（原设计§12 M0），
@@ -49,6 +50,8 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     // 首页仅切换会话视图；选择模板/文件时才复用未保存保护与加载流程。
     void showHomePage();
+    // 自动测试可注入隔离服务；生产按凭据存储与既有工厂装配，不自动联网。
+    void setAiServiceForTest(AiService *service);
     // 任务徽标图元的数据键，供宿主与消费者测试定位；不是持久化字段。
     static constexpr int kTaskBadgeRole = 0x21C2;
 
@@ -110,6 +113,8 @@ private slots:
 
 private:
     void buildCompletionActions();
+    void showAiWorkspace();
+    void manageDrafts();
     void managePresentation();
     void playPresentation(const PresentationRoute &route);
     void exportCurrentSheet();
@@ -224,6 +229,7 @@ private:
     bool m_compactChrome = false;
     bool m_restorePropertyDock = false;
     HomePage *m_homePage = nullptr;
+    QPointer<AiService> m_aiService;
     bool m_homeVisible = false;
     int m_pageBeforeHome = 0;
     QByteArray m_editorWindowState;

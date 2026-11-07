@@ -83,9 +83,13 @@ add_library(lingya_appcore STATIC
     src/commands/ReviewCommands.cpp
     src/commands/PresentationCommands.h
     src/commands/PresentationCommands.cpp
+    src/commands/DraftCommands.h
+    src/commands/DraftCommands.cpp
     src/services/ExportService.h
     src/services/ExportService.cpp
     src/ai/AiTypes.h
+    src/ai/AiMaterial.h
+    src/ai/AiMaterial.cpp
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
     src/ai/FakeAiProvider.cpp
@@ -131,6 +135,7 @@ add_executable(lingya
     src/app/MainWindowProperties.cpp
     src/app/MainWindowExport.cpp
     src/app/MainWindowPresentation.cpp
+    src/app/MainWindowAi.cpp
     src/ui/HomePage.h
     src/ui/HomePage.cpp
     src/app/MainWindowFlow.cpp

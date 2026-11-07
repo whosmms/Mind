@@ -343,6 +343,7 @@ struct TextDraft {
     QString purpose = "summary";
     QVector<DraftSection> sections;
     QDateTime createdAt;
+    std::optional<QString> sourceHash; // 2026-11-07增量：来源内容SHA-256，旧稿可缺省
 };
 struct Project {
     int schemaVersion = 1;
@@ -682,6 +683,8 @@ usage、model、promptVersion由服务层从官方响应和自身配置填入，
 返回JSON只含title、sections、warnings；sections每项为heading、text、sourceNodeIds、origin。sourceNodeIds必须属于本次源节点集合。默认摘要400字、说明1000字、讲稿1200字，允许200至3000字；这是目标篇幅，不保证精确时长。程序显示实际字数；中文讲稿时长可按每分钟220至280字提供参考区间，最终以本人朗读计时为准。
 
 文稿预览支持逐段编辑、复制及导出。采用时创建TextDraft，并记录sourceRevision；之后源图修改提示“源导图已更新”，不静默重写草稿。第一版只对mindmap/fishbone启用X06，流程图与甘特图仍可导出已有内容；扩展AI解释这些图需另行定义语义，不冒充已支持。
+
+2026-11-07单人续开发补充（IF-A-20261107-005）：新稿另记录可选`sourceHash`，取来源树图全部节点的ID/父级/order/标题/备注及关系端点/标签的稳定JSON之SHA-256。视口、折叠和样式不参与，稿件自身编辑不重算来源指纹。`sourceRevision`仍记录生成会话修订，负责在途采用检查，不用它代替跨重开的来源判断。新读端兼容旧v1稿件缺省指纹（提示手动核对），有值须64位小写十六进制；写出时无值省略。旧严格读端可能拒绝带此字段的新稿工程，应使用新候选打开，不静默删字段。
 
 ### 10.6 校验和状态机
 

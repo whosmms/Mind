@@ -118,6 +118,13 @@ QFont NodeItem::styledFont(const QFont &fallback, const NodeStyle &style)
     return result;
 }
 
+QString NodeItem::displayTitle(const BaseNode &node)
+{
+    return node.provenance && node.provenance->origin == QStringLiteral("supplement")
+               ? QStringLiteral("[AI补充] ") + node.title
+               : node.title;
+}
+
 QPainterPath NodeItem::shape() const
 {
     return m_shape;

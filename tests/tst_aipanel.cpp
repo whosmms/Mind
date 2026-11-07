@@ -33,6 +33,7 @@ void TstAiPanel::idleDisablesApply() {
     SessionSecretStore store;
     AiService service(&provider, &store);
     AiPanel panel(&service);
+    panel.setSourceText(QStringLiteral("受控测试材料"));
 
     auto* applyButton = panel.findChild<QPushButton*>(QStringLiteral("aiApply"));
     QVERIFY(applyButton != nullptr);
@@ -44,6 +45,7 @@ void TstAiPanel::mapGenerationShowsPreviewAndApplies() {
     SessionSecretStore store;
     AiService service(&provider, &store);
     AiPanel panel(&service);
+    panel.setSourceText(QStringLiteral("受控测试材料"));
     QVERIFY(service.setKey(QStringLiteral("sk-test"), false));
 
     panel.setSourceText(QStringLiteral("材料内容"));
@@ -70,6 +72,7 @@ void TstAiPanel::failureShowsErrorCode() {
     SessionSecretStore store;
     AiService service(&provider, &store);
     AiPanel panel(&service);
+    panel.setSourceText(QStringLiteral("受控测试材料"));
     QVERIFY(service.setKey(QStringLiteral("bad"), false));
 
     auto* status = panel.findChild<QLabel*>(QStringLiteral("aiStatus"));
@@ -85,6 +88,7 @@ void TstAiPanel::cancelShowsCanceled() {
     SessionSecretStore store;
     AiService service(&provider, &store);
     AiPanel panel(&service);
+    panel.setSourceText(QStringLiteral("受控测试材料"));
     QVERIFY(service.setKey(QStringLiteral("sk-test"), false));
 
     auto* status = panel.findChild<QLabel*>(QStringLiteral("aiStatus"));
@@ -103,6 +107,7 @@ void TstAiPanel::testConnectionShowsModel() {
     SessionSecretStore store;
     AiService service(&provider, &store);
     AiPanel panel(&service);
+    panel.setSourceText(QStringLiteral("受控测试材料"));
     QVERIFY(service.setKey(QStringLiteral("sk-test"), false));
 
     auto* status = panel.findChild<QLabel*>(QStringLiteral("aiStatus"));
@@ -172,6 +177,7 @@ void TstAiPanel::providerRebuildShowsAbortedStatus() {
 
     AiService service(nullptr, &store);
     AiPanel panel(&service);
+    panel.setSourceText(QStringLiteral("受控测试材料"));
     service.setProviderFactory(
         [&log] { return std::unique_ptr<IAiProvider>(new RecordingProvider(&log)); });
 

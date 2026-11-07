@@ -157,6 +157,8 @@ struct TextDraft {
     QString purpose = "summary";
     QVector<DraftSection> sections;
     QDateTime createdAt;
+    // 新稿记录来源内容指纹，旧工程无此字段时须提示核对，不能判为来源未变。
+    std::optional<QString> sourceHash;
 };
 struct Project {
     int schemaVersion = 1;

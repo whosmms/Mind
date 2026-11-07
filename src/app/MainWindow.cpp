@@ -362,9 +362,9 @@ MainWindow::MainWindow(QWidget* parent)
             [this](int) { applyOutlineTagFilter(); });
 
     buildMenus();
+    buildCompletionActions();
     buildEditorChrome();
     buildHomePage();
-    buildCompletionActions();
     connect(m_doc, &ProjectDocument::changed, this, &MainWindow::onDocumentChanged);
 
     // 恢复快照（规范§11.3、原设计§8）：30秒定时，仅脏文档且内容变化时写一份；
@@ -1816,8 +1816,9 @@ void MainWindow::rebuildCanvas() {
     for (auto it = display.nodes.constBegin(); it != display.nodes.constEnd(); ++it)
     {
         const NodeStyle style = NodeItem::resolvedStyle(display.defaultNodeStyle, it.value().style);
-        const NodeItem measured(it.value().title, NodeItem::styledFont(canvasFont(), style),
-                                nullptr, it.value().iconId.value_or(QString()), style);
+        const NodeItem measured(NodeItem::displayTitle(it.value()),
+                                NodeItem::styledFont(canvasFont(), style), nullptr,
+                                it.value().iconId.value_or(QString()), style);
         const QRectF bounds = measured.boundingRect();
         sizes.append({it.key(), bounds.width(), bounds.height()});
     }
@@ -1861,9 +1862,14 @@ void MainWindow::rebuildCanvas() {
     {
         const auto node = display.nodes.value(position.id);
         const NodeStyle style = NodeItem::resolvedStyle(display.defaultNodeStyle, node.style);
-        auto *item = new NodeItem(node.title, NodeItem::styledFont(canvasFont(), style), nullptr,
-                                  node.iconId.value_or(QString()), style);
+        auto *item =
+            new NodeItem(NodeItem::displayTitle(node), NodeItem::styledFont(canvasFont(), style),
+                         nullptr, node.iconId.value_or(QString()), style);
         item->setNodeId(position.id);
+        if (node.provenance)
+            item->setToolTip(
+                QStringLiteral("AI生成 · 模型：%1 · 来源材料：%2")
+                    .arg(node.provenance->model, node.provenance->sourceParagraphIds.join(", ")));
         item->setPos(position.x, position.y);
         m_scene->addItem(item);
         m_nodeItems.insert(position.id, item);

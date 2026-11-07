@@ -139,6 +139,7 @@ std::variant<QString, AppError> outline(const Project &project, const ID &sheetI
             {
                 const auto node = tree->nodes.value(id);
                 QString title = node.title;
+                if(node.provenance && node.provenance->origin=="supplement")title.prepend(QStringLiteral("[AI补充] "));
                 title.replace('\n', " ");
                 result += QString(depth * 2, ' ') + "- " + title + "\n";
                 if (!node.note.isEmpty())

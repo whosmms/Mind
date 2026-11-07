@@ -26,7 +26,11 @@ namespace lingya
 {
 void MainWindow::buildCompletionActions()
 {
-    auto *menu = menuBar()->addMenu(QStringLiteral("输出与讲解"));
+    auto *menu = menuBar()->addMenu(QStringLiteral("创作与输出"));
+    menu->addAction(QStringLiteral("AI创作与密钥设置…"), this, &MainWindow::showAiWorkspace)
+        ->setObjectName("showAiWorkspace");
+    menu->addAction(QStringLiteral("工程文字稿…"), this, &MainWindow::manageDrafts)
+        ->setObjectName("manageDrafts");
     auto *presentation =
         menu->addAction(QStringLiteral("分支讲解…"), this, &MainWindow::managePresentation);
     presentation->setObjectName("managePresentation");

@@ -18,6 +18,7 @@ public:
   // 渲染副本中合并默认值与局部覆盖，不回写领域数据。
   static NodeStyle resolvedStyle(const NodeStyle &defaults, const NodeStyleOverride &override);
   static QFont styledFont(const QFont &fallback, const NodeStyle &style);
+  static QString displayTitle(const BaseNode &node);
 
   // 仅识别内置ID，未知值不作为文件/网络路径读取。
   static QIcon iconForId(const QString &id);
