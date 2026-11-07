@@ -80,6 +80,10 @@ add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindow.h
     ${CMAKE_SOURCE_DIR}/src/app/MainWindow.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowChrome.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowHome.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowProperties.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/HomePage.h
+    ${CMAKE_SOURCE_DIR}/src/ui/HomePage.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowFlow.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowOffline.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ReviewPage.cpp

@@ -363,6 +363,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     buildMenus();
     buildEditorChrome();
+    buildHomePage();
     connect(m_doc, &ProjectDocument::changed, this, &MainWindow::onDocumentChanged);
 
     // 恢复快照（规范§11.3、原设计§8）：30秒定时，仅脏文档且内容变化时写一份；
@@ -597,6 +598,8 @@ bool MainWindow::adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info
         return false;
     }
     const Project recovered = std::get<Project>(loaded);
+    const bool wasHome = m_homeVisible;
+    returnFromHome();
     // 路径等会话状态先于changed更新，避免采用时仍显示原文件名；失败则完整还原。
     const QString previousPath = m_filePath;
     const auto previousStamp = m_fileStamp;
@@ -612,6 +615,8 @@ bool MainWindow::adoptRecoverySnapshot(const RecoveryService::SnapshotInfo& info
         m_filePath = previousPath;
         m_fileStamp = previousStamp;
         m_recoveryNote = previousNote;
+        if (wasHome)
+            showHomePage();
         showNotice(this, QMessageBox::Warning, QStringLiteral("无法采用快照"),
                    std::get<AppError>(applied).message);
         return false;
@@ -1462,6 +1467,7 @@ void MainWindow::deleteSelection()
 }
 
 void MainWindow::rebuildRecentMenu() {
+    refreshHomePage();
     if (m_recentMenu == nullptr) return;
     m_recentMenu->clear();
     const QVector<QString> recents = SettingsService::recentFiles();
@@ -1531,6 +1537,8 @@ bool MainWindow::confirmDiscard() {
 }
 
 void MainWindow::loadNewDocument(Project project) {
+    returnFromHome();
+    m_propertyNodeId.clear(); // 新会话不能沿用同ID主题的未提交属性草稿。
     m_annotationMembers.clear();
     m_cutNodeId.clear();
     m_cutToken.clear();
@@ -2022,9 +2030,17 @@ void MainWindow::onDocumentChanged() {
                             m_doc->isModified() ? QStringLiteral(" *") : QString()));
     m_undoAction->setEnabled(m_commands->canUndo());
     m_redoAction->setEnabled(m_commands->canRedo());
+    if (m_homeVisible)
+        updateEditorChrome();
 }
 
 void MainWindow::updateStatusLine() {
+    if (m_homeVisible)
+    {
+        statusBar()->showMessage(QStringLiteral("首页 · 当前工程保留，选择模板或打开本地工程"));
+        updateEditorChrome();
+        return;
+    }
     const QString state =
         m_doc->isModified() ? QStringLiteral("已修改") : QStringLiteral("已保存");
     const TreeSheet *sheet = activeTreeSheet();

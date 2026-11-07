@@ -30,6 +30,8 @@ int main(int argc, char* argv[]) {
     const QStringList arguments = QApplication::arguments();
     if (arguments.size() > 1)
         window.openFile(arguments.at(1));   // 失败时窗口仍正常显示，保持初始工程
+    else
+        window.showHomePage();
     window.show();
     return app.exec();
 }

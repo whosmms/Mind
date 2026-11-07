@@ -427,15 +427,15 @@ void MainWindow::buildEditorChrome()
         layout->insertWidget(layout->count() - 1, box);
     };
     auto *style = propertyPage(QStringLiteral("样式"));
-    section(style, QStringLiteral("节点样式"), "nodeStyleSummary",
-            {{"editNodeStyle", QStringLiteral("编辑样式"), Glyph::Style}});
+    buildInlineStyle(style);
     section(style, QStringLiteral("工作表默认"), "sheetStyleSummary",
             {{"editSheetStyle", QStringLiteral("默认样式"), Glyph::Style}});
-    auto *content = propertyPage(QStringLiteral("内容"));
-    section(content, QStringLiteral("图标、备注与链接"), "nodeContentSummary",
-            {{"editNodeProperties", QStringLiteral("编辑属性"), Glyph::Note},
-             {"openNodeLink", QStringLiteral("打开链接"), Glyph::Link},
-             {"editFlowNode", QStringLiteral("流程节点"), Glyph::Flow}});
+    auto *icons = propertyPage(QStringLiteral("图标"));
+    buildInlineIcons(icons);
+    auto *content = propertyPage(QStringLiteral("备注"));
+    buildInlineNotes(content);
+    section(content, QStringLiteral("其他属性"), "nodeContentSummary",
+            {{"editFlowNode", QStringLiteral("流程节点"), Glyph::Flow}});
     section(content, QStringLiteral("标签与批注"), "nodeTagsSummary",
             {{"editNodeTags", QStringLiteral("编辑标签"), Glyph::Tag},
              {"editComments", QStringLiteral("查看批注"), Glyph::Note}});
@@ -535,6 +535,14 @@ void MainWindow::updateEditorChrome()
     auto *tabs = findChild<QTabWidget *>("ribbonTabs");
     if (!tabs || m_chromeUpdating)
         return;
+    if (m_homeVisible)
+    {
+        for (const auto &entry : m_homeActionStates)
+            if (entry.first)
+                entry.first->setEnabled(false);
+        updateInlineProperties();
+        return;
+    }
     const QScopedValueRollback<bool> updating(m_chromeUpdating, true);
     const bool gantt = m_centralStack->currentIndex() == 1;
     const TreeSheet *tree = activeTreeSheet();
@@ -551,7 +559,7 @@ void MainWindow::updateEditorChrome()
     {
         tabs->setCurrentIndex(gantt ? 4 : flow ? 3 : 0);
         if (auto *property = findChild<QTabWidget *>("propertyTabs"))
-            property->setCurrentIndex(gantt ? 2 : flow ? 1 : 0);
+            property->setCurrentIndex(gantt ? 3 : flow ? 2 : 0);
     }
     const auto text = [this](const char *name, const QString &value)
     {
@@ -624,6 +632,7 @@ void MainWindow::updateEditorChrome()
               : QStringLiteral("将主题设为任务，或在任务表中选择已有任务"));
     if (auto *edit = findChild<QAction *>("editTaskProperties"))
         edit->setEnabled(task != nullptr);
+    updateInlineProperties();
     auto *slider = findChild<QSlider *>("canvasZoomSlider");
     if (slider)
     {
@@ -646,6 +655,8 @@ void MainWindow::updateEditorChrome()
 
 void MainWindow::resizeEditorChrome()
 {
+    if (m_homeVisible)
+        return;
     auto *dock = findChild<QDockWidget *>("propertyDock");
     if (!dock)
         return;

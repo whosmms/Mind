@@ -3,6 +3,7 @@
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
 #include <QMainWindow>
+#include <QPointer>
 #include <QSet>
 #include <optional>
 
@@ -20,6 +21,7 @@ class QTreeWidget;
 class QComboBox;
 class QTableView;
 class QResizeEvent;
+class QVBoxLayout;
 
 namespace lingya {
 
@@ -32,6 +34,7 @@ class LoginDialog;
 class UserFilesDialog;
 class TaskTableModel;
 class IssuePanel;
+class HomePage;
 
 // 主窗口（原设计§3 src/app/MainWindow：装配页面、服务与控制器）
 // M0范围：中文界面 + 纵向闭环“根节点→改名→保存→关闭→重开”（原设计§12 M0），
@@ -43,6 +46,8 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget* parent = nullptr);
+    // 首页仅切换会话视图；选择模板/文件时才复用未保存保护与加载流程。
+    void showHomePage();
     // 任务徽标图元的数据键，供宿主与消费者测试定位；不是持久化字段。
     static constexpr int kTaskBadgeRole = 0x21C2;
 
@@ -107,6 +112,17 @@ private:
     void buildEditorChrome();
     void updateEditorChrome();
     void resizeEditorChrome();
+    void buildHomePage();
+    void returnFromHome();
+    void refreshHomePage();
+    void createFromHome(const QString &kind);
+    void buildInlineStyle(QVBoxLayout *layout);
+    void buildInlineIcons(QVBoxLayout *layout);
+    void buildInlineNotes(QVBoxLayout *layout);
+    void updateInlineProperties();
+    void applyInlineStyle(bool reset = false);
+    void applyInlineIcon(const QString &id);
+    void applyInlineNotes();
     void rebuildRecentMenu();       // 重建“最近文件”子菜单（R04，数据来自SettingsService）
     void openRecentFile(const QString& path);
     void newProject();
@@ -201,6 +217,15 @@ private:
     bool m_chromeUpdating = false;
     bool m_compactChrome = false;
     bool m_restorePropertyDock = false;
+    HomePage *m_homePage = nullptr;
+    bool m_homeVisible = false;
+    int m_pageBeforeHome = 0;
+    QByteArray m_editorWindowState;
+    QList<QPair<QPointer<QAction>, bool>> m_homeActionStates;
+    ID m_propertySheetId, m_propertyNodeId;
+    qint64 m_propertyRevision = -1;
+    BaseNode m_propertyInitial;
+    NodeStyleOverride m_propertyStyle;
     QPoint m_dragStart;
     ID m_cutNodeId, m_cutSheetId, m_cutProjectId;
     qint64 m_cutRevision = -1;

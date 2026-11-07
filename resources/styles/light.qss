@@ -72,3 +72,19 @@ QScrollBar::handle:vertical, QScrollBar::handle:horizontal { background: #C6D6CD
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 QToolTip { background: #FFF0D0; color: #243A34; border: 1px solid #DDE6DF; padding: 6px; }
+/* 实际参考图的白画布、薄荷导航和首页；可编辑内容仍取自文档。 */
+QGraphicsView#topicPreview { background: #FFFFFF; }
+QToolBar#editorNavigation { background: #EDF6F0; border-right: 1px solid #DDE6DF; padding: 8px 4px; }
+QToolBar#editorNavigation QToolButton { padding: 8px 4px; }
+QPushButton[primary="true"] { background: #247A62; color: #FFFFFF; border-color: #247A62; }
+QPushButton[primary="true"]:hover { background: #1C6853; color: #FFFFFF; }
+QLabel[validationError="true"] { color: #A83636; font-size: 12px; }
+QWidget#homePage, QWidget#homeWorkspace { background: #F6F8F5; }
+QWidget#homeNavigation { background: #EDF6F0; border-right: 1px solid #DDE6DF; }
+QLabel#homeBrand { color: #247A62; font-size: 20px; font-weight: 600; }
+QLabel#homeActiveNavigation { background: #DDF2E7; color: #247A62; border-radius: 6px; padding: 10px; }
+QWidget#homeHero { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #FFFFFF,stop:1 #E8F4EA); border-radius: 12px; }
+QLabel#homeTitle { font-size: 28px; font-weight: 600; color: #243A34; }
+QPushButton[templateCard="true"] { background: #FFFFFF; border: 1px solid #DDE6DF; border-radius: 12px; padding: 10px; font-size: 16px; }
+QPushButton[templateCard="true"]:hover { background: #EDF6F0; border-color: #247A62; }
+QListWidget#homeRecentFiles { border: 1px solid #DDE6DF; border-radius: 10px; }

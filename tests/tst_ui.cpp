@@ -21,6 +21,7 @@
 #include "features/ReviewService.h"
 #include "graphics/NodeItem.h"
 #include "services/ProjectJson.h"
+#include "ui/HomePage.h"
 #include "ui/IssuePanel.h"
 #include "ui/ReviewPage.h"
 #include <QAbstractButton>
@@ -111,6 +112,14 @@ class TstUi : public QObject {
 
 private slots:
     void initTestCase();
+    void inlineStyleKeepsUneditedValues_data();
+    void inlineStyleKeepsUneditedValues();
+    void inlineMetadataAndDraftIsolation();
+    void homeNavigationKeepsEditorState();
+    void homeTemplates_data();
+    void homeTemplates();
+    void homeRecentsAndCancelProtectContent();
+    void homeRecoveryReturnsToEditor();
     void desktopChromeKeepsCommandsAndViewState();
     void desktopChromeModesAndResponsiveLayout();
     void undoRedoViaShortcuts();
@@ -5108,7 +5117,7 @@ void TstUi::desktopChromeModesAndResponsiveLayout()
     QCOMPARE(window.findChild<QLabel *>("workspaceMode")->text(), QStringLiteral("鱼骨图"));
     selector->setCurrentIndex(selector->findData(ganttId));
     QCOMPARE(ribbon->tabText(ribbon->currentIndex()), QStringLiteral("任务"));
-    QCOMPARE(window.findChild<QTabWidget *>("propertyTabs")->currentIndex(), 2);
+    QCOMPARE(window.findChild<QTabWidget *>("propertyTabs")->currentIndex(), 3);
     auto *ganttView = window.findChild<GanttView *>();
     QVERIFY(ganttView);
     QVERIFY(!window.findChild<QAction *>("fitTopic")->isEnabled());
@@ -5130,6 +5139,228 @@ void TstUi::desktopChromeModesAndResponsiveLayout()
     QVERIFY(window.findChild<QAction *>("editTaskProperties")
                 ->isEnabled()); // 独立任务不受当前主题限制。
     doc->setClean();
+}
+
+void TstUi::inlineStyleKeepsUneditedValues_data()
+{
+    QTest::addColumn<QString>("family");
+    QTest::newRow("normal") << QStringLiteral("Microsoft YaHei");
+    QTest::newRow("explicit-empty") << QString();
+    QTest::newRow("spaces") << QStringLiteral("  Microsoft YaHei  ");
+}
+
+void TstUi::inlineStyleKeepsUneditedValues()
+{
+    QFETCH(QString, family);
+    Project fixture = canvasProject(2, 1);
+    auto &tree = std::get<TreeSheet>(fixture.sheets.first());
+    const ID root = tree.rootId;
+    tree.nodes[root].style.fontFamily = family;
+    tree.nodes[root].style.borderWidth = 0.1234567;
+    MainWindow window;
+    loadEditorFixture(window, fixture);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QCOMPARE(changed.count(), 0);
+    QVERIFY(!commands->canUndo());
+    auto *size = window.findChild<QComboBox *>("inlineFontSize");
+    size->setCurrentIndex(size->findData(20));
+    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QCOMPARE(changed.count(), 1);
+    const auto styled = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;
+    QCOMPARE(styled.fontFamily.value(), family);
+    QCOMPARE(styled.borderWidth.value(), 0.1234567);
+    QCOMPARE(styled.fontSize.value(), 20);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    changed.clear();
+    auto *fill = window.findChild<QComboBox *>("inlineFill");
+    fill->setEditText(QStringLiteral("不是颜色"));
+    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QVERIFY(!window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
+    fill->setCurrentIndex(0);
+    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QVERIFY(window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
+    window.findChild<QPushButton *>("resetInlineStyle")->click();
+    const auto reset = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;
+    QVERIFY(!reset.fontFamily);
+    QVERIFY(!reset.borderWidth);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    doc->setClean();
+}
+
+void TstUi::inlineMetadataAndDraftIsolation()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 1));
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const ID root = std::get<TreeSheet>(doc->project().sheets.first()).rootId;
+    auto *note = window.findChild<QPlainTextEdit *>("inlineNote");
+    auto *link = window.findChild<QLineEdit *>("inlineLink");
+    note->setPlainText(QStringLiteral("尚未提交的中文备注"));
+    window.findChild<QToolButton *>("inlineIcon_idea")->click();
+    QCOMPARE(note->toPlainText(), QStringLiteral("尚未提交的中文备注"));
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).note, QString());
+    link->setText(QStringLiteral("file:///C:/private.txt"));
+    const auto before = ProjectJson::toJson(doc->project());
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    window.findChild<QPushButton *>("applyInlineNotes")->click();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    QVERIFY(!window.findChild<QLabel *>("inlineNoteError")->text().isEmpty());
+    link->setText(QStringLiteral("https://example.com/notes"));
+    window.findChild<QPushButton *>("applyInlineNotes")->click();
+    QCOMPARE(changed.count(), 1);
+    auto node = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root);
+    QCOMPARE(node.note, QStringLiteral("尚未提交的中文备注"));
+    QCOMPARE(node.iconId.value(), QStringLiteral("idea"));
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    note->setPlainText(QStringLiteral("不应带到另一个主题"));
+    chooseTopic(window, canvasId("branch-0"));
+    QCOMPARE(note->toPlainText(), QString());
+    doc->setClean();
+}
+
+void TstUi::homeNavigationKeepsEditorState()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 1));
+    QVERIFY(window.renameRootTo(QStringLiteral("保留当前工程")));
+    window.resize(1536, 960);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    const auto snapshot = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    const auto transform = view->transform();
+    window.showHomePage();
+    auto *home = window.findChild<HomePage *>();
+    QVERIFY(home->isVisible());
+    QVERIFY(!window.findChild<QAction *>("undoEdit")->isEnabled());
+    QVERIFY(!window.findChild<QAction *>("pasteTopic")->isEnabled());
+    const QString captures = qEnvironmentVariable("LINGYA_UI_DETAIL_CAPTURE_DIR");
+    if (!captures.isEmpty())
+    {
+        QVERIFY(QDir().mkpath(captures));
+        QTest::qWait(30);
+        QVERIFY(window.grab().save(QDir(captures).filePath("01-首页-1536.png")));
+    }
+    window.resize(800, 650);
+    QTest::qWait(30);
+    QCOMPARE(window.width(), 800);
+    if (!captures.isEmpty())
+        QVERIFY(window.grab().save(QDir(captures).filePath("02-首页-800.png")));
+    window.findChild<QPushButton *>("homeContinue")->click();
+    QVERIFY(!home->isVisible());
+    QCOMPARE(ProjectJson::toJson(doc->project()), snapshot);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(view->transform(), transform);
+    QVERIFY(doc->isModified());
+    QVERIFY(commands->canUndo());
+    QVERIFY(window.findChild<QAction *>("undoEdit")->isEnabled());
+    window.resize(1536, 960);
+    window.findChild<QAction *>("fitTopic")->trigger();
+    QTest::qWait(30);
+    if (!captures.isEmpty())
+        QVERIFY(window.grab().save(QDir(captures).filePath("03-内联样式-1536.png")));
+    doc->setClean();
+}
+
+void TstUi::homeTemplates_data()
+{
+    QTest::addColumn<QString>("kind");
+    for (const QString kind : {"mindmap", "fishbone", "flowchart", "gantt"})
+        QTest::newRow(qPrintable(kind)) << kind;
+}
+
+void TstUi::homeTemplates()
+{
+    QFETCH(QString, kind);
+    MainWindow window;
+    window.showHomePage();
+    window.findChild<QPushButton *>(QStringLiteral("homeTemplate_") + kind)->click();
+    auto *doc = window.findChild<ProjectDocument *>();
+    QCOMPARE(std::visit([](const auto &s) { return s.kind; }, doc->project().sheets.first()), kind);
+    QCOMPARE(ProjectValidator::validate(doc->project()).size(), 0);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+    QVERIFY(!doc->isModified());
+    if (kind == "fishbone")
+        QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), 7);
+    QTemporaryDir files;
+    const QString path = files.filePath(kind + ".lingya");
+    QVERIFY(window.saveProjectTo(path));
+    const auto loaded = FileService::load(path);
+    QVERIFY(std::holds_alternative<Project>(loaded));
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(loaded)), ProjectJson::toJson(doc->project()));
+}
+
+void TstUi::homeRecentsAndCancelProtectContent()
+{
+    QTemporaryDir files;
+    const QString path = files.filePath(QStringLiteral("首页最近工程.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, canvasProject(1, 1))));
+    SettingsService::addRecentFile(path);
+    MainWindow window;
+    window.show();
+    QVERIFY(window.renameRootTo(QStringLiteral("未保存内容")));
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    window.showHomePage();
+    auto *list = window.findChild<QListWidget *>("homeRecentFiles");
+    QVERIFY(list->count() > 0);
+    list->setCurrentRow(0);
+    QTimer::singleShot(0, &window,
+                       [&window]
+                       {
+                           for (auto *box : window.findChildren<QMessageBox *>())
+                               if (box->isVisible())
+                                   box->button(QMessageBox::Cancel)->click();
+                       });
+    window.findChild<QPushButton *>("homeOpenRecent")->click();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(window.findChild<HomePage *>()->isVisible());
+    QVERIFY(SettingsService::recentFiles().contains(path));
+    list->setCurrentRow(0);
+    window.findChild<QPushButton *>("homeRemoveRecent")->click();
+    QVERIFY(!SettingsService::recentFiles().contains(path));
+    QVERIFY(QFile::exists(path));
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    doc->setClean();
+}
+
+void TstUi::homeRecoveryReturnsToEditor()
+{
+    QTemporaryDir root;
+    MainWindow::setRecoveryRootForTest(root.path());
+    const auto restoreRoot =
+        qScopeGuard([this] { MainWindow::setRecoveryRootForTest(m_recoveryDir.path()); });
+    MainWindow window;
+    const auto initial = ProjectJson::toJson(window.findChild<ProjectDocument *>()->project());
+    const Project recovered =
+        makeRecoveredProject(QStringLiteral("恢复工程"), QStringLiteral("从首页采用"));
+    QVERIFY(std::holds_alternative<RecoveryService::SnapshotWrite>(
+        RecoveryService::writeSnapshot(root.path(), recovered)));
+    const auto snapshots = RecoveryService::list(root.path(), recovered.id);
+    QVERIFY(!snapshots.isEmpty());
+    window.showHomePage();
+    QVERIFY(window.adoptRecoverySnapshot(snapshots.first()));
+    QVERIFY(!window.findChild<HomePage *>()->isVisible());
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("从首页采用"));
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(ProjectJson::toJson(window.findChild<ProjectDocument *>()->project()), initial);
+    window.findChild<ProjectDocument *>()->setClean();
 }
 
 QTEST_MAIN(TstUi)
