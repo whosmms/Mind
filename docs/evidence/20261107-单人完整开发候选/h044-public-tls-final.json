@@ -1,0 +1,17 @@
+{
+    "availableBackends": [
+        "cert-only",
+        "schannel"
+    ],
+    "backend": "schannel",
+    "backendSelected": true,
+    "endpoint": "https://www.qt.io/",
+    "httpStatus": 200,
+    "loadedTlsPlugin": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\tls\\qschannelbackend.dll",
+    "networkError": 0,
+    "qtVersion": "6.8.3",
+    "sslErrors": 0,
+    "success": true,
+    "timedOut": false,
+    "usesApiKey": false
+}

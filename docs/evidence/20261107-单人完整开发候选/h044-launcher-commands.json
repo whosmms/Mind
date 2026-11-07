@@ -1,0 +1,21 @@
+{
+    "interceptedStartProcess":  true,
+    "commandChecks":  2,
+    "sourceCommit":  "59c8381ca7c621e9ff5813726ab858074d9c2c86",
+    "success":  true,
+    "actualGuiStartedByThisProbe":  false,
+    "normal":  {
+                   "windowStyle":  "Normal",
+                   "arguments":  null,
+                   "file":  "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\lingya.exe",
+                   "workingDirectory":  "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program"
+               },
+    "withFile":  {
+                     "windowStyle":  "Normal",
+                     "arguments":  [
+                                       "\"D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\样例\\13-AI文稿_假响应.lingya\""
+                                   ],
+                     "file":  "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\lingya.exe",
+                     "workingDirectory":  "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program"
+                 }
+}

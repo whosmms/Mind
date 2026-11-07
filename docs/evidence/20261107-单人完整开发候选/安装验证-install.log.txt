@@ -1,0 +1,1291 @@
+﻿2026-11-07 18:23:19.832   Log opened. (Time zone: UTC+08:00)
+2026-11-07 18:23:19.832   Setup version: Inno Setup version 6.7.4
+2026-11-07 18:23:19.832   Original Setup EXE: D:\mind\候选版本\完整开发版_20261107_59c8381\安装包与便携包\LingyaMind-Dev-59c8381-Setup.exe
+2026-11-07 18:23:19.832   Setup command line: /SL5="$E20824,12078157,864256,D:\mind\候选版本\完整开发版_20261107_59c8381\安装包与便携包\LingyaMind-Dev-59c8381-Setup.exe" /SANDBOX=1 /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOICONS /NOCLOSEAPPLICATIONS /DIR="D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选" /LOG="D:\mind\.worktrees\gantt-review\build\h044-安装验证\install.log"
+2026-11-07 18:23:19.832   Windows version: 10.0.26200
+2026-11-07 18:23:19.832   Windows architecture: x64 (64-bit)
+2026-11-07 18:23:19.832   Machine types supported by system: x86 x64
+2026-11-07 18:23:19.832   User privileges: None
+2026-11-07 18:23:19.841   Administrative install mode: No
+2026-11-07 18:23:19.841   Install mode root key: HKEY_CURRENT_USER
+2026-11-07 18:23:19.841   64-bit install mode: Yes
+2026-11-07 18:23:19.842   RedirectionGuard status for current process: Enabled in enforcing mode
+2026-11-07 18:23:19.843   Created temporary directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\temp\is-55IG2RT329.tmp
+2026-11-07 18:23:19.996   Starting the installation process.
+2026-11-07 18:23:20.011   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选
+2026-11-07 18:23:20.011   Directory for uninstall files: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选
+2026-11-07 18:23:20.011   Creating new uninstall log: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\unins000.dat
+2026-11-07 18:23:20.020   -- File entry --
+2026-11-07 18:23:20.020   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\unins000.exe
+2026-11-07 18:23:20.020   Non-default bitness: 32-bit
+2026-11-07 18:23:20.023   Time stamp of our file: 2026-11-07 18:23:19.564
+2026-11-07 18:23:20.023   Installing the file.
+2026-11-07 18:23:20.026   Successfully installed the file.
+2026-11-07 18:23:20.026   -- File entry --
+2026-11-07 18:23:20.026   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\候选程序校验.json
+2026-11-07 18:23:20.026   Time stamp of our file: 2026-11-07 18:14:52.000
+2026-11-07 18:23:20.026   Installing the file.
+2026-11-07 18:23:20.026   Successfully installed the file.
+2026-11-07 18:23:20.026   -- File entry --
+2026-11-07 18:23:20.026   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\分发文件校验.json
+2026-11-07 18:23:20.026   Time stamp of our file: 2026-11-07 18:22:36.000
+2026-11-07 18:23:20.026   Installing the file.
+2026-11-07 18:23:20.031   Successfully installed the file.
+2026-11-07 18:23:20.031   -- File entry --
+2026-11-07 18:23:20.033   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\源码与构建资料-ecd8e2e.zip
+2026-11-07 18:23:20.033   Time stamp of our file: 2026-11-07 18:22:34.000
+2026-11-07 18:23:20.033   Installing the file.
+2026-11-07 18:23:20.069   Successfully installed the file.
+2026-11-07 18:23:20.070   -- File entry --
+2026-11-07 18:23:20.070   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\libgcc_s_seh-1.dll
+2026-11-07 18:23:20.070   Time stamp of our file: 2023-05-25 05:06:24.000
+2026-11-07 18:23:20.070   Installing the file.
+2026-11-07 18:23:20.070   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program
+2026-11-07 18:23:20.070   Successfully installed the file.
+2026-11-07 18:23:20.070   -- File entry --
+2026-11-07 18:23:20.070   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\libstdc++-6.dll
+2026-11-07 18:23:20.070   Time stamp of our file: 2023-05-25 05:06:24.000
+2026-11-07 18:23:20.070   Installing the file.
+2026-11-07 18:23:20.126   Successfully installed the file.
+2026-11-07 18:23:20.126   -- File entry --
+2026-11-07 18:23:20.127   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\libwinpthread-1.dll
+2026-11-07 18:23:20.127   Time stamp of our file: 2023-05-25 05:06:24.000
+2026-11-07 18:23:20.127   Installing the file.
+2026-11-07 18:23:20.129   Successfully installed the file.
+2026-11-07 18:23:20.129   -- File entry --
+2026-11-07 18:23:20.129   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\lingya.exe
+2026-11-07 18:23:20.129   Time stamp of our file: 2026-11-07 18:07:00.000
+2026-11-07 18:23:20.129   Installing the file.
+2026-11-07 18:23:20.201   Successfully installed the file.
+2026-11-07 18:23:20.201   -- File entry --
+2026-11-07 18:23:20.202   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\qt.conf
+2026-11-07 18:23:20.202   Time stamp of our file: 2026-10-31 13:18:30.000
+2026-11-07 18:23:20.202   Installing the file.
+2026-11-07 18:23:20.203   Successfully installed the file.
+2026-11-07 18:23:20.203   -- File entry --
+2026-11-07 18:23:20.203   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\Qt6Core.dll
+2026-11-07 18:23:20.203   Time stamp of our file: 2025-03-17 22:16:56.000
+2026-11-07 18:23:20.203   Installing the file.
+2026-11-07 18:23:20.353   Successfully installed the file.
+2026-11-07 18:23:20.353   -- File entry --
+2026-11-07 18:23:20.353   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\Qt6Gui.dll
+2026-11-07 18:23:20.353   Time stamp of our file: 2025-03-17 22:17:00.000
+2026-11-07 18:23:20.353   Installing the file.
+2026-11-07 18:23:20.605   Successfully installed the file.
+2026-11-07 18:23:20.606   -- File entry --
+2026-11-07 18:23:20.606   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\Qt6Network.dll
+2026-11-07 18:23:20.606   Time stamp of our file: 2025-03-17 22:17:04.000
+2026-11-07 18:23:20.606   Installing the file.
+2026-11-07 18:23:20.648   Successfully installed the file.
+2026-11-07 18:23:20.648   -- File entry --
+2026-11-07 18:23:20.649   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\Qt6Widgets.dll
+2026-11-07 18:23:20.649   Time stamp of our file: 2025-03-17 22:17:14.000
+2026-11-07 18:23:20.649   Installing the file.
+2026-11-07 18:23:20.811   Successfully installed the file.
+2026-11-07 18:23:20.811   -- File entry --
+2026-11-07 18:23:20.811   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\generic\qtuiotouchplugin.dll
+2026-11-07 18:23:20.812   Time stamp of our file: 2025-03-17 22:18:02.000
+2026-11-07 18:23:20.812   Installing the file.
+2026-11-07 18:23:20.812   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\generic
+2026-11-07 18:23:20.815   Successfully installed the file.
+2026-11-07 18:23:20.815   -- File entry --
+2026-11-07 18:23:20.815   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\imageformats\qgif.dll
+2026-11-07 18:23:20.815   Time stamp of our file: 2025-03-17 22:18:04.000
+2026-11-07 18:23:20.815   Installing the file.
+2026-11-07 18:23:20.815   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\imageformats
+2026-11-07 18:23:20.815   Successfully installed the file.
+2026-11-07 18:23:20.815   -- File entry --
+2026-11-07 18:23:20.815   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\imageformats\qico.dll
+2026-11-07 18:23:20.815   Time stamp of our file: 2025-03-17 22:18:06.000
+2026-11-07 18:23:20.815   Installing the file.
+2026-11-07 18:23:20.815   Successfully installed the file.
+2026-11-07 18:23:20.815   -- File entry --
+2026-11-07 18:23:20.815   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\imageformats\qjpeg.dll
+2026-11-07 18:23:20.815   Time stamp of our file: 2025-03-17 22:18:08.000
+2026-11-07 18:23:20.815   Installing the file.
+2026-11-07 18:23:20.833   Successfully installed the file.
+2026-11-07 18:23:20.833   -- File entry --
+2026-11-07 18:23:20.833   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\networkinformation\qnetworklistmanager.dll
+2026-11-07 18:23:20.833   Time stamp of our file: 2025-03-17 22:18:10.000
+2026-11-07 18:23:20.833   Installing the file.
+2026-11-07 18:23:20.833   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\networkinformation
+2026-11-07 18:23:20.839   Successfully installed the file.
+2026-11-07 18:23:20.839   -- File entry --
+2026-11-07 18:23:20.840   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\platforms\qwindows.dll
+2026-11-07 18:23:20.840   Time stamp of our file: 2025-03-17 22:18:18.000
+2026-11-07 18:23:20.840   Installing the file.
+2026-11-07 18:23:20.841   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\platforms
+2026-11-07 18:23:20.864   Successfully installed the file.
+2026-11-07 18:23:20.864   -- File entry --
+2026-11-07 18:23:20.864   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\styles\qmodernwindowsstyle.dll
+2026-11-07 18:23:20.864   Time stamp of our file: 2025-03-17 22:18:26.000
+2026-11-07 18:23:20.864   Installing the file.
+2026-11-07 18:23:20.864   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\styles
+2026-11-07 18:23:20.874   Successfully installed the file.
+2026-11-07 18:23:20.874   -- File entry --
+2026-11-07 18:23:20.874   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\tls\qcertonlybackend.dll
+2026-11-07 18:23:20.874   Time stamp of our file: 2025-03-17 22:18:28.000
+2026-11-07 18:23:20.874   Installing the file.
+2026-11-07 18:23:20.874   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\tls
+2026-11-07 18:23:20.877   Successfully installed the file.
+2026-11-07 18:23:20.877   -- File entry --
+2026-11-07 18:23:20.877   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\program\tls\qschannelbackend.dll
+2026-11-07 18:23:20.877   Time stamp of our file: 2025-03-17 22:18:32.000
+2026-11-07 18:23:20.877   Installing the file.
+2026-11-07 18:23:20.886   Successfully installed the file.
+2026-11-07 18:23:20.886   -- File entry --
+2026-11-07 18:23:20.887   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\01-basic.lingya
+2026-11-07 18:23:20.887   Time stamp of our file: 2026-11-07 18:09:16.000
+2026-11-07 18:23:20.887   Installing the file.
+2026-11-07 18:23:20.887   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例
+2026-11-07 18:23:20.888   Successfully installed the file.
+2026-11-07 18:23:20.888   -- File entry --
+2026-11-07 18:23:20.889   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\02-delete-impact.lingya
+2026-11-07 18:23:20.889   Time stamp of our file: 2026-11-07 18:09:16.000
+2026-11-07 18:23:20.889   Installing the file.
+2026-11-07 18:23:20.891   Successfully installed the file.
+2026-11-07 18:23:20.891   -- File entry --
+2026-11-07 18:23:20.891   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\03-hundred-nodes.lingya
+2026-11-07 18:23:20.892   Time stamp of our file: 2026-11-07 18:09:16.000
+2026-11-07 18:23:20.892   Installing the file.
+2026-11-07 18:23:20.892   Successfully installed the file.
+2026-11-07 18:23:20.892   -- File entry --
+2026-11-07 18:23:20.892   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\04-collapsed.lingya
+2026-11-07 18:23:20.894   Time stamp of our file: 2026-11-07 18:09:16.000
+2026-11-07 18:23:20.894   Installing the file.
+2026-11-07 18:23:20.894   Successfully installed the file.
+2026-11-07 18:23:20.894   -- File entry --
+2026-11-07 18:23:20.894   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\05-flow.lingya
+2026-11-07 18:23:20.894   Time stamp of our file: 2026-11-07 18:09:16.000
+2026-11-07 18:23:20.894   Installing the file.
+2026-11-07 18:23:20.894   Successfully installed the file.
+2026-11-07 18:23:20.894   -- File entry --
+2026-11-07 18:23:20.894   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\06-offline.lingya
+2026-11-07 18:23:20.894   Time stamp of our file: 2026-11-07 18:09:16.000
+2026-11-07 18:23:20.894   Installing the file.
+2026-11-07 18:23:20.899   Successfully installed the file.
+2026-11-07 18:23:20.899   -- File entry --
+2026-11-07 18:23:20.899   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\07-gantt-filter.lingya
+2026-11-07 18:23:20.899   Time stamp of our file: 2026-11-07 18:09:16.000
+2026-11-07 18:23:20.899   Installing the file.
+2026-11-07 18:23:20.900   Successfully installed the file.
+2026-11-07 18:23:20.901   -- File entry --
+2026-11-07 18:23:20.902   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\08-跨表保留学习记录_导图.lingya
+2026-11-07 18:23:20.903   Time stamp of our file: 2026-11-07 13:09:34.000
+2026-11-07 18:23:20.903   Installing the file.
+2026-11-07 18:23:20.904   Successfully installed the file.
+2026-11-07 18:23:20.904   -- File entry --
+2026-11-07 18:23:20.904   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\09-跨表保留学习记录_鱼骨.lingya
+2026-11-07 18:23:20.905   Time stamp of our file: 2026-11-07 13:09:34.000
+2026-11-07 18:23:20.905   Installing the file.
+2026-11-07 18:23:20.907   Successfully installed the file.
+2026-11-07 18:23:20.907   -- File entry --
+2026-11-07 18:23:20.907   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\10-讲解路线阻断.lingya
+2026-11-07 18:23:20.907   Time stamp of our file: 2026-11-07 13:09:34.000
+2026-11-07 18:23:20.907   Installing the file.
+2026-11-07 18:23:20.909   Successfully installed the file.
+2026-11-07 18:23:20.909   -- File entry --
+2026-11-07 18:23:20.909   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\11-文稿引用阻断.lingya
+2026-11-07 18:23:20.909   Time stamp of our file: 2026-11-07 13:09:34.000
+2026-11-07 18:23:20.909   Installing the file.
+2026-11-07 18:23:20.909   Successfully installed the file.
+2026-11-07 18:23:20.909   -- File entry --
+2026-11-07 18:23:20.911   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\12-AI导图_假响应.lingya
+2026-11-07 18:23:20.911   Time stamp of our file: 2026-11-07 18:12:56.000
+2026-11-07 18:23:20.911   Installing the file.
+2026-11-07 18:23:20.911   Successfully installed the file.
+2026-11-07 18:23:20.911   -- File entry --
+2026-11-07 18:23:20.911   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\样例\13-AI文稿_假响应.lingya
+2026-11-07 18:23:20.911   Time stamp of our file: 2026-11-07 18:12:56.000
+2026-11-07 18:23:20.911   Installing the file.
+2026-11-07 18:23:20.913   Successfully installed the file.
+2026-11-07 18:23:20.913   -- File entry --
+2026-11-07 18:23:20.913   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\GCC-GPL-3.0.txt
+2026-11-07 18:23:20.914   Time stamp of our file: 2026-11-07 17:55:28.000
+2026-11-07 18:23:20.914   Installing the file.
+2026-11-07 18:23:20.914   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证
+2026-11-07 18:23:20.916   Successfully installed the file.
+2026-11-07 18:23:20.916   -- File entry --
+2026-11-07 18:23:20.916   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\GCC-Runtime-Library-Exception-3.1.txt
+2026-11-07 18:23:20.916   Time stamp of our file: 2026-11-07 17:55:28.000
+2026-11-07 18:23:20.916   Installing the file.
+2026-11-07 18:23:20.918   Successfully installed the file.
+2026-11-07 18:23:20.918   -- File entry --
+2026-11-07 18:23:20.918   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\InnoSetup-LICENSE.txt
+2026-11-07 18:23:20.918   Time stamp of our file: 2026-10-26 08:00:00.000
+2026-11-07 18:23:20.918   Installing the file.
+2026-11-07 18:23:20.920   Successfully installed the file.
+2026-11-07 18:23:20.920   -- File entry --
+2026-11-07 18:23:20.920   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\winpthreads-COPYING.txt
+2026-11-07 18:23:20.920   Time stamp of our file: 2026-11-07 17:55:28.000
+2026-11-07 18:23:20.920   Installing the file.
+2026-11-07 18:23:20.921   Successfully installed the file.
+2026-11-07 18:23:20.921   -- File entry --
+2026-11-07 18:23:20.922   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\依赖与来源说明.txt
+2026-11-07 18:23:20.922   Time stamp of our file: 2026-11-07 17:56:18.000
+2026-11-07 18:23:20.922   Installing the file.
+2026-11-07 18:23:20.922   Successfully installed the file.
+2026-11-07 18:23:20.922   -- File entry --
+2026-11-07 18:23:20.922   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\安装器语言来源.json
+2026-11-07 18:23:20.922   Time stamp of our file: 2026-11-07 17:55:30.000
+2026-11-07 18:23:20.922   Installing the file.
+2026-11-07 18:23:20.922   Successfully installed the file.
+2026-11-07 18:23:20.922   -- File entry --
+2026-11-07 18:23:20.922   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\来源与校验.json
+2026-11-07 18:23:20.922   Time stamp of our file: 2026-11-07 17:55:28.000
+2026-11-07 18:23:20.922   Installing the file.
+2026-11-07 18:23:20.928   Successfully installed the file.
+2026-11-07 18:23:20.928   -- File entry --
+2026-11-07 18:23:20.929   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\cmake\3rdparty\extra-cmake-modules\COPYING-CMAKE-SCRIPTS
+2026-11-07 18:23:20.929   Time stamp of our file: 2026-11-07 17:52:54.000
+2026-11-07 18:23:20.929   Installing the file.
+2026-11-07 18:23:20.929   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase
+2026-11-07 18:23:20.930   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\cmake
+2026-11-07 18:23:20.930   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\cmake\3rdparty
+2026-11-07 18:23:20.930   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\cmake\3rdparty\extra-cmake-modules
+2026-11-07 18:23:20.931   Successfully installed the file.
+2026-11-07 18:23:20.931   -- File entry --
+2026-11-07 18:23:20.932   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\cmake\3rdparty\extra-cmake-modules\qt_attribution.json
+2026-11-07 18:23:20.933   Time stamp of our file: 2026-11-07 17:53:28.000
+2026-11-07 18:23:20.933   Installing the file.
+2026-11-07 18:23:20.933   Successfully installed the file.
+2026-11-07 18:23:20.935   -- File entry --
+2026-11-07 18:23:20.935   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\cmake\3rdparty\kwin\COPYING-CMAKE-SCRIPTS
+2026-11-07 18:23:20.935   Time stamp of our file: 2026-11-07 17:53:28.000
+2026-11-07 18:23:20.935   Installing the file.
+2026-11-07 18:23:20.935   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\cmake\3rdparty\kwin
+2026-11-07 18:23:20.935   Successfully installed the file.
+2026-11-07 18:23:20.935   -- File entry --
+2026-11-07 18:23:20.935   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\cmake\3rdparty\kwin\qt_attribution.json
+2026-11-07 18:23:20.935   Time stamp of our file: 2026-11-07 17:53:28.000
+2026-11-07 18:23:20.935   Installing the file.
+2026-11-07 18:23:20.935   Successfully installed the file.
+2026-11-07 18:23:20.935   -- File entry --
+2026-11-07 18:23:20.935   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\AFL-2.1.txt
+2026-11-07 18:23:20.935   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.935   Installing the file.
+2026-11-07 18:23:20.935   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES
+2026-11-07 18:23:20.935   Successfully installed the file.
+2026-11-07 18:23:20.935   -- File entry --
+2026-11-07 18:23:20.935   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Apache-2.0.txt
+2026-11-07 18:23:20.935   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.935   Installing the file.
+2026-11-07 18:23:20.944   Successfully installed the file.
+2026-11-07 18:23:20.944   -- File entry --
+2026-11-07 18:23:20.944   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Bitstream-Vera.txt
+2026-11-07 18:23:20.945   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.945   Installing the file.
+2026-11-07 18:23:20.946   Successfully installed the file.
+2026-11-07 18:23:20.946   -- File entry --
+2026-11-07 18:23:20.946   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\blessing.txt
+2026-11-07 18:23:20.946   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.946   Installing the file.
+2026-11-07 18:23:20.948   Successfully installed the file.
+2026-11-07 18:23:20.948   -- File entry --
+2026-11-07 18:23:20.948   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\BSD-2-Clause.txt
+2026-11-07 18:23:20.949   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.949   Installing the file.
+2026-11-07 18:23:20.950   Successfully installed the file.
+2026-11-07 18:23:20.950   -- File entry --
+2026-11-07 18:23:20.950   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\BSD-3-Clause.txt
+2026-11-07 18:23:20.951   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.951   Installing the file.
+2026-11-07 18:23:20.951   Successfully installed the file.
+2026-11-07 18:23:20.951   -- File entry --
+2026-11-07 18:23:20.951   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\BSD-4-Clause.txt
+2026-11-07 18:23:20.951   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.951   Installing the file.
+2026-11-07 18:23:20.951   Successfully installed the file.
+2026-11-07 18:23:20.951   -- File entry --
+2026-11-07 18:23:20.951   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\BSL-1.0.txt
+2026-11-07 18:23:20.951   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.951   Installing the file.
+2026-11-07 18:23:20.951   Successfully installed the file.
+2026-11-07 18:23:20.951   -- File entry --
+2026-11-07 18:23:20.951   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\CC0-1.0.txt
+2026-11-07 18:23:20.951   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.951   Installing the file.
+2026-11-07 18:23:20.958   Successfully installed the file.
+2026-11-07 18:23:20.958   -- File entry --
+2026-11-07 18:23:20.958   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\FTL.txt
+2026-11-07 18:23:20.958   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.958   Installing the file.
+2026-11-07 18:23:20.960   Successfully installed the file.
+2026-11-07 18:23:20.960   -- File entry --
+2026-11-07 18:23:20.966   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\GFDL-1.3-no-invariants-only.txt
+2026-11-07 18:23:20.966   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.966   Installing the file.
+2026-11-07 18:23:20.966   Successfully installed the file.
+2026-11-07 18:23:20.966   -- File entry --
+2026-11-07 18:23:20.966   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\GPL-2.0-only.txt
+2026-11-07 18:23:20.966   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.966   Installing the file.
+2026-11-07 18:23:20.966   Successfully installed the file.
+2026-11-07 18:23:20.966   -- File entry --
+2026-11-07 18:23:20.966   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\GPL-2.0-or-later.txt
+2026-11-07 18:23:20.966   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.966   Installing the file.
+2026-11-07 18:23:20.974   Successfully installed the file.
+2026-11-07 18:23:20.974   -- File entry --
+2026-11-07 18:23:20.974   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\GPL-3.0-only.txt
+2026-11-07 18:23:20.975   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.975   Installing the file.
+2026-11-07 18:23:20.977   Successfully installed the file.
+2026-11-07 18:23:20.977   -- File entry --
+2026-11-07 18:23:20.977   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\HPND.txt
+2026-11-07 18:23:20.977   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.977   Installing the file.
+2026-11-07 18:23:20.978   Successfully installed the file.
+2026-11-07 18:23:20.978   -- File entry --
+2026-11-07 18:23:20.979   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\IJG.txt
+2026-11-07 18:23:20.979   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.979   Installing the file.
+2026-11-07 18:23:20.979   Successfully installed the file.
+2026-11-07 18:23:20.979   -- File entry --
+2026-11-07 18:23:20.979   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Imlib2.txt
+2026-11-07 18:23:20.979   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.979   Installing the file.
+2026-11-07 18:23:20.979   Successfully installed the file.
+2026-11-07 18:23:20.979   -- File entry --
+2026-11-07 18:23:20.979   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\IPL-1.0.txt
+2026-11-07 18:23:20.979   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.979   Installing the file.
+2026-11-07 18:23:20.979   Successfully installed the file.
+2026-11-07 18:23:20.979   -- File entry --
+2026-11-07 18:23:20.979   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\LGPL-3.0-only.txt
+2026-11-07 18:23:20.979   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.979   Installing the file.
+2026-11-07 18:23:20.979   Successfully installed the file.
+2026-11-07 18:23:20.979   -- File entry --
+2026-11-07 18:23:20.979   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\libpng-2.0.txt
+2026-11-07 18:23:20.979   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.979   Installing the file.
+2026-11-07 18:23:20.979   Successfully installed the file.
+2026-11-07 18:23:20.979   -- File entry --
+2026-11-07 18:23:20.979   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Libpng.txt
+2026-11-07 18:23:20.979   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.979   Installing the file.
+2026-11-07 18:23:20.988   Successfully installed the file.
+2026-11-07 18:23:20.988   -- File entry --
+2026-11-07 18:23:20.989   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception.txt
+2026-11-07 18:23:20.989   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.990   Installing the file.
+2026-11-07 18:23:20.991   Successfully installed the file.
+2026-11-07 18:23:20.991   -- File entry --
+2026-11-07 18:23:20.992   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\LicenseRef-ICC-License.txt
+2026-11-07 18:23:20.992   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.992   Installing the file.
+2026-11-07 18:23:20.994   Successfully installed the file.
+2026-11-07 18:23:20.994   -- File entry --
+2026-11-07 18:23:20.995   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\LicenseRef-Lcs-Telegraphics.txt
+2026-11-07 18:23:20.995   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.995   Installing the file.
+2026-11-07 18:23:20.995   Successfully installed the file.
+2026-11-07 18:23:20.995   -- File entry --
+2026-11-07 18:23:20.995   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\LicenseRef-Qt-Commercial.txt
+2026-11-07 18:23:20.995   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.995   Installing the file.
+2026-11-07 18:23:20.995   Successfully installed the file.
+2026-11-07 18:23:20.995   -- File entry --
+2026-11-07 18:23:20.995   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\LicenseRef-SHA1-Public-Domain.txt
+2026-11-07 18:23:20.995   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.995   Installing the file.
+2026-11-07 18:23:20.995   Successfully installed the file.
+2026-11-07 18:23:20.995   -- File entry --
+2026-11-07 18:23:20.995   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Linux-syscall-note.txt
+2026-11-07 18:23:20.995   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:20.995   Installing the file.
+2026-11-07 18:23:21.002   Successfully installed the file.
+2026-11-07 18:23:21.002   -- File entry --
+2026-11-07 18:23:21.003   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\MIT-Khronos-old.txt
+2026-11-07 18:23:21.003   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.003   Installing the file.
+2026-11-07 18:23:21.004   Successfully installed the file.
+2026-11-07 18:23:21.004   -- File entry --
+2026-11-07 18:23:21.004   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\MIT-open-group.txt
+2026-11-07 18:23:21.005   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.005   Installing the file.
+2026-11-07 18:23:21.006   Successfully installed the file.
+2026-11-07 18:23:21.006   -- File entry --
+2026-11-07 18:23:21.006   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\MIT.txt
+2026-11-07 18:23:21.006   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.007   Installing the file.
+2026-11-07 18:23:21.008   Successfully installed the file.
+2026-11-07 18:23:21.008   -- File entry --
+2026-11-07 18:23:21.008   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\MPL-2.0.txt
+2026-11-07 18:23:21.008   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.008   Installing the file.
+2026-11-07 18:23:21.008   Successfully installed the file.
+2026-11-07 18:23:21.008   -- File entry --
+2026-11-07 18:23:21.008   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Qt-GPL-exception-1.0.txt
+2026-11-07 18:23:21.008   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.008   Installing the file.
+2026-11-07 18:23:21.008   Successfully installed the file.
+2026-11-07 18:23:21.008   -- File entry --
+2026-11-07 18:23:21.008   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\SPL-1.0.txt
+2026-11-07 18:23:21.008   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.008   Installing the file.
+2026-11-07 18:23:21.008   Successfully installed the file.
+2026-11-07 18:23:21.008   -- File entry --
+2026-11-07 18:23:21.008   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Unicode-3.0.txt
+2026-11-07 18:23:21.008   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.008   Installing the file.
+2026-11-07 18:23:21.008   Successfully installed the file.
+2026-11-07 18:23:21.008   -- File entry --
+2026-11-07 18:23:21.008   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\X11.txt
+2026-11-07 18:23:21.017   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.017   Installing the file.
+2026-11-07 18:23:21.018   Successfully installed the file.
+2026-11-07 18:23:21.018   -- File entry --
+2026-11-07 18:23:21.018   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Xerox.txt
+2026-11-07 18:23:21.018   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.018   Installing the file.
+2026-11-07 18:23:21.018   Successfully installed the file.
+2026-11-07 18:23:21.018   -- File entry --
+2026-11-07 18:23:21.018   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\LICENSES\Zlib.txt
+2026-11-07 18:23:21.021   Time stamp of our file: 2026-11-07 17:53:24.000
+2026-11-07 18:23:21.021   Installing the file.
+2026-11-07 18:23:21.021   Successfully installed the file.
+2026-11-07 18:23:21.021   -- File entry --
+2026-11-07 18:23:21.021   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\android\LICENSE
+2026-11-07 18:23:21.021   Time stamp of our file: 2026-11-07 17:53:36.000
+2026-11-07 18:23:21.021   Installing the file.
+2026-11-07 18:23:21.021   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src
+2026-11-07 18:23:21.023   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty
+2026-11-07 18:23:21.023   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\android
+2026-11-07 18:23:21.023   Successfully installed the file.
+2026-11-07 18:23:21.023   -- File entry --
+2026-11-07 18:23:21.023   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\android\qt_attribution.json
+2026-11-07 18:23:21.023   Time stamp of our file: 2026-11-07 17:53:36.000
+2026-11-07 18:23:21.023   Installing the file.
+2026-11-07 18:23:21.023   Successfully installed the file.
+2026-11-07 18:23:21.023   -- File entry --
+2026-11-07 18:23:21.028   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\blake2\COPYING
+2026-11-07 18:23:21.028   Time stamp of our file: 2026-11-07 17:53:40.000
+2026-11-07 18:23:21.028   Installing the file.
+2026-11-07 18:23:21.028   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\blake2
+2026-11-07 18:23:21.028   Successfully installed the file.
+2026-11-07 18:23:21.028   -- File entry --
+2026-11-07 18:23:21.028   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\blake2\qt_attribution.json
+2026-11-07 18:23:21.028   Time stamp of our file: 2026-11-07 17:53:38.000
+2026-11-07 18:23:21.028   Installing the file.
+2026-11-07 18:23:21.028   Successfully installed the file.
+2026-11-07 18:23:21.028   -- File entry --
+2026-11-07 18:23:21.028   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\D3D12MemoryAllocator\LICENSE.txt
+2026-11-07 18:23:21.032   Time stamp of our file: 2026-11-07 17:53:32.000
+2026-11-07 18:23:21.032   Installing the file.
+2026-11-07 18:23:21.032   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\D3D12MemoryAllocator
+2026-11-07 18:23:21.034   Successfully installed the file.
+2026-11-07 18:23:21.034   -- File entry --
+2026-11-07 18:23:21.034   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\D3D12MemoryAllocator\qt_attribution.json
+2026-11-07 18:23:21.035   Time stamp of our file: 2026-11-07 17:53:30.000
+2026-11-07 18:23:21.035   Installing the file.
+2026-11-07 18:23:21.036   Successfully installed the file.
+2026-11-07 18:23:21.036   -- File entry --
+2026-11-07 18:23:21.037   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\double-conversion\LICENSE
+2026-11-07 18:23:21.037   Time stamp of our file: 2026-11-07 17:53:42.000
+2026-11-07 18:23:21.037   Installing the file.
+2026-11-07 18:23:21.038   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\double-conversion
+2026-11-07 18:23:21.038   Successfully installed the file.
+2026-11-07 18:23:21.038   -- File entry --
+2026-11-07 18:23:21.038   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\double-conversion\qt_attribution.json
+2026-11-07 18:23:21.041   Time stamp of our file: 2026-11-07 17:53:40.000
+2026-11-07 18:23:21.041   Installing the file.
+2026-11-07 18:23:21.041   Successfully installed the file.
+2026-11-07 18:23:21.041   -- File entry --
+2026-11-07 18:23:21.041   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\easing\LICENSE
+2026-11-07 18:23:21.041   Time stamp of our file: 2026-11-07 17:53:44.000
+2026-11-07 18:23:21.041   Installing the file.
+2026-11-07 18:23:21.043   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\easing
+2026-11-07 18:23:21.044   Successfully installed the file.
+2026-11-07 18:23:21.044   -- File entry --
+2026-11-07 18:23:21.044   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\easing\qt_attribution.json
+2026-11-07 18:23:21.044   Time stamp of our file: 2026-11-07 17:53:44.000
+2026-11-07 18:23:21.044   Installing the file.
+2026-11-07 18:23:21.046   Successfully installed the file.
+2026-11-07 18:23:21.046   -- File entry --
+2026-11-07 18:23:21.047   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\forkfd\LICENSE
+2026-11-07 18:23:21.047   Time stamp of our file: 2026-11-07 17:53:48.000
+2026-11-07 18:23:21.047   Installing the file.
+2026-11-07 18:23:21.047   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\forkfd
+2026-11-07 18:23:21.048   Successfully installed the file.
+2026-11-07 18:23:21.048   -- File entry --
+2026-11-07 18:23:21.049   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\forkfd\qt_attribution.json
+2026-11-07 18:23:21.049   Time stamp of our file: 2026-11-07 17:53:46.000
+2026-11-07 18:23:21.049   Installing the file.
+2026-11-07 18:23:21.050   Successfully installed the file.
+2026-11-07 18:23:21.050   -- File entry --
+2026-11-07 18:23:21.051   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\freetype\BDF-LICENSE.txt
+2026-11-07 18:23:21.051   Time stamp of our file: 2026-11-07 17:53:52.000
+2026-11-07 18:23:21.051   Installing the file.
+2026-11-07 18:23:21.051   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\freetype
+2026-11-07 18:23:21.053   Successfully installed the file.
+2026-11-07 18:23:21.053   -- File entry --
+2026-11-07 18:23:21.053   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\freetype\LICENSE.txt
+2026-11-07 18:23:21.053   Time stamp of our file: 2026-11-07 17:53:50.000
+2026-11-07 18:23:21.053   Installing the file.
+2026-11-07 18:23:21.053   Successfully installed the file.
+2026-11-07 18:23:21.053   -- File entry --
+2026-11-07 18:23:21.053   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\freetype\PCF-LICENSE.txt
+2026-11-07 18:23:21.053   Time stamp of our file: 2026-11-07 17:53:54.000
+2026-11-07 18:23:21.053   Installing the file.
+2026-11-07 18:23:21.053   Successfully installed the file.
+2026-11-07 18:23:21.053   -- File entry --
+2026-11-07 18:23:21.053   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\freetype\qt_attribution.json
+2026-11-07 18:23:21.053   Time stamp of our file: 2026-11-07 17:53:48.000
+2026-11-07 18:23:21.053   Installing the file.
+2026-11-07 18:23:21.053   Successfully installed the file.
+2026-11-07 18:23:21.053   -- File entry --
+2026-11-07 18:23:21.053   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\freetype\ZLIB-LICENSE.txt
+2026-11-07 18:23:21.053   Time stamp of our file: 2026-11-07 17:53:52.000
+2026-11-07 18:23:21.053   Installing the file.
+2026-11-07 18:23:21.062   Successfully installed the file.
+2026-11-07 18:23:21.062   -- File entry --
+2026-11-07 18:23:21.062   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\gradle\LICENSE
+2026-11-07 18:23:21.062   Time stamp of our file: 2026-11-07 17:53:56.000
+2026-11-07 18:23:21.062   Installing the file.
+2026-11-07 18:23:21.063   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\gradle
+2026-11-07 18:23:21.064   Successfully installed the file.
+2026-11-07 18:23:21.064   -- File entry --
+2026-11-07 18:23:21.064   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\gradle\qt_attribution.json
+2026-11-07 18:23:21.064   Time stamp of our file: 2026-11-07 17:53:56.000
+2026-11-07 18:23:21.064   Installing the file.
+2026-11-07 18:23:21.066   Successfully installed the file.
+2026-11-07 18:23:21.066   -- File entry --
+2026-11-07 18:23:21.066   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\harfbuzz-ng\COPYING
+2026-11-07 18:23:21.066   Time stamp of our file: 2026-11-07 17:54:00.000
+2026-11-07 18:23:21.066   Installing the file.
+2026-11-07 18:23:21.066   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\harfbuzz-ng
+2026-11-07 18:23:21.067   Successfully installed the file.
+2026-11-07 18:23:21.067   -- File entry --
+2026-11-07 18:23:21.068   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\harfbuzz-ng\qt_attribution.json
+2026-11-07 18:23:21.068   Time stamp of our file: 2026-11-07 17:53:58.000
+2026-11-07 18:23:21.068   Installing the file.
+2026-11-07 18:23:21.068   Successfully installed the file.
+2026-11-07 18:23:21.068   -- File entry --
+2026-11-07 18:23:21.068   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\iaccessible2\LICENSE
+2026-11-07 18:23:21.068   Time stamp of our file: 2026-11-07 17:54:02.000
+2026-11-07 18:23:21.068   Installing the file.
+2026-11-07 18:23:21.068   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\iaccessible2
+2026-11-07 18:23:21.068   Successfully installed the file.
+2026-11-07 18:23:21.068   -- File entry --
+2026-11-07 18:23:21.068   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\iaccessible2\qt_attribution.json
+2026-11-07 18:23:21.068   Time stamp of our file: 2026-11-07 17:54:02.000
+2026-11-07 18:23:21.068   Installing the file.
+2026-11-07 18:23:21.068   Successfully installed the file.
+2026-11-07 18:23:21.068   -- File entry --
+2026-11-07 18:23:21.068   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\icc\LICENSE.txt
+2026-11-07 18:23:21.068   Time stamp of our file: 2026-11-07 17:54:04.000
+2026-11-07 18:23:21.068   Installing the file.
+2026-11-07 18:23:21.068   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\icc
+2026-11-07 18:23:21.068   Successfully installed the file.
+2026-11-07 18:23:21.068   -- File entry --
+2026-11-07 18:23:21.068   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\icc\qt_attribution.json
+2026-11-07 18:23:21.068   Time stamp of our file: 2026-11-07 17:54:04.000
+2026-11-07 18:23:21.068   Installing the file.
+2026-11-07 18:23:21.077   Successfully installed the file.
+2026-11-07 18:23:21.077   -- File entry --
+2026-11-07 18:23:21.077   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libjpeg\qt_attribution.json
+2026-11-07 18:23:21.077   Time stamp of our file: 2026-11-07 17:54:06.000
+2026-11-07 18:23:21.077   Installing the file.
+2026-11-07 18:23:21.077   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libjpeg
+2026-11-07 18:23:21.079   Successfully installed the file.
+2026-11-07 18:23:21.079   -- File entry --
+2026-11-07 18:23:21.079   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libpng\LICENSE
+2026-11-07 18:23:21.079   Time stamp of our file: 2026-11-07 17:54:08.000
+2026-11-07 18:23:21.079   Installing the file.
+2026-11-07 18:23:21.079   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libpng
+2026-11-07 18:23:21.080   Successfully installed the file.
+2026-11-07 18:23:21.080   -- File entry --
+2026-11-07 18:23:21.081   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libpng\qt_attribution.json
+2026-11-07 18:23:21.082   Time stamp of our file: 2026-11-07 17:54:08.000
+2026-11-07 18:23:21.082   Installing the file.
+2026-11-07 18:23:21.082   Successfully installed the file.
+2026-11-07 18:23:21.082   -- File entry --
+2026-11-07 18:23:21.083   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libpsl\PSL-LICENSE.txt
+2026-11-07 18:23:21.083   Time stamp of our file: 2026-11-07 17:54:12.000
+2026-11-07 18:23:21.083   Installing the file.
+2026-11-07 18:23:21.083   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libpsl
+2026-11-07 18:23:21.083   Successfully installed the file.
+2026-11-07 18:23:21.083   -- File entry --
+2026-11-07 18:23:21.083   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libpsl\qt_attribution.json
+2026-11-07 18:23:21.083   Time stamp of our file: 2026-11-07 17:54:10.000
+2026-11-07 18:23:21.083   Installing the file.
+2026-11-07 18:23:21.083   Successfully installed the file.
+2026-11-07 18:23:21.083   -- File entry --
+2026-11-07 18:23:21.083   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libpsl\src\LICENSE.chromium
+2026-11-07 18:23:21.083   Time stamp of our file: 2026-11-07 17:54:14.000
+2026-11-07 18:23:21.083   Installing the file.
+2026-11-07 18:23:21.083   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\libpsl\src
+2026-11-07 18:23:21.083   Successfully installed the file.
+2026-11-07 18:23:21.083   -- File entry --
+2026-11-07 18:23:21.083   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\md4\qt_attribution.json
+2026-11-07 18:23:21.083   Time stamp of our file: 2026-11-07 17:54:14.000
+2026-11-07 18:23:21.083   Installing the file.
+2026-11-07 18:23:21.083   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\md4
+2026-11-07 18:23:21.083   Successfully installed the file.
+2026-11-07 18:23:21.083   -- File entry --
+2026-11-07 18:23:21.083   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\md4c\LICENSE.md
+2026-11-07 18:23:21.083   Time stamp of our file: 2026-11-07 17:54:16.000
+2026-11-07 18:23:21.083   Installing the file.
+2026-11-07 18:23:21.083   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\md4c
+2026-11-07 18:23:21.092   Successfully installed the file.
+2026-11-07 18:23:21.092   -- File entry --
+2026-11-07 18:23:21.093   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\md4c\qt_attribution.json
+2026-11-07 18:23:21.093   Time stamp of our file: 2026-11-07 17:54:16.000
+2026-11-07 18:23:21.093   Installing the file.
+2026-11-07 18:23:21.094   Successfully installed the file.
+2026-11-07 18:23:21.095   -- File entry --
+2026-11-07 18:23:21.095   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\md5\qt_attribution.json
+2026-11-07 18:23:21.096   Time stamp of our file: 2026-11-07 17:54:18.000
+2026-11-07 18:23:21.096   Installing the file.
+2026-11-07 18:23:21.096   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\md5
+2026-11-07 18:23:21.097   Successfully installed the file.
+2026-11-07 18:23:21.097   -- File entry --
+2026-11-07 18:23:21.097   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\pcre2\LICENCE-SLJIT
+2026-11-07 18:23:21.097   Time stamp of our file: 2026-11-07 17:54:22.000
+2026-11-07 18:23:21.097   Installing the file.
+2026-11-07 18:23:21.097   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\pcre2
+2026-11-07 18:23:21.098   Successfully installed the file.
+2026-11-07 18:23:21.098   -- File entry --
+2026-11-07 18:23:21.098   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\pcre2\LICENCE.md
+2026-11-07 18:23:21.100   Time stamp of our file: 2026-11-07 17:54:20.000
+2026-11-07 18:23:21.100   Installing the file.
+2026-11-07 18:23:21.100   Successfully installed the file.
+2026-11-07 18:23:21.100   -- File entry --
+2026-11-07 18:23:21.100   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\pcre2\qt_attribution.json
+2026-11-07 18:23:21.100   Time stamp of our file: 2026-11-07 17:54:20.000
+2026-11-07 18:23:21.100   Installing the file.
+2026-11-07 18:23:21.102   Successfully installed the file.
+2026-11-07 18:23:21.102   -- File entry --
+2026-11-07 18:23:21.102   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\pixman\LICENSE
+2026-11-07 18:23:21.102   Time stamp of our file: 2026-11-07 17:54:24.000
+2026-11-07 18:23:21.102   Installing the file.
+2026-11-07 18:23:21.102   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\pixman
+2026-11-07 18:23:21.102   Successfully installed the file.
+2026-11-07 18:23:21.102   -- File entry --
+2026-11-07 18:23:21.102   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\pixman\qt_attribution.json
+2026-11-07 18:23:21.102   Time stamp of our file: 2026-11-07 17:54:24.000
+2026-11-07 18:23:21.102   Installing the file.
+2026-11-07 18:23:21.102   Successfully installed the file.
+2026-11-07 18:23:21.102   -- File entry --
+2026-11-07 18:23:21.102   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\rfc6234\LICENSE
+2026-11-07 18:23:21.107   Time stamp of our file: 2026-11-07 17:54:28.000
+2026-11-07 18:23:21.107   Installing the file.
+2026-11-07 18:23:21.107   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\rfc6234
+2026-11-07 18:23:21.108   Successfully installed the file.
+2026-11-07 18:23:21.108   -- File entry --
+2026-11-07 18:23:21.108   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\rfc6234\qt_attribution.json
+2026-11-07 18:23:21.109   Time stamp of our file: 2026-11-07 17:54:26.000
+2026-11-07 18:23:21.109   Installing the file.
+2026-11-07 18:23:21.110   Successfully installed the file.
+2026-11-07 18:23:21.110   -- File entry --
+2026-11-07 18:23:21.110   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\sha1\qt_attribution.json
+2026-11-07 18:23:21.111   Time stamp of our file: 2026-11-07 17:54:28.000
+2026-11-07 18:23:21.111   Installing the file.
+2026-11-07 18:23:21.111   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\sha1
+2026-11-07 18:23:21.112   Successfully installed the file.
+2026-11-07 18:23:21.112   -- File entry --
+2026-11-07 18:23:21.112   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\sha3\BRG_ENDIAN_LICENSE
+2026-11-07 18:23:21.113   Time stamp of our file: 2026-11-07 17:54:32.000
+2026-11-07 18:23:21.113   Installing the file.
+2026-11-07 18:23:21.113   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\sha3
+2026-11-07 18:23:21.113   Successfully installed the file.
+2026-11-07 18:23:21.113   -- File entry --
+2026-11-07 18:23:21.113   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\sha3\CC0_LICENSE
+2026-11-07 18:23:21.113   Time stamp of our file: 2026-11-07 17:54:32.000
+2026-11-07 18:23:21.113   Installing the file.
+2026-11-07 18:23:21.113   Successfully installed the file.
+2026-11-07 18:23:21.113   -- File entry --
+2026-11-07 18:23:21.113   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\sha3\qt_attribution.json
+2026-11-07 18:23:21.113   Time stamp of our file: 2026-11-07 17:54:30.000
+2026-11-07 18:23:21.113   Installing the file.
+2026-11-07 18:23:21.113   Successfully installed the file.
+2026-11-07 18:23:21.113   -- File entry --
+2026-11-07 18:23:21.113   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\siphash\qt_attribution.json
+2026-11-07 18:23:21.113   Time stamp of our file: 2026-11-07 17:54:34.000
+2026-11-07 18:23:21.113   Installing the file.
+2026-11-07 18:23:21.113   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\siphash
+2026-11-07 18:23:21.113   Successfully installed the file.
+2026-11-07 18:23:21.113   -- File entry --
+2026-11-07 18:23:21.113   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\sqlite\qt_attribution.json
+2026-11-07 18:23:21.113   Time stamp of our file: 2026-11-07 17:54:36.000
+2026-11-07 18:23:21.113   Installing the file.
+2026-11-07 18:23:21.113   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\sqlite
+2026-11-07 18:23:21.113   Successfully installed the file.
+2026-11-07 18:23:21.113   -- File entry --
+2026-11-07 18:23:21.122   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\tinycbor\LICENSE
+2026-11-07 18:23:21.122   Time stamp of our file: 2026-11-07 17:54:38.000
+2026-11-07 18:23:21.122   Installing the file.
+2026-11-07 18:23:21.122   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\tinycbor
+2026-11-07 18:23:21.123   Successfully installed the file.
+2026-11-07 18:23:21.123   -- File entry --
+2026-11-07 18:23:21.124   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\tinycbor\qt_attribution.json
+2026-11-07 18:23:21.124   Time stamp of our file: 2026-11-07 17:54:36.000
+2026-11-07 18:23:21.124   Installing the file.
+2026-11-07 18:23:21.125   Successfully installed the file.
+2026-11-07 18:23:21.125   -- File entry --
+2026-11-07 18:23:21.125   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\VulkanMemoryAllocator\LICENSE.txt
+2026-11-07 18:23:21.126   Time stamp of our file: 2026-11-07 17:53:34.000
+2026-11-07 18:23:21.126   Installing the file.
+2026-11-07 18:23:21.126   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\VulkanMemoryAllocator
+2026-11-07 18:23:21.127   Successfully installed the file.
+2026-11-07 18:23:21.127   -- File entry --
+2026-11-07 18:23:21.127   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\VulkanMemoryAllocator\qt_attribution.json
+2026-11-07 18:23:21.127   Time stamp of our file: 2026-11-07 17:53:32.000
+2026-11-07 18:23:21.127   Installing the file.
+2026-11-07 18:23:21.128   Successfully installed the file.
+2026-11-07 18:23:21.128   -- File entry --
+2026-11-07 18:23:21.128   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\wasm\DEJAVU-LICENSE
+2026-11-07 18:23:21.129   Time stamp of our file: 2026-11-07 17:54:40.000
+2026-11-07 18:23:21.129   Installing the file.
+2026-11-07 18:23:21.129   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\wasm
+2026-11-07 18:23:21.129   Successfully installed the file.
+2026-11-07 18:23:21.129   -- File entry --
+2026-11-07 18:23:21.129   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\wasm\qt_attribution.json
+2026-11-07 18:23:21.129   Time stamp of our file: 2026-11-07 17:54:40.000
+2026-11-07 18:23:21.129   Installing the file.
+2026-11-07 18:23:21.131   Successfully installed the file.
+2026-11-07 18:23:21.131   -- File entry --
+2026-11-07 18:23:21.131   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\wintab\qt_attribution.json
+2026-11-07 18:23:21.131   Time stamp of our file: 2026-11-07 17:54:42.000
+2026-11-07 18:23:21.131   Installing the file.
+2026-11-07 18:23:21.131   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\wintab
+2026-11-07 18:23:21.133   Successfully installed the file.
+2026-11-07 18:23:21.133   -- File entry --
+2026-11-07 18:23:21.133   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\xcb\LICENSE
+2026-11-07 18:23:21.133   Time stamp of our file: 2026-11-07 17:54:44.000
+2026-11-07 18:23:21.133   Installing the file.
+2026-11-07 18:23:21.133   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\xcb
+2026-11-07 18:23:21.133   Successfully installed the file.
+2026-11-07 18:23:21.133   -- File entry --
+2026-11-07 18:23:21.133   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\xcb\qt_attribution.json
+2026-11-07 18:23:21.133   Time stamp of our file: 2026-11-07 17:54:44.000
+2026-11-07 18:23:21.133   Installing the file.
+2026-11-07 18:23:21.137   Successfully installed the file.
+2026-11-07 18:23:21.137   -- File entry --
+2026-11-07 18:23:21.137   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\zlib\LICENSE
+2026-11-07 18:23:21.137   Time stamp of our file: 2026-11-07 17:54:48.000
+2026-11-07 18:23:21.137   Installing the file.
+2026-11-07 18:23:21.137   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\zlib
+2026-11-07 18:23:21.137   Successfully installed the file.
+2026-11-07 18:23:21.137   -- File entry --
+2026-11-07 18:23:21.137   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\3rdparty\zlib\qt_attribution.json
+2026-11-07 18:23:21.137   Time stamp of our file: 2026-11-07 17:54:46.000
+2026-11-07 18:23:21.137   Installing the file.
+2026-11-07 18:23:21.137   Successfully installed the file.
+2026-11-07 18:23:21.137   -- File entry --
+2026-11-07 18:23:21.137   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib\kernel\QEVENTDISPATCHER_CF_LICENSE.txt
+2026-11-07 18:23:21.137   Time stamp of our file: 2026-11-07 17:54:50.000
+2026-11-07 18:23:21.137   Installing the file.
+2026-11-07 18:23:21.137   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib
+2026-11-07 18:23:21.137   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib\kernel
+2026-11-07 18:23:21.137   Successfully installed the file.
+2026-11-07 18:23:21.137   -- File entry --
+2026-11-07 18:23:21.137   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib\kernel\qt_attribution.json
+2026-11-07 18:23:21.137   Time stamp of our file: 2026-11-07 17:54:48.000
+2026-11-07 18:23:21.137   Installing the file.
+2026-11-07 18:23:21.137   Successfully installed the file.
+2026-11-07 18:23:21.137   -- File entry --
+2026-11-07 18:23:21.137   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib\mimetypes\3rdparty\qt_attribution.json
+2026-11-07 18:23:21.137   Time stamp of our file: 2026-11-07 17:54:50.000
+2026-11-07 18:23:21.137   Installing the file.
+2026-11-07 18:23:21.137   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib\mimetypes
+2026-11-07 18:23:21.137   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib\mimetypes\3rdparty
+2026-11-07 18:23:21.147   Successfully installed the file.
+2026-11-07 18:23:21.147   -- File entry --
+2026-11-07 18:23:21.147   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib\text\qt_attribution.json
+2026-11-07 18:23:21.147   Time stamp of our file: 2026-11-07 17:54:52.000
+2026-11-07 18:23:21.147   Installing the file.
+2026-11-07 18:23:21.147   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\corelib\text
+2026-11-07 18:23:21.147   Successfully installed the file.
+2026-11-07 18:23:21.147   -- File entry --
+2026-11-07 18:23:21.147   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\dbus\LIBDBUS-1-LICENSE.txt
+2026-11-07 18:23:21.147   Time stamp of our file: 2026-11-07 17:54:56.000
+2026-11-07 18:23:21.147   Installing the file.
+2026-11-07 18:23:21.151   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\dbus
+2026-11-07 18:23:21.152   Successfully installed the file.
+2026-11-07 18:23:21.152   -- File entry --
+2026-11-07 18:23:21.152   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\dbus\qt_attribution.json
+2026-11-07 18:23:21.152   Time stamp of our file: 2026-11-07 17:54:54.000
+2026-11-07 18:23:21.152   Installing the file.
+2026-11-07 18:23:21.153   Successfully installed the file.
+2026-11-07 18:23:21.153   -- File entry --
+2026-11-07 18:23:21.154   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\opengl\KHRONOS_LICENSE.txt
+2026-11-07 18:23:21.154   Time stamp of our file: 2026-11-07 17:54:58.000
+2026-11-07 18:23:21.154   Installing the file.
+2026-11-07 18:23:21.154   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui
+2026-11-07 18:23:21.155   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\opengl
+2026-11-07 18:23:21.155   Successfully installed the file.
+2026-11-07 18:23:21.155   -- File entry --
+2026-11-07 18:23:21.156   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\opengl\qt_attribution.json
+2026-11-07 18:23:21.156   Time stamp of our file: 2026-11-07 17:54:56.000
+2026-11-07 18:23:21.156   Installing the file.
+2026-11-07 18:23:21.157   Successfully installed the file.
+2026-11-07 18:23:21.157   -- File entry --
+2026-11-07 18:23:21.157   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\painting\QIMAGETRANSFORM_LICENSE.txt
+2026-11-07 18:23:21.157   Time stamp of our file: 2026-11-07 17:55:00.000
+2026-11-07 18:23:21.157   Installing the file.
+2026-11-07 18:23:21.157   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\painting
+2026-11-07 18:23:21.157   Successfully installed the file.
+2026-11-07 18:23:21.157   -- File entry --
+2026-11-07 18:23:21.157   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\painting\qt_attribution.json
+2026-11-07 18:23:21.157   Time stamp of our file: 2026-11-07 17:55:00.000
+2026-11-07 18:23:21.157   Installing the file.
+2026-11-07 18:23:21.157   Successfully installed the file.
+2026-11-07 18:23:21.157   -- File entry --
+2026-11-07 18:23:21.157   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\painting\XCONSORTIUM_LICENSE.txt
+2026-11-07 18:23:21.157   Time stamp of our file: 2026-11-07 17:55:02.000
+2026-11-07 18:23:21.157   Installing the file.
+2026-11-07 18:23:21.157   Successfully installed the file.
+2026-11-07 18:23:21.157   -- File entry --
+2026-11-07 18:23:21.157   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\rhi\MiniEngine_LICENSE.txt
+2026-11-07 18:23:21.157   Time stamp of our file: 2026-11-07 17:55:04.000
+2026-11-07 18:23:21.157   Installing the file.
+2026-11-07 18:23:21.157   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\rhi
+2026-11-07 18:23:21.157   Successfully installed the file.
+2026-11-07 18:23:21.157   -- File entry --
+2026-11-07 18:23:21.157   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\rhi\qt_attribution.json
+2026-11-07 18:23:21.157   Time stamp of our file: 2026-11-07 17:55:04.000
+2026-11-07 18:23:21.157   Installing the file.
+2026-11-07 18:23:21.167   Successfully installed the file.
+2026-11-07 18:23:21.167   -- File entry --
+2026-11-07 18:23:21.167   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\text\AGLFN_LICENSE.txt
+2026-11-07 18:23:21.168   Time stamp of our file: 2026-11-07 17:55:08.000
+2026-11-07 18:23:21.168   Installing the file.
+2026-11-07 18:23:21.168   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\text
+2026-11-07 18:23:21.169   Successfully installed the file.
+2026-11-07 18:23:21.169   -- File entry --
+2026-11-07 18:23:21.170   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\text\qt_attribution.json
+2026-11-07 18:23:21.170   Time stamp of our file: 2026-11-07 17:55:06.000
+2026-11-07 18:23:21.170   Installing the file.
+2026-11-07 18:23:21.171   Successfully installed the file.
+2026-11-07 18:23:21.171   -- File entry --
+2026-11-07 18:23:21.172   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\vulkan\LICENSE.txt
+2026-11-07 18:23:21.172   Time stamp of our file: 2026-11-07 17:55:10.000
+2026-11-07 18:23:21.172   Installing the file.
+2026-11-07 18:23:21.172   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\vulkan
+2026-11-07 18:23:21.174   Successfully installed the file.
+2026-11-07 18:23:21.174   -- File entry --
+2026-11-07 18:23:21.174   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\gui\vulkan\qt_attribution.json
+2026-11-07 18:23:21.174   Time stamp of our file: 2026-11-07 17:55:10.000
+2026-11-07 18:23:21.174   Installing the file.
+2026-11-07 18:23:21.174   Successfully installed the file.
+2026-11-07 18:23:21.174   -- File entry --
+2026-11-07 18:23:21.174   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\plugins\platforms\cocoa\COCOA_LICENSE.txt
+2026-11-07 18:23:21.174   Time stamp of our file: 2026-11-07 17:55:12.000
+2026-11-07 18:23:21.174   Installing the file.
+2026-11-07 18:23:21.174   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\plugins
+2026-11-07 18:23:21.174   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\plugins\platforms
+2026-11-07 18:23:21.174   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\plugins\platforms\cocoa
+2026-11-07 18:23:21.174   Successfully installed the file.
+2026-11-07 18:23:21.174   -- File entry --
+2026-11-07 18:23:21.174   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\plugins\platforms\cocoa\qt_attribution.json
+2026-11-07 18:23:21.174   Time stamp of our file: 2026-11-07 17:55:12.000
+2026-11-07 18:23:21.174   Installing the file.
+2026-11-07 18:23:21.174   Successfully installed the file.
+2026-11-07 18:23:21.174   -- File entry --
+2026-11-07 18:23:21.174   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testinternal\3rdparty\cmake\Copyright.txt
+2026-11-07 18:23:21.181   Time stamp of our file: 2026-11-07 17:55:16.000
+2026-11-07 18:23:21.181   Installing the file.
+2026-11-07 18:23:21.181   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testinternal
+2026-11-07 18:23:21.181   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testinternal\3rdparty
+2026-11-07 18:23:21.181   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testinternal\3rdparty\cmake
+2026-11-07 18:23:21.183   Successfully installed the file.
+2026-11-07 18:23:21.183   -- File entry --
+2026-11-07 18:23:21.183   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testinternal\3rdparty\cmake\qt_attribution.json
+2026-11-07 18:23:21.184   Time stamp of our file: 2026-11-07 17:55:14.000
+2026-11-07 18:23:21.184   Installing the file.
+2026-11-07 18:23:21.185   Successfully installed the file.
+2026-11-07 18:23:21.185   -- File entry --
+2026-11-07 18:23:21.185   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\catch2\LICENSE.txt
+2026-11-07 18:23:21.185   Time stamp of our file: 2026-11-07 17:55:18.000
+2026-11-07 18:23:21.185   Installing the file.
+2026-11-07 18:23:21.186   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib
+2026-11-07 18:23:21.186   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty
+2026-11-07 18:23:21.187   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\catch2
+2026-11-07 18:23:21.188   Successfully installed the file.
+2026-11-07 18:23:21.188   -- File entry --
+2026-11-07 18:23:21.188   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\catch2\qt_attribution.json
+2026-11-07 18:23:21.188   Time stamp of our file: 2026-11-07 17:55:16.000
+2026-11-07 18:23:21.188   Installing the file.
+2026-11-07 18:23:21.188   Successfully installed the file.
+2026-11-07 18:23:21.188   -- File entry --
+2026-11-07 18:23:21.188   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\cycle\LICENSE.txt
+2026-11-07 18:23:21.188   Time stamp of our file: 2026-11-07 17:55:20.000
+2026-11-07 18:23:21.188   Installing the file.
+2026-11-07 18:23:21.188   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\cycle
+2026-11-07 18:23:21.188   Successfully installed the file.
+2026-11-07 18:23:21.188   -- File entry --
+2026-11-07 18:23:21.188   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\cycle\qt_attribution.json
+2026-11-07 18:23:21.188   Time stamp of our file: 2026-11-07 17:55:20.000
+2026-11-07 18:23:21.188   Installing the file.
+2026-11-07 18:23:21.188   Successfully installed the file.
+2026-11-07 18:23:21.188   -- File entry --
+2026-11-07 18:23:21.188   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\linux\LICENSE.txt
+2026-11-07 18:23:21.188   Time stamp of our file: 2026-11-07 17:55:24.000
+2026-11-07 18:23:21.188   Installing the file.
+2026-11-07 18:23:21.188   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\linux
+2026-11-07 18:23:21.188   Successfully installed the file.
+2026-11-07 18:23:21.188   -- File entry --
+2026-11-07 18:23:21.196   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\linux\qt_attribution.json
+2026-11-07 18:23:21.196   Time stamp of our file: 2026-11-07 17:55:22.000
+2026-11-07 18:23:21.196   Installing the file.
+2026-11-07 18:23:21.197   Successfully installed the file.
+2026-11-07 18:23:21.197   -- File entry --
+2026-11-07 18:23:21.198   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\valgrind\LICENSE.txt
+2026-11-07 18:23:21.198   Time stamp of our file: 2026-11-07 17:55:26.000
+2026-11-07 18:23:21.198   Installing the file.
+2026-11-07 18:23:21.198   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\valgrind
+2026-11-07 18:23:21.199   Successfully installed the file.
+2026-11-07 18:23:21.199   -- File entry --
+2026-11-07 18:23:21.200   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\src\testlib\3rdparty\valgrind\qt_attribution.json
+2026-11-07 18:23:21.200   Time stamp of our file: 2026-11-07 17:55:24.000
+2026-11-07 18:23:21.200   Installing the file.
+2026-11-07 18:23:21.201   Successfully installed the file.
+2026-11-07 18:23:21.201   -- File entry --
+2026-11-07 18:23:21.202   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\util\gradientgen\qt_attribution.json
+2026-11-07 18:23:21.202   Time stamp of our file: 2026-11-07 17:55:28.000
+2026-11-07 18:23:21.202   Installing the file.
+2026-11-07 18:23:21.202   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\util
+2026-11-07 18:23:21.202   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\util\gradientgen
+2026-11-07 18:23:21.203   Successfully installed the file.
+2026-11-07 18:23:21.203   -- File entry --
+2026-11-07 18:23:21.203   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\许可证\qtbase\util\gradientgen\WEBGRADIENTS_LICENSE.txt
+2026-11-07 18:23:21.203   Time stamp of our file: 2026-11-07 17:55:28.000
+2026-11-07 18:23:21.203   Installing the file.
+2026-11-07 18:23:21.203   Successfully installed the file.
+2026-11-07 18:23:21.203   -- File entry --
+2026-11-07 18:23:21.203   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\third-party.md
+2026-11-07 18:23:21.203   Time stamp of our file: 2026-11-07 18:21:22.000
+2026-11-07 18:23:21.203   Installing the file.
+2026-11-07 18:23:21.203   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明
+2026-11-07 18:23:21.203   Successfully installed the file.
+2026-11-07 18:23:21.203   -- File entry --
+2026-11-07 18:23:21.203   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\最终统一验收.md
+2026-11-07 18:23:21.203   Time stamp of our file: 2026-11-07 17:56:18.000
+2026-11-07 18:23:21.203   Installing the file.
+2026-11-07 18:23:21.203   Successfully installed the file.
+2026-11-07 18:23:21.203   -- File entry --
+2026-11-07 18:23:21.203   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\演示顺序.md
+2026-11-07 18:23:21.203   Time stamp of our file: 2026-11-07 17:56:18.000
+2026-11-07 18:23:21.203   Installing the file.
+2026-11-07 18:23:21.211   Successfully installed the file.
+2026-11-07 18:23:21.211   -- File entry --
+2026-11-07 18:23:21.211   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\用户使用说明.md
+2026-11-07 18:23:21.212   Time stamp of our file: 2026-11-07 17:56:18.000
+2026-11-07 18:23:21.212   Installing the file.
+2026-11-07 18:23:21.213   Successfully installed the file.
+2026-11-07 18:23:21.213   -- File entry --
+2026-11-07 18:23:21.213   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\自动验证报告.md
+2026-11-07 18:23:21.214   Time stamp of our file: 2026-11-07 18:22:30.000
+2026-11-07 18:23:21.214   Installing the file.
+2026-11-07 18:23:21.215   Successfully installed the file.
+2026-11-07 18:23:21.215   -- File entry --
+2026-11-07 18:23:21.215   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\validation.json
+2026-11-07 18:23:21.215   Time stamp of our file: 2026-11-07 18:07:56.000
+2026-11-07 18:23:21.215   Installing the file.
+2026-11-07 18:23:21.216   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据
+2026-11-07 18:23:21.216   Successfully installed the file.
+2026-11-07 18:23:21.216   -- File entry --
+2026-11-07 18:23:21.216   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_ai.xml
+2026-11-07 18:23:21.216   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.216   Installing the file.
+2026-11-07 18:23:21.216   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug
+2026-11-07 18:23:21.218   Successfully installed the file.
+2026-11-07 18:23:21.218   -- File entry --
+2026-11-07 18:23:21.219   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_aicommands.xml
+2026-11-07 18:23:21.219   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.219   Installing the file.
+2026-11-07 18:23:21.219   Successfully installed the file.
+2026-11-07 18:23:21.219   -- File entry --
+2026-11-07 18:23:21.219   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_aicompletion.xml
+2026-11-07 18:23:21.221   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.221   Installing the file.
+2026-11-07 18:23:21.221   Successfully installed the file.
+2026-11-07 18:23:21.221   -- File entry --
+2026-11-07 18:23:21.221   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_aipanel.xml
+2026-11-07 18:23:21.221   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.221   Installing the file.
+2026-11-07 18:23:21.221   Successfully installed the file.
+2026-11-07 18:23:21.221   -- File entry --
+2026-11-07 18:23:21.221   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_appearance.xml
+2026-11-07 18:23:21.221   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.221   Installing the file.
+2026-11-07 18:23:21.226   Successfully installed the file.
+2026-11-07 18:23:21.226   -- File entry --
+2026-11-07 18:23:21.226   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_charts.xml
+2026-11-07 18:23:21.226   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.226   Installing the file.
+2026-11-07 18:23:21.227   Successfully installed the file.
+2026-11-07 18:23:21.227   -- File entry --
+2026-11-07 18:23:21.227   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_check.xml
+2026-11-07 18:23:21.228   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.228   Installing the file.
+2026-11-07 18:23:21.229   Successfully installed the file.
+2026-11-07 18:23:21.229   -- File entry --
+2026-11-07 18:23:21.230   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_checkassistant.xml
+2026-11-07 18:23:21.230   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.230   Installing the file.
+2026-11-07 18:23:21.231   Successfully installed the file.
+2026-11-07 18:23:21.231   -- File entry --
+2026-11-07 18:23:21.231   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_commands.xml
+2026-11-07 18:23:21.232   Time stamp of our file: 2026-11-07 18:05:54.000
+2026-11-07 18:23:21.232   Installing the file.
+2026-11-07 18:23:21.232   Successfully installed the file.
+2026-11-07 18:23:21.232   -- File entry --
+2026-11-07 18:23:21.232   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_deepseekclient.xml
+2026-11-07 18:23:21.234   Time stamp of our file: 2026-11-07 18:06:06.000
+2026-11-07 18:23:21.234   Installing the file.
+2026-11-07 18:23:21.234   Successfully installed the file.
+2026-11-07 18:23:21.234   -- File entry --
+2026-11-07 18:23:21.234   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_domain.xml
+2026-11-07 18:23:21.234   Time stamp of our file: 2026-11-07 18:06:06.000
+2026-11-07 18:23:21.234   Installing the file.
+2026-11-07 18:23:21.235   Successfully installed the file.
+2026-11-07 18:23:21.235   -- File entry --
+2026-11-07 18:23:21.235   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_export.xml
+2026-11-07 18:23:21.237   Time stamp of our file: 2026-11-07 18:06:06.000
+2026-11-07 18:23:21.237   Installing the file.
+2026-11-07 18:23:21.237   Successfully installed the file.
+2026-11-07 18:23:21.237   -- File entry --
+2026-11-07 18:23:21.237   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_fileservice.xml
+2026-11-07 18:23:21.237   Time stamp of our file: 2026-11-07 18:06:06.000
+2026-11-07 18:23:21.237   Installing the file.
+2026-11-07 18:23:21.237   Successfully installed the file.
+2026-11-07 18:23:21.237   -- File entry --
+2026-11-07 18:23:21.237   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_flow.xml
+2026-11-07 18:23:21.240   Time stamp of our file: 2026-11-07 18:06:06.000
+2026-11-07 18:23:21.240   Installing the file.
+2026-11-07 18:23:21.240   Successfully installed the file.
+2026-11-07 18:23:21.240   -- File entry --
+2026-11-07 18:23:21.241   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_ganttview.xml
+2026-11-07 18:23:21.241   Time stamp of our file: 2026-11-07 18:06:06.000
+2026-11-07 18:23:21.241   Installing the file.
+2026-11-07 18:23:21.242   Successfully installed the file.
+2026-11-07 18:23:21.242   -- File entry --
+2026-11-07 18:23:21.242   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_layout.xml
+2026-11-07 18:23:21.243   Time stamp of our file: 2026-11-07 18:06:06.000
+2026-11-07 18:23:21.243   Installing the file.
+2026-11-07 18:23:21.243   Successfully installed the file.
+2026-11-07 18:23:21.244   -- File entry --
+2026-11-07 18:23:21.244   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_nodecommands.xml
+2026-11-07 18:23:21.245   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.245   Installing the file.
+2026-11-07 18:23:21.245   Successfully installed the file.
+2026-11-07 18:23:21.245   -- File entry --
+2026-11-07 18:23:21.247   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_presentation.xml
+2026-11-07 18:23:21.247   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.247   Installing the file.
+2026-11-07 18:23:21.248   Successfully installed the file.
+2026-11-07 18:23:21.248   -- File entry --
+2026-11-07 18:23:21.248   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_projectjson.xml
+2026-11-07 18:23:21.248   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.248   Installing the file.
+2026-11-07 18:23:21.249   Successfully installed the file.
+2026-11-07 18:23:21.249   -- File entry --
+2026-11-07 18:23:21.249   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_promptlibrary.xml
+2026-11-07 18:23:21.249   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.249   Installing the file.
+2026-11-07 18:23:21.251   Successfully installed the file.
+2026-11-07 18:23:21.251   -- File entry --
+2026-11-07 18:23:21.251   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_recovery.xml
+2026-11-07 18:23:21.251   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.251   Installing the file.
+2026-11-07 18:23:21.253   Successfully installed the file.
+2026-11-07 18:23:21.253   -- File entry --
+2026-11-07 18:23:21.253   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_review.xml
+2026-11-07 18:23:21.253   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.253   Installing the file.
+2026-11-07 18:23:21.253   Successfully installed the file.
+2026-11-07 18:23:21.253   -- File entry --
+2026-11-07 18:23:21.255   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_reviewcommands.xml
+2026-11-07 18:23:21.255   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.255   Installing the file.
+2026-11-07 18:23:21.257   Successfully installed the file.
+2026-11-07 18:23:21.257   -- File entry --
+2026-11-07 18:23:21.258   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_reviewpage.xml
+2026-11-07 18:23:21.258   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.258   Installing the file.
+2026-11-07 18:23:21.259   Successfully installed the file.
+2026-11-07 18:23:21.259   -- File entry --
+2026-11-07 18:23:21.259   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_search.xml
+2026-11-07 18:23:21.259   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.259   Installing the file.
+2026-11-07 18:23:21.261   Successfully installed the file.
+2026-11-07 18:23:21.261   -- File entry --
+2026-11-07 18:23:21.261   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_secret.xml
+2026-11-07 18:23:21.262   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.262   Installing the file.
+2026-11-07 18:23:21.262   Successfully installed the file.
+2026-11-07 18:23:21.262   -- File entry --
+2026-11-07 18:23:21.262   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_session.xml
+2026-11-07 18:23:21.263   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.263   Installing the file.
+2026-11-07 18:23:21.263   Successfully installed the file.
+2026-11-07 18:23:21.263   -- File entry --
+2026-11-07 18:23:21.263   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_tasks.xml
+2026-11-07 18:23:21.263   Time stamp of our file: 2026-11-07 18:06:08.000
+2026-11-07 18:23:21.263   Installing the file.
+2026-11-07 18:23:21.263   Successfully installed the file.
+2026-11-07 18:23:21.263   -- File entry --
+2026-11-07 18:23:21.263   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\debug\tst_ui.xml
+2026-11-07 18:23:21.263   Time stamp of our file: 2026-11-07 18:06:20.000
+2026-11-07 18:23:21.263   Installing the file.
+2026-11-07 18:23:21.263   Successfully installed the file.
+2026-11-07 18:23:21.263   -- File entry --
+2026-11-07 18:23:21.263   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_ai.xml
+2026-11-07 18:23:21.263   Time stamp of our file: 2026-11-07 18:07:30.000
+2026-11-07 18:23:21.263   Installing the file.
+2026-11-07 18:23:21.263   Creating directory: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release
+2026-11-07 18:23:21.263   Successfully installed the file.
+2026-11-07 18:23:21.263   -- File entry --
+2026-11-07 18:23:21.263   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_aicommands.xml
+2026-11-07 18:23:21.263   Time stamp of our file: 2026-11-07 18:07:30.000
+2026-11-07 18:23:21.263   Installing the file.
+2026-11-07 18:23:21.270   Successfully installed the file.
+2026-11-07 18:23:21.270   -- File entry --
+2026-11-07 18:23:21.270   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_aicompletion.xml
+2026-11-07 18:23:21.270   Time stamp of our file: 2026-11-07 18:07:30.000
+2026-11-07 18:23:21.270   Installing the file.
+2026-11-07 18:23:21.272   Successfully installed the file.
+2026-11-07 18:23:21.272   -- File entry --
+2026-11-07 18:23:21.272   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_aipanel.xml
+2026-11-07 18:23:21.272   Time stamp of our file: 2026-11-07 18:07:30.000
+2026-11-07 18:23:21.273   Installing the file.
+2026-11-07 18:23:21.274   Successfully installed the file.
+2026-11-07 18:23:21.274   -- File entry --
+2026-11-07 18:23:21.274   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_appearance.xml
+2026-11-07 18:23:21.274   Time stamp of our file: 2026-11-07 18:07:32.000
+2026-11-07 18:23:21.275   Installing the file.
+2026-11-07 18:23:21.275   Successfully installed the file.
+2026-11-07 18:23:21.275   -- File entry --
+2026-11-07 18:23:21.275   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_charts.xml
+2026-11-07 18:23:21.275   Time stamp of our file: 2026-11-07 18:07:32.000
+2026-11-07 18:23:21.275   Installing the file.
+2026-11-07 18:23:21.275   Successfully installed the file.
+2026-11-07 18:23:21.275   -- File entry --
+2026-11-07 18:23:21.275   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_check.xml
+2026-11-07 18:23:21.275   Time stamp of our file: 2026-11-07 18:07:32.000
+2026-11-07 18:23:21.275   Installing the file.
+2026-11-07 18:23:21.275   Successfully installed the file.
+2026-11-07 18:23:21.275   -- File entry --
+2026-11-07 18:23:21.275   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_checkassistant.xml
+2026-11-07 18:23:21.275   Time stamp of our file: 2026-11-07 18:07:32.000
+2026-11-07 18:23:21.275   Installing the file.
+2026-11-07 18:23:21.275   Successfully installed the file.
+2026-11-07 18:23:21.275   -- File entry --
+2026-11-07 18:23:21.275   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_commands.xml
+2026-11-07 18:23:21.275   Time stamp of our file: 2026-11-07 18:07:32.000
+2026-11-07 18:23:21.275   Installing the file.
+2026-11-07 18:23:21.275   Successfully installed the file.
+2026-11-07 18:23:21.275   -- File entry --
+2026-11-07 18:23:21.275   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_deepseekclient.xml
+2026-11-07 18:23:21.275   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.275   Installing the file.
+2026-11-07 18:23:21.284   Successfully installed the file.
+2026-11-07 18:23:21.284   -- File entry --
+2026-11-07 18:23:21.284   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_domain.xml
+2026-11-07 18:23:21.284   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.284   Installing the file.
+2026-11-07 18:23:21.285   Successfully installed the file.
+2026-11-07 18:23:21.285   -- File entry --
+2026-11-07 18:23:21.285   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_export.xml
+2026-11-07 18:23:21.285   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.285   Installing the file.
+2026-11-07 18:23:21.287   Successfully installed the file.
+2026-11-07 18:23:21.287   -- File entry --
+2026-11-07 18:23:21.288   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_fileservice.xml
+2026-11-07 18:23:21.288   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.288   Installing the file.
+2026-11-07 18:23:21.289   Successfully installed the file.
+2026-11-07 18:23:21.289   -- File entry --
+2026-11-07 18:23:21.289   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_flow.xml
+2026-11-07 18:23:21.289   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.289   Installing the file.
+2026-11-07 18:23:21.290   Successfully installed the file.
+2026-11-07 18:23:21.290   -- File entry --
+2026-11-07 18:23:21.290   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_ganttview.xml
+2026-11-07 18:23:21.291   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.291   Installing the file.
+2026-11-07 18:23:21.292   Successfully installed the file.
+2026-11-07 18:23:21.292   -- File entry --
+2026-11-07 18:23:21.292   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_layout.xml
+2026-11-07 18:23:21.292   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.292   Installing the file.
+2026-11-07 18:23:21.292   Successfully installed the file.
+2026-11-07 18:23:21.292   -- File entry --
+2026-11-07 18:23:21.292   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_nodecommands.xml
+2026-11-07 18:23:21.292   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.292   Installing the file.
+2026-11-07 18:23:21.295   Successfully installed the file.
+2026-11-07 18:23:21.295   -- File entry --
+2026-11-07 18:23:21.295   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_presentation.xml
+2026-11-07 18:23:21.295   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.295   Installing the file.
+2026-11-07 18:23:21.297   Successfully installed the file.
+2026-11-07 18:23:21.297   -- File entry --
+2026-11-07 18:23:21.297   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_projectjson.xml
+2026-11-07 18:23:21.297   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.297   Installing the file.
+2026-11-07 18:23:21.297   Successfully installed the file.
+2026-11-07 18:23:21.297   -- File entry --
+2026-11-07 18:23:21.299   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_promptlibrary.xml
+2026-11-07 18:23:21.299   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.299   Installing the file.
+2026-11-07 18:23:21.300   Successfully installed the file.
+2026-11-07 18:23:21.300   -- File entry --
+2026-11-07 18:23:21.300   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_recovery.xml
+2026-11-07 18:23:21.301   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.301   Installing the file.
+2026-11-07 18:23:21.302   Successfully installed the file.
+2026-11-07 18:23:21.302   -- File entry --
+2026-11-07 18:23:21.302   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_review.xml
+2026-11-07 18:23:21.303   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.303   Installing the file.
+2026-11-07 18:23:21.303   Successfully installed the file.
+2026-11-07 18:23:21.303   -- File entry --
+2026-11-07 18:23:21.304   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_reviewcommands.xml
+2026-11-07 18:23:21.304   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.304   Installing the file.
+2026-11-07 18:23:21.305   Successfully installed the file.
+2026-11-07 18:23:21.305   -- File entry --
+2026-11-07 18:23:21.305   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_reviewpage.xml
+2026-11-07 18:23:21.306   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.306   Installing the file.
+2026-11-07 18:23:21.306   Successfully installed the file.
+2026-11-07 18:23:21.306   -- File entry --
+2026-11-07 18:23:21.307   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_search.xml
+2026-11-07 18:23:21.307   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.307   Installing the file.
+2026-11-07 18:23:21.307   Successfully installed the file.
+2026-11-07 18:23:21.307   -- File entry --
+2026-11-07 18:23:21.307   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_secret.xml
+2026-11-07 18:23:21.307   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.307   Installing the file.
+2026-11-07 18:23:21.307   Successfully installed the file.
+2026-11-07 18:23:21.307   -- File entry --
+2026-11-07 18:23:21.307   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_session.xml
+2026-11-07 18:23:21.307   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.307   Installing the file.
+2026-11-07 18:23:21.307   Successfully installed the file.
+2026-11-07 18:23:21.307   -- File entry --
+2026-11-07 18:23:21.307   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_tasks.xml
+2026-11-07 18:23:21.307   Time stamp of our file: 2026-11-07 18:07:44.000
+2026-11-07 18:23:21.307   Installing the file.
+2026-11-07 18:23:21.307   Successfully installed the file.
+2026-11-07 18:23:21.307   -- File entry --
+2026-11-07 18:23:21.307   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\说明\测试证据\release\tst_ui.xml
+2026-11-07 18:23:21.307   Time stamp of our file: 2026-11-07 18:07:56.000
+2026-11-07 18:23:21.307   Installing the file.
+2026-11-07 18:23:21.315   Successfully installed the file.
+2026-11-07 18:23:21.315   -- File entry --
+2026-11-07 18:23:21.315   Dest filename: D:\mind\.worktrees\gantt-review\build\h044-安装验证\已安装候选\.lingya-install-root
+2026-11-07 18:23:21.315   Time stamp of our file: 2026-11-07 17:49:20.000
+2026-11-07 18:23:21.315   Installing the file.
+2026-11-07 18:23:21.316   Successfully installed the file.
+2026-11-07 18:23:21.316   Saving uninstall information.
+2026-11-07 18:23:21.320   Installation process succeeded.
+2026-11-07 18:23:21.320   Need to restart Windows? No
+2026-11-07 18:23:21.321   Deinitializing Setup.
+2026-11-07 18:23:21.330   Log closed.
