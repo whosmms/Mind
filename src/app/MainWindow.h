@@ -114,6 +114,9 @@ private slots:
 private:
     void buildCompletionActions();
     void showAiWorkspace();
+    void showSearch();
+    void showPreferences();
+    void applyUserShortcuts();
     void manageDrafts();
     void managePresentation();
     void playPresentation(const PresentationRoute &route);

@@ -68,6 +68,8 @@ private:
     ID m_targetSheet;
 
     QLineEdit* m_keyEdit = nullptr;
+    QLineEdit *m_modelEdit = nullptr;
+    QPushButton *m_modelButton = nullptr;
     QPushButton* m_saveKeyButton = nullptr;
     QPushButton* m_testButton = nullptr;
     QLabel* m_statusLabel = nullptr;

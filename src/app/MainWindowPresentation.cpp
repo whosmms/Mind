@@ -18,6 +18,7 @@
 #include <QPushButton>
 #include <QScopeGuard>
 #include <QScreen>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QSignalBlocker>
 #include <QStatusBar>
@@ -329,8 +330,15 @@ void MainWindow::playPresentation(const PresentationRoute &route)
     note->setObjectName("presentationVisibleNote");
     note->setWordWrap(true);
     note->setTextFormat(Qt::PlainText);
-    note->hide();
-    column->addWidget(note);
+    auto *noteScroll = new QScrollArea(&player);
+    noteScroll->setObjectName("presentationNoteScroll");
+    noteScroll->setFrameShape(QFrame::NoFrame);
+    noteScroll->setWidgetResizable(true);
+    noteScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    noteScroll->setMaximumHeight(160);
+    noteScroll->setWidget(note);
+    noteScroll->hide();
+    column->addWidget(noteScroll);
     auto *row = new QHBoxLayout;
     auto *previous = new QPushButton(QStringLiteral("← 上一步"), &player),
          *next = new QPushButton(QStringLiteral("下一步 →"), &player),
@@ -383,6 +391,9 @@ void MainWindow::playPresentation(const PresentationRoute &route)
                          ? QStringLiteral("（跳过%1个已删除步骤）").arg(controller.skipped())
                          : QString()));
         note->setText(step.speakerNote);
+        note->setMinimumHeight(0);
+        note->setMinimumHeight(
+            qMax(0, note->heightForWidth(qMax(40, noteScroll->viewport()->width()))));
         previous->setEnabled(controller.index() > 0);
         next->setEnabled(controller.index() + 1 < controller.count());
     };
@@ -406,7 +417,12 @@ void MainWindow::playPresentation(const PresentationRoute &route)
     connect(previous, &QPushButton::clicked, &player, goPrevious);
     connect(pause, &QPushButton::clicked, &player, togglePause);
     connect(exit, &QPushButton::clicked, &player, &QDialog::reject);
-    connect(showNote, &QCheckBox::toggled, note, &QWidget::setVisible);
+    connect(showNote, &QCheckBox::toggled, &player,
+            [&](bool visible)
+            {
+                noteScroll->setVisible(visible);
+                QTimer::singleShot(0, &player, update);
+            });
     player.keyAction = [&](int key)
     {
         if (key == Qt::Key_Right)

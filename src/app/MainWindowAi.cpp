@@ -22,6 +22,7 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollArea>
+#include <QSettings>
 #include <QSignalBlocker>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -38,6 +39,8 @@ class AiRuntime : public QObject
     explicit AiRuntime(QObject *parent) : QObject(parent), secret(createSecretStore())
     {
         service = new AiService(nullptr, secret.get(), this);
+        QSettings settings;
+        service->setModel(settings.value("ai/model", service->status().model).toString());
         SecretStore *store = secret.get();
         service->setProviderFactory([store] { return createAiProvider(store); });
     }
@@ -231,6 +234,7 @@ void MainWindow::manageDrafts()
     column->addWidget(source);
     auto *info = new QLabel(&dialog);
     info->setObjectName("draftInfo");
+    info->setTextFormat(Qt::PlainText);
     info->setWordWrap(true);
     column->addWidget(info);
     auto *row = new QHBoxLayout;

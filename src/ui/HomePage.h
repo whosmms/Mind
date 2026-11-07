@@ -23,6 +23,7 @@ class HomePage final : public QWidget
     void recentRequested(QString path);
     void removeRecentRequested(QString path);
     void continueRequested();
+    void preferencesRequested();
 
   protected:
     void resizeEvent(QResizeEvent *event) override;

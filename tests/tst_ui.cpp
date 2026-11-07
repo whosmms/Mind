@@ -22,10 +22,12 @@
 #include "commands/SheetCommands.h"
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
+#include "domain/ProjectFactory.h"
 #include "domain/ProjectValidator.h"
 #include "features/PresentationController.h"
 #include "features/ReviewService.h"
 #include "graphics/NodeItem.h"
+#include "services/AppearanceService.h"
 #include "services/ProjectJson.h"
 #include "ui/AiPanel.h"
 #include "ui/HomePage.h"
@@ -56,6 +58,7 @@
 #include <QInputMethodEvent>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QKeySequenceEdit>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -171,6 +174,8 @@ private slots:
     void aiMapApplyOnceAndUndo();
     void aiStaleProposalKeepsCurrentContent();
     void aiDraftEditApplyAndManage();
+    void preferencesKeepDocumentAndDefaultShortcuts();
+    void searchLocatesAcrossSheetsWithoutContentHistory();
     void desktopChromeKeepsCommandsAndViewState();
     void desktopChromeModesAndResponsiveLayout();
     void undoRedoViaShortcuts();
@@ -5423,7 +5428,8 @@ void TstUi::presentationPlaybackRestoresEditor()
     for (const auto &node : tree.nodes)
         if (node.parentId && *node.parentId != tree.rootId)
             route.steps[1].nodeId = node.id;
-    route.steps[1].speakerNote = QStringLiteral("这是中文演讲备注");
+    route.steps[1].speakerNote =
+        QStringLiteral("这是中文演讲备注，长内容应当滚动且保留讲解画布。\n").repeated(160);
     project.routes.append(route);
     MainWindow window;
     window.show();
@@ -5457,6 +5463,12 @@ void TstUi::presentationPlaybackRestoresEditor()
             player->findChild<QPushButton *>("presentationNext")->click();
             player->findChild<QCheckBox *>("presentationShowNote")->setChecked(true);
             QCOMPARE(player->findChild<QLabel *>("presentationVisibleNote")->text(), route.steps[1].speakerNote);
+            auto *notes = player->findChild<QScrollArea *>("presentationNoteScroll");
+            QVERIFY(notes);
+            QTRY_VERIFY(notes->verticalScrollBar()->maximum() > 0);
+            QVERIFY(notes->height() <= 160);
+            QVERIFY(player->findChild<QGraphicsView *>("presentationCanvas")->height() > 250);
+            QVERIFY(player->findChild<QPushButton *>("presentationNext")->isVisible());
             QTest::keyClick(player, Qt::Key_Space);
             QCOMPARE(player->findChild<QPushButton *>("presentationPause")->text(), QStringLiteral("继续计时"));
             const QString capture = qEnvironmentVariable("LINGYA_COMPLETION_CAPTURE_DIR");
@@ -5713,6 +5725,100 @@ void TstUi::exportCanvasWritesWithoutSelectionState()
     QCOMPARE(changed.count(), 0);
     QCOMPARE(doc->sessionRevision(), revision);
     QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+}
+
+void TstUi::preferencesKeepDocumentAndDefaultShortcuts()
+{
+    const auto original = AppearanceService::read();
+    const auto originalStyle = qApp->styleSheet();
+    const auto restore = qScopeGuard(
+        [&]
+        {
+            AppearanceService::write(original);
+            qApp->setStyleSheet(originalStyle);
+        });
+    MainWindow window;
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto json = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    auto *create = window.findChild<QAction *>("newProject");
+    const auto previous = create->shortcut();
+    QTimer::singleShot(
+        0, &window,
+        [&]
+        {
+            auto *dialog = window.findChild<QDialog *>("preferencesDialog");
+            QVERIFY(dialog);
+            const auto close = qScopeGuard([dialog] { dialog->reject(); });
+            auto *edit = dialog->findChild<QKeySequenceEdit *>("shortcut_newProject");
+            auto *other = dialog->findChild<QKeySequenceEdit *>("shortcut_openProject");
+            QVERIFY(edit);
+            QVERIFY(other);
+            dialog->findChild<QTabWidget *>("preferenceTabs")->setCurrentIndex(1);
+            const auto dir = qEnvironmentVariable("LINGYA_FINAL_CAPTURE_DIR");
+            if (!dir.isEmpty())
+            {
+                QDir().mkpath(dir);
+                QVERIFY(dialog->grab().save(dir + "/09-设置与快捷键.png"));
+            }
+            auto *buttons = dialog->findChild<QDialogButtonBox *>();
+            edit->setKeySequence(other->keySequence());
+            buttons->button(QDialogButtonBox::Save)->click();
+            QVERIFY(!dialog->findChild<QLabel *>("preferenceError")->text().isEmpty());
+            QCOMPARE(create->shortcut(), previous);
+            edit->setKeySequence(QKeySequence("Ctrl+Alt+J"));
+            auto *theme = dialog->findChild<QComboBox *>("preferenceTheme");
+            theme->setCurrentIndex(theme->findData("lavender"));
+            buttons->button(QDialogButtonBox::Save)->click();
+        });
+    window.findChild<QAction *>("showPreferences")->trigger();
+    QCOMPARE(create->shortcut(), QKeySequence("Ctrl+Alt+J"));
+    QVERIFY(qApp->styleSheet().contains("#675087"));
+    QCOMPARE(ProjectJson::toJson(doc->project()), json);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+}
+
+void TstUi::searchLocatesAcrossSheetsWithoutContentHistory()
+{
+    auto project = canvasProject(1, 0);
+    auto extra = ProjectFactory::createMindmap(QStringLiteral("第二张"));
+    auto sheet = std::get<TreeSheet>(extra.sheets.first());
+    sheet.name = QStringLiteral("第二张");
+    sheet.nodes[sheet.rootId].title = QStringLiteral("跨表中文目标");
+    project.sheets.append(sheet);
+    MainWindow window;
+    window.show();
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto revision = doc->sessionRevision();
+    const auto sheets = ProjectJson::toJson(doc->project()).value("sheets");
+    QTimer::singleShot(
+        0, &window,
+        [&]
+        {
+            auto *dialog = window.findChild<QDialog *>("projectSearch");
+            QVERIFY(dialog);
+            const auto close = qScopeGuard([dialog] { dialog->reject(); });
+            dialog->findChild<QLineEdit *>("searchQuery")->setText(QStringLiteral("中文目标"));
+            auto *list = dialog->findChild<QListWidget *>("searchResults");
+            QCOMPARE(list->count(), 1);
+            const auto dir = qEnvironmentVariable("LINGYA_FINAL_CAPTURE_DIR");
+            if (!dir.isEmpty())
+            {
+                QDir().mkpath(dir);
+                QVERIFY(dialog->grab().save(dir + "/10-跨表搜索定位.png"));
+            }
+            dialog->findChild<QPushButton *>("locateSearchResult")->click();
+        });
+    window.findChild<QAction *>("showSearch")->trigger();
+    QCOMPARE(doc->project().activeSheetId, sheet.id);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("跨表中文目标"));
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(doc->project()).value("sheets"), sheets);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+    doc->setClean();
 }
 
 QTEST_MAIN(TstUi)

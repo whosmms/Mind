@@ -102,6 +102,10 @@ HomePage::HomePage(QWidget *parent) : QWidget(parent)
     navLayout->addWidget(continueNav);
     connect(continueNav, &QPushButton::clicked, this, &HomePage::continueRequested);
     navLayout->addStretch();
+    auto *preferences = new QPushButton(QStringLiteral("设置与帮助"), nav);
+    preferences->setObjectName("homePreferences");
+    navLayout->addWidget(preferences);
+    connect(preferences, &QPushButton::clicked, this, &HomePage::preferencesRequested);
     navLayout->addWidget(new QLabel(QStringLiteral("本地工程 · .lingya"), nav));
     root->addWidget(nav);
     auto *scroll = new QScrollArea(this);

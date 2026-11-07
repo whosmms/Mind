@@ -361,6 +361,7 @@ void MainWindow::buildEditorChrome()
     group(start, QStringLiteral("历史"),
           {{"undoEdit", QStringLiteral("撤销"), Glyph::Undo},
            {"redoEdit", QStringLiteral("重做"), Glyph::Redo}});
+    group(start, QStringLiteral("查找"), {{"showSearch", QStringLiteral("搜索"), Glyph::Locate}});
     auto *insert = page(QStringLiteral("插入"));
     group(insert, QStringLiteral("主题信息"),
           {{"editNodeProperties", QStringLiteral("属性"), Glyph::Note},

@@ -1,7 +1,7 @@
 # 单元测试（统一规范§19.1、原设计§3）：测试链接对应层，不把窗口代码塞进核心库。
 # tst_domain与tst_projectjson只依赖lingya_core；tst_commands依赖lingya_appcore（QUndoStack）；
 # tst_ui为UI层测试（快捷键与文件打开行为），链接窗口与图元源文件。
-foreach(tst_name tst_domain tst_projectjson tst_check tst_review tst_fileservice tst_recovery tst_layout tst_session)
+foreach(tst_name tst_domain tst_projectjson tst_check tst_review tst_fileservice tst_recovery tst_layout tst_session tst_search)
     add_executable(${tst_name} ${tst_name}.cpp)
     target_link_libraries(${tst_name} PRIVATE lingya_core Qt6::Test)
     target_compile_definitions(${tst_name} PRIVATE
@@ -85,6 +85,8 @@ add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowExport.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowPresentation.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowAi.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowPreferences.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowSearch.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/HomePage.h
     ${CMAKE_SOURCE_DIR}/src/ui/HomePage.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowFlow.cpp
@@ -154,7 +156,7 @@ if(MSVC)
 endif()
 add_test(NAME tst_aipanel COMMAND tst_aipanel)
 
-foreach(completion_test tst_presentation tst_export tst_aicompletion)
+foreach(completion_test tst_presentation tst_export tst_aicompletion tst_appearance)
     add_executable(${completion_test} ${completion_test}.cpp)
     target_link_libraries(${completion_test} PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
     if(MSVC)
@@ -166,6 +168,7 @@ target_sources(tst_export PRIVATE
     ${CMAKE_SOURCE_DIR}/src/graphics/NodeItem.cpp
     ${CMAKE_SOURCE_DIR}/src/graphics/NodeItem.h
     ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
+target_sources(tst_appearance PRIVATE ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
 
 # 统一以 offscreen 跑 ctest（规范§19.1：自动测试不得在开发机桌面弹窗）。
 # 用例只被平台插件拖住时，表现是弹模态「no Qt platform plugin」框并挂死，命令行里看不到任何输出；

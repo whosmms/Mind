@@ -42,6 +42,7 @@ public:
     void setProvider(IAiProvider* provider);
 
     AiStatus status() const;
+    bool setModel(const QString &model);
     bool setKey(const QString& key, bool remember);
     void clearKey();
 
@@ -88,6 +89,7 @@ private:
     std::function<std::unique_ptr<IAiProvider>()> m_providerFactory;
     State m_state = State::Idle;
     QString m_currentRequestId;
+    QString m_model;
     RequestKind m_kind = RequestKind::Map;
     QVector<DraftSourceNode> m_draftSource;
     QStringList m_mapParagraphIds;

@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonParseError>
+#include <QRegularExpression>
 
 namespace lingya {
 
@@ -90,7 +91,8 @@ DraftProposal parseDraftProposal(const QJsonObject& object) {
     return proposal;
 }
 
-QJsonObject buildMapBody(const GenerateMapRequest& request) {
+QJsonObject buildMapBody(const GenerateMapRequest &request, const QString &model)
+{
     const QJsonObject system{
         {QStringLiteral("role"), QStringLiteral("system")},
         {QStringLiteral("content"), PromptLibrary::mapPrompt()}};
@@ -104,15 +106,15 @@ QJsonObject buildMapBody(const GenerateMapRequest& request) {
              .arg(request.requirements)
              .arg(QString::fromUtf8(QJsonDocument(AiMaterial::mapJson(request.text))
                                         .toJson(QJsonDocument::Compact)))}};
-    return QJsonObject{
-        {QStringLiteral("model"), QString::fromLatin1(kModel)},
-        {QStringLiteral("messages"), QJsonArray{system, user}},
-        {QStringLiteral("max_tokens"), kMaxTokens},
-        {QStringLiteral("response_format"),
-         QJsonObject{{QStringLiteral("type"), QStringLiteral("json_object")}}}};
+    return QJsonObject{{QStringLiteral("model"), model},
+                       {QStringLiteral("messages"), QJsonArray{system, user}},
+                       {QStringLiteral("max_tokens"), kMaxTokens},
+                       {QStringLiteral("response_format"),
+                        QJsonObject{{QStringLiteral("type"), QStringLiteral("json_object")}}}};
 }
 
-QJsonObject buildDraftBody(const GenerateDraftRequest& request) {
+QJsonObject buildDraftBody(const GenerateDraftRequest &request, const QString &model)
+{
     const QJsonObject system{
         {QStringLiteral("role"), QStringLiteral("system")},
         {QStringLiteral("content"), PromptLibrary::draftPrompt()}};
@@ -127,28 +129,29 @@ QJsonObject buildDraftBody(const GenerateDraftRequest& request) {
              .arg(request.requirements)
              .arg(QString::fromUtf8(
                  QJsonDocument(AiMaterial::draftJson(request)).toJson(QJsonDocument::Compact)))}};
-    return QJsonObject{
-        {QStringLiteral("model"), QString::fromLatin1(kModel)},
-        {QStringLiteral("messages"), QJsonArray{system, user}},
-        {QStringLiteral("max_tokens"), kMaxTokens},
-        {QStringLiteral("response_format"),
-         QJsonObject{{QStringLiteral("type"), QStringLiteral("json_object")}}}};
+    return QJsonObject{{QStringLiteral("model"), model},
+                       {QStringLiteral("messages"), QJsonArray{system, user}},
+                       {QStringLiteral("max_tokens"), kMaxTokens},
+                       {QStringLiteral("response_format"),
+                        QJsonObject{{QStringLiteral("type"), QStringLiteral("json_object")}}}};
 }
 
-QJsonObject buildConnectionBody() {
+QJsonObject buildConnectionBody(const QString &model)
+{
     const QJsonObject user{
         {QStringLiteral("role"), QStringLiteral("user")},
         {QStringLiteral("content"), QStringLiteral("ping")}};
-    return QJsonObject{
-        {QStringLiteral("model"), QString::fromLatin1(kModel)},
-        {QStringLiteral("messages"), QJsonArray{user}},
-        {QStringLiteral("max_tokens"), 8}};
+    return QJsonObject{{QStringLiteral("model"), model},
+                       {QStringLiteral("messages"), QJsonArray{user}},
+                       {QStringLiteral("max_tokens"), 8}};
 }
 
 }  // namespace
 
-AiService::AiService(IAiProvider* provider, SecretStore* secretStore, QObject* parent)
-    : QObject(parent), m_provider(provider), m_secretStore(secretStore) {
+AiService::AiService(IAiProvider *provider, SecretStore *secretStore, QObject *parent)
+    : QObject(parent), m_provider(provider), m_secretStore(secretStore),
+      m_model(QString::fromLatin1(kModel))
+{
     if (m_provider != nullptr) {
         connect(m_provider, &IAiProvider::completed, this, &AiService::onProviderCompleted);
         connect(m_provider, &IAiProvider::failed, this, &AiService::onProviderFailed);
@@ -159,8 +162,18 @@ AiStatus AiService::status() const {
     AiStatus result;
     result.configured = m_secretStore != nullptr && !m_secretStore->apiKey().isEmpty();
     result.busy = busy();
-    result.model = QString::fromLatin1(kModel);
+    result.model = m_model;
     return result;
+}
+
+bool AiService::setModel(const QString &model)
+{
+    const QString value = model.trimmed();
+    if (busy() ||
+        !QRegularExpression(QStringLiteral("^[A-Za-z0-9._:/-]{1,100}$")).match(value).hasMatch())
+        return false;
+    m_model = value;
+    return true;
 }
 
 bool AiService::setKey(const QString& key, bool remember) {
@@ -270,7 +283,7 @@ bool AiService::generateMap(const GenerateMapRequest& request) {
     for (const auto &p : AiMaterial::mapJson(request.text).value("paragraphs").toArray())
         m_mapParagraphIds.append(p.toObject().value("id").toString());
     setState(State::Requesting);
-    m_provider->start(request.requestId, buildMapBody(request));
+    m_provider->start(request.requestId, buildMapBody(request, m_model));
     return true;
 }
 
@@ -289,7 +302,7 @@ bool AiService::generateDraft(const GenerateDraftRequest& request) {
     m_faithful = request.mode == "faithful";
     m_draftSource = request.source;
     setState(State::Requesting);
-    m_provider->start(request.requestId, buildDraftBody(request));
+    m_provider->start(request.requestId, buildDraftBody(request, m_model));
     return true;
 }
 
@@ -301,7 +314,7 @@ bool AiService::testConnection(const QString& requestId) {
         return false;
     }
     setState(State::Requesting);
-    m_provider->start(requestId, buildConnectionBody());
+    m_provider->start(requestId, buildConnectionBody(m_model));
     return true;
 }
 

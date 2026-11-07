@@ -27,6 +27,13 @@ namespace lingya
 void MainWindow::buildCompletionActions()
 {
     auto *menu = menuBar()->addMenu(QStringLiteral("创作与输出"));
+    auto *search =
+        menu->addAction(QStringLiteral("搜索主题与任务…"), this, &MainWindow::showSearch);
+    search->setObjectName("showSearch");
+    search->setShortcut(QKeySequence::Find);
+    menu->addAction(QStringLiteral("设置与帮助…"), this, &MainWindow::showPreferences)
+        ->setObjectName("showPreferences");
+    menu->addSeparator();
     menu->addAction(QStringLiteral("AI创作与密钥设置…"), this, &MainWindow::showAiWorkspace)
         ->setObjectName("showAiWorkspace");
     menu->addAction(QStringLiteral("工程文字稿…"), this, &MainWindow::manageDrafts)
@@ -119,6 +126,7 @@ void MainWindow::exportCurrentSheet()
     column->addLayout(form);
     auto *info = new QLabel(&dialog);
     info->setObjectName("exportInfo");
+    info->setTextFormat(Qt::PlainText);
     info->setWordWrap(true);
     column->addWidget(info);
     const auto snapshot = captureCanvas();

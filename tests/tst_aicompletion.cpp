@@ -51,6 +51,7 @@ class TstAiCompletion : public QObject
     void responseHonorsRequestedLimitsAndSources();
     void draftEditingKeepsProvenance();
     void persistentSourceHashAndLegacyFiles();
+    void modelConfigurationAppliesOnlyToFutureRequests();
 };
 void TstAiCompletion::mapMaterialIdsAndRequirements()
 {
@@ -269,6 +270,26 @@ void TstAiCompletion::persistentSourceHashAndLegacyFiles()
     drafts[0] = legacy;
     json["drafts"] = drafts;
     QVERIFY(std::holds_alternative<AppError>(ProjectJson::fromObject(json)));
+}
+
+void TstAiCompletion::modelConfigurationAppliesOnlyToFutureRequests()
+{
+    CaptureProvider provider;
+    SessionSecretStore store;
+    store.setApiKey("test-only", false);
+    AiService service(&provider, &store);
+    QVERIFY(service.setModel("local-test-v1"));
+    QCOMPARE(service.status().model, QStringLiteral("local-test-v1"));
+    QVERIFY(!service.setModel(" "));
+    QCOMPARE(service.status().model, QStringLiteral("local-test-v1"));
+    GenerateMapRequest request;
+    request.requestId = "model-check";
+    request.text = QStringLiteral("受控材料");
+    QVERIFY(service.generateMap(request));
+    QCOMPARE(provider.body["model"].toString(), QStringLiteral("local-test-v1"));
+    QVERIFY(!service.setModel("other-model"));
+    service.cancel(request.requestId);
+    QVERIFY(service.setModel("other-model"));
 }
 
 QTEST_MAIN(TstAiCompletion)

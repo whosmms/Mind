@@ -9,6 +9,7 @@
 #include <QListWidget>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QSettings>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QSplitter>
@@ -88,6 +89,7 @@ AiPanel::AiPanel(AiService* service, QWidget* parent) : QWidget(parent), m_servi
     m_statusLabel = new QLabel(this);
     m_statusLabel->setObjectName(QStringLiteral("aiStatus"));
     m_statusLabel->setWordWrap(true);
+    m_statusLabel->setTextFormat(Qt::PlainText);
 
     auto* keyRow = new QHBoxLayout;
     keyRow->addWidget(m_keyEdit, 1);
@@ -199,6 +201,32 @@ AiPanel::AiPanel(AiService* service, QWidget* parent) : QWidget(parent), m_servi
         new QCheckBox(QStringLiteral("保存到Windows凭据管理器（默认仅本次使用）"), this);
     m_rememberKey->setObjectName("aiRememberKey");
     credentialLayout->addWidget(m_rememberKey);
+    auto *modelRow = new QHBoxLayout;
+    m_modelEdit = new QLineEdit(m_service ? m_service->status().model : QString(), credentials);
+    m_modelEdit->setObjectName("aiModel");
+    m_modelEdit->setPlaceholderText(QStringLiteral("按API服务可用的模型名称填写"));
+    m_modelButton = new QPushButton(QStringLiteral("应用模型"), credentials);
+    m_modelButton->setObjectName("aiSaveModel");
+    modelRow->addWidget(new QLabel(QStringLiteral("模型"), credentials));
+    modelRow->addWidget(m_modelEdit, 1);
+    modelRow->addWidget(m_modelButton);
+    credentialLayout->addLayout(modelRow);
+    connect(m_modelButton, &QPushButton::clicked, this,
+            [this]
+            {
+                if (!m_service || !m_service->setModel(m_modelEdit->text()))
+                {
+                    m_statusLabel->setText(QStringLiteral("模型名称无效或请求尚未结束"));
+                    return;
+                }
+                QSettings settings;
+                settings.setValue("ai/model", m_service->status().model);
+                settings.sync();
+                m_statusLabel->setText(
+                    settings.status() == QSettings::NoError
+                        ? QStringLiteral("模型已更新，后续生成使用此配置；尚未执行连接测试")
+                        : QStringLiteral("模型仅在本次会话更新，本机设置未能保存"));
+            });
     auto *clearKey = new QPushButton(QStringLiteral("清除密钥"), this);
     clearKey->setObjectName("aiClearKey");
     keyRow->addWidget(clearKey);
@@ -453,7 +481,7 @@ void AiPanel::onMapReady(const QString& requestId, const MapProposal& proposal) 
     {
         auto *item = parent ? new QTreeWidgetItem(parent) : new QTreeWidgetItem(m_mapTree);
         item->setText(0, node.title);
-        item->setToolTip(0, node.note);
+        item->setToolTip(0, QStringLiteral("<span>%1</span>").arg(node.note.toHtmlEscaped()));
         item->setText(1, node.origin == "supplement" ? QStringLiteral("AI补充")
                                                      : QStringLiteral("基于材料"));
         for (const auto &child : node.children)
@@ -502,6 +530,8 @@ void AiPanel::showPreview(const QString& text) {
 }
 
 void AiPanel::setBusy(bool busy) {
+    m_modelButton->setEnabled(!busy);
+    m_modelEdit->setEnabled(!busy);
     m_mapButton->setEnabled(!busy);
     m_draftButton->setEnabled(!busy && m_draftSupported);
     m_testButton->setEnabled(!busy);

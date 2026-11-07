@@ -1,15 +1,33 @@
 #include <QApplication>
+#include <QDir>
 #include <QFile>
 #include <QFont>
+#include <QIcon>
+#include <QSettings>
 
 #include "ai/AiTypes.h"
 #include "app/MainWindow.h"
+#include "services/AppearanceService.h"
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QApplication::setApplicationName("LingyaMind");
     QApplication::setApplicationVersion("0.1.0");
     QApplication::setOrganizationName("LingyaMind");
+    app.setWindowIcon(QIcon(QStringLiteral(":/lingya/icons/app.png")));
+    // 自动候选验证隔离配置、恢复与账号；普通启动沿用原资料位置。
+    const QString profileRoot = qEnvironmentVariable("LINGYA_PROFILE_ROOT");
+    if (!profileRoot.isEmpty())
+    {
+        QDir profile(profileRoot);
+        if (!profile.isAbsolute() || !QDir().mkpath(profile.absolutePath()))
+            return 1;
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                           profile.filePath("settings"));
+        lingya::MainWindow::setRecoveryRootForTest(profile.filePath("recovery"));
+        lingya::MainWindow::setSessionRootForTest(profile.filePath("session"));
+    }
 
     // 中文无衬线字体，Windows优先微软雅黑（统一规范§14、原设计§9）
     QFont appFont(QStringLiteral("Microsoft YaHei"));
@@ -20,9 +38,8 @@ int main(int argc, char* argv[]) {
     lingya::registerAiMetaTypes();
 
     // 浅色主题经qrc加载；QSS只负责控件样式，画布图元自绘（统一规范§14）
-    QFile style(QStringLiteral(":/lingya/styles/light.qss"));
-    if (style.open(QIODevice::ReadOnly | QIODevice::Text))
-        app.setStyleSheet(QString::fromUtf8(style.readAll()));
+    app.setStyleSheet(
+        lingya::AppearanceService::styleSheet(lingya::AppearanceService::read().theme));
 
     lingya::MainWindow window;
     // 支持“打开方式/命令行”传入.lingya路径（如资源管理器双击工程文件）：

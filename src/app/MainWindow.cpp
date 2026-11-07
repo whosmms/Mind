@@ -365,6 +365,7 @@ MainWindow::MainWindow(QWidget* parent)
     buildCompletionActions();
     buildEditorChrome();
     buildHomePage();
+    applyUserShortcuts();
     connect(m_doc, &ProjectDocument::changed, this, &MainWindow::onDocumentChanged);
 
     // 恢复快照（规范§11.3、原设计§8）：30秒定时，仅脏文档且内容变化时写一份；
@@ -1868,8 +1869,9 @@ void MainWindow::rebuildCanvas() {
         item->setNodeId(position.id);
         if (node.provenance)
             item->setToolTip(
-                QStringLiteral("AI生成 · 模型：%1 · 来源材料：%2")
-                    .arg(node.provenance->model, node.provenance->sourceParagraphIds.join(", ")));
+                QStringLiteral("<span>AI生成 · 模型：%1 · 来源材料：%2</span>")
+                    .arg(node.provenance->model.toHtmlEscaped(),
+                         node.provenance->sourceParagraphIds.join(", ").toHtmlEscaped()));
         item->setPos(position.x, position.y);
         m_scene->addItem(item);
         m_nodeItems.insert(position.id, item);

@@ -43,9 +43,12 @@ void MainWindow::buildHomePage()
     rail->setIconSize(QSize(24, 24));
     rail->addAction(home);
     rail->addAction(findChild<QAction *>("toggleOutline"));
-    rail->addAction(findChild<QAction *>("editNodeTags"));
+    rail->addAction(findChild<QAction *>("showReviewCards"));
+    rail->addAction(findChild<QAction *>("checkProject"));
+    rail->addAction(findChild<QAction *>("showAiWorkspace"));
     addToolBar(Qt::LeftToolBarArea, rail);
     connect(m_homePage, &HomePage::continueRequested, this, &MainWindow::returnFromHome);
+    connect(m_homePage, &HomePage::preferencesRequested, this, &MainWindow::showPreferences);
     connect(m_homePage, &HomePage::templateRequested, this, &MainWindow::createFromHome);
     connect(m_homePage, &HomePage::openRequested, this, &MainWindow::openProject);
     connect(m_homePage, &HomePage::recentRequested, this, &MainWindow::openRecentFile);
@@ -80,7 +83,7 @@ void MainWindow::showHomePage()
         {
             const QString name = action->objectName();
             if (name.isEmpty() || name == "showHomePage" || name == "newProject" ||
-                name == "openProject" || name == "saveProject")
+                name == "openProject" || name == "saveProject" || name == "showPreferences")
                 continue;
             m_homeActionStates.append({QPointer<QAction>(action), action->isEnabled()});
             action->setEnabled(false);
