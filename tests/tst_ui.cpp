@@ -2145,7 +2145,12 @@ void TstUi::treeCanvasHundredNodesRoundTrip()
     auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
     const auto before = canvasNodes(view);
     QCOMPARE(before.size(), 100);
-    QCOMPARE(view->scene()->items().size(), 199);
+    int contentItems = 0;
+    for (auto *item : view->scene()->items())
+        if (!item->parentItem())
+            ++contentItems;
+    // 100个主题和99条树线；快捷加号及其文字属于主题子图元，不混入内容计数。
+    QCOMPARE(contentItems, 199);
     const auto values = before.values();
     QMap<ID, QPointF> positions;
     QMap<ID, QRectF> bounds;

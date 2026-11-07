@@ -77,6 +77,11 @@ void MainWindow::insertCanvasImage(const QPointF &position)
             .add(m_doc->project().activeSheetId, std::get<QString>(imported), position);
     if (const auto *error = std::get_if<AppError>(&result))
         statusBar()->showMessage(error->message, 8000);
+    else
+    {
+        m_selectedImageId = std::get<ID>(result);
+        syncCanvasSelection();
+    }
 }
 void MainWindow::quickAddNode(const ID &id)
 {

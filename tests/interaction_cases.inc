@@ -501,6 +501,12 @@ void TstUi::quickMouseRelationsGroupsAndImagePicker()
     const auto stored = std::get<TreeSheet>(doc->project().sheets.first()).images;
     QCOMPARE(stored.size(), 1);
     QCOMPARE(stored.first().position, position);
+    bool imageSelected = false;
+    for (auto *item : view->scene()->items())
+        if (auto *image = dynamic_cast<CanvasImageItem *>(item))
+            imageSelected |= image->isSelected();
+    QVERIFY(imageSelected);
+    QVERIFY(!window.findChild<QAction *>("deleteTopic")->isEnabled());
     QVERIFY(originalFile.open(QIODevice::ReadOnly));
     QCOMPARE(originalFile.readAll(), originalBytes);
     originalFile.close();
