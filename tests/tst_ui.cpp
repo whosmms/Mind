@@ -1171,12 +1171,8 @@ void TstUi::recoveryAdoptionGoesThroughCommandTransaction()
 
     // 采用是可撤销历史：撤销回采用前的空白工程，重做再回恢复内容
     // （证明走了命令栈而非replaceProject，撤销与重做都作用在同一事务上）
-    QAction* undoAction = nullptr;
-    QAction* redoAction = nullptr;
-    for (QAction* action : w.findChildren<QAction*>()) {
-        if (action->text().startsWith(QStringLiteral("撤销"))) undoAction = action;
-        if (action->text().startsWith(QStringLiteral("重做"))) redoAction = action;
-    }
+    auto *undoAction = w.findChild<QAction *>("undoEdit");
+    auto *redoAction = w.findChild<QAction *>("redoEdit");
     QVERIFY(undoAction != nullptr);
     QVERIFY(redoAction != nullptr);
     QVERIFY(undoAction->isEnabled());
@@ -1365,12 +1361,8 @@ void TstUi::recoveryProcessCrashEndToEnd()
     QVERIFY(window.windowTitle().contains(QLatin1Char('*')));   // 保存前保持脏状态
 
     // 采用是可撤销事务：撤销回空白，重做回恢复内容（§4.4-C3补重做）
-    QAction* undoAction = nullptr;
-    QAction* redoAction = nullptr;
-    for (QAction* action : window.findChildren<QAction*>()) {
-        if (action->text().startsWith(QStringLiteral("撤销"))) undoAction = action;
-        if (action->text().startsWith(QStringLiteral("重做"))) redoAction = action;
-    }
+    auto *undoAction = window.findChild<QAction *>("undoEdit");
+    auto *redoAction = window.findChild<QAction *>("redoEdit");
     QVERIFY(undoAction != nullptr && redoAction != nullptr);
     undoAction->trigger();
     QCOMPARE(window.currentRootTitle(), QStringLiteral("中心主题"));
