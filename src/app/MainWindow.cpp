@@ -159,7 +159,7 @@ struct EditorForm
         dialog.resize(560, qMin(620, parent->screen()->availableGeometry().height() - 80));
         layout = new QVBoxLayout(&dialog);
         auto *hint = new QLabel(
-            QStringLiteral("每次应用立即保存到工程，可在主窗口撤销。关闭窗口保留已应用内容。"),
+            QStringLiteral("每次应用立即保存到工程，可在主窗口撤回。关闭窗口保留已应用内容。"),
             &dialog);
         hint->setWordWrap(true);
         layout->addWidget(hint);
@@ -1464,7 +1464,7 @@ void MainWindow::deleteSelection()
     for (const ReviewCard &card : m_doc->project().cards)
         if (card.sheetId == sheetId && subtree.contains(card.nodeId))
             ++cardCount;
-    QString summary = QStringLiteral("将删除“%1”及其后代，共%2个主题。可用Ctrl+Z撤销。\n\n"
+    QString summary = QStringLiteral("将删除“%1”及其后代，共%2个主题。可用Ctrl+Z撤回。\n\n"
                                      "同时清理：%3条关系、%5条批注。涉及%4项外框/"
                                      "概要，剔除成员后不足两个才移除；父级被删则移除。\n"
                                      "%6张复习卡片将保留并标记来源缺失。\n"
@@ -2060,7 +2060,7 @@ void MainWindow::onDocumentChanged() {
                 m_annotationMembers.value(it.key()) != it.value())
             {
                 m_editorNote =
-                    QStringLiteral("外框/概要已随结构变化调整，成员不足两个时移除；可撤销。");
+                    QStringLiteral("外框/概要已随结构变化调整，成员不足两个时移除；可撤回。");
                 break;
             }
     if (!m_cutNodeId.isEmpty() && m_cutRevision != m_doc->sessionRevision())
@@ -2284,6 +2284,7 @@ void MainWindow::showLoginDialog() {
 void MainWindow::showOwnedFilesDialog() {
     if (m_sessionUser.isEmpty()) return;
     UserFilesDialog dialog(activeSessionRoot(), m_sessionUser, this);
+    dialog.setWindowTitle(QStringLiteral("我的文件 - %1").arg(sessionUserName()));
     if (dialog.exec() == QDialog::Accepted && !dialog.selectedFileName().isEmpty())
         openOwnedFile(dialog.selectedFileName());
 }
@@ -2497,7 +2498,7 @@ void MainWindow::deleteSheet()
     }
     QMessageBox box(
         QMessageBox::Question, QStringLiteral("删除工作表"),
-        QStringLiteral("删除“%1”？表中主题与连线将移除；%2个关联任务保留为独立任务。可以撤销。")
+        QStringLiteral("删除“%1”？表中主题与连线将移除；%2个关联任务保留为独立任务。可以撤回。")
             .arg(m_sheetSelector->currentText())
             .arg(tasks),
         QMessageBox::Ok | QMessageBox::Cancel, this);
