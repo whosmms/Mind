@@ -16,3 +16,6 @@ CMakeLists.txt text eol=lf
 *.pdf binary
 *.docx binary
 *.zip binary
+# 随包原始许可和翻译按来源字节保存，避免自动CRLF破坏来源SHA256。
+packaging/third-party/** -text
+packaging/Languages/*.isl -text
