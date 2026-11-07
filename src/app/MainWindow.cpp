@@ -414,10 +414,10 @@ void MainWindow::buildMenus() {
     fileMenu->addAction(QStringLiteral("退出(&X)"), QKeySequence::Quit, this, &QWidget::close);
 
     QMenu* editMenu = menuBar()->addMenu(QStringLiteral("编辑(&E)"));
-    m_undoAction = editMenu->addAction(QStringLiteral("撤销(&U)"), QKeySequence::Undo, this,
+    m_undoAction = editMenu->addAction(QStringLiteral("后退(&U)"), QKeySequence::Undo, this,
                                        [this] { m_commands->undo(); });
     m_undoAction->setObjectName(QStringLiteral("undoEdit"));
-    m_redoAction = editMenu->addAction(QStringLiteral("重做(&R)"), this,
+    m_redoAction = editMenu->addAction(QStringLiteral("前进(&R)"), this,
                                        [this] { m_commands->redo(); });
     m_redoAction->setObjectName(QStringLiteral("redoEdit"));
     // 统一规范§14.1：Ctrl+Shift+Z为主，Ctrl+Y为别名（Windows平台QKeySequence::Redo即Ctrl+Y）

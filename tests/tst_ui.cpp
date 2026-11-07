@@ -73,6 +73,8 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QSlider>
+#include <QStyleOptionSpinBox>
+#include <QToolTip>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -178,6 +180,8 @@ private slots:
     void searchLocatesAcrossSheetsWithoutContentHistory();
     void desktopChromeKeepsCommandsAndViewState();
     void desktopChromeModesAndResponsiveLayout();
+    void visualControlsStayInsideBounds_data();
+    void visualControlsStayInsideBounds();
     void undoRedoViaShortcuts();
     void editorSheetManagementAndDeletion();
     void editorSheetDeletionProtectsUserData_data();
@@ -5999,6 +6003,151 @@ void TstUi::searchLocatesAcrossSheetsWithoutContentHistory()
     QCOMPARE(ProjectJson::toJson(doc->project()).value("sheets"), sheets);
     QVERIFY(!window.findChild<CommandService *>()->canUndo());
     doc->setClean();
+}
+
+void TstUi::visualControlsStayInsideBounds_data()
+{
+    QTest::addColumn<int>("width");
+    QTest::newRow("compact") << 800;
+    QTest::newRow("laptop") << 1366;
+    QTest::newRow("wide") << 1536;
+}
+
+void TstUi::visualControlsStayInsideBounds()
+{
+    QFETCH(int, width);
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(3, 2));
+    window.resize(width, 900);
+    window.show();
+    QTest::qWait(40);
+    const QString captures = qEnvironmentVariable("LINGYA_VISUAL_QA_DIR");
+    const auto save = [&](QWidget *widget, const QString &name)
+    {
+        if (captures.isEmpty())
+            return;
+        QVERIFY(QDir().mkpath(captures));
+        QVERIFY(widget->grab().save(
+            QDir(captures).filePath(QString::number(width) + "-" + name + ".png")));
+    };
+    QCOMPARE(window.findChild<QToolButton *>("chrome_undoEdit")->text(), QStringLiteral("后退"));
+    QCOMPARE(window.findChild<QToolButton *>("chrome_redoEdit")->text(), QStringLiteral("前进"));
+    const auto undo =
+        window.findChild<QAction *>("undoEdit")->icon().pixmap(QSize(24, 24), 1.0).toImage();
+    const auto redo =
+        window.findChild<QAction *>("redoEdit")->icon().pixmap(QSize(24, 24), 1.0).toImage();
+    QCOMPARE(undo.mirrored(true, false), redo);
+    // 链接图标四边保持透明留白，不允许笔画越界被裁。
+    const auto link =
+        window.findChild<QAction *>("openNodeLink")->icon().pixmap(QSize(24, 24), 1.0).toImage();
+    for (int i = 0; i < 24; ++i)
+    {
+        QCOMPARE(qAlpha(link.pixel(i, 0)), 0);
+        QCOMPARE(qAlpha(link.pixel(i, 23)), 0);
+        QCOMPARE(qAlpha(link.pixel(0, i)), 0);
+        QCOMPARE(qAlpha(link.pixel(23, i)), 0);
+    }
+    auto *tabs = window.findChild<QTabWidget *>("ribbonTabs");
+    for (int index : {0, 1, 2, 5})
+    {
+        tabs->setCurrentIndex(index);
+        QTest::qWait(20);
+        auto *scroll = qobject_cast<QScrollArea *>(tabs->widget(index));
+        QVERIFY(scroll);
+        for (auto *label : scroll->findChildren<QLabel *>())
+        {
+            if (!label->isVisible())
+                continue;
+            const QPoint top = label->mapTo(scroll->viewport(), QPoint(0, 0));
+            QVERIFY2(top.y() >= 0 && top.y() + label->height() <= scroll->viewport()->height(),
+                     qPrintable(label->text()));
+        }
+        save(&window, QStringLiteral("工具栏-%1").arg(index));
+    }
+    const auto tagButtons = window.findChildren<QToolButton *>("chrome_editNodeTags");
+    QCOMPARE(tagButtons.size(), 2);
+    QVERIFY(tagButtons[0]->text() != tagButtons[1]->text());
+    window.findChild<QAction *>("editNodeTags")->setEnabled(false);
+    window.findChild<QAction *>("editNodeTags")->setEnabled(true);
+    QVERIFY(tagButtons[0]->text() != tagButtons[1]->text());
+    auto *slider = window.findChild<QSlider *>("canvasZoomSlider");
+    if (slider->isVisible())
+    {
+        QVERIFY(slider->height() >= 28);
+        const auto image = slider->grab().toImage();
+        const auto green = [](QColor color)
+        { return color.green() > color.red() + 25 && color.alpha() > 200; };
+        for (int x = 0; x < image.width(); ++x)
+        {
+            QVERIFY(!green(image.pixelColor(x, 0)));
+            QVERIFY(!green(image.pixelColor(x, image.height() - 1)));
+        }
+        save(slider, "缩放");
+    }
+    if (width == 1536)
+    {
+        for (auto *dock : window.findChildren<QDockWidget *>())
+        {
+            if (!dock->isVisible())
+                continue;
+            save(dock, dock->objectName());
+            auto *floatButton = dock->findChild<QToolButton *>("dockFloat");
+            auto *closeButton = dock->findChild<QToolButton *>("dockClose");
+            QVERIFY(floatButton && closeButton);
+            QVERIFY(floatButton->isVisible() && closeButton->isVisible());
+            QVERIFY(dock->titleBarWidget()->rect().contains(floatButton->geometry()));
+            QVERIFY(dock->titleBarWidget()->rect().contains(closeButton->geometry()));
+            floatButton->click();
+            QVERIFY(dock->isFloating());
+            QTest::qWait(20);
+            save(dock, dock->objectName() + "-浮动");
+            floatButton->click();
+            QVERIFY(!dock->isFloating());
+            closeButton->click();
+            QVERIFY(!dock->isVisible());
+            dock->toggleViewAction()->trigger();
+            QVERIFY(dock->isVisible());
+        }
+        QToolTip::showText(window.mapToGlobal(QPoint(180, 180)), QStringLiteral("检查当前工程"),
+                           &window);
+        QTest::qWait(30);
+        for (auto *widget : QApplication::topLevelWidgets())
+            if (widget->inherits("QTipLabel") && widget->isVisible())
+                save(widget, "悬停提示");
+        QToolTip::hideText();
+        QTimer::singleShot(
+            30, &window,
+            [&]
+            {
+                auto *dialog = window.findChild<QDialog *>("aiWorkspace");
+                QVERIFY(dialog);
+                const auto close = qScopeGuard([&] { dialog->reject(); });
+                auto *spin = dialog->findChild<QSpinBox *>("aiMaxNodes");
+                QVERIFY(spin);
+                QStyleOptionSpinBox option;
+                option.initFrom(spin);
+                option.frame = true;
+                option.buttonSymbols = QAbstractSpinBox::UpDownArrows;
+                option.stepEnabled =
+                    QAbstractSpinBox::StepUpEnabled | QAbstractSpinBox::StepDownEnabled;
+                const auto up = spin->style()->subControlRect(QStyle::CC_SpinBox, &option,
+                                                              QStyle::SC_SpinBoxUp, spin);
+                const auto down = spin->style()->subControlRect(QStyle::CC_SpinBox, &option,
+                                                                QStyle::SC_SpinBoxDown, spin);
+                QVERIFY(spin->rect().contains(up));
+                QVERIFY(spin->rect().contains(down));
+                QVERIFY(up.width() >= 24 && down.width() >= 24);
+                QVERIFY(!up.intersects(down));
+                spin->setValue(20);
+                QTest::mouseClick(spin, Qt::LeftButton, Qt::NoModifier, up.center());
+                QCOMPARE(spin->value(), 21);
+                QTest::mouseClick(spin, Qt::LeftButton, Qt::NoModifier, down.center());
+                QCOMPARE(spin->value(), 20);
+                save(dialog, "AI创作-未请求网络");
+            });
+        window.findChild<QAction *>("showAiWorkspace")->trigger();
+    }
+    window.findChild<ProjectDocument *>()->setClean();
 }
 
 QTEST_MAIN(TstUi)

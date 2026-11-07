@@ -59,6 +59,7 @@ void TstReviewPage::startsWithFrontAndHiddenBack()
     QCOMPARE(page.totalCount(), 2);
     QCOMPARE(page.completedCount(), 0);
     QVERIFY(!page.isFinished());
+    QCOMPARE(button(&page, "reviewAgain")->text(), QStringLiteral("重试"));
 }
 
 void TstReviewPage::revealShowsBackAndEnablesGrades()
