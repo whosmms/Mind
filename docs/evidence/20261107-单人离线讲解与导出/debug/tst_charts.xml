@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstCharts">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.085"/>
+  </TestFunction>
+  <TestFunction name="exposesFiveColumns">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.141"/>
+  </TestFunction>
+  <TestFunction name="displaysTaskFields">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0847"/>
+  </TestFunction>
+  <TestFunction name="formatsDatesAndProgress">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2816"/>
+  </TestFunction>
+  <TestFunction name="marksMilestone">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0189"/>
+  </TestFunction>
+  <TestFunction name="editRequestedCarriesTaskIdAndColumn">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.077"/>
+  </TestFunction>
+  <TestFunction name="computesBarForSingleTask">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0312"/>
+  </TestFunction>
+  <TestFunction name="handlesCrossMonthRange">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0137"/>
+  </TestFunction>
+  <TestFunction name="handlesCrossYearRange">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0105"/>
+  </TestFunction>
+  <TestFunction name="milestoneIsOneDay">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0101"/>
+  </TestFunction>
+  <TestFunction name="skipsTasksWithoutDates">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0114"/>
+  </TestFunction>
+  <TestFunction name="dateConversionsRoundByDay">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0139"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0057"/>
+  </TestFunction>
+  <Duration msecs="2.8467"/>
+</TestCase>
