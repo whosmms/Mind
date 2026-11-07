@@ -1,3 +1,4 @@
+#include <utility>
 #include "ai/SecretStore.h"
 
 #ifdef _WIN32
@@ -32,12 +33,13 @@ namespace {
 
 class WindowsSecretStore : public SecretStore {
 public:
+    explicit WindowsSecretStore(QString target) : m_target(std::move(target)) {}
     QString apiKey() const override {
         if (!m_session.isEmpty()) {
             return m_session;
         }
         PCREDENTIALW credential = nullptr;
-        const std::wstring target = QString::fromLatin1(kTargetName).toStdWString();
+        const std::wstring target = m_target.toStdWString();
         if (CredReadW(target.c_str(), CRED_TYPE_GENERIC, 0, &credential) == FALSE) {
             return QString();  // 不存在或读取失败，回退会话（已为空）
         }
@@ -64,7 +66,7 @@ public:
 private:
     bool writeCredential(const QString& key) {
         const QByteArray utf8 = key.toUtf8();
-        const std::wstring target = QString::fromLatin1(kTargetName).toStdWString();
+        const std::wstring target = m_target.toStdWString();
 
         CREDENTIALW credential = {};
         credential.Type = CRED_TYPE_GENERIC;
@@ -77,22 +79,32 @@ private:
     }
 
     void deleteCredential() {
-        const std::wstring target = QString::fromLatin1(kTargetName).toStdWString();
+        const std::wstring target = m_target.toStdWString();
         CredDeleteW(target.c_str(), CRED_TYPE_GENERIC, 0);
     }
 
+    QString m_target;
     mutable QString m_session;  // 进程内副本；apiKey() 会先查它
 };
 
 }  // namespace
 
 std::unique_ptr<SecretStore> createSecretStore() {
-    return std::make_unique<WindowsSecretStore>();
+    return createSecretStore(QString::fromLatin1(kTargetName));
+}
+
+std::unique_ptr<SecretStore> createSecretStore(const QString& target) {
+    return std::make_unique<WindowsSecretStore>(target);
 }
 
 #else
 
 std::unique_ptr<SecretStore> createSecretStore() {
+    return std::make_unique<SessionSecretStore>();
+}
+
+std::unique_ptr<SecretStore> createSecretStore(const QString& target) {
+    Q_UNUSED(target);
     return std::make_unique<SessionSecretStore>();
 }
 

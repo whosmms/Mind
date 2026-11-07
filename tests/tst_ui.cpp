@@ -1,3 +1,5 @@
+#include "AuthTestTransport.h"
+#include "services/OnlineAuthService.h"
 #include <QtTest>
 
 // 崩溃链路用例用 _exit 绕过析构（模拟进程被杀）：POSIX 下由 unistd.h 声明，
@@ -162,6 +164,7 @@ class TstUi : public QObject {
 
 private slots:
     void initTestCase();
+    void onlineIdentityKeepsLocalDocumentAndHistory();
     void inlineStyleKeepsUneditedValues_data();
     void inlineStyleKeepsUneditedValues();
     void inlineMetadataAndDraftIsolation();
@@ -2476,6 +2479,58 @@ void TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent()
     QVERIFY(window.findChild<ProjectDocument *>()->isModified());
 }
 
+void TstUi::onlineIdentityKeepsLocalDocumentAndHistory()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setSessionRootForTest(root.path());
+    const auto restoreRoot =
+        qScopeGuard([this] { MainWindow::setSessionRootForTest(m_sessionDir.path()); });
+    auth_test::Network network;
+    auto *auth = new OnlineAuthService(root.path(), nullptr, &network,
+                                       std::make_unique<SessionSecretStore>());
+    QVERIFY(auth->configure(
+        {"https://abcdefghijklmnopqrst.supabase.co", "sb_publishable_offline_test_only_123456"},
+        false));
+    MainWindow window(nullptr, auth);
+    QCoreApplication::processEvents();
+    QVERIFY(window.renameRootTo(QStringLiteral("只保存在本机的内容")));
+    auto *document = window.findChild<ProjectDocument *>();
+    QVERIFY(document);
+    const auto revision = document->sessionRevision();
+    const auto projectId = window.currentProjectId();
+    auto *undo = window.findChild<QAction *>("undoEdit");
+    QVERIFY(undo && undo->isEnabled());
+    network.replies << auth_test::good();
+    auth->login("reader@example.com", "fake-password-123", false);
+    QTRY_VERIFY(window.isLoggedIn());
+    QCOMPARE(window.sessionUserName(), QString("reader@example.com"));
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(window.currentProjectId(), projectId);
+    QVERIFY(document->isModified());
+    QVERIFY(undo->isEnabled());
+    QVERIFY(window.saveProjectToOwned(QStringLiteral("联网账号的本地作品")));
+    const auto saved = UserFileService::userDir(auth->localFilesRoot(), auth->localUserId()) +
+                       QStringLiteral("/联网账号的本地作品.lingya");
+    QVERIFY(QFile::exists(saved));
+    QVERIFY(!QFile::exists(root.filePath("accounts.json")));
+    network.replies << auth_test::Reply{204, {}};
+    window.logoutSession();
+    QTRY_VERIFY(!auth->busy());
+    QVERIFY(!window.isLoggedIn());
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("只保存在本机的内容"));
+    QVERIFY(QFile::exists(saved));
+    undo->trigger();
+    QVERIFY(window.currentRootTitle() != QStringLiteral("只保存在本机的内容"));
+    for (const auto &call : network.sent)
+    {
+        QVERIFY(!call.body.contains("project"));
+        QVERIFY(!call.body.contains("sheets"));
+        QVERIFY(!QJsonDocument(call.body).toJson().contains(
+            QStringLiteral("只保存在本机的内容").toUtf8()));
+    }
+}
 
 void TstUi::loggedInSaveNamesIntoOwnedFolderOnly()
 {

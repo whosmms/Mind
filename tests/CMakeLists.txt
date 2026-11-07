@@ -170,6 +170,11 @@ target_sources(tst_export PRIVATE
     ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
 target_sources(tst_appearance PRIVATE ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
 
+# 联网账号协议和窗口使用可控传输桩，不访问真实账号服务。
+add_executable(tst_onlineauth tst_onlineauth.cpp ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
+target_link_libraries(tst_onlineauth PRIVATE lingya_appcore Qt6::Test Qt6::Widgets Qt6::Network)
+add_test(NAME tst_onlineauth COMMAND tst_onlineauth)
+
 # 统一以 offscreen 跑 ctest（规范§19.1：自动测试不得在开发机桌面弹窗）。
 # 用例只被平台插件拖住时，表现是弹模态「no Qt platform plugin」框并挂死，命令行里看不到任何输出；
 # 所以平台与插件根目录都由这里定死，不依赖外层终端变量：

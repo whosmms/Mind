@@ -33,5 +33,7 @@ private:
 
 // 生产实现：Windows 凭据管理器（目标名 LingyaMind/DeepSeek），失败回退会话
 std::unique_ptr<SecretStore> createSecretStore();
+// 独立凭据命名空间供联网账号使用，不覆盖原DeepSeek凭据。
+std::unique_ptr<SecretStore> createSecretStore(const QString& target);
 
 }  // namespace lingya
