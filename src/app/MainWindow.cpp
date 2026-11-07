@@ -2018,6 +2018,12 @@ void MainWindow::updateStatusLine() {
         m_doc->isModified() ? QStringLiteral("已修改") : QStringLiteral("已保存");
     const TreeSheet *sheet = activeTreeSheet();
     const bool ganttDisplayed = m_centralStack->currentIndex() == 1;
+    const bool selectedOutsideFilter =
+        !m_selectedTaskId.isEmpty() && !isTaskVisibleInGantt(m_selectedTaskId, false);
+    if (auto *showAll = findChild<QPushButton *>("showAllGanttTasks"))
+        showAll->setEnabled(ganttDisplayed && selectedOutsideFilter && !m_ganttTaskLocation);
+    if (auto *restoreFilter = findChild<QPushButton *>("restoreGanttFilter"))
+        restoreFilter->setEnabled(ganttDisplayed && m_ganttTaskLocation);
     const QString kindLabel =
         ganttDisplayed      ? QStringLiteral("甘特图")
         : sheet             ? (sheet->kind == QStringLiteral("fishbone") ? QStringLiteral("鱼骨图")
@@ -2035,7 +2041,7 @@ void MainWindow::updateStatusLine() {
     if (ganttDisplayed)
     {
         if (m_ganttTaskLocation)
-            line += QStringLiteral(" · 已临时显示全部任务 · 点“视图→甘特图”恢复筛选");
+            line += QStringLiteral(" · 已临时显示全部任务 · 点“恢复工作表筛选”还原");
         else if (!m_selectedTaskId.isEmpty() && !isTaskVisibleInGantt(m_selectedTaskId))
             line += QStringLiteral(" · 所选任务在筛选外，甘特暂不显示");
     }
