@@ -45,7 +45,7 @@ foreach ($name in @('program','样例','说明','许可证')) {
 }
 Copy-Item -LiteralPath (Join-Path $candidate '候选程序校验.json') -Destination $payload
 $bundleCommit = ((git -C $repo rev-parse HEAD) -join '').Trim()
-$sourcePaths = @('CMakeLists.txt','CMakePresets.json','AGENTS.md','README.md','.clang-format','.editorconfig','.gitattributes','.gitignore','src','resources','tests','tools','packaging','docs/设计与实施规范_AI版.md','docs/三人协作开发统一规范.md','docs/用户使用说明.md','docs/最终统一验收.md','docs/演示顺序.md','docs/third-party.md')
+$sourcePaths = @('CMakeLists.txt','CMakePresets.json','AGENTS.md','README.md','.clang-format','.editorconfig','.gitattributes','.gitignore','src','resources','tests','tools','packaging','docs/设计与实施规范_AI版.md','docs/三人协作开发统一规范.md','docs/用户使用说明.md','docs/联网登录部署步骤.md','docs/最终统一验收.md','docs/演示顺序.md','docs/third-party.md')
 $sourceZip = Join-Path $payload ('源码与构建资料-' + $bundleCommit.Substring(0,7) + '.zip')
 git -C $repo archive --format=zip ('--output=' + $sourceZip) $bundleCommit -- @sourcePaths
 if ($LASTEXITCODE -ne 0) { throw '源码归档失败' }

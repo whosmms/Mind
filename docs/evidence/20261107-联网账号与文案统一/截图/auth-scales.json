@@ -1,0 +1,26 @@
+[
+  {
+    "failed": 0,
+    "scale": "1",
+    "exitCode": 0,
+    "passed": 4,
+    "skipped": 0,
+    "sourceCommit": "a6e144074237e87f544a4ccc405a56aa128b918b"
+  },
+  {
+    "failed": 0,
+    "scale": "1.5",
+    "exitCode": 0,
+    "passed": 4,
+    "skipped": 0,
+    "sourceCommit": "a6e144074237e87f544a4ccc405a56aa128b918b"
+  },
+  {
+    "failed": 0,
+    "scale": "2",
+    "exitCode": 0,
+    "passed": 4,
+    "skipped": 0,
+    "sourceCommit": "a6e144074237e87f544a4ccc405a56aa128b918b"
+  }
+]

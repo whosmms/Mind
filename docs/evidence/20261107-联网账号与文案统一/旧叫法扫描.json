@@ -1,0 +1,20 @@
+{
+  "scope": "src/**/*.cpp,src/**/*.h 字符串，排除注释",
+  "remaining": [
+    {
+      "file": "src\\services\\OnlineAuthService.cpp",
+      "line": 399,
+      "literal": "\"密码已更新，请重新登录；其他会话撤销未获服务端确认。\""
+    },
+    {
+      "file": "src\\services\\OnlineAuthService.cpp",
+      "line": 401,
+      "literal": "\"密码已更新，旧刷新会话已撤销，请用新密码登录。\""
+    },
+    {
+      "file": "src\\services\\OnlineAuthService.cpp",
+      "line": 454,
+      "literal": "\"本机已退出；网络异常，服务器会话撤销未确认。\""
+    }
+  ]
+}
