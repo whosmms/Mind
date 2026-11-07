@@ -33,6 +33,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
+#include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QFile>
@@ -59,11 +60,15 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSettings>
+#include <QSlider>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QTabWidget>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QToolBar>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QUrl>
@@ -106,6 +111,8 @@ class TstUi : public QObject {
 
 private slots:
     void initTestCase();
+    void desktopChromeKeepsCommandsAndViewState();
+    void desktopChromeModesAndResponsiveLayout();
     void undoRedoViaShortcuts();
     void editorSheetManagementAndDeletion();
     void editorSheetDeletionProtectsUserData_data();
@@ -610,6 +617,9 @@ void TstUi::initTestCase() {
         }
     }
 #endif
+    QFile theme(QStringLiteral(":/lingya/styles/light.qss"));
+    QVERIFY(theme.open(QIODevice::ReadOnly | QIODevice::Text));
+    qApp->setStyleSheet(QString::fromUtf8(theme.readAll()));
     // 测试隔离：QSettings重定向到临时目录（IniFormat），不读写真实用户设置
     QVERIFY(m_settingsDir.isValid());
     QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -5141,6 +5151,165 @@ void TstUi::ganttClickKeepsPageDuringDrag()
                  ->data(0, Qt::UserRole)
                  .toString(),
              canvasId("branch-0"));
+}
+
+void TstUi::desktopChromeKeepsCommandsAndViewState()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 1));
+    window.resize(1536, 960);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    auto *ribbon = window.findChild<QTabWidget *>("ribbonTabs");
+    auto *properties = window.findChild<QTabWidget *>("propertyTabs");
+    auto *add = window.findChild<QToolButton *>("chrome_addChildTopic");
+    QVERIFY(add);
+    QVERIFY(!add->icon().isNull());
+    QCOMPARE(add->defaultAction(), window.findChild<QAction *>("addChildTopic"));
+    QCOMPARE(add->text(), QStringLiteral("子主题"));
+    const auto initial = ProjectJson::toJson(doc->project());
+    const int beforeCount = std::get<TreeSheet>(doc->project().sheets.first()).nodes.size();
+    const auto beforeRevision = doc->sessionRevision();
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    answerTitleDialog(QStringLiteral("界面接线验证"));
+    add->click();
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(doc->sessionRevision(), beforeRevision + 1);
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), beforeCount + 1);
+    QCOMPARE(add->text(), QStringLiteral("子主题")); // 原动作更新后仍显示短标签。
+    QVERIFY(window.findChild<QLabel *>("propertySelection")
+                ->text()
+                .contains(QStringLiteral("界面接线验证")));
+    window.findChild<QToolButton *>("chrome_undoEdit")->click();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QVERIFY(!commands->canUndo());
+    QVERIFY(commands->canRedo());
+    const auto viewSnapshot = ProjectJson::toJson(doc->project());
+    const auto viewRevision = doc->sessionRevision();
+    const bool viewDirty = doc->isModified();
+    changed.clear();
+    auto *slider = window.findChild<QSlider *>("canvasZoomSlider");
+    QVERIFY(slider);
+    slider->setValue(150);
+    QCOMPARE(view->transform().m11(), 1.5);
+    properties->setCurrentIndex(1);
+    ribbon->setCurrentIndex(2);
+    window.findChild<QAction *>("toggleProperties")->trigger();
+    window.findChild<QAction *>("toggleProperties")->trigger();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), viewSnapshot);
+    QCOMPARE(doc->sessionRevision(), viewRevision);
+    QCOMPARE(doc->isModified(), viewDirty);
+    QVERIFY(!commands->canUndo());
+    QVERIFY(commands->canRedo());
+    doc->setClean();
+}
+
+void TstUi::desktopChromeModesAndResponsiveLayout()
+{
+    Project project = canvasProject(4, 2);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.nodes[tree.rootId].title = QStringLiteral("灵芽 · 产品规划");
+    const QStringList titles{QStringLiteral("体验设计"), QStringLiteral("核心能力"),
+                             QStringLiteral("学习与协作"), QStringLiteral("交付与验证")};
+    for (int i = 0; i < titles.size(); ++i)
+        tree.nodes[canvasId(QStringLiteral("branch-%1").arg(i))].title = titles.at(i);
+    const ID treeId = tree.id;
+    Sheet flow = ProjectFactory::createFlowchart(QStringLiteral("设计评审流程")).sheets.first();
+    const ID flowId = std::get<FlowSheet>(flow).id;
+    project.sheets.append(flow);
+    Sheet fish = ProjectFactory::createMindmap(QStringLiteral("体验问题分析")).sheets.first();
+    auto &fishTree = std::get<TreeSheet>(fish);
+    fishTree.kind = "fishbone";
+    const ID fishId = fishTree.id;
+    project.sheets.append(fish);
+    Sheet gantt = ProjectFactory::createGantt(QStringLiteral("设计交付计划")).sheets.first();
+    const ID ganttId = std::get<GanttSheet>(gantt).id;
+    project.sheets.append(gantt);
+    Task task;
+    task.id = canvasId("chrome-task");
+    task.title = QStringLiteral("编辑器视觉交付");
+    task.startDate = QDate(2026, 11, 7);
+    task.endDate = QDate(2026, 11, 10);
+    project.tasks.append(task);
+    MainWindow window;
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const auto revision = doc->sessionRevision();
+    auto *property = window.findChild<QDockWidget *>("propertyDock");
+    auto *ribbon = window.findChild<QTabWidget *>("ribbonTabs");
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    const QString capture = qEnvironmentVariable("LINGYA_CHROME_CAPTURE_DIR");
+    const auto save = [&window, &capture](const QString &name)
+    {
+        if (capture.isEmpty())
+            return;
+        QVERIFY(QDir().mkpath(capture));
+        const QString path = QDir(capture).filePath(name + QStringLiteral(".png"));
+        QVERIFY(!QFile::exists(path));
+        QVERIFY(window.grab().save(path));
+    };
+    window.resize(1536, 960);
+    window.show();
+    QTest::qWait(40);
+    QVERIFY(property->isVisible());
+    QVERIFY(view->width() > window.width() / 2);
+    QVERIFY(window.findChild<QComboBox *>("sheetSelector")->isVisible());
+    window.findChild<QAction *>("fitTopic")->trigger();
+    save(QStringLiteral("01-主编辑器-1536"));
+    window.resize(1366, 768);
+    QTest::qWait(30);
+    QVERIFY(property->isHidden());
+    QVERIFY(view->width() > window.width() * 0.7);
+    window.findChild<QAction *>("fitTopic")->trigger();
+    save(QStringLiteral("02-主编辑器-1366"));
+    window.resize(800, 620);
+    QTest::qWait(30);
+    QCOMPARE(window.width(), 800);
+    QVERIFY(property->isHidden());
+    QVERIFY(window.findChild<QWidget *>("canvasZoomControls")->isHidden());
+    QVERIFY(view->width() >= 400);
+    window.findChild<QAction *>("fitTopic")->trigger();
+    save(QStringLiteral("03-主编辑器-800"));
+    window.resize(1536, 960);
+    QTest::qWait(30);
+    QVERIFY(property->isVisible());
+    auto *selector = window.findChild<QComboBox *>("sheetSelector");
+    selector->setCurrentIndex(selector->findData(flowId));
+    QCOMPARE(ribbon->tabText(ribbon->currentIndex()), QStringLiteral("流程"));
+    QCOMPARE(window.findChild<QLabel *>("workspaceMode")->text(), QStringLiteral("流程图"));
+    QTest::qWait(20);
+    save(QStringLiteral("04-流程图"));
+    selector->setCurrentIndex(selector->findData(fishId));
+    QCOMPARE(window.findChild<QLabel *>("workspaceMode")->text(), QStringLiteral("鱼骨图"));
+    selector->setCurrentIndex(selector->findData(ganttId));
+    QCOMPARE(ribbon->tabText(ribbon->currentIndex()), QStringLiteral("任务"));
+    QCOMPARE(window.findChild<QTabWidget *>("propertyTabs")->currentIndex(), 2);
+    auto *ganttView = window.findChild<GanttView *>();
+    QVERIFY(ganttView);
+    QVERIFY(!window.findChild<QAction *>("fitTopic")->isEnabled());
+    QVERIFY(!window.findChild<QAction *>("editTaskProperties")->isEnabled());
+    window.findChild<QAction *>("toggleTasks")->trigger();
+    window.findChild<QTableView *>("taskTable")
+        ->setCurrentIndex(window.findChild<QTableView *>("taskTable")->model()->index(0, 0));
+    QVERIFY(window.findChild<QAction *>("editTaskProperties")->isEnabled());
+    auto *slider = window.findChild<QSlider *>("canvasZoomSlider");
+    slider->setValue(48);
+    QCOMPARE(ganttView->pixelsPerDay(), 48);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!commands->canUndo());
+    QTest::qWait(20);
+    save(QStringLiteral("05-甘特图"));
+    selector->setCurrentIndex(selector->findData(treeId));
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!commands->canUndo());
+    QVERIFY(window.findChild<QAction *>("editTaskProperties")
+                ->isEnabled()); // 独立任务不受当前主题限制。
+    doc->setClean();
 }
 
 QTEST_MAIN(TstUi)

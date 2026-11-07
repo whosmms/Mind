@@ -304,7 +304,8 @@ MainWindow::MainWindow(QWidget* parent)
       m_doc(new ProjectDocument(this)),
       m_commands(new CommandService(m_doc, this)) {
     setWindowTitle(QStringLiteral("灵芽思维"));
-    resize(1280, 800);   // 推荐最小窗口（规范§9.1）
+    resize(qMin(1536, screen()->availableGeometry().width() - 40),
+           qMin(960, screen()->availableGeometry().height() - 60));
 
     m_scene = new QGraphicsScene(this);
     m_view = new QGraphicsView(m_scene, this);
@@ -340,8 +341,9 @@ MainWindow::MainWindow(QWidget* parent)
     outline->moveRequested = [this](const ID &node, const ID &parentId, const ID &before)
     { moveSelection(node, parentId, before); };
     m_outline->setObjectName(QStringLiteral("topicOutline"));
-    m_outline->setHeaderLabel(QStringLiteral("主题（Tab新增子主题，F2改名）"));
-    m_outline->setMinimumWidth(280);
+    m_outline->setHeaderHidden(true);
+    m_outline->setToolTip(QStringLiteral("Tab 新增子主题 · Enter 新增同级 · F2 改名"));
+    m_outline->setMinimumWidth(196);
     m_outline->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_outline->installEventFilter(this);
     outlineLayout->addWidget(m_outline);
@@ -360,6 +362,7 @@ MainWindow::MainWindow(QWidget* parent)
             [this](int) { applyOutlineTagFilter(); });
 
     buildMenus();
+    buildEditorChrome();
     connect(m_doc, &ProjectDocument::changed, this, &MainWindow::onDocumentChanged);
 
     // 恢复快照（规范§11.3、原设计§8）：30秒定时，仅脏文档且内容变化时写一份；
@@ -385,10 +388,14 @@ void MainWindow::buildMenus() {
     QMenu* fileMenu = menuBar()->addMenu(QStringLiteral("文件(&F)"));
     fileMenu->addAction(QStringLiteral("新建(&N)"), QKeySequence::New, this,
                         &MainWindow::newProject)->setObjectName(QStringLiteral("newProject"));
-    fileMenu->addAction(QStringLiteral("打开(&O)..."), QKeySequence::Open, this,
-                        &MainWindow::openProject);
-    fileMenu->addAction(QStringLiteral("保存(&S)"), QKeySequence::Save, this,
-                        [this] { saveProject(false); });
+    fileMenu
+        ->addAction(QStringLiteral("打开(&O)..."), QKeySequence::Open, this,
+                    &MainWindow::openProject)
+        ->setObjectName(QStringLiteral("openProject"));
+    fileMenu
+        ->addAction(QStringLiteral("保存(&S)"), QKeySequence::Save, this,
+                    [this] { saveProject(false); })
+        ->setObjectName(QStringLiteral("saveProject"));
     fileMenu->addAction(QStringLiteral("另存为(&A)..."), QKeySequence::SaveAs, this,
                         [this] { saveProject(true); });
     m_loginAction = fileMenu->addAction(QStringLiteral("登录(&I)..."), this,
@@ -406,8 +413,10 @@ void MainWindow::buildMenus() {
     QMenu* editMenu = menuBar()->addMenu(QStringLiteral("编辑(&E)"));
     m_undoAction = editMenu->addAction(QStringLiteral("撤销(&U)"), QKeySequence::Undo, this,
                                        [this] { m_commands->undo(); });
+    m_undoAction->setObjectName(QStringLiteral("undoEdit"));
     m_redoAction = editMenu->addAction(QStringLiteral("重做(&R)"), this,
                                        [this] { m_commands->redo(); });
+    m_redoAction->setObjectName(QStringLiteral("redoEdit"));
     // 统一规范§14.1：Ctrl+Shift+Z为主，Ctrl+Y为别名（Windows平台QKeySequence::Redo即Ctrl+Y）
     m_redoAction->setShortcuts({QKeySequence::Redo, QKeySequence(QStringLiteral("Ctrl+Shift+Z"))});
     editMenu->addSeparator();
@@ -506,6 +515,7 @@ void MainWindow::setCanvasZoom(qreal zoom)
 {
     zoom = qBound(0.25, zoom, 2.0);
     m_view->setTransform(QTransform::fromScale(zoom, zoom));
+    updateEditorChrome();
 }
 
 void MainWindow::fitCanvas()
@@ -1759,6 +1769,7 @@ void MainWindow::syncCanvasSelection()
         if (auto *rename = findChild<QAction *>("renameTopic"))
             rename->setEnabled(flowNode);
     }
+    updateEditorChrome();
 }
 
 void MainWindow::focusSelectedNode()
@@ -2054,6 +2065,7 @@ void MainWindow::updateStatusLine() {
     if (!m_sessionUser.isEmpty())
         line += QStringLiteral(" · 用户 %1").arg(m_sessionUser);
     statusBar()->showMessage(line);
+    updateEditorChrome();
 }
 
 QString MainWindow::currentProjectId() const {
