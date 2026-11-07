@@ -2728,7 +2728,6 @@ void TstUi::loginDialogValidationRegistrationAndCancel()
     QTemporaryDir root;
     QVERIFY(root.isValid());
     LoginDialog dialog(root.path());
-    if (!qEnvironmentVariableIsEmpty("LINGYA_LOGIN_CAPTURE"))
     {
         QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
         QVERIFY(style.open(QIODevice::ReadOnly));
@@ -2755,6 +2754,9 @@ void TstUi::loginDialogValidationRegistrationAndCancel()
     const auto labels = dialog.findChildren<QLabel *>();
     QVERIFY(std::any_of(labels.begin(), labels.end(), [](const QLabel *label)
                         { return label->text() == QStringLiteral("用户名或密码错误"); }));
+    QCoreApplication::processEvents();
+    QVERIFY(name->height() >= name->fontMetrics().height() + 12);
+    QVERIFY(password->height() >= password->fontMetrics().height() + 12);
     const QString capture = qEnvironmentVariable("LINGYA_LOGIN_CAPTURE");
     if (!capture.isEmpty())
         QVERIFY(dialog.grab().save(capture));
