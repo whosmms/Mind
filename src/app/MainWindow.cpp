@@ -2508,15 +2508,6 @@ void MainWindow::pasteSelection()
     const QByteArray token = mime->data("application/x-lingya-cut-token");
     if (!token.isEmpty())
     {
-        if (token == m_cutToken && m_cutProjectId == m_doc->project().id &&
-            m_cutSheetId != tree->id)
-        {
-            showNotice(
-                this, QMessageBox::Warning, QStringLiteral("无法跨表剪切"),
-                QStringLiteral(
-                    "跨工作表移动的卡片和路线引用尚无统一迁移命令。请使用复制；源节点保留。"));
-            return;
-        }
         if (token != m_cutToken || m_cutProjectId != m_doc->project().id ||
             m_cutRevision != m_doc->sessionRevision())
         {
@@ -2525,15 +2516,24 @@ void MainWindow::pasteSelection()
                                       "程传递请使用复制。"));
             return;
         }
-        // 跨表剪切在上面的第一个分支里已经拦掉（token 一致且换表），这里不再重复判断。
         // applyEdit会发changed，先复制剪贴板字段，避免回调影响临时指针。
         const QByteArray bytes = mime->data(Fragment::kMimeType);
         const QString text = mime->text();
+        const ID sourceSheetId = m_cutSheetId;
+        const ID sourceNodeId = m_cutNodeId;
+        const ID targetSheetId = tree->id;
+        const ID parentId = m_selectedNodeId;
+        NodeCommands nodes(m_commands, m_doc);
         const auto result =
-            NodeCommands(m_commands, m_doc).moveSubtree(tree->id, m_cutNodeId, m_selectedNodeId);
+            sourceSheetId == targetSheetId
+                ? nodes.moveSubtree(targetSheetId, sourceNodeId, parentId)
+                : nodes.moveSubtreeToSheet(sourceSheetId, sourceNodeId, targetSheetId, parentId);
         if (const auto *error = std::get_if<AppError>(&result))
         {
-            showNotice(this, QMessageBox::Warning, QStringLiteral("无法移动"), error->message);
+            const bool impact = error->code == QStringLiteral("CROSS_SHEET_IMPACT");
+            showNotice(this, impact ? QMessageBox::Information : QMessageBox::Warning,
+                       impact ? QStringLiteral("跨表移动的影响") : QStringLiteral("无法移动"),
+                       error->message);
             return;
         }
         m_cutNodeId.clear();
