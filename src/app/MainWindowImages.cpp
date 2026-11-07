@@ -96,8 +96,10 @@ void MainWindow::quickAddNode(const ID &id)
         if (manual && tree->kind == "mindmap")
             if (const auto *parent = m_nodeItems.value(id))
             {
+                QFont font(QStringLiteral("Microsoft YaHei"));
+                font.setPixelSize(16);
                 const NodeItem measured(QStringLiteral("未命名主题"),
-                                        NodeItem::styledFont(canvasFont(), tree->defaultNodeStyle),
+                                        NodeItem::styledFont(font, tree->defaultNodeStyle),
                                         nullptr, {}, tree->defaultNodeStyle);
                 const auto box = measured.boundingRect();
                 const bool vertical = tree->layout == "down" || tree->layout == "up";
