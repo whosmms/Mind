@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstDeepSeekClient">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0443"/>
+  </TestFunction>
+  <TestFunction name="successEmitsCompleted">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="63.8345"/>
+  </TestFunction>
+  <TestFunction name="authErrorMapsToAuthFailed">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="56.3387"/>
+  </TestFunction>
+  <TestFunction name="balanceLowMapsToBalanceLow">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="58.0014"/>
+  </TestFunction>
+  <TestFunction name="rateLimitRetriesOnceThenFails">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="222.18"/>
+  </TestFunction>
+  <TestFunction name="serverErrorRetriesOnceThenFails">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="280.015"/>
+  </TestFunction>
+  <TestFunction name="duplicateRequestIdIsIgnored">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="129.209"/>
+  </TestFunction>
+  <TestFunction name="cancelIsSilent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="259.376"/>
+  </TestFunction>
+  <TestFunction name="cancelThenRetrySendsAgain">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="650.511"/>
+  </TestFunction>
+  <TestFunction name="timeoutMapsToTimeout">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[QIODevice::read (QNetworkReplyHttpImpl): device not open]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="124.193"/>
+  </TestFunction>
+  <TestFunction name="networkErrorMapsToNetworkError">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="8378.03"/>
+  </TestFunction>
+  <TestFunction name="nonJsonObjectIsUpstreamError">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="64.0468"/>
+  </TestFunction>
+  <TestFunction name="factoryPicksProviderByKey">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.2707"/>
+  </TestFunction>
+  <TestFunction name="rateLimitThenSuccessCompletes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="619.548"/>
+  </TestFunction>
+  <TestFunction name="retryAfterOverBudgetFailsImmediately">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="62.8856"/>
+  </TestFunction>
+  <TestFunction name="timeoutSendsOnlyOnceAndIsRetryable">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[QIODevice::read (QNetworkReplyHttpImpl): device not open]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="122.175"/>
+  </TestFunction>
+  <TestFunction name="savingKeySwapsToRealProvider">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="62.5331"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0178"/>
+  </TestFunction>
+  <Duration msecs="11156.5"/>
+</TestCase>

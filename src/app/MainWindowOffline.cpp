@@ -23,6 +23,7 @@
 #include <QFormLayout>
 #include <QGraphicsScene>
 #include <QGraphicsSimpleTextItem>
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QItemSelectionModel>
@@ -120,6 +121,18 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
     m_taskTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_taskTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     layout->addWidget(m_taskTable);
+    auto *filterActions = new QHBoxLayout;
+    auto *showAll = new QPushButton(QStringLiteral("显示全部任务"), panel);
+    showAll->setObjectName("showAllGanttTasks");
+    showAll->setEnabled(false);
+    showAll->setToolTip(QStringLiteral("临时显示被筛选隐藏的所选任务，不修改工作表筛选。"));
+    filterActions->addWidget(showAll);
+    auto *restoreFilter = new QPushButton(QStringLiteral("恢复工作表筛选"), panel);
+    restoreFilter->setObjectName("restoreGanttFilter");
+    restoreFilter->setEnabled(false);
+    restoreFilter->setToolTip(QStringLiteral("结束临时全量显示，恢复当前工作表筛选。"));
+    filterActions->addWidget(restoreFilter);
+    layout->addLayout(filterActions);
     auto *edit = new QPushButton(QStringLiteral("编辑任务 / 里程碑…"), panel);
     edit->setObjectName("editTask");
     layout->addWidget(edit);
@@ -149,6 +162,8 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
     connect(m_taskTable, &QTableView::doubleClicked, this, [this] { editTask(m_selectedTaskId); });
     connect(edit, &QPushButton::clicked, this, [this] { editTask(m_selectedTaskId); });
     connect(locate, &QPushButton::clicked, this, [this] { selectTask(m_selectedTaskId, true); });
+    connect(showAll, &QPushButton::clicked, this, [this] { locateIssue({}, m_selectedTaskId); });
+    connect(restoreFilter, &QPushButton::clicked, this, [this] { showGanttView(false); });
     auto *menu = menuBar()->addMenu(QStringLiteral("离线工具"));
     menu->addAction(QStringLiteral("编辑所选任务…"), this, [this] { editTask(m_selectedTaskId); })
         ->setObjectName("editTaskProperties");

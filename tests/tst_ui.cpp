@@ -4912,6 +4912,56 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     auto *table = window.findChild<QTableView *>("taskTable");
     QCOMPARE(table->currentIndex().row(), 2); // 全工程任务表保留编辑上下文。
     QVERIFY(window.statusBar()->currentMessage().contains(QStringLiteral("甘特暂不显示")));
+    auto *showAll = window.findChild<QPushButton *>("showAllGanttTasks");
+    auto *restoreFilter = window.findChild<QPushButton *>("restoreGanttFilter");
+    QVERIFY(showAll);
+    QVERIFY(restoreFilter);
+    QVERIFY(showAll->isEnabled());
+    QVERIFY(!restoreFilter->isEnabled());
+    const auto filterSnapshot = ProjectJson::toJson(doc->project());
+    const auto filterRevision = doc->sessionRevision();
+    const bool filterDirty = doc->isModified();
+    const bool filterUndo = commands->canUndo();
+    const bool filterRedo = commands->canRedo();
+    window.resize(900, 620);
+    window.show();
+    QTest::qWait(30);
+    const int previousScale = view->pixelsPerDay();
+    view->setPixelsPerDay(120);
+    view->horizontalScrollBar()->setValue(view->horizontalScrollBar()->minimum());
+    showAll->click();
+    QCOMPARE(view->tasks().size(), 3);
+    QVERIFY(taskHighlighted(task.id));
+    QCOMPARE(table->currentIndex().row(), 2);
+    QVERIFY(!showAll->isEnabled());
+    QVERIFY(restoreFilter->isEnabled());
+    bool targetInViewport = false;
+    for (auto *item : view->scene()->items())
+        if (item->data(GanttView::kBarDataRole).toString() == task.id)
+            targetInViewport |= view->viewport()->rect().contains(
+                view->mapFromScene(item->sceneBoundingRect().center()));
+    QVERIFY(targetInViewport); // 直接入口同时滚动到原先被筛选隐藏的任务。
+    table->clearSelection();
+    QVERIFY(!showAll->isEnabled());
+    QVERIFY(restoreFilter->isEnabled()); // 没有选中任务也能退出临时全量。
+    restoreFilter->click();
+    QCOMPARE(view->tasks().size(), 1);
+    QVERIFY(!showAll->isEnabled());
+    QVERIFY(!restoreFilter->isEnabled());
+    table->setCurrentIndex(table->model()->index(2, 0));
+    showAll->click();
+    restoreFilter->click();
+    QCOMPARE(view->tasks().size(), 1);
+    QVERIFY(!taskHighlighted(task.id));
+    QCOMPARE(table->currentIndex().row(), 2); // 恢复筛选不丢全工程任务表选择。
+    QVERIFY(showAll->isEnabled());
+    QVERIFY(!restoreFilter->isEnabled());
+    QCOMPARE(ProjectJson::toJson(doc->project()), filterSnapshot);
+    QCOMPARE(doc->sessionRevision(), filterRevision);
+    QCOMPARE(doc->isModified(), filterDirty);
+    QCOMPARE(commands->canUndo(), filterUndo);
+    QCOMPARE(commands->canRedo(), filterRedo);
+    view->setPixelsPerDay(previousScale);
     const QString capture = qEnvironmentVariable("LINGYA_GANTT_FEEDBACK_CAPTURE");
     for (const int width : {900, 800})
     {
@@ -4938,6 +4988,8 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     }
     table->setCurrentIndex(table->model()->index(0, 0));
     QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    QVERIFY(!showAll->isEnabled());
+    QVERIFY(!restoreFilter->isEnabled());
     QVERIFY(taskHighlighted(project.tasks.first().id));
     const auto clearSnapshot = ProjectJson::toJson(doc->project());
     const auto clearRevision = doc->sessionRevision();
@@ -4948,6 +5000,8 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     QVERIFY(view->scene()->selectedItems().isEmpty());
     QVERIFY(!window.findChild<QPushButton *>("locateTaskSource")->isEnabled());
     QVERIFY(!window.statusBar()->currentMessage().contains(QStringLiteral("所选任务在筛选外")));
+    QVERIFY(!showAll->isEnabled());
+    QVERIFY(!restoreFilter->isEnabled());
     QCOMPARE(ProjectJson::toJson(doc->project()), clearSnapshot);
     QCOMPARE(doc->sessionRevision(), clearRevision);
     QCOMPARE(doc->isModified(), clearDirty);
@@ -4959,7 +5013,9 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     issues->locateRequested(otherSheet, task.id);
     QCOMPARE(view->tasks().size(), 3);
     QVERIFY(window.statusBar()->currentMessage().contains(
-        QStringLiteral("已临时显示全部任务 · 点“视图→甘特图”恢复筛选")));
+        QStringLiteral("已临时显示全部任务 · 点“恢复工作表筛选”还原")));
+    QVERIFY(!showAll->isEnabled());
+    QVERIFY(restoreFilter->isEnabled());
     for (const int width : {900, 800})
     {
         window.resize(width, 620);
@@ -5001,11 +5057,15 @@ void TstUi::ganttSheetFilterKeepsProjectAndHistory()
     selector->setCurrentIndex(selector->findData(ganttId));
     QCOMPARE(view->tasks().size(), 1);
     QCOMPARE(doc->sessionRevision(), switchRevision);
+    QVERIFY(showAll->isEnabled()); // 切表只结束临时全量，任务表保留筛选外选择。
+    QVERIFY(!restoreFilter->isEnabled());
     issues->locateRequested({}, standaloneId);
     QCOMPARE(view->tasks().size(), 3);
     doc->setClean(); // 本用例已保存，换会话只验证临时状态清理。
     QVERIFY(window.openFile(path));
     QCOMPARE(view->tasks().size(), 1); // 新会话不能沿用临时定位模式。
+    QVERIFY(showAll->isEnabled());     // 同一工程重开后既有任务ID仍有效，继续按原筛选判定。
+    QVERIFY(!restoreFilter->isEnabled());
 }
 
 void TstUi::ganttClickKeepsPageDuringDrag()
