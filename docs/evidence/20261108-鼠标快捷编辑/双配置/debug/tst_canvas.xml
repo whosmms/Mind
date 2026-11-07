@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstCanvas">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0823"/>
+  </TestFunction>
+  <TestFunction name="imageImportAndStrictRoundTrip">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="33.401"/>
+  </TestFunction>
+  <TestFunction name="allTemplates">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[map-bilateral]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[map-right]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[map-left]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[map-down]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[map-up]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[map-study]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[map-brainstorm]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[map-goal]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[fish-quality]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[fish-study]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[fish-retro]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[fish-project]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flow-sequence]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flow-decision]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flow-cycle]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flow-approval]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flow-timeline]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flow-timeline-v]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flow-org]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flow-swimlane]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[gantt-project]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[gantt-thesis]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[gantt-study]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[gantt-release]]></DataTag>
+    </Incident>
+    <Duration msecs="16.1973"/>
+  </TestFunction>
+  <TestFunction name="flowPlusIsOneTransaction">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1162"/>
+  </TestFunction>
+  <TestFunction name="positionsAreAtomicAndPersisted">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.4048"/>
+  </TestFunction>
+  <TestFunction name="manualDescendantsAndReset">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2081"/>
+  </TestFunction>
+  <TestFunction name="rejectsBadGeometry">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[nan]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[infinite]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[range]]></DataTag>
+    </Incident>
+    <Duration msecs="0.5303"/>
+  </TestFunction>
+  <TestFunction name="reconnectKeepsIdentityAndUndo">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.5714"/>
+  </TestFunction>
+  <TestFunction name="optionalGeometryIsStrict">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[old]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[valid]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[unknown]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[wrong-type]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[null]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[range]]></DataTag>
+    </Incident>
+    <Duration msecs="0.5853"/>
+  </TestFunction>
+  <TestFunction name="copiedNodesUseTargetLayout">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0972"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0077"/>
+  </TestFunction>
+  <Duration msecs="56.5793"/>
+</TestCase>
