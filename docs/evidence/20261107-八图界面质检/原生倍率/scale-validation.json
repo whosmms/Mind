@@ -1,0 +1,32 @@
+[
+  {
+    "sourceCommit": "6562a19c561e373227e1df724933323748e91592",
+    "platform": "windows",
+    "requestedScale": "1",
+    "exitCode": 0,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "screenshots": 19
+  },
+  {
+    "sourceCommit": "6562a19c561e373227e1df724933323748e91592",
+    "platform": "windows",
+    "requestedScale": "1.5",
+    "exitCode": 0,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "screenshots": 17
+  },
+  {
+    "sourceCommit": "6562a19c561e373227e1df724933323748e91592",
+    "platform": "windows",
+    "requestedScale": "2",
+    "exitCode": 0,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "screenshots": 15
+  }
+]

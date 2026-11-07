@@ -1,0 +1,63 @@
+Test project D:/mind/.worktrees/gantt-review/build/release
+      Start  1: tst_domain
+ 1/29 Test  #1: tst_domain .......................   Passed    0.03 sec
+      Start  2: tst_projectjson
+ 2/29 Test  #2: tst_projectjson ..................   Passed    0.10 sec
+      Start  3: tst_check
+ 3/29 Test  #3: tst_check ........................   Passed    0.03 sec
+      Start  4: tst_review
+ 4/29 Test  #4: tst_review .......................   Passed    0.03 sec
+      Start  5: tst_fileservice
+ 5/29 Test  #5: tst_fileservice ..................   Passed    0.20 sec
+      Start  6: tst_recovery
+ 6/29 Test  #6: tst_recovery .....................   Passed    0.43 sec
+      Start  7: tst_layout
+ 7/29 Test  #7: tst_layout .......................   Passed    0.03 sec
+      Start  8: tst_session
+ 8/29 Test  #8: tst_session ......................   Passed    0.14 sec
+      Start  9: tst_search
+ 9/29 Test  #9: tst_search .......................   Passed    0.03 sec
+      Start 10: tst_commands
+10/29 Test #10: tst_commands .....................   Passed    0.06 sec
+      Start 11: tst_tasks
+11/29 Test #11: tst_tasks ........................   Passed    0.06 sec
+      Start 12: tst_nodecommands
+12/29 Test #12: tst_nodecommands .................   Passed    0.04 sec
+      Start 13: tst_aicommands
+13/29 Test #13: tst_aicommands ...................   Passed    0.04 sec
+      Start 14: tst_flow
+14/29 Test #14: tst_flow .........................   Passed    0.04 sec
+      Start 15: tst_charts
+15/29 Test #15: tst_charts .......................   Passed    0.04 sec
+      Start 16: tst_ai
+16/29 Test #16: tst_ai ...........................   Passed    0.05 sec
+      Start 17: tst_secret
+17/29 Test #17: tst_secret .......................   Passed    0.03 sec
+      Start 18: tst_ganttview
+18/29 Test #18: tst_ganttview ....................   Passed    0.09 sec
+      Start 19: tst_ui
+19/29 Test #19: tst_ui ...........................   Passed   30.96 sec
+      Start 20: tst_reviewpage
+20/29 Test #20: tst_reviewpage ...................   Passed    0.09 sec
+      Start 21: tst_checkassistant
+21/29 Test #21: tst_checkassistant ...............   Passed    0.06 sec
+      Start 22: tst_promptlibrary
+22/29 Test #22: tst_promptlibrary ................   Passed    0.06 sec
+      Start 23: tst_reviewcommands
+23/29 Test #23: tst_reviewcommands ...............   Passed    0.04 sec
+      Start 24: tst_deepseekclient
+24/29 Test #24: tst_deepseekclient ...............   Passed   11.79 sec
+      Start 25: tst_aipanel
+25/29 Test #25: tst_aipanel ......................   Passed    0.26 sec
+      Start 26: tst_presentation
+26/29 Test #26: tst_presentation .................   Passed    0.19 sec
+      Start 27: tst_export
+27/29 Test #27: tst_export .......................   Passed    0.10 sec
+      Start 28: tst_aicompletion
+28/29 Test #28: tst_aicompletion .................   Passed    0.09 sec
+      Start 29: tst_appearance
+29/29 Test #29: tst_appearance ...................   Passed    0.09 sec
+
+100% tests passed, 0 tests failed out of 29
+
+Total Test time (real) =  45.24 sec
