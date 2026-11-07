@@ -1,0 +1,57 @@
+[1/34] Automatic MOC for target lingya_appcore
+[2/33] Building CXX object CMakeFiles/lingya_appcore.dir/src/charts/GanttView.cpp.obj
+[3/33] Building CXX object CMakeFiles/lingya_appcore.dir/src/commands/NodeCommands.cpp.obj
+[4/33] Linking CXX static library liblingya_appcore.a
+[5/33] Automatic MOC for target lingya
+[6/32] Automatic MOC for target tst_nodecommands
+[7/31] Automatic MOC for target tst_ui
+[8/30] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowOffline.cpp.obj
+[9/30] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindow.cpp.obj
+[10/30] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindow.cpp.obj
+[11/30] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowOffline.cpp.obj
+[12/30] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui.cpp.obj
+[13/30] Linking CXX executable lingya.exe
+[14/30] Linking CXX executable tests\tst_commands.exe
+[15/30] Linking CXX executable tests\tst_tasks.exe
+[16/30] Linking CXX executable tests\tst_aicommands.exe
+[17/30] Linking CXX executable tests\tst_flow.exe
+[18/30] Linking CXX executable tests\tst_charts.exe
+[19/30] Linking CXX executable tests\tst_ai.exe
+[20/30] Linking CXX executable tests\tst_secret.exe
+[21/30] Linking CXX executable tests\tst_ganttview.exe
+[22/30] Linking CXX executable tests\tst_ui.exe
+[23/30] Linking CXX executable tests\tst_reviewpage.exe
+[24/30] Linking CXX executable tests\tst_checkassistant.exe
+[25/30] Linking CXX executable tests\tst_promptlibrary.exe
+[26/30] Linking CXX executable tests\tst_reviewcommands.exe
+[27/30] Linking CXX executable tests\tst_deepseekclient.exe
+[28/30] Linking CXX executable tests\tst_aipanel.exe
+[29/30] Building CXX object tests/CMakeFiles/tst_nodecommands.dir/tst_nodecommands.cpp.obj
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:950:66: warning: multi-character character constant [-Wmultichar]
+  950 |     update.note = QString(Limits::kNoteMaxChars + 1, QLatin1Char('备'));
+      |                                                                  ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1027:78: warning: multi-character character constant [-Wmultichar]
+ 1027 |     tooLong.tags = QStringList{QString(Limits::kTagMaxChars + 1, QLatin1Char('标'))};
+      |                                                                              ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::updateMetaNoteRejectsOverlong()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:950:66: warning: overflow in conversion from 'int' to 'char' changes value from '15049863' to '-121' [-Woverflow]
+  950 |     update.note = QString(Limits::kNoteMaxChars + 1, QLatin1Char('备'));
+      |                                                                  ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::updateMetaTagsReplaceTrimAndLimits()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1027:78: warning: overflow in conversion from 'int' to 'char' changes value from '15114375' to '-121' [-Woverflow]
+ 1027 |     tooLong.tags = QStringList{QString(Limits::kTagMaxChars + 1, QLatin1Char('标'))};
+      |                                                                              ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::moveSubtreeToSheetKeepsIdsAndSyncsTaskAndCard()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:2070:72: warning: 'QDateTime::QDateTime(QDate, QTime, Qt::TimeSpec, int)' is deprecated: Pass QTimeZone instead [-Wdeprecated-declarations]
+ 2070 |     const QDateTime reviewed(QDate(2026, 10, 30), QTime(9, 30), Qt::UTC);
+      |                                                                        ^
+In file included from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qcborvalue.h:10,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qcborarray.h:7,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/QtCore:51,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtTest/QtTestDepends:3,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtTest/QtTest:3,
+                 from D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1:
+D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qdatetime.h:359:5: note: declared here
+  359 |     QDateTime(QDate date, QTime time, Qt::TimeSpec spec, int offsetSeconds = 0);
+      |     ^~~~~~~~~
+[30/30] Linking CXX executable tests\tst_nodecommands.exe
