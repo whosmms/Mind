@@ -82,6 +82,8 @@ add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowChrome.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowHome.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowProperties.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowExport.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowPresentation.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/HomePage.h
     ${CMAKE_SOURCE_DIR}/src/ui/HomePage.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowFlow.cpp
@@ -150,6 +152,19 @@ if(MSVC)
     target_compile_options(tst_aipanel PRIVATE /utf-8)
 endif()
 add_test(NAME tst_aipanel COMMAND tst_aipanel)
+
+foreach(completion_test tst_presentation tst_export)
+    add_executable(${completion_test} ${completion_test}.cpp)
+    target_link_libraries(${completion_test} PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
+    if(MSVC)
+        target_compile_options(${completion_test} PRIVATE /utf-8)
+    endif()
+    add_test(NAME ${completion_test} COMMAND ${completion_test})
+endforeach()
+target_sources(tst_export PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/graphics/NodeItem.cpp
+    ${CMAKE_SOURCE_DIR}/src/graphics/NodeItem.h
+    ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
 
 # 统一以 offscreen 跑 ctest（规范§19.1：自动测试不得在开发机桌面弹窗）。
 # 用例只被平台插件拖住时，表现是弹模态「no Qt platform plugin」框并挂死，命令行里看不到任何输出；

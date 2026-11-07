@@ -14,11 +14,13 @@
 #include "commands/FlowCommands.h"
 #include "commands/NodeCommands.h"
 #include "commands/ReviewCommands.h"
+#include "commands/PresentationCommands.h"
 #include "commands/SheetCommands.h"
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
 #include "domain/ProjectValidator.h"
 #include "features/ReviewService.h"
+#include "features/PresentationController.h"
 #include "graphics/NodeItem.h"
 #include "services/ProjectJson.h"
 #include "ui/HomePage.h"
@@ -120,6 +122,8 @@ private slots:
     void homeTemplates();
     void homeRecentsAndCancelProtectContent();
     void homeRecoveryReturnsToEditor();
+    void presentationPlaybackRestoresEditor();
+    void exportDialogIsReadOnly();
     void desktopChromeKeepsCommandsAndViewState();
     void desktopChromeModesAndResponsiveLayout();
     void undoRedoViaShortcuts();
@@ -5361,6 +5365,94 @@ void TstUi::homeRecoveryReturnsToEditor()
     window.findChild<CommandService *>()->undo();
     QCOMPARE(ProjectJson::toJson(window.findChild<ProjectDocument *>()->project()), initial);
     window.findChild<ProjectDocument *>()->setClean();
+}
+
+void TstUi::presentationPlaybackRestoresEditor()
+{
+    auto project = canvasProject(2, 1);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.nodes[tree.rootId].collapsed = true;
+    auto route = PresentationController::defaultRoute(tree);
+    for (const auto &node : tree.nodes)
+        if (node.parentId && *node.parentId != tree.rootId)
+            route.steps[1].nodeId = node.id;
+    route.steps[1].speakerNote = QStringLiteral("这是中文演讲备注");
+    project.routes.append(route);
+    MainWindow window;
+    window.show();
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    view->scale(1.1, 1.1);
+    const auto transform = view->transform();
+    const int horizontal = view->horizontalScrollBar()->value();
+    const int vertical = view->verticalScrollBar()->value();
+    const auto initial = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    QTimer::singleShot(0, &window, [&] {
+        auto *dialog = window.findChild<QDialog *>("presentationRoutes");
+        QVERIFY(dialog);
+        const auto close = qScopeGuard([dialog] { dialog->reject(); });
+        dialog->findChild<QComboBox *>("presentationRouteChoice")->setCurrentIndex(1);
+        QTimer::singleShot(0, &window, [&] {
+            auto *player = window.findChild<QDialog *>("presentationPlayer");
+            QVERIFY(player);
+            const auto exit = qScopeGuard([player] { player->reject(); });
+            QVERIFY(player->isFullScreen());
+            QTest::qWait(5);
+            QVERIFY(!player->findChild<QLabel *>("presentationVisibleNote")->isVisible());
+            player->findChild<QPushButton *>("presentationNext")->click();
+            player->findChild<QCheckBox *>("presentationShowNote")->setChecked(true);
+            QCOMPARE(player->findChild<QLabel *>("presentationVisibleNote")->text(), route.steps[1].speakerNote);
+            player->findChild<QPushButton *>("presentationPause")->click();
+            QCOMPARE(player->findChild<QPushButton *>("presentationPause")->text(), QStringLiteral("继续计时"));
+            const QString capture = qEnvironmentVariable("LINGYA_COMPLETION_CAPTURE_DIR");
+            if (!capture.isEmpty()) {
+                QDir().mkpath(capture);
+                QVERIFY(player->grab().save(capture + "/04-分支讲解.png"));
+            }
+        });
+        dialog->findChild<QPushButton *>("playPresentation")->click();
+    });
+    window.findChild<QAction *>("managePresentation")->trigger();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(view->transform(), transform);
+    QCOMPARE(view->horizontalScrollBar()->value(), horizontal);
+    QCOMPARE(view->verticalScrollBar()->value(), vertical);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+    QVERIFY(!doc->isModified());
+}
+
+void TstUi::exportDialogIsReadOnly()
+{
+    MainWindow window;
+    window.show();
+    loadEditorFixture(window, canvasProject(2, 1));
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    QTimer::singleShot(0, &window, [&] {
+        auto *dialog = window.findChild<QDialog *>("exportDialog");
+        QVERIFY(dialog);
+        const auto close = qScopeGuard([dialog] { dialog->reject(); });
+        auto *format = dialog->findChild<QComboBox *>("exportFormat");
+        format->setCurrentIndex(1);
+        QVERIFY(dialog->findChild<QLabel *>("exportInfo")->text().contains(QStringLiteral("页")));
+        const QString capture = qEnvironmentVariable("LINGYA_COMPLETION_CAPTURE_DIR");
+        if (!capture.isEmpty()) {
+            QDir().mkpath(capture);
+            QVERIFY(dialog->grab().save(capture + "/05-分页导出.png"));
+        }
+        format->setCurrentIndex(2);
+        QVERIFY(!dialog->findChild<QDoubleSpinBox *>("exportScale")->isEnabled());
+    });
+    window.findChild<QAction *>("exportSheet")->trigger();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
 }
 
 QTEST_MAIN(TstUi)

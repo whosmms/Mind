@@ -44,6 +44,8 @@ add_library(lingya_core STATIC
     src/features/ReviewService.cpp
     src/features/ReviewSession.h
     src/features/ReviewSession.cpp
+    src/features/PresentationController.h
+    src/features/PresentationController.cpp
     src/layout/TreeLayout.h
     src/layout/TreeLayout.cpp
     src/layout/FlowLayout.h
@@ -79,6 +81,10 @@ add_library(lingya_appcore STATIC
     src/commands/AiCommands.cpp
     src/commands/ReviewCommands.h
     src/commands/ReviewCommands.cpp
+    src/commands/PresentationCommands.h
+    src/commands/PresentationCommands.cpp
+    src/services/ExportService.h
+    src/services/ExportService.cpp
     src/ai/AiTypes.h
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
@@ -123,6 +129,8 @@ add_executable(lingya
     src/app/MainWindowChrome.cpp
     src/app/MainWindowHome.cpp
     src/app/MainWindowProperties.cpp
+    src/app/MainWindowExport.cpp
+    src/app/MainWindowPresentation.cpp
     src/ui/HomePage.h
     src/ui/HomePage.cpp
     src/app/MainWindowFlow.cpp

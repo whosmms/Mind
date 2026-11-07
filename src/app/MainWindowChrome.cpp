@@ -546,6 +546,8 @@ void MainWindow::updateEditorChrome()
     const QScopedValueRollback<bool> updating(m_chromeUpdating, true);
     const bool gantt = m_centralStack->currentIndex() == 1;
     const TreeSheet *tree = activeTreeSheet();
+    if (auto *action = findChild<QAction *>("managePresentation"))
+        action->setEnabled(tree != nullptr && !gantt);
     const FlowSheet *flow = activeFlowSheet();
     const QString mode = gantt                              ? QStringLiteral("甘特图")
                          : flow                             ? QStringLiteral("流程图")

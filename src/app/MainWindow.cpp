@@ -364,6 +364,7 @@ MainWindow::MainWindow(QWidget* parent)
     buildMenus();
     buildEditorChrome();
     buildHomePage();
+    buildCompletionActions();
     connect(m_doc, &ProjectDocument::changed, this, &MainWindow::onDocumentChanged);
 
     // 恢复快照（规范§11.3、原设计§8）：30秒定时，仅脏文档且内容变化时写一份；

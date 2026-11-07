@@ -2,6 +2,7 @@
 #include "domain/Domain.h"
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
+#include "services/ExportService.h"
 #include <QMainWindow>
 #include <QPointer>
 #include <QSet>
@@ -108,6 +109,11 @@ private slots:
     void writeRecoverySnapshot();
 
 private:
+    void buildCompletionActions();
+    void managePresentation();
+    void playPresentation(const PresentationRoute &route);
+    void exportCurrentSheet();
+    ExportService::Snapshot captureCanvas() const;
     void buildMenus();
     void buildEditorChrome();
     void updateEditorChrome();

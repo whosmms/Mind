@@ -161,10 +161,20 @@ void NodeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, 
 {
     Q_UNUSED(option);
     Q_UNUSED(widget);
+    paintContent(painter, isSelected(), m_cutPending);
+}
+
+void NodeItem::paintSnapshot(QPainter *painter) const
+{
+    paintContent(painter, false, false);
+}
+
+void NodeItem::paintContent(QPainter *painter, bool selected, bool cutPending) const
+{
     painter->setRenderHint(QPainter::Antialiasing);
-    QPen border(QColor(isSelected() ? QStringLiteral("#247A62") : m_style.borderColor),
-                isSelected() ? qMax(2.5, m_style.borderWidth) : m_style.borderWidth);
-    if (m_cutPending)
+    QPen border(QColor(selected ? QStringLiteral("#247A62") : m_style.borderColor),
+                selected ? qMax(2.5, m_style.borderWidth) : m_style.borderWidth);
+    if (cutPending)
         border.setStyle(Qt::DashLine);
     painter->setPen(border);
     painter->setBrush(QColor(m_style.fill));

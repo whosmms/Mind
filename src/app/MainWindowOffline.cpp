@@ -285,9 +285,7 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
                 if (card)
                     manageReviewCards(targetId);
                 else
-                    statusBar()->showMessage(
-                        QStringLiteral("讲解路线的缺失步骤需在路线编辑器处理，本轮未改写路线。"),
-                        8000);
+                    managePresentation();
             }
             else if (action == "fix-contrast")
             {

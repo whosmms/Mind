@@ -33,8 +33,11 @@ public:
   QString nodeId() const;
   QRectF nodeRect() const;
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+  // 与画布同一绘制函数，但不带选择/剪切标记，供只读导出使用。
+  void paintSnapshot(QPainter *painter) const;
 
 private:
+    void paintContent(QPainter *painter, bool selected, bool cutPending) const;
     QString m_title;
     QString m_nodeId;
     QFont m_font;
