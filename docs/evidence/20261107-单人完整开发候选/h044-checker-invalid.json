@@ -1,0 +1,11 @@
+{
+    "checked": 1,
+    "projects": [
+        {
+            "accepted": false,
+            "errorCode": "INVALID_PROJECT",
+            "path": "D:/mind/.worktrees/gantt-review/tests/fixtures/bad-unknown-field.lingya"
+        }
+    ],
+    "success": false
+}

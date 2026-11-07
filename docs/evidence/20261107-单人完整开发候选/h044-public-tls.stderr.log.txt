@@ -1,0 +1,30 @@
+qt.core.plugin.factoryloader: checking directory path "D:/mind/.worktrees/gantt-review/build/h044-tls-runtime/tls" ...
+qt.core.plugin.factoryloader: looking at "qcertonlybackend.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/.worktrees/gantt-review/build/h044-tls-runtime/tls/qcertonlybackend.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QTlsBackend",
+    "archlevel": 2,
+    "className": "QTlsBackendCertOnly",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList()
+qt.core.plugin.factoryloader: looking at "qschannelbackend.dll"
+qt.core.plugin.loader: Found metadata in lib D:/mind/.worktrees/gantt-review/build/h044-tls-runtime/tls/qschannelbackend.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QTlsBackend",
+    "archlevel": 2,
+    "className": "QSchannelBackend",
+    "debug": false,
+    "version": 395264
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList()
+qt.core.library: "D:/mind/.worktrees/gantt-review/build/h044-tls-runtime/tls/qcertonlybackend.dll" loaded library
+qt.core.library: "D:/mind/.worktrees/gantt-review/build/h044-tls-runtime/tls/qschannelbackend.dll" loaded library
+qt.core.plugin.factoryloader: checking directory path "D:/mind/.worktrees/gantt-review/build/h044-tls-runtime/networkaccess" ...
+"D:/mind/.worktrees/gantt-review/build/h044-tls-runtime/tls/qcertonlybackend.dll" unloaded library 
+"D:/mind/.worktrees/gantt-review/build/h044-tls-runtime/tls/qschannelbackend.dll" unloaded library 

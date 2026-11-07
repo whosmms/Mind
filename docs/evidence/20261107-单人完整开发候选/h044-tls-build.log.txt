@@ -1,0 +1,16 @@
+tools/tls_probe.cpp:17: warning: "NOMINMAX" redefined
+   17 | #define NOMINMAX
+      | 
+In file included from D:/mind/.tools/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/x86_64-w64-mingw32/bits/c++config.h:679,
+                 from D:/mind/.tools/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/type_traits:38,
+                 from D:\mind\.tools\Qt\6.8.3\mingw_64/include/QtCore/qglobal.h:13,
+                 from D:\mind\.tools\Qt\6.8.3\mingw_64/include/QtCore/qcoreapplication.h:7,
+                 from D:\mind\.tools\Qt\6.8.3\mingw_64/include/QtCore/QCoreApplication:1,
+                 from tools/tls_probe.cpp:2:
+D:/mind/.tools/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/x86_64-w64-mingw32/bits/os_defines.h:45: note: this is the location of the previous definition
+   45 | #define NOMINMAX 1
+      | 
+tools/tls_probe.cpp: In function 'int main(int, char**)':
+tools/tls_probe.cpp:28:17: error: variable 'QJsonObject report' has initializer but incomplete type
+   28 |     QJsonObject report{
+      |                 ^~~~~~

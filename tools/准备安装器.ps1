@@ -1,4 +1,4 @@
-# 从官方固定版本准备便携编译器，不注册文件关联、不建立系统快捷方式。
+﻿# 从官方固定版本准备便携编译器，不注册文件关联、不建立系统快捷方式。
 [CmdletBinding()]
 param([string]$ToolsRoot = 'D:/mind/.tools')
 $ErrorActionPreference = 'Stop'

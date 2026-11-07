@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstRecovery">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0441"/>
+  </TestFunction>
+  <TestFunction name="defaultRootEndsWithRecovery">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.492"/>
+  </TestFunction>
+  <TestFunction name="writeListLoadRoundtrip">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="16.142"/>
+  </TestFunction>
+  <TestFunction name="writeSkipsIdenticalContent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="28.1335"/>
+  </TestFunction>
+  <TestFunction name="pruneKeepsFiveNewestPerProject">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="104.854"/>
+  </TestFunction>
+  <TestFunction name="listSkipsCorruptAndForeignFiles">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="14.7228"/>
+  </TestFunction>
+  <TestFunction name="loadRejectsCorruptSnapshot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="3.5781"/>
+  </TestFunction>
+  <TestFunction name="clearRemovesOnlyOwnSnapshots">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="37.6615"/>
+  </TestFunction>
+  <TestFunction name="rejectsUnsafeIdentifiers">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.8229"/>
+  </TestFunction>
+  <TestFunction name="listEmptyForUnknownProjectOrRoot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.8873"/>
+  </TestFunction>
+  <TestFunction name="prunePreservesOlderCorruptSnapshot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="132.199"/>
+  </TestFunction>
+  <TestFunction name="loadRejectsMismatchedProject">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="18.6892"/>
+  </TestFunction>
+  <TestFunction name="loadRejectsOversizedSnapshot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="14.9066"/>
+  </TestFunction>
+  <TestFunction name="loadRejectsEmptyRoot">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0354"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0076"/>
+  </TestFunction>
+  <Duration msecs="376.822"/>
+</TestCase>

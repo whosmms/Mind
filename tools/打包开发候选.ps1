@@ -1,4 +1,4 @@
-# 封装已经自动验证的本机候选；不会创建GitHub发布或替换main程序。
+﻿# 封装已经自动验证的本机候选；不会创建GitHub发布或替换main程序。
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$CandidateDirectory,
@@ -12,8 +12,8 @@ if (-not $candidate.StartsWith('D:\mind\候选版本\', [StringComparison]::Ordi
 for ($item = $candidate; $item; $item = Split-Path $item -Parent) {
     if ((Test-Path -LiteralPath $item) -and ((Get-Item -LiteralPath $item -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw '候选路径不能经过链接' }
 }
-$report = Get-Content -LiteralPath $ValidationReport -Raw | ConvertFrom-Json
-$manifest = Get-Content -LiteralPath (Join-Path $candidate '候选程序校验.json') -Raw | ConvertFrom-Json
+$report = Get-Content -LiteralPath $ValidationReport -Raw -Encoding UTF8 | ConvertFrom-Json
+$manifest = Get-Content -LiteralPath (Join-Path $candidate '候选程序校验.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 if (-not $report.success -or $manifest.sourceCommit -ne $report.sourceCommit) { throw '候选与成功验证报告的源码不一致' }
 foreach ($configuration in @('debug','release')) {
     $rows = @($report.suites | Where-Object configuration -eq $configuration)
@@ -32,7 +32,7 @@ foreach ($entry in $manifest.files) {
     if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ne $entry.sha256) { throw ('运行文件校验失败：' + $relative) }
 }
 $compiler = (Resolve-Path -LiteralPath $Compiler).Path
-$compilerSource = Get-Content -LiteralPath (Join-Path (Split-Path $compiler -Parent) '工具来源.json') -Raw | ConvertFrom-Json
+$compilerSource = Get-Content -LiteralPath (Join-Path (Split-Path $compiler -Parent) '工具来源.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($compilerSource.version -ne '6.7.4' -or (Get-AuthenticodeSignature -LiteralPath $compiler).Status -ne 'Valid') { throw '安装器编译器必须为已登记并核对签名的6.7.4' }
 if (@(Get-ChildItem -LiteralPath $candidate -Recurse -Force | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) { throw '分发源目录不能含链接' }
 if (@(Get-ChildItem -LiteralPath (Join-Path $candidate 'program') -Recurse -File).Count -ne $manifest.files.Count) { throw '程序目录有未登记文件' }

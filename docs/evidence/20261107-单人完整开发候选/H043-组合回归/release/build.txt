@@ -1,0 +1,152 @@
+[1/151] Automatic MOC for target lingya_core
+[2/150] Building CXX object CMakeFiles/lingya_core.dir/src/features/SearchService.cpp.obj
+[3/150] Linking CXX static library liblingya_core.a
+[4/150] Automatic MOC for target tst_domain
+[5/149] Automatic MOC for target tst_projectjson
+[6/148] Automatic MOC for target tst_check
+[7/147] Automatic MOC for target tst_review
+[8/146] Automatic MOC for target lingya_appcore
+[9/146] Automatic MOC for target tst_fileservice
+[10/145] Building CXX object CMakeFiles/lingya_appcore.dir/lingya_appcore_autogen/mocs_compilation.cpp.obj
+[11/145] Building CXX object CMakeFiles/lingya_appcore.dir/src/services/AppearanceService.cpp.obj
+[12/145] Building CXX object CMakeFiles/lingya_appcore.dir/src/commands/NodeCommands.cpp.obj
+[13/145] Building CXX object CMakeFiles/lingya_appcore.dir/src/ai/AiService.cpp.obj
+[14/145] Automatic MOC for target tst_recovery
+[15/144] Automatic MOC for target tst_layout
+[16/143] Automatic MOC for target tst_session
+[17/142] Automatic MOC for target tst_search
+[18/142] Building CXX object tests/CMakeFiles/tst_search.dir/tst_search_autogen/mocs_compilation.cpp.obj
+[19/142] Building CXX object CMakeFiles/lingya_appcore.dir/src/ui/AiPanel.cpp.obj
+[20/142] Linking CXX static library liblingya_appcore.a
+[21/142] Automatic MOC for target lingya
+[22/142] Automatic MOC for target tst_ui
+[23/142] Automatic MOC for target tst_export
+[24/141] Building CXX object tests/CMakeFiles/tst_search.dir/tst_search.cpp.obj
+[25/141] Automatic MOC for target lingya_project_check
+[26/141] Automatic RCC for resources/resources.qrc
+[27/141] Automatic MOC for target tst_commands
+[28/140] Automatic MOC for target tst_tasks
+[29/139] Automatic MOC for target tst_appearance
+[30/139] Automatic MOC for target tst_aicommands
+[31/138] Automatic MOC for target tst_flow
+[32/137] Automatic MOC for target tst_charts
+[33/136] Automatic MOC for target tst_nodecommands
+[34/135] Automatic MOC for target tst_secret
+[35/134] Automatic MOC for target tst_ganttview
+[36/133] Automatic MOC for target tst_ai
+[37/132] Automatic MOC for target tst_checkassistant
+[38/131] Automatic MOC for target tst_promptlibrary
+[39/130] Automatic MOC for target tst_reviewpage
+[40/130] Automatic MOC for target tst_reviewcommands
+[41/129] Automatic MOC for target tst_deepseekclient
+[42/128] Automatic MOC for target tst_aipanel
+[43/127] Automatic MOC for target tst_presentation
+[44/126] Automatic RCC for ../resources/resources.qrc
+[45/126] Automatic RCC for ../resources/resources.qrc
+[46/126] Automatic RCC for ../resources/resources.qrc
+[47/126] Automatic MOC for target tst_aicompletion
+[48/125] Building CXX object CMakeFiles/lingya.dir/lingya_autogen/mocs_compilation.cpp.obj
+[49/125] Building CXX object CMakeFiles/lingya.dir/src/main.cpp.obj
+[50/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowChrome.cpp.obj
+[51/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowHome.cpp.obj
+[52/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindow.cpp.obj
+[53/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowProperties.cpp.obj
+[54/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowExport.cpp.obj
+[55/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowPresentation.cpp.obj
+[56/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowAi.cpp.obj
+[57/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowPreferences.cpp.obj
+[58/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowSearch.cpp.obj
+[59/125] Building CXX object CMakeFiles/lingya.dir/src/ui/HomePage.cpp.obj
+[60/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowFlow.cpp.obj
+[61/125] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowOffline.cpp.obj
+[62/125] Building RC object CMakeFiles/lingya.dir/lingya.rc.obj
+[63/125] Building CXX object CMakeFiles/lingya.dir/lingya_autogen/3YJK5W5UP7/qrc_resources.cpp.obj
+[64/125] Building CXX object CMakeFiles/lingya_project_check.dir/lingya_project_check_autogen/mocs_compilation.cpp.obj
+[65/125] Building CXX object CMakeFiles/lingya.dir/src/ui/ReviewPage.cpp.obj
+[66/125] Building CXX object CMakeFiles/lingya_project_check.dir/tools/check_projects.cpp.obj
+[67/125] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui_autogen/mocs_compilation.cpp.obj
+[68/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindow.cpp.obj
+[69/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowChrome.cpp.obj
+[70/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowHome.cpp.obj
+[71/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowProperties.cpp.obj
+[72/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowExport.cpp.obj
+[73/125] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui.cpp.obj
+[74/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowPresentation.cpp.obj
+[75/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowAi.cpp.obj
+[76/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowPreferences.cpp.obj
+[77/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowSearch.cpp.obj
+[78/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/ui/HomePage.cpp.obj
+[79/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowFlow.cpp.obj
+[80/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/ui/ReviewPage.cpp.obj
+[81/125] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui_autogen/7BV4YJK25R/qrc_resources.cpp.obj
+[82/125] Building CXX object tests/CMakeFiles/tst_export.dir/tst_export_autogen/7BV4YJK25R/qrc_resources.cpp.obj
+[83/125] Building CXX object tests/CMakeFiles/tst_appearance.dir/tst_appearance_autogen/mocs_compilation.cpp.obj
+[84/125] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowOffline.cpp.obj
+[85/125] Building CXX object tests/CMakeFiles/tst_appearance.dir/tst_appearance_autogen/7BV4YJK25R/qrc_resources.cpp.obj
+[86/125] Building CXX object tests/CMakeFiles/tst_appearance.dir/tst_appearance.cpp.obj
+[87/125] Building CXX object tests/CMakeFiles/tst_ai.dir/tst_ai.cpp.obj
+[88/125] Building CXX object tests/CMakeFiles/tst_reviewpage.dir/tst_reviewpage_autogen/mocs_compilation.cpp.obj
+[89/125] Building CXX object tests/CMakeFiles/tst_nodecommands.dir/tst_nodecommands.cpp.obj
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:952:66: warning: multi-character character constant [-Wmultichar]
+  952 |     update.note = QString(Limits::kNoteMaxChars + 1, QLatin1Char('备'));
+      |                                                                  ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1029:78: warning: multi-character character constant [-Wmultichar]
+ 1029 |     tooLong.tags = QStringList{QString(Limits::kTagMaxChars + 1, QLatin1Char('标'))};
+      |                                                                              ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::updateMetaNoteRejectsOverlong()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:952:66: warning: overflow in conversion from 'int' to 'char' changes value from '15049863' to '-121' [-Woverflow]
+  952 |     update.note = QString(Limits::kNoteMaxChars + 1, QLatin1Char('备'));
+      |                                                                  ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::updateMetaTagsReplaceTrimAndLimits()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1029:78: warning: overflow in conversion from 'int' to 'char' changes value from '15114375' to '-121' [-Woverflow]
+ 1029 |     tooLong.tags = QStringList{QString(Limits::kTagMaxChars + 1, QLatin1Char('标'))};
+      |                                                                              ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::moveSubtreeToSheetKeepsIdsAndSyncsTaskAndCard()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:2072:72: warning: 'QDateTime::QDateTime(QDate, QTime, Qt::TimeSpec, int)' is deprecated: Pass QTimeZone instead [-Wdeprecated-declarations]
+ 2072 |     const QDateTime reviewed(QDate(2026, 10, 30), QTime(9, 30), Qt::UTC);
+      |                                                                        ^
+In file included from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qcborvalue.h:10,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qcborarray.h:7,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/QtCore:51,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtTest/QtTestDepends:3,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtTest/QtTest:3,
+                 from D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1:
+D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qdatetime.h:359:5: note: declared here
+  359 |     QDateTime(QDate date, QTime time, Qt::TimeSpec spec, int offsetSeconds = 0);
+      |     ^~~~~~~~~
+[90/125] Building CXX object tests/CMakeFiles/tst_reviewpage.dir/__/src/ui/ReviewPage.cpp.obj
+[91/125] Building CXX object tests/CMakeFiles/tst_reviewpage.dir/tst_reviewpage.cpp.obj
+[92/125] Building CXX object tests/CMakeFiles/tst_deepseekclient.dir/tst_deepseekclient.cpp.obj
+[93/125] Building CXX object tests/CMakeFiles/tst_aipanel.dir/tst_aipanel.cpp.obj
+[94/125] Linking CXX executable lingya.exe
+[95/125] Linking CXX executable lingya_project_check.exe
+[96/125] Linking CXX executable tests\tst_domain.exe
+[97/125] Linking CXX executable tests\tst_projectjson.exe
+[98/125] Linking CXX executable tests\tst_check.exe
+[99/125] Linking CXX executable tests\tst_review.exe
+[100/125] Linking CXX executable tests\tst_fileservice.exe
+[101/125] Linking CXX executable tests\tst_recovery.exe
+[102/125] Linking CXX executable tests\tst_layout.exe
+[103/125] Linking CXX executable tests\tst_session.exe
+[104/125] Linking CXX executable tests\tst_search.exe
+[105/125] Linking CXX executable tests\tst_commands.exe
+[106/125] Linking CXX executable tests\tst_tasks.exe
+[107/125] Linking CXX executable tests\tst_nodecommands.exe
+[108/125] Linking CXX executable tests\tst_aicommands.exe
+[109/125] Linking CXX executable tests\tst_flow.exe
+[110/125] Linking CXX executable tests\tst_charts.exe
+[111/125] Linking CXX executable tests\tst_ai.exe
+[112/125] Linking CXX executable tests\tst_secret.exe
+[113/125] Linking CXX executable tests\tst_ganttview.exe
+[114/125] Linking CXX executable tests\tst_ui.exe
+[115/125] Linking CXX executable tests\tst_reviewpage.exe
+[116/125] Linking CXX executable tests\tst_checkassistant.exe
+[117/125] Building CXX object tests/CMakeFiles/tst_aicompletion.dir/tst_aicompletion.cpp.obj
+[118/125] Linking CXX executable tests\tst_promptlibrary.exe
+[119/125] Linking CXX executable tests\tst_reviewcommands.exe
+[120/125] Linking CXX executable tests\tst_deepseekclient.exe
+[121/125] Linking CXX executable tests\tst_aipanel.exe
+[122/125] Linking CXX executable tests\tst_presentation.exe
+[123/125] Linking CXX executable tests\tst_export.exe
+[124/125] Linking CXX executable tests\tst_aicompletion.exe
+[125/125] Linking CXX executable tests\tst_appearance.exe

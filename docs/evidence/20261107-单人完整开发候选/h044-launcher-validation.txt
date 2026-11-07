@@ -1,0 +1,17 @@
+ConvertFrom-Json : Unterminated string passed in. (388): {
+  "schemaVersion": 1,
+  "sourceCommit": "59c8381ca7c621e9ff5813726ab858074d9c2c86",
+  "candidatePath": "D:/mind/鍊欓€夌増鏈?瀹屾暣寮€鍙戠増_20261107_59c8381",
+  "manifestSha256": "1953F4142B0F1D0E0E3BF0D7E4520E573E46DBB9B24A2D8D760C2A9F40C5992E",
+  "branch": "feature/a/UI-home-and-properties",
+  "pullRequest": "https://github.com/whosmms/Mind/pull/51",
+  "kind": "鏈悎鍏ain鐨勫畬鏁村紑鍙戝€欓€?
+}
+At D:\mind\打开最新开发版.ps1:9 char:53
++ $pointer=Get-Content -LiteralPath $PointerFile -Raw|ConvertFrom-Json
++                                                     ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [ConvertFrom-Json], ArgumentException
+    + FullyQualifiedErrorId : System.ArgumentException,Microsoft.PowerShell.Commands.ConvertFromJsonCommand
+ 
+Press any key to continue . . . 
+
