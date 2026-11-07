@@ -19,6 +19,7 @@ class QTimer;
 class QTreeWidget;
 class QComboBox;
 class QTableView;
+class QResizeEvent;
 
 namespace lingya {
 
@@ -94,6 +95,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent* event) override;
+    void resizeEvent(QResizeEvent *event) override;
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
@@ -102,6 +104,9 @@ private slots:
 
 private:
     void buildMenus();
+    void buildEditorChrome();
+    void updateEditorChrome();
+    void resizeEditorChrome();
     void rebuildRecentMenu();       // 重建“最近文件”子菜单（R04，数据来自SettingsService）
     void openRecentFile(const QString& path);
     void newProject();
@@ -193,6 +198,9 @@ private:
     bool m_ganttTaskLocation = false; // 问题定位临时全量显示，不写回工作表筛选。
     bool m_refreshingViews = false;
     bool m_checksDirty = true;
+    bool m_chromeUpdating = false;
+    bool m_compactChrome = false;
+    bool m_restorePropertyDock = false;
     QPoint m_dragStart;
     ID m_cutNodeId, m_cutSheetId, m_cutProjectId;
     qint64 m_cutRevision = -1;

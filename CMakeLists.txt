@@ -120,6 +120,7 @@ add_executable(lingya
     src/main.cpp
     src/app/MainWindow.h
     src/app/MainWindow.cpp
+    src/app/MainWindowChrome.cpp
     src/app/MainWindowFlow.cpp
     src/app/MainWindowOffline.cpp
     src/app/RecoveryDialog.h
