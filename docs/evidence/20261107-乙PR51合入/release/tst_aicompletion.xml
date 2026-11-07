@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstAiCompletion">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1184"/>
+  </TestFunction>
+  <TestFunction name="mapMaterialIdsAndRequirements">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.293"/>
+  </TestFunction>
+  <TestFunction name="draftRequestCarriesStructuredSources">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3087"/>
+  </TestFunction>
+  <TestFunction name="rejectsInputBeforeProvider">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.8009"/>
+  </TestFunction>
+  <TestFunction name="responseHonorsRequestedLimitsAndSources">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1986"/>
+  </TestFunction>
+  <TestFunction name="draftEditingKeepsProvenance">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="21.2535"/>
+  </TestFunction>
+  <TestFunction name="persistentSourceHashAndLegacyFiles">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="18.797"/>
+  </TestFunction>
+  <TestFunction name="modelConfigurationAppliesOnlyToFutureRequests">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2172"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0402"/>
+  </TestFunction>
+  <Duration msecs="44.1806"/>
+</TestCase>

@@ -1,0 +1,146 @@
+{
+  "批次": "20261107-乙PR51合入",
+  "合并人": "乙",
+  "决策": "三人讨论同意整支合入先看效果；规范§17.1优先级低于当前交付节点，规范问题搁置",
+  "合并对象": {
+    "分支": "origin/feature/a/UI-home-and-properties",
+    "tip": "cb7657f",
+    "本分支独有提交": 12
+  },
+  "基线": {
+    "main": "0bee9b6",
+    "说明": "三批(PR48/49/50)合入后的主线"
+  },
+  "合并结果": {
+    "合并提交": "6496dbe",
+    "完整": "6496dbee60de232bde76590fa3c985ff0a6289e2",
+    "结果树": "9e1ed95ee1bd4bc11c80d9387f14347da0a2265e",
+    "parents": [
+      "0bee9b6",
+      "cb7657f"
+    ]
+  },
+  "冲突处理": {
+    "文件": [
+      "docs/交接文档.md",
+      "docs/开发日志.md"
+    ],
+    "类型": "文末追加型，按规范22.1保留双方",
+    "编号顺延": "交接§60-64→§61-65，日志DEV-004~008→005~009；我方已发布§60/DEV-004保持原号"
+  },
+  "跨类核对": {
+    "非docs差异": "无（源码/测试/构建与分支tip逐文件一致）",
+    "docs差异": "仅本仓既有文档与乙的证据/回执"
+  },
+  "复跑": {
+    "环境": "Qt 6.8.3 mingw_64 / MinGW 13.1.0 / Ninja",
+    "debug": {
+      "suites": 29,
+      "cases": 595,
+      "failed": 0,
+      "skipped": 0,
+      "perSuite": {
+        "tst_ai": 16,
+        "tst_aicommands": 18,
+        "tst_aicompletion": 9,
+        "tst_aipanel": 10,
+        "tst_appearance": 6,
+        "tst_charts": 13,
+        "tst_check": 13,
+        "tst_checkassistant": 10,
+        "tst_commands": 9,
+        "tst_deepseekclient": 18,
+        "tst_domain": 22,
+        "tst_export": 7,
+        "tst_fileservice": 20,
+        "tst_flow": 40,
+        "tst_ganttview": 32,
+        "tst_layout": 25,
+        "tst_nodecommands": 69,
+        "tst_presentation": 6,
+        "tst_projectjson": 17,
+        "tst_promptlibrary": 7,
+        "tst_recovery": 15,
+        "tst_review": 23,
+        "tst_reviewcommands": 14,
+        "tst_reviewpage": 7,
+        "tst_search": 5,
+        "tst_secret": 6,
+        "tst_session": 26,
+        "tst_tasks": 10,
+        "tst_ui": 122
+      }
+    },
+    "release": {
+      "suites": 29,
+      "cases": 595,
+      "failed": 0,
+      "skipped": 0,
+      "perSuite": {
+        "tst_ai": 16,
+        "tst_aicommands": 18,
+        "tst_aicompletion": 9,
+        "tst_aipanel": 10,
+        "tst_appearance": 6,
+        "tst_charts": 13,
+        "tst_check": 13,
+        "tst_checkassistant": 10,
+        "tst_commands": 9,
+        "tst_deepseekclient": 18,
+        "tst_domain": 22,
+        "tst_export": 7,
+        "tst_fileservice": 20,
+        "tst_flow": 40,
+        "tst_ganttview": 32,
+        "tst_layout": 25,
+        "tst_nodecommands": 69,
+        "tst_presentation": 6,
+        "tst_projectjson": 17,
+        "tst_promptlibrary": 7,
+        "tst_recovery": 15,
+        "tst_review": 23,
+        "tst_reviewcommands": 14,
+        "tst_reviewpage": 7,
+        "tst_search": 5,
+        "tst_secret": 6,
+        "tst_session": 26,
+        "tst_tasks": 10,
+        "tst_ui": 122
+      }
+    }
+  },
+  "数字": {
+    "合入前24套件": 540,
+    "合入后29套件": 595,
+    "净增": 55,
+    "新增测试目标": [
+      "tst_aicompletion",
+      "tst_appearance",
+      "tst_export",
+      "tst_presentation",
+      "tst_search"
+    ],
+    "ui": 122,
+    "gantt": 32,
+    "nodecommands": 69
+  },
+  "编译告警": {
+    "Debug": 5,
+    "Release": 0,
+    "性质": "既存 tst_nodecommands.cpp 多字符常量与 QDateTime 弃用，本批未引入"
+  },
+  "启动冒烟": {
+    "方式": "QT_QPA_PLATFORM=offscreen 运行 lingya.exe，10 秒超时存活",
+    "退出码": 124,
+    "stderr": "空"
+  },
+  "回退方式": "单点合并，git revert -m 1 6496dbe 可整体撤掉 H-040~H-044 全部内容",
+  "未做": [
+    "真人鼠标/键盘/输入法",
+    "Windows DPI 高倍率",
+    "无 Qt 跨机",
+    "真实 DeepSeek 联网",
+    "clang-format 全仓",
+    "M5/M6 门禁判定"
+  ]
+}

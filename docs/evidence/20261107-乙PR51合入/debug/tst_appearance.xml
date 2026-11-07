@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstAppearance">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1065"/>
+  </TestFunction>
+  <TestFunction name="defaultsAndRoundTrip">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="18.0044"/>
+  </TestFunction>
+  <TestFunction name="rejectsDuplicateAndTypingKeys">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="4.6122"/>
+  </TestFunction>
+  <TestFunction name="restoresUnknownSettings">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="16.755"/>
+  </TestFunction>
+  <TestFunction name="stylesUseBundledResource">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="11.4671"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0253"/>
+  </TestFunction>
+  <Duration msecs="53.2755"/>
+</TestCase>
