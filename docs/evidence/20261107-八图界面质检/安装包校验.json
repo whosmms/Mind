@@ -1,0 +1,20 @@
+{
+  "sourceCommit": "6562a19c561e373227e1df724933323748e91592",
+  "packagingCommit": "421defed36d30791b405dbc6ff528416fb20120d",
+  "compilerVersion": "6.7.4",
+  "packages": [
+    {
+      "path": "LingyaMind-Dev-6562a19-Portable.zip",
+      "bytes": 16250628,
+      "sha256": "AAC82851A164D824CA32192CA1738CB7D0070445A24A26A6CA8CA30DECD56A08"
+    },
+    {
+      "path": "LingyaMind-Dev-6562a19-Setup.exe",
+      "bytes": 13307281,
+      "sha256": "32547E7407A0ED9C254EC45DBC167B2E6BAAA0C6BE69CB04012E444A38C65DE4"
+    }
+  ],
+  "published": false,
+  "installationValidated": true,
+  "installationEvidence": "安装验证.json"
+}

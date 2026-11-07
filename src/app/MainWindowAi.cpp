@@ -187,9 +187,10 @@ void MainWindow::showAiWorkspace()
                     QStringLiteral("文字稿已存入工程，可在文字稿管理中继续编辑、复制和导出"), 8000);
             });
     auto *row = new QHBoxLayout;
-    auto *drafts = new QPushButton(QStringLiteral("工程文字稿…"), &dialog),
+    auto *drafts = new QPushButton(QStringLiteral("管理文字稿"), &dialog),
          *close = new QPushButton(QStringLiteral("关闭"), &dialog);
     drafts->setObjectName("openDraftsFromAi");
+    drafts->setProperty("secondaryAction", true);
     row->addWidget(drafts);
     row->addStretch();
     row->addWidget(close);

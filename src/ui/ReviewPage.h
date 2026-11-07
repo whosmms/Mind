@@ -13,7 +13,7 @@ namespace lingya
 
 class ReviewTextScroll;
 
-// 复习页（X01，AI规范§7.1）：卡片正面 → 翻面 → 三档自评（重来/已复习/已掌握）。
+// 复习页（X01，AI规范§7.1）：卡片正面 → 翻面 → 三档自评（重试/已复习/已掌握）。
 // 纯展示与交互，不修改 Project；自评结果经 cardGraded 信号交给调用方写回卡片状态
 // （调用方须先筛选 sourceState=="ok" 的卡片，源变化未处理的卡片不要塞进会话）。
 class ReviewPage : public QWidget
