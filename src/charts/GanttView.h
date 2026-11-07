@@ -7,6 +7,7 @@
 #include <QVector>
 
 class QGraphicsItem;
+class QGraphicsRectItem;
 
 namespace lingya {
 
@@ -19,6 +20,8 @@ class GanttView : public QGraphicsView {
 public:
     // 任务条/里程碑图元上的数据键，供测试与外部按任务取图元
     static constexpr int kBarDataRole = 0x10B0;
+    // 临时拖拽提示只在界面显示，宿主快照导出必须排除。
+    static constexpr int kPreviewDataRole = 0x10B1;
 
     explicit GanttView(QWidget* parent = nullptr);
 
@@ -51,6 +54,7 @@ private:
     QDate m_rangeStart;   // 当前时间轴起点（拖拽换算日期用）
     DragMode m_dragMode = DragMode::None;
     QGraphicsItem* m_dragItem = nullptr;   // 正在拖拽的图元（预览用）
+    QGraphicsRectItem *m_dragPreview = nullptr;
     ID m_dragTaskId;
     QDate m_dragOriginalStart;
     QDate m_dragOriginalEnd;

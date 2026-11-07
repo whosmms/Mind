@@ -1,0 +1,25 @@
+灵芽思维 开发候选：第三方依赖与来源
+
+1. Qt 6.8.3
+动态使用Core、Gui、Widgets、Network和随包的平台/样式/图像/网络插件。
+本候选按LGPL-3.0-only动态链接；完整LGPLv3/GPLv3及Qtbase第三方许可证、原始版权归属文件随本目录提供。
+允许按相应许可替换、修改Qt动态库，并为调试这些修改进行逆向工程；本候选不设置库替换锁。
+未修改Qt源码。对应源代码：
+https://download.qt.io/archive/qt/6.8/6.8.3/submodules/qtbase-everywhere-src-6.8.3.tar.xz
+https://github.com/qt/qtbase/tree/v6.8.3
+本应用的对应源码和构建资料一并提供，Qt各原始声明见qtbase目录，下载来源及SHA256见来源与校验.json。
+Qt是The Qt Company Ltd.及其贡献者的作品；各内含组件权利与许可按原始声明保留。
+
+2. MinGW 13.1.0运行库
+libgcc_s_seh-1.dll、libstdc++-6.dll：GPLv3及GCC Runtime Library Exception 3.1，随附原文。
+libwinpthread-1.dll：原始COPYING随附（MIT风格许可，版权声明保持原文）。
+来源为Qt官方MinGW 13.1.0 Kit；开发期工具不作为应用运行依赖分发。
+
+3. Windows系统组件
+仅支持Windows 10 1809及之后的兼容64位Windows。D3DCompiler_47.dll等由支持范围内的系统提供，本候选不复制该Microsoft二进制。
+Windows系统组件不因本清单改变其原始许可。本机自动验证与另一台无Qt电脑验证分别记录。
+
+4. 安装器与应用资源
+安装器由Inno Setup 6.7.4生成，第三方工具原始许可见InnoSetup-LICENSE.txt；简体中文翻译来源见安装器语言来源.json。
+应用嫩芽图标由项目既有矢量路径生成，非第三方图标包；提示模板为原项目资源。
+本文件及随附第三方文本不替应用共同作者决定整体开源许可，也不表示正式发布或最终验收通过。

@@ -1,4 +1,5 @@
 #include "app/MainWindow.h"
+#include "charts/GanttView.h"
 #include "document/ProjectDocument.h"
 #include "graphics/NodeItem.h"
 #include <QAction>
@@ -59,7 +60,8 @@ ExportService::Snapshot MainWindow::captureCanvas() const
     // 共用图元绘制，记录独立QPicture，不切换选择、不触发文档/场景信号。
     for (auto *item : view->scene()->items(Qt::AscendingOrder))
     {
-        if (!item->isVisible() || item->data(0x21C0).isValid() || item->effectiveOpacity() == 0)
+        if (!item->isVisible() || item->data(0x21C0).isValid() ||
+            item->data(GanttView::kPreviewDataRole).isValid() || item->effectiveOpacity() == 0)
             continue;
         result.bounds = result.bounds.united(item->sceneBoundingRect());
         painter.save();
