@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstNodeCommands">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0409"/>
+  </TestFunction>
+  <TestFunction name="moveSubtreeToSheetOrdersExistingSiblings">
+    <Incident type="fail" file="D:/mind/.worktrees/button&#x002D;api/tests/tst_nodecommands.cpp" line="2393">
+      <DataTag><![CDATA[追加已有同级之后]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (moved.nodes.value(QStringLiteral("a")).order): 0
+   Expected (insertBeforeSecond ? 1 : 2)                  : 2]]></Description>
+    </Incident>
+    <Incident type="fail" file="D:/mind/.worktrees/button&#x002D;api/tests/tst_nodecommands.cpp" line="2393">
+      <DataTag><![CDATA[插入两个同级之间]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (moved.nodes.value(QStringLiteral("a")).order): 0
+   Expected (insertBeforeSecond ? 1 : 2)                  : 1]]></Description>
+    </Incident>
+    <Duration msecs="1.0052"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0084"/>
+  </TestFunction>
+  <Duration msecs="2.4449"/>
+</TestCase>

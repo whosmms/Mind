@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstFlow">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0414"/>
+  </TestFunction>
+  <TestFunction name="emptySheetLayoutsToNothing">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1239"/>
+  </TestFunction>
+  <TestFunction name="chainIsLayeredTopDown">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2355"/>
+  </TestFunction>
+  <TestFunction name="chainLayoutIsDeterministic">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1716"/>
+  </TestFunction>
+  <TestFunction name="cycleBecomesRingGroup">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0761"/>
+  </TestFunction>
+  <TestFunction name="diamondDoesNotOverlap">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1459"/>
+  </TestFunction>
+  <TestFunction name="isolatedNodeGetsOwnComponent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.092"/>
+  </TestFunction>
+  <TestFunction name="missingSizeRejected">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0238"/>
+  </TestFunction>
+  <TestFunction name="nonPositiveSizeRejected">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0197"/>
+  </TestFunction>
+  <TestFunction name="danglingEdgeRejected">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0183"/>
+  </TestFunction>
+  <TestFunction name="sixtyNodesDeterministicAndNoOverlap">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="3.3335"/>
+  </TestFunction>
+  <TestFunction name="addNodeDefaultsAndUndoes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1768"/>
+  </TestFunction>
+  <TestFunction name="addNodeRejectsInvalidRole">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.03"/>
+  </TestFunction>
+  <TestFunction name="addNodeRejectsNonFinitePosition">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0334"/>
+  </TestFunction>
+  <TestFunction name="updateNodeAppliesAndShortCircuits">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0921"/>
+  </TestFunction>
+  <TestFunction name="moveNodeUndoesInOneStep">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0579"/>
+  </TestFunction>
+  <TestFunction name="removeNodeCleansEdgesAndComments">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1332"/>
+  </TestFunction>
+  <TestFunction name="addEdgeAllowsCycleAndSelfLoop">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0835"/>
+  </TestFunction>
+  <TestFunction name="addEdgeRejectsIdenticalConnection">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1837"/>
+  </TestFunction>
+  <TestFunction name="addEdgeAllowsDifferentPorts">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0678"/>
+  </TestFunction>
+  <TestFunction name="updateEdgeValidatesArrow">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.076"/>
+  </TestFunction>
+  <TestFunction name="applyLayoutWritesOnceAndUndoes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1404"/>
+  </TestFunction>
+  <TestFunction name="applyLayoutRejectsMissingSize">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0285"/>
+  </TestFunction>
+  <TestFunction name="flowCommentLifecycle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0526"/>
+  </TestFunction>
+  <TestFunction name="createSheetAddsAndActivates">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0969"/>
+  </TestFunction>
+  <TestFunction name="createSheetRejectsUnknownKind">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0511"/>
+  </TestFunction>
+  <TestFunction name="changeKindKeepsNodesAndUndoes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0702"/>
+  </TestFunction>
+  <TestFunction name="changeKindRejectsFlowSheet">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0253"/>
+  </TestFunction>
+  <TestFunction name="deleteSheetKeepsTasks">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0868"/>
+  </TestFunction>
+  <TestFunction name="deleteSheetRejectsLastSheet">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0258"/>
+  </TestFunction>
+  <TestFunction name="deleteSheetRejectsWhenDraftUsesIt">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0542"/>
+  </TestFunction>
+  <TestFunction name="deleteSheetRejectsWhenCardsExist">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0972"/>
+  </TestFunction>
+  <TestFunction name="deleteSheetRejectsWhenRouteExists">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1524"/>
+  </TestFunction>
+  <TestFunction name="fishboneHeadAtOriginAndCategoriesAlternate">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3822"/>
+  </TestFunction>
+  <TestFunction name="fishboneReasonsBranchOutward">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2507"/>
+  </TestFunction>
+  <TestFunction name="fishboneFourLevelsNoOverlap">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2577"/>
+  </TestFunction>
+  <TestFunction name="fishboneCollapsedSubtreeHidden">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0993"/>
+  </TestFunction>
+  <TestFunction name="fishboneSlotFollowsSubtreeExtent">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="9.2693"/>
+  </TestFunction>
+  <TestFunction name="fishboneRejectsNonFishboneSheet">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0499"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0084"/>
+  </TestFunction>
+  <Duration msecs="18.3383"/>
+</TestCase>
