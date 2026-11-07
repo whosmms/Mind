@@ -87,6 +87,10 @@ add_library(lingya_appcore STATIC
     src/commands/PresentationCommands.cpp
     src/commands/DraftCommands.h
     src/commands/DraftCommands.cpp
+    src/services/OnlineAuthService.h
+    src/services/OnlineAuthService.cpp
+    src/app/OnlineAccountDialog.h
+    src/app/OnlineAccountDialog.cpp
     src/services/ExportService.h
     src/services/ExportService.cpp
     src/services/AppearanceService.h

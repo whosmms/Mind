@@ -577,7 +577,7 @@ void AiPanel::reportApplyResult(const QString &error)
     }
     clearProposal();
     m_statusLabel->setText(
-        QStringLiteral("已采用，可在编辑器撤销；继续编辑文字稿请打开工程文字稿"));
+        QStringLiteral("已采用，可在编辑器撤回；继续编辑文字稿请打开工程文字稿"));
 }
 QString AiPanel::currentRequestId() const
 {

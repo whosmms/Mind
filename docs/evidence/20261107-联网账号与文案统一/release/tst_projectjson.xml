@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstProjectJson">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0764"/>
+  </TestFunction>
+  <TestFunction name="m0VerticalSlice">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="9.9206"/>
+  </TestFunction>
+  <TestFunction name="roundTripAllTypes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.8828"/>
+  </TestFunction>
+  <TestFunction name="annotationEmptyColorRoundTrip">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.314"/>
+  </TestFunction>
+  <TestFunction name="loadsMinimalFixture">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3179"/>
+  </TestFunction>
+  <TestFunction name="rejectsUnknownFieldFixture">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.269"/>
+  </TestFunction>
+  <TestFunction name="loadsLongChineseFixture">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2712"/>
+  </TestFunction>
+  <TestFunction name="rejectsFutureVersion">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0598"/>
+  </TestFunction>
+  <TestFunction name="rejectsWrongType">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0647"/>
+  </TestFunction>
+  <TestFunction name="rejectsBadDate">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0805"/>
+  </TestFunction>
+  <TestFunction name="rejectsBadLink">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.084"/>
+  </TestFunction>
+  <TestFunction name="rejectsGarbage">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0136"/>
+  </TestFunction>
+  <TestFunction name="fileServiceSaveLoadRoundTrip">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="11.0169"/>
+  </TestFunction>
+  <TestFunction name="fileServiceChineseAndSpacesPath">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="17.9582"/>
+  </TestFunction>
+  <TestFunction name="fileServiceCreatesBackup">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="21.8511"/>
+  </TestFunction>
+  <TestFunction name="fileServiceRejectsOversize">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.5554"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0097"/>
+  </TestFunction>
+  <Duration msecs="72.425"/>
+</TestCase>

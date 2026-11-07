@@ -224,7 +224,7 @@ void MainWindow::managePresentation()
                     saved[routeCombo->currentIndex() - 1] = route;
                     routeCombo->setItemText(routeCombo->currentIndex(), route.title);
                 }
-                info->setText(QStringLiteral("已保存；可在编辑器撤销"));
+                info->setText(QStringLiteral("已保存；可在编辑器撤回"));
             });
     connect(erase, &QPushButton::clicked, &dialog,
             [&]
@@ -243,7 +243,7 @@ void MainWindow::managePresentation()
                     routeCombo->setCurrentIndex(0);
                 }
                 load();
-                info->setText(QStringLiteral("路线已删除，可撤销"));
+                info->setText(QStringLiteral("路线已删除，可撤回"));
             });
     connect(play, &QPushButton::clicked, &dialog,
             [&]

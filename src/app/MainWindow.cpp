@@ -62,6 +62,7 @@
 #include <optional>
 
 #include "app/LoginDialog.h"
+#include "app/OnlineAccountDialog.h"
 #include "app/RecoveryDialog.h"
 #include "app/UserFilesDialog.h"
 #include "charts/GanttView.h"
@@ -76,6 +77,7 @@
 #include "graphics/NodeItem.h"
 #include "services/FileService.h"
 #include "services/LocalNameRules.h"
+#include "services/OnlineAuthService.h"
 #include "services/RecoveryService.h"
 #include "services/SessionService.h"
 #include "services/SettingsService.h"
@@ -157,7 +159,7 @@ struct EditorForm
         dialog.resize(560, qMin(620, parent->screen()->availableGeometry().height() - 80));
         layout = new QVBoxLayout(&dialog);
         auto *hint = new QLabel(
-            QStringLiteral("每次应用立即保存到工程，可在主窗口撤销。关闭窗口保留已应用内容。"),
+            QStringLiteral("每次应用立即保存到工程，可在主窗口撤回。关闭窗口保留已应用内容。"),
             &dialog);
         hint->setWordWrap(true);
         layout->addWidget(hint);
@@ -299,10 +301,10 @@ void MainWindow::setRecoveryRootForTest(const QString& path) {
     s_recoveryRootForTest = path;   // 空=恢复默认QStandardPaths路径（构造时生效）
 }
 
-MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent),
-      m_doc(new ProjectDocument(this)),
-      m_commands(new CommandService(m_doc, this)) {
+MainWindow::MainWindow(QWidget *parent, OnlineAuthService *authService)
+    : QMainWindow(parent), m_doc(new ProjectDocument(this)),
+      m_commands(new CommandService(m_doc, this))
+{
     setWindowTitle(QStringLiteral("灵芽思维"));
     resize(qMin(1536, screen()->availableGeometry().width() - 40),
            qMin(960, screen()->availableGeometry().height() - 60));
@@ -375,6 +377,38 @@ MainWindow::MainWindow(QWidget* parent)
     m_sessionRoot = s_sessionRootForTest.isEmpty()
                         ? QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
                         : s_sessionRootForTest;
+    m_onlineAuth = authService ? authService : new OnlineAuthService(m_sessionRoot, this);
+    m_onlineAuth->setParent(this);
+    connect(m_onlineAuth, &OnlineAuthService::signedIn, this,
+            [this]
+            {
+                m_onlineSession = true;
+                m_sessionUser = m_onlineAuth->localUserId();
+                updateSessionActions();
+                updateStatusLine();
+            });
+    connect(m_onlineAuth, &OnlineAuthService::signedOut, this,
+            [this]
+            {
+                if (!m_onlineSession)
+                    return;
+                m_onlineSession = false;
+                m_sessionUser.clear();
+                updateSessionActions();
+                updateStatusLine();
+            });
+    connect(m_onlineAuth, &OnlineAuthService::failed, this,
+            [this](const QString &message)
+            {
+                QTimer::singleShot(0, this,
+                                   [this, message] { statusBar()->showMessage(message, 15000); });
+            });
+    if (!authService)
+        m_onlineAuth->loadConfiguration(s_sessionRootForTest.isEmpty()
+                                            ? QCoreApplication::applicationDirPath() +
+                                                  "/online-auth.json"
+                                            : QString());
+    QTimer::singleShot(0, m_onlineAuth, &OnlineAuthService::restore);
     m_recoveryTimer = new QTimer(this);
     m_recoveryTimer->setInterval(Limits::kRecoverySnapshotIntervalMs);
     connect(m_recoveryTimer, &QTimer::timeout, this, &MainWindow::writeRecoverySnapshot);
@@ -401,7 +435,10 @@ void MainWindow::buildMenus() {
         ->setObjectName(QStringLiteral("saveProject"));
     fileMenu->addAction(QStringLiteral("另存为(&A)..."), QKeySequence::SaveAs, this,
                         [this] { saveProject(true); });
-    m_loginAction = fileMenu->addAction(QStringLiteral("登录(&I)..."), this,
+    m_onlineAccountAction =
+        fileMenu->addAction(QStringLiteral("联网账号..."), this, &MainWindow::showOnlineAccount);
+    m_onlineAccountAction->setObjectName("onlineAccount");
+    m_loginAction = fileMenu->addAction(QStringLiteral("本机账号（旧）..."), this,
                                         &MainWindow::showLoginDialog);
     m_logoutAction = fileMenu->addAction(QStringLiteral("退出登录(&I)"), this,
                                          &MainWindow::logoutSession);
@@ -1214,8 +1251,9 @@ void MainWindow::openProject() {
 bool MainWindow::openFile(const QString& path) {
     // 登录态打开限制（D-M2-02）：公有文件与自己的文件可开，其他用户的文件拒绝
     if (!m_sessionUser.isEmpty() &&
-        UserFileService::classify(m_sessionRoot, m_sessionUser, path) ==
-            UserFileService::Access::Others) {
+        UserFileService::classify(activeSessionRoot(), m_sessionUser, path) ==
+            UserFileService::Access::Others)
+    {
         showNotice(this, QMessageBox::Critical, QStringLiteral("无法打开"),
                    QStringLiteral("不能打开其他用户的文件"));
         return false;
@@ -1246,10 +1284,13 @@ bool MainWindow::saveProject(bool saveAs) {
     if (!m_sessionUser.isEmpty()) {
         QString name;
         if (!saveAs && !m_filePath.isEmpty() &&
-            UserFileService::classify(m_sessionRoot, m_sessionUser, m_filePath) ==
-                UserFileService::Access::Own) {
+            UserFileService::classify(activeSessionRoot(), m_sessionUser, m_filePath) ==
+                UserFileService::Access::Own)
+        {
             return saveProjectTo(m_filePath);   // 原位保存确切路径，保留完整文件名与文件戳
-        } else {
+        }
+        else
+        {
             const QString fallback = m_filePath.isEmpty()
                                          ? m_doc->project().title
                                          : QFileInfo(m_filePath).fileName();
@@ -1423,7 +1464,7 @@ void MainWindow::deleteSelection()
     for (const ReviewCard &card : m_doc->project().cards)
         if (card.sheetId == sheetId && subtree.contains(card.nodeId))
             ++cardCount;
-    QString summary = QStringLiteral("将删除“%1”及其后代，共%2个主题。可用Ctrl+Z撤销。\n\n"
+    QString summary = QStringLiteral("将删除“%1”及其后代，共%2个主题。可用Ctrl+Z撤回。\n\n"
                                      "同时清理：%3条关系、%5条批注。涉及%4项外框/"
                                      "概要，剔除成员后不足两个才移除；父级被删则移除。\n"
                                      "%6张复习卡片将保留并标记来源缺失。\n"
@@ -2019,7 +2060,7 @@ void MainWindow::onDocumentChanged() {
                 m_annotationMembers.value(it.key()) != it.value())
             {
                 m_editorNote =
-                    QStringLiteral("外框/概要已随结构变化调整，成员不足两个时移除；可撤销。");
+                    QStringLiteral("外框/概要已随结构变化调整，成员不足两个时移除；可撤回。");
                 break;
             }
     if (!m_cutNodeId.isEmpty() && m_cutRevision != m_doc->sessionRevision())
@@ -2088,7 +2129,7 @@ void MainWindow::updateStatusLine() {
     if (!m_editorNote.isEmpty())
         line += QStringLiteral(" · ") + m_editorNote;
     if (!m_sessionUser.isEmpty())
-        line += QStringLiteral(" · 用户 %1").arg(m_sessionUser);
+        line += QStringLiteral(" · 用户 %1").arg(sessionUserName());
     statusBar()->showMessage(line);
     updateEditorChrome();
 }
@@ -2122,6 +2163,9 @@ bool MainWindow::loginSession(const QString& userName, const QString& password) 
                    std::get<AppError>(result).message);
         return false;
     }
+    if (m_onlineAuth)
+        m_onlineAuth->logout();
+    m_onlineSession = false;
     m_sessionUser = std::get<SessionService::AccountInfo>(result).userName;
     updateSessionActions();
     updateStatusLine();
@@ -2129,6 +2173,9 @@ bool MainWindow::loginSession(const QString& userName, const QString& password) 
 }
 
 void MainWindow::logoutSession() {
+    if (m_onlineAuth)
+        m_onlineAuth->logout();
+    m_onlineSession = false;
     m_sessionUser.clear();
     updateSessionActions();
     updateStatusLine();
@@ -2139,7 +2186,7 @@ bool MainWindow::isLoggedIn() const {
 }
 
 QString MainWindow::sessionUserName() const {
-    return m_sessionUser;
+    return m_onlineSession ? m_onlineAuth->email() : m_sessionUser;
 }
 
 bool MainWindow::saveProjectToOwned(const QString& name) {
@@ -2158,7 +2205,7 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
     if (!targetName.endsWith(QStringLiteral(".lingya"), Qt::CaseInsensitive))
         targetName += QStringLiteral(".lingya");
     if (!m_filePath.isEmpty() &&
-        UserFileService::classify(m_sessionRoot, m_sessionUser, m_filePath) ==
+        UserFileService::classify(activeSessionRoot(), m_sessionUser, m_filePath) ==
             UserFileService::Access::Own &&
         targetName.compare(QFileInfo(m_filePath).fileName(), Qt::CaseInsensitive) == 0)
     {
@@ -2166,7 +2213,7 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
         return saveProjectTo(m_filePath);
     }
     const auto saved =
-        UserFileService::saveOwned(m_sessionRoot, m_sessionUser, name, m_doc->project());
+        UserFileService::saveOwned(activeSessionRoot(), m_sessionUser, name, m_doc->project());
     if (std::holds_alternative<AppError>(saved)) {
         showNotice(this, QMessageBox::Critical, QStringLiteral("保存失败"),
                    std::get<AppError>(saved).message);
@@ -2192,7 +2239,7 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
 
 bool MainWindow::openOwnedFile(const QString& name) {
     if (!confirmDiscard()) return false;
-    const auto opened = UserFileService::openOwned(m_sessionRoot, m_sessionUser, name);
+    const auto opened = UserFileService::openOwned(activeSessionRoot(), m_sessionUser, name);
     if (std::holds_alternative<AppError>(opened)) {
         showNotice(this, QMessageBox::Critical, QStringLiteral("无法打开"),
                    std::get<AppError>(opened).message);
@@ -2201,13 +2248,33 @@ bool MainWindow::openOwnedFile(const QString& name) {
     QString fileName = name.trimmed();
     if (!fileName.endsWith(QStringLiteral(".lingya"), Qt::CaseInsensitive))
         fileName += QStringLiteral(".lingya");
-    return openFile(UserFileService::userDir(m_sessionRoot, m_sessionUser) + QLatin1Char('/') +
-                    fileName);   // 归属Own，走统一的加载/戳/最近文件流程
+    return openFile(UserFileService::userDir(activeSessionRoot(), m_sessionUser) +
+                    QLatin1Char('/') + fileName); // 归属Own，走统一的加载/戳/最近文件流程
 }
 
+QString MainWindow::activeSessionRoot() const
+{
+    return m_onlineSession ? m_onlineAuth->localFilesRoot() : m_sessionRoot;
+}
+void MainWindow::showOnlineAccount()
+{
+    if (!m_onlineAuth)
+        return;
+    if (!m_sessionUser.isEmpty() && !m_onlineSession)
+    {
+        showNotice(this, QMessageBox::Information, QStringLiteral("账号切换"),
+                   QStringLiteral("请先退出本机账号，再登录联网账号。当前工程不会被关闭或上传。"));
+        return;
+    }
+    OnlineAccountDialog dialog(m_onlineAuth, this);
+    dialog.exec();
+}
 void MainWindow::showLoginDialog() {
+    m_onlineAuth->cancel();
     LoginDialog dialog(m_sessionRoot, this);
     if (dialog.exec() == QDialog::Accepted && !dialog.loggedInUserName().isEmpty()) {
+        m_onlineAuth->logout();
+        m_onlineSession = false;
         m_sessionUser = dialog.loggedInUserName();   // 对话框内已校验凭据
         updateSessionActions();
         updateStatusLine();
@@ -2216,7 +2283,8 @@ void MainWindow::showLoginDialog() {
 
 void MainWindow::showOwnedFilesDialog() {
     if (m_sessionUser.isEmpty()) return;
-    UserFilesDialog dialog(m_sessionRoot, m_sessionUser, this);
+    UserFilesDialog dialog(activeSessionRoot(), m_sessionUser, this);
+    dialog.setWindowTitle(QStringLiteral("我的文件 - %1").arg(sessionUserName()));
     if (dialog.exec() == QDialog::Accepted && !dialog.selectedFileName().isEmpty())
         openOwnedFile(dialog.selectedFileName());
 }
@@ -2430,7 +2498,7 @@ void MainWindow::deleteSheet()
     }
     QMessageBox box(
         QMessageBox::Question, QStringLiteral("删除工作表"),
-        QStringLiteral("删除“%1”？表中主题与连线将移除；%2个关联任务保留为独立任务。可以撤销。")
+        QStringLiteral("删除“%1”？表中主题与连线将移除；%2个关联任务保留为独立任务。可以撤回。")
             .arg(m_sheetSelector->currentText())
             .arg(tasks),
         QMessageBox::Ok | QMessageBox::Cancel, this);
@@ -2898,8 +2966,8 @@ void MainWindow::editComments()
         return;
     const ID sheetId = tree->id, nodeId = m_selectedNodeId;
     EditorForm ui(this, "commentsDialog", QStringLiteral("主题批注"));
-    auto *author =
-        new QLineEdit(m_sessionUser.isEmpty() ? QStringLiteral("匿名") : m_sessionUser, &ui.dialog);
+    auto *author = new QLineEdit(
+        m_sessionUser.isEmpty() ? QStringLiteral("匿名") : sessionUserName(), &ui.dialog);
     author->setObjectName("commentAuthor");
     auto *body = new QPlainTextEdit(&ui.dialog);
     body->setObjectName("commentBody");

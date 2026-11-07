@@ -538,7 +538,7 @@ void MainWindow::editTask(ID taskId)
             {
                 QMessageBox box(
                     QMessageBox::Warning, QStringLiteral("删除任务"),
-                    QStringLiteral("任务及其他任务对它的依赖将移除；关联主题保留。可撤销。"),
+                    QStringLiteral("任务及其他任务对它的依赖将移除；关联主题保留。可撤回。"),
                     QMessageBox::NoButton, &dialog);
                 auto *yes = box.addButton(QStringLiteral("删除"), QMessageBox::AcceptRole);
                 auto *no = box.addButton(QStringLiteral("取消"), QMessageBox::RejectRole);
@@ -615,7 +615,7 @@ void MainWindow::manageReviewCards(ID cardId)
     list->setObjectName("reviewCards");
     list->setMaximumHeight(140);
     auto *notice = new QLabel(QStringLiteral("来源变化需先更新或保留自定义；来源缺失可转独立卡片。"
-                                             "每个操作立即写入，可在主窗口撤销。"),
+                                             "每个操作立即写入，可在主窗口撤回。"),
                               &dialog);
     notice->setWordWrap(true);
     auto *page = new ReviewPage(&dialog);
