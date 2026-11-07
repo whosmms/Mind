@@ -89,8 +89,52 @@ void MainWindow::quickAddNode(const ID &id)
     const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
     if (const auto *tree = activeTreeSheet())
     {
-        const auto result =
-            NodeCommands(m_commands, m_doc).addChild(tree->id, id, QStringLiteral("未命名主题"));
+        std::optional<QPointF> position;
+        bool manual = false;
+        for (const auto &node : tree->nodes)
+            manual |= node.manualPosition.has_value();
+        if (manual && tree->kind == "mindmap")
+            if (const auto *parent = m_nodeItems.value(id))
+            {
+                const NodeItem measured(QStringLiteral("未命名主题"),
+                                        NodeItem::styledFont(canvasFont(), tree->defaultNodeStyle),
+                                        nullptr, {}, tree->defaultNodeStyle);
+                const auto box = measured.boundingRect();
+                const bool vertical = tree->layout == "down" || tree->layout == "up";
+                const bool negative =
+                    tree->layout == "left" || tree->layout == "up" ||
+                    (tree->layout == "bilateral" && m_nodeItems.contains(tree->rootId) &&
+                     parent->pos().x() < m_nodeItems.value(tree->rootId)->pos().x());
+                const auto offset =
+                    vertical ? QPointF(0, (parent->nodeRect().height() + box.height()) / 2 + 80)
+                             : QPointF((parent->nodeRect().width() + box.width()) / 2 + 80, 0);
+                const auto preferred = parent->pos() + (negative ? -offset : offset);
+                for (int step = 0; step <= m_nodeItems.size() * 2 + 2; ++step)
+                {
+                    const int row = step == 0 ? 0 : ((step + 1) / 2) * (step % 2 ? 1 : -1);
+                    const auto at = preferred + (vertical ? QPointF(row * (box.width() + 32), 0)
+                                                          : QPointF(0, row * (box.height() + 32)));
+                    if (qAbs(at.x()) > 100000 || qAbs(at.y()) > 100000)
+                        continue;
+                    bool overlap = false;
+                    for (const auto *existing : m_nodeItems)
+                        overlap |= existing->sceneBoundingRect().intersects(
+                            box.translated(at).adjusted(-12, -12, 12, 12));
+                    if (!overlap)
+                    {
+                        position = at;
+                        break;
+                    }
+                }
+                if (!position)
+                {
+                    statusBar()->showMessage(
+                        QStringLiteral("附近没有足够空位，请在空白处右键指定位置"), 8000);
+                    return;
+                }
+            }
+        const auto result = NodeCommands(m_commands, m_doc)
+                                .addChild(tree->id, id, QStringLiteral("未命名主题"), position);
         if (const auto *error = std::get_if<AppError>(&result))
             statusBar()->showMessage(error->message, 8000);
         else

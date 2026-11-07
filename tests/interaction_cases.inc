@@ -150,6 +150,19 @@ void TstUi::freeTreeMouseAndPlus()
     QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier,
                       view->mapFromScene(plus->sceneBoundingRect().center()));
     QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), count + 1);
+    const auto afterPlus = std::get<TreeSheet>(doc->project().sheets.first());
+    for (const auto &candidate : afterPlus.nodes)
+        if (!canvasNodes(view).contains(candidate.id))
+            QFAIL("新增主题必须出现在画布中");
+    ID created;
+    for (const auto &candidate : afterPlus.nodes)
+        if (candidate.title == QStringLiteral("未命名主题"))
+            created = candidate.id;
+    QVERIFY(!created.isEmpty());
+    const auto newBounds = canvasNodes(view).value(created)->sceneBoundingRect();
+    for (auto *existing : canvasNodes(view))
+        if (existing->nodeId() != created)
+            QVERIFY(!newBounds.intersects(existing->sceneBoundingRect()));
     const QPoint blank = view->viewport()->rect().bottomLeft() + QPoint(70, -50);
     const auto expected = view->mapToScene(blank);
     contextAction(window, view, blank, "createTopicHere");

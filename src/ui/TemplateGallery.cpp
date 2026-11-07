@@ -25,6 +25,7 @@ QIcon TemplateGallery::preview(const QString &id)
     const auto p = std::get<Project>(result);
     QMap<ID, QPointF> points;
     QVector<QPair<ID, ID>> edges;
+    QVector<QLineF> schematic;
     ID root;
     if (const auto *tree = std::get_if<TreeSheet>(&p.sheets.first()))
     {
@@ -49,16 +50,54 @@ QIcon TemplateGallery::preview(const QString &id)
                 for (const auto &n : *positions)
                     points[n.id] = {n.x, n.y};
         }
-        for (const auto &n : tree->nodes)
-            if (n.parentId)
-                edges.append({*n.parentId, n.id});
+        if (tree->kind == "fishbone")
+        {
+            qreal tail = points[root].x() - 96;
+            for (const auto &n : tree->nodes)
+            {
+                if (!n.parentId)
+                    continue;
+                const auto point = points[n.id];
+                tail = qMin(tail, point.x() - 60);
+                if (*n.parentId == root)
+                {
+                    const QPointF inner(point.x(), point.y() + (point.y() < 0 ? 17 : -17));
+                    schematic.append(QLineF(
+                        inner, QPointF(qMin(points[root].x() - 54, inner.x() + qAbs(inner.y())),
+                                       points[root].y())));
+                }
+                else
+                {
+                    const auto parent = points[*n.parentId];
+                    const QPointF elbow(parent.x() - 50, point.y());
+                    schematic.append(
+                        QLineF(parent - QPointF(40, 0), QPointF(elbow.x(), parent.y())));
+                    schematic.append(QLineF(QPointF(elbow.x(), parent.y()), elbow));
+                    schematic.append(QLineF(elbow, point + QPointF(40, 0)));
+                }
+            }
+            schematic.append(QLineF(QPointF(tail, points[root].y()), points[root]));
+        }
+        else
+            for (const auto &n : tree->nodes)
+                if (n.parentId)
+                    edges.append({*n.parentId, n.id});
     }
     else if (const auto *flow = std::get_if<FlowSheet>(&p.sheets.first()))
     {
         for (const auto &n : flow->nodes)
             points[n.id] = n.position;
         for (const auto &e : flow->edges)
-            edges.append({e.sourceId, e.targetId});
+            if (e.sourcePort == "right" && e.targetPort == "right")
+            {
+                const auto from = points[e.sourceId], to = points[e.targetId];
+                const auto x = qMax(from.x(), to.x()) + 140;
+                schematic.append(QLineF(from, QPointF(x, from.y())));
+                schematic.append(QLineF(QPointF(x, from.y()), QPointF(x, to.y())));
+                schematic.append(QLineF(QPointF(x, to.y()), to));
+            }
+            else
+                edges.append({e.sourceId, e.targetId});
     }
     else
     {
@@ -76,6 +115,8 @@ QIcon TemplateGallery::preview(const QString &id)
     QRectF bounds;
     for (const auto &point : points)
         bounds = bounds.united(QRectF(point - QPointF(45, 17), QSizeF(90, 34)));
+    for (const auto &line : schematic)
+        bounds = bounds.united(QRectF(line.p1(), line.p2()).normalized());
     const auto scale = qMin(220.0 / qMax(1.0, bounds.width()), 92.0 / qMax(1.0, bounds.height()));
     painter.translate(120, 56);
     painter.scale(scale, scale);
@@ -83,6 +124,8 @@ QIcon TemplateGallery::preview(const QString &id)
     painter.setPen(QPen(QColor("#91B7A8"), qMax(2.0, 1.0 / scale)));
     for (const auto &e : edges)
         painter.drawLine(points[e.first], points[e.second]);
+    for (const auto &line : schematic)
+        painter.drawLine(line);
     for (auto it = points.cbegin(); it != points.cend(); ++it)
     {
         painter.setBrush(QColor(it.key() == root ? "#247A62" : "#DDF2E7"));
