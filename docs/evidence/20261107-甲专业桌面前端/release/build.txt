@@ -1,0 +1,45 @@
+[1/95] Automatic MOC for target lingya_core
+[2/93] Automatic MOC for target tst_domain
+[3/91] Automatic MOC for target lingya_appcore
+[4/89] Automatic MOC for target tst_projectjson
+[5/87] Automatic MOC for target lingya
+[6/87] Automatic RCC for resources/resources.qrc
+[7/87] Automatic MOC for target tst_check
+[8/85] Automatic MOC for target tst_review
+[9/83] Automatic MOC for target tst_fileservice
+[10/81] Automatic MOC for target tst_recovery
+[11/79] Automatic MOC for target tst_layout
+[12/77] Automatic MOC for target tst_ui
+[13/77] Automatic MOC for target tst_session
+[14/75] Automatic MOC for target tst_commands
+[15/73] Automatic MOC for target tst_tasks
+[16/71] Automatic MOC for target tst_nodecommands
+[17/69] Automatic MOC for target tst_aicommands
+[18/67] Automatic MOC for target tst_flow
+[19/65] Automatic MOC for target tst_charts
+[20/63] Automatic MOC for target tst_ai
+[21/61] Automatic MOC for target tst_secret
+[22/59] Automatic MOC for target tst_ganttview
+[23/57] Automatic MOC for target tst_reviewpage
+[24/55] Automatic MOC for target tst_checkassistant
+[25/53] Automatic MOC for target tst_promptlibrary
+[26/51] Automatic MOC for target tst_reviewcommands
+[27/49] Automatic MOC for target tst_deepseekclient
+[28/47] Automatic RCC for ../resources/resources.qrc
+[29/47] Automatic MOC for target tst_aipanel
+[30/45] Building CXX object CMakeFiles/lingya.dir/lingya_autogen/mocs_compilation.cpp.obj
+[31/45] Building CXX object CMakeFiles/lingya.dir/src/main.cpp.obj
+[32/45] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowChrome.cpp.obj
+[33/45] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowFlow.cpp.obj
+[34/45] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindow.cpp.obj
+[35/45] Building CXX object CMakeFiles/lingya.dir/lingya_autogen/3YJK5W5UP7/qrc_resources.cpp.obj
+[36/45] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindowOffline.cpp.obj
+[37/45] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui_autogen/mocs_compilation.cpp.obj
+[38/45] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindow.cpp.obj
+[39/45] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowChrome.cpp.obj
+[40/45] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowFlow.cpp.obj
+[41/45] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui.cpp.obj
+[42/45] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui_autogen/7BV4YJK25R/qrc_resources.cpp.obj
+[43/45] Linking CXX executable lingya.exe
+[44/45] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindowOffline.cpp.obj
+[45/45] Linking CXX executable tests\tst_ui.exe
