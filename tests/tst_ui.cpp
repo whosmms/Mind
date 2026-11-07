@@ -112,6 +112,10 @@ private slots:
     void editorSheetDeletionProtectsUserData();
     void editorClipboardCopyAndCut();
     void cutTokenSurvivesSheetRoundTrip();
+    void editorCrossSheetCutPreservesReferences_data();
+    void editorCrossSheetCutPreservesReferences();
+    void editorCrossSheetCutImpactKeepsToken_data();
+    void editorCrossSheetCutImpactKeepsToken();
     void flowNodesShapesAndNoOp();
     void flowEdgesEditCycleAndRoundTrip();
     void flowDragAndLayoutAreSingleTransactions();
@@ -3585,10 +3589,13 @@ void TstUi::editorClipboardCopyAndCut()
 void TstUi::editorClipboardRejectsStaleAndInvalid()
 {
     MainWindow window;
-    loadEditorFixture(window, canvasProject(2, 1));
+    Project project = canvasProject(2, 1);
+    const auto target = ProjectFactory::createMindmap(QStringLiteral("过期剪切目标"));
+    const ID targetId = target.activeSheetId;
+    project.sheets.append(target.sheets.first());
+    loadEditorFixture(window, project);
     auto *doc = window.findChild<ProjectDocument *>();
     auto *commands = window.findChild<CommandService *>();
-    const ID root = std::get<TreeSheet>(doc->project().sheets.first()).rootId;
     answerDeletion(QStringLiteral("确定"));
     window.findChild<QAction *>("cutTopic")->trigger();
     QVERIFY(!commands->canUndo());
@@ -3600,9 +3607,12 @@ void TstUi::editorClipboardRejectsStaleAndInvalid()
     QVERIFY(!commands->canUndo()); // 不能把父主题移入自身后代
     QVERIFY(window.renameRootTo(QStringLiteral("修订变化")));
     const qint64 revision = doc->sessionRevision();
-    chooseTopic(window, root);
-    answerDeletion(QStringLiteral("确定"));
+    auto *sheets = window.findChild<QComboBox *>("sheetSelector");
+    sheets->setCurrentIndex(sheets->findData(targetId));
+    QString message;
+    answerDeletion(QStringLiteral("确定"), &message);
     window.findChild<QAction *>("pasteTopic")->trigger();
+    QVERIFY(message.contains(QStringLiteral("源工程、修订或剪贴板已变化")));
     QCOMPARE(doc->sessionRevision(), revision);
     QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), 5);
     auto *mime = new QMimeData;
@@ -3612,6 +3622,176 @@ void TstUi::editorClipboardRejectsStaleAndInvalid()
     window.findChild<QAction *>("pasteTopic")->trigger();
     QCOMPARE(doc->sessionRevision(), revision);
     QApplication::clipboard()->clear();
+}
+
+void TstUi::editorCrossSheetCutPreservesReferences_data()
+{
+    QTest::addColumn<QString>("kind");
+    QTest::newRow("导图目标") << QStringLiteral("mindmap");
+    QTest::newRow("鱼骨目标已有六个同级") << QStringLiteral("fishbone");
+}
+
+void TstUi::editorCrossSheetCutPreservesReferences()
+{
+    QFETCH(QString, kind);
+    MainWindow window;
+    const auto clipboardGuard = qScopeGuard([] { QApplication::clipboard()->clear(); });
+    Project project = canvasProject(3, 1);
+    const ID sourceSheetId = project.activeSheetId;
+    const ID moving = canvasId("branch-0"), leaf = canvasId("leaf-0-0");
+    Task task;
+    task.id = canvasId("cross-cut-task");
+    task.title = std::get<TreeSheet>(project.sheets.first()).nodes.value(moving).title;
+    task.source = TaskSource{sourceSheetId, moving};
+    project.tasks.append(task);
+    ReviewCard card;
+    card.id = canvasId("cross-cut-card");
+    card.sheetId = sourceSheetId;
+    card.nodeId = leaf;
+    card.front = QStringLiteral("跨表后的学习记录");
+    card.back = QStringLiteral("保持原样");
+    card.status = QStringLiteral("mastered");
+    card.lastReviewedAt =
+        QDateTime::fromString(QStringLiteral("2026-11-06T09:30:00Z"), Qt::ISODate);
+    project.cards.append(card);
+    const auto target = ProjectFactory::createSheet(kind, QStringLiteral("目标表"));
+    QVERIFY(std::holds_alternative<Sheet>(target));
+    const TreeSheet targetTree = std::get<TreeSheet>(std::get<Sheet>(target));
+    const int originalSourceNodes = std::get<TreeSheet>(project.sheets.first()).nodes.size();
+    const int originalTargetNodes = targetTree.nodes.size();
+    project.sheets.append(std::get<Sheet>(target));
+    QVERIFY(ProjectValidator::validate(project).isEmpty());
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *sheets = window.findChild<QComboBox *>("sheetSelector");
+    chooseTopic(window, moving);
+    window.findChild<QAction *>("cutTopic")->trigger();
+    const QByteArray token =
+        QApplication::clipboard()->mimeData()->data("application/x-lingya-cut-token");
+    QVERIFY(!token.isEmpty());
+    const qint64 revision = doc->sessionRevision();
+    sheets->setCurrentIndex(sheets->findData(targetTree.id));
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!commands->canUndo());
+    const auto before = ProjectJson::toJson(doc->project());
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    const auto &sourceAfter = std::get<TreeSheet>(doc->project().sheets.first());
+    const auto &targetAfter = std::get<TreeSheet>(doc->project().sheets.last());
+    QCOMPARE(sourceAfter.nodes.size(), originalSourceNodes - 2);
+    QCOMPARE(targetAfter.nodes.size(), originalTargetNodes + 2);
+    QVERIFY(!sourceAfter.nodes.contains(moving));
+    QVERIFY(targetAfter.nodes.contains(moving));
+    QCOMPARE(targetAfter.nodes.value(moving).parentId.value(), targetTree.rootId);
+    QCOMPARE(targetAfter.nodes.value(moving).order, originalTargetNodes - 1);
+    QCOMPARE(targetAfter.nodes.value(leaf).parentId.value(), moving);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    QCOMPARE(doc->project().tasks.size(), 1);
+    QCOMPARE(doc->project().tasks.first().id, task.id);
+    QCOMPARE(doc->project().tasks.first().source->sheetId, targetTree.id);
+    QCOMPARE(doc->project().tasks.first().source->nodeId, moving);
+    QCOMPARE(doc->project().cards.size(), 1);
+    QCOMPARE(doc->project().cards.first().id, card.id);
+    QCOMPARE(doc->project().cards.first().sheetId, targetTree.id);
+    QCOMPARE(doc->project().cards.first().nodeId, leaf);
+    QCOMPARE(doc->project().cards.first().status, card.status);
+    QCOMPARE(doc->project().cards.first().lastReviewedAt, card.lastReviewedAt);
+    QVERIFY(ProjectValidator::validate(doc->project()).isEmpty());
+    QVERIFY(!QApplication::clipboard()->mimeData()->hasFormat("application/x-lingya-cut-token"));
+    const auto after = ProjectJson::toJson(doc->project());
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    QVERIFY(!commands->canUndo());
+    commands->redo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), after);
+    QTemporaryDir files;
+    const QString path = files.filePath("cross-sheet-cut.lingya");
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    QCOMPARE(ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()),
+             ProjectJson::toJson(doc->project()));
+    // 再次粘贴已是普通复制：原移动节点保留，任务复制，学习卡片不重复。
+    chooseTopic(window, targetTree.rootId);
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.last()).nodes.size(),
+             originalTargetNodes + 4);
+    QCOMPARE(doc->project().tasks.size(), 2);
+    QCOMPARE(doc->project().cards.size(), 1);
+    QVERIFY(std::get<TreeSheet>(doc->project().sheets.last()).nodes.contains(moving));
+}
+
+void TstUi::editorCrossSheetCutImpactKeepsToken_data()
+{
+    QTest::addColumn<bool>("draft");
+    QTest::newRow("讲解路线") << false;
+    QTest::newRow("文稿来源") << true;
+}
+
+void TstUi::editorCrossSheetCutImpactKeepsToken()
+{
+    QFETCH(bool, draft);
+    MainWindow window;
+    const auto clipboardGuard = qScopeGuard([] { QApplication::clipboard()->clear(); });
+    Project project = canvasProject(2, 1);
+    const ID sourceSheetId = project.activeSheetId;
+    const ID moving = canvasId("branch-0");
+    const QString title = QStringLiteral("仍需保留的来源引用");
+    if (draft)
+    {
+        TextDraft document;
+        document.id = canvasId("cross-cut-draft");
+        document.sourceSheetId = sourceSheetId;
+        document.title = title;
+        document.createdAt =
+            QDateTime::fromString(QStringLiteral("2026-11-06T09:30:00Z"), Qt::ISODate);
+        document.sections.append(
+            {QStringLiteral("节"), QStringLiteral("正文"), {moving}, QStringLiteral("source")});
+        project.drafts.append(document);
+    }
+    else
+    {
+        PresentationRoute route;
+        route.id = canvasId("cross-cut-route");
+        route.sheetId = sourceSheetId;
+        route.title = title;
+        route.steps.append({canvasId("cross-cut-step"), moving, QStringLiteral("讲解备注")});
+        project.routes.append(route);
+    }
+    const Project target = ProjectFactory::createMindmap(QStringLiteral("影响阻断目标"));
+    project.sheets.append(target.sheets.first());
+    QVERIFY(ProjectValidator::validate(project).isEmpty());
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *sheets = window.findChild<QComboBox *>("sheetSelector");
+    chooseTopic(window, moving);
+    window.findChild<QAction *>("cutTopic")->trigger();
+    const QByteArray token =
+        QApplication::clipboard()->mimeData()->data("application/x-lingya-cut-token");
+    sheets->setCurrentIndex(sheets->findData(target.activeSheetId));
+    const auto before = ProjectJson::toJson(doc->project());
+    const qint64 revision = doc->sessionRevision();
+    const bool dirty = doc->isModified();
+    QString message;
+    answerDeletion(QStringLiteral("确定"), &message);
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QVERIFY(message.contains(title));
+    QVERIFY(message.contains(QStringLiteral("源节点保留")));
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(doc->isModified(), dirty);
+    QVERIFY(!commands->canUndo());
+    QCOMPARE(QApplication::clipboard()->mimeData()->data("application/x-lingya-cut-token"), token);
+    // 阻断后令牌仍可用于原表的合法移动，不要求再次剪切。
+    sheets->setCurrentIndex(sheets->findData(sourceSheetId));
+    chooseTopic(window, canvasId("branch-1"));
+    window.findChild<QAction *>("pasteTopic")->trigger();
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    QCOMPARE(
+        std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(moving).parentId.value(),
+        canvasId("branch-1"));
+    QVERIFY(!QApplication::clipboard()->mimeData()->hasFormat("application/x-lingya-cut-token"));
 }
 
 void TstUi::editorCanvasDragKeepsIdsAndRepairsFrames()
