@@ -126,8 +126,17 @@
   },
   "编译告警": {
     "Debug": 5,
-    "Release": 0,
-    "性质": "既存 tst_nodecommands.cpp 多字符常量与 QDateTime 弃用，本批未引入"
+    "Release": 5,
+    "明细": [
+      "tests/tst_nodecommands.cpp:952:66 multi-character character constant [-Wmultichar]",
+      "tests/tst_nodecommands.cpp:1029:78 multi-character character constant [-Wmultichar]",
+      "tests/tst_nodecommands.cpp:952:66 overflow in conversion from 'int' to 'char' changes value from '15049863' to '-121'",
+      "tests/tst_nodecommands.cpp:1029:78 overflow in conversion from 'int' to 'char' changes value from '15114375' to '-121'",
+      "tests/tst_nodecommands.cpp:2072:72 QDateTime(QDate,QTime,Qt::TimeSpec,int) deprecated"
+    ],
+    "性质": "既存 tst_nodecommands.cpp 多字符常量与 QDateTime 弃用，本批未引入，不宣称零告警",
+    "更正": "初版记为 Debug 5 / Release 0，2026-11-07 19:40 复核 Release 构建日志实际同为 5 条，已订正",
+    "说明": "QLatin1Char('备')/'标' 为 UTF-8 三字节多字符常量，被截断为 char -121(0x87)；仅影响填充字符取值，不影响长度断言结果"
   },
   "启动冒烟": {
     "方式": "QT_QPA_PLATFORM=offscreen 运行 lingya.exe，10 秒超时存活",

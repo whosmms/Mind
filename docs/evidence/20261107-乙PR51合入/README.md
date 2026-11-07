@@ -42,4 +42,4 @@ ctest --preset debug --output-on-failure
 
 ## 边界
 
-只证明本机自动测试、构建与启动冒烟。不代签真人鼠标/键盘/输入法、Windows DPI 高倍率、无 Qt 跨机、真实 API 联网；`offscreen` 平台下的无屏幕提示属正常噪声。Debug 5 条告警为既存问题（`tst_nodecommands.cpp` 多字符常量、`QDateTime` 弃用），本批未引入，Release 0 告警。
+只证明本机自动测试、构建与启动冒烟。不代签真人鼠标/键盘/输入法、Windows DPI 高倍率、无 Qt 跨机、真实 API 联网；`offscreen` 平台下的无屏幕提示属正常噪声。Debug、Release 各 5 条告警，为既存问题（`tst_nodecommands.cpp` 两处多字符常量、`QDateTime` 弃用），本批未引入。（更正：初版此句误写"Release 0 告警"，复核 Release 构建日志实际同为 5 条，2026-11-07 19:40 订正。）
