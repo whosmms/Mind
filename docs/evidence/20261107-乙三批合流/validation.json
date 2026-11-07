@@ -1,0 +1,146 @@
+{
+  "批次": "20261107-乙三批合流",
+  "合并人": "乙",
+  "基线": {
+    "main": "308a7ce",
+    "说明": "PR48 之前的主线 tip"
+  },
+  "合入顺序": [
+    {
+      "序": 1,
+      "PR": 48,
+      "批": "H-037 跨表剪切界面接线",
+      "head": "8f768c3",
+      "合并提交": "dfacdff",
+      "父": [
+        "308a7ce",
+        "8f768c3"
+      ],
+      "合并树": "064a76423fbfeae0976ff8d251b0605fe612bacd",
+      "合并树与head一致": true,
+      "冲突": "无"
+    },
+    {
+      "序": 2,
+      "PR": 49,
+      "批": "H-038 甘特筛选外任务直接入口",
+      "head": "f88ae4e",
+      "合并提交": "ddca464",
+      "父": [
+        "dfacdff",
+        "f88ae4e"
+      ],
+      "合并树": "792db688db08fccac5772eef98febc0f8e33ffe8",
+      "冲突": "docs/交接文档.md 与 docs/开发日志.md 追加型冲突，按规范22.1保留双方"
+    },
+    {
+      "序": 3,
+      "PR": 50,
+      "批": "H-039 专业桌面编辑器视觉优化",
+      "head": "42c1b41",
+      "合并提交": "f309622",
+      "父": [
+        "ddca464",
+        "42c1b41"
+      ],
+      "合并树": "496d47aa5dcdc0e5cff1af272f1fd0120768b5dd",
+      "冲突": "无"
+    }
+  ],
+  "结果树": "496d47aa5dcdc0e5cff1af272f1fd0120768b5dd",
+  "复跑": {
+    "环境": "Qt 6.8.3 mingw_64 + MinGW 13.1.0 + Ninja，本机独立配置构建",
+    "debug": {
+      "suites": 24,
+      "cases": 540,
+      "failed": 0,
+      "skipped": 0,
+      "perSuite": {
+        "tst_ai": 16,
+        "tst_aicommands": 18,
+        "tst_aipanel": 10,
+        "tst_charts": 13,
+        "tst_check": 13,
+        "tst_checkassistant": 10,
+        "tst_commands": 9,
+        "tst_deepseekclient": 18,
+        "tst_domain": 22,
+        "tst_fileservice": 20,
+        "tst_flow": 40,
+        "tst_ganttview": 30,
+        "tst_layout": 25,
+        "tst_nodecommands": 69,
+        "tst_projectjson": 17,
+        "tst_promptlibrary": 7,
+        "tst_recovery": 15,
+        "tst_review": 23,
+        "tst_reviewcommands": 14,
+        "tst_reviewpage": 6,
+        "tst_secret": 6,
+        "tst_session": 26,
+        "tst_tasks": 10,
+        "tst_ui": 103
+      }
+    },
+    "release": {
+      "suites": 24,
+      "cases": 540,
+      "failed": 0,
+      "skipped": 0,
+      "perSuite": {
+        "tst_ai": 16,
+        "tst_aicommands": 18,
+        "tst_aipanel": 10,
+        "tst_charts": 13,
+        "tst_check": 13,
+        "tst_checkassistant": 10,
+        "tst_commands": 9,
+        "tst_deepseekclient": 18,
+        "tst_domain": 22,
+        "tst_fileservice": 20,
+        "tst_flow": 40,
+        "tst_ganttview": 30,
+        "tst_layout": 25,
+        "tst_nodecommands": 69,
+        "tst_projectjson": 17,
+        "tst_promptlibrary": 7,
+        "tst_recovery": 15,
+        "tst_review": 23,
+        "tst_reviewcommands": 14,
+        "tst_reviewpage": 6,
+        "tst_secret": 6,
+        "tst_session": 26,
+        "tst_tasks": 10,
+        "tst_ui": 103
+      }
+    }
+  },
+  "数字闭合": {
+    "main基线": 532,
+    "PR48净增": 6,
+    "PR49净增": 0,
+    "PR50净增": 2,
+    "合并后": 540,
+    "说明": "532+6+0+2=540，UI 97+4+0+2=103，nodecommands 67+2=69，ganttview 30 不变"
+  },
+  "编译告警": {
+    "总数": 5,
+    "来源": "既存 tst_nodecommands.cpp 多字符常量与 QDateTime 弃用，本批未引入",
+    "Release error": 0
+  },
+  "未合入": [
+    {
+      "批": "H-040/041/042/043/044",
+      "分支": "feature/a/UI-home-and-properties",
+      "tip": "cb7657f",
+      "原因": "一条分支叠五批，违反规范17.1一次一个可验收目标；AiPanel 接口增量与 GanttView 预览契约需丙签边界"
+    }
+  ],
+  "未做": [
+    "真人鼠标/键盘/输入法",
+    "Windows DPI 高倍率",
+    "无 Qt 跨机",
+    "真实 DeepSeek 联网",
+    "clang-format 全仓跑"
+  ]
+}

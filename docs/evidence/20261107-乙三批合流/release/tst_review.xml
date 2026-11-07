@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstReview">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1222"/>
+  </TestFunction>
+  <TestFunction name="createCardFromNote">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.251"/>
+  </TestFunction>
+  <TestFunction name="createCardFromChildren">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3617"/>
+  </TestFunction>
+  <TestFunction name="noContentNoCard">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0441"/>
+  </TestFunction>
+  <TestFunction name="sourceStateOkThenChanged">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0474"/>
+  </TestFunction>
+  <TestFunction name="sourceStateMissingAfterRemove">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0509"/>
+  </TestFunction>
+  <TestFunction name="refreshKeepsIdAndStatus">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0466"/>
+  </TestFunction>
+  <TestFunction name="keepCustomStopsSync">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0431"/>
+  </TestFunction>
+  <TestFunction name="makeStandaloneAfterRemove">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0424"/>
+  </TestFunction>
+  <TestFunction name="sessionStartsWithFirstCard">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0405"/>
+  </TestFunction>
+  <TestFunction name="revealThenGradeAdvances">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0308"/>
+  </TestFunction>
+  <TestFunction name="againPutsCardAtBack">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0295"/>
+  </TestFunction>
+  <TestFunction name="sessionFinishesWhenAllGraded">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.029"/>
+  </TestFunction>
+  <TestFunction name="gradeRequiresReveal">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0274"/>
+  </TestFunction>
+  <TestFunction name="progressCountsAreCorrect">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.029"/>
+  </TestFunction>
+  <TestFunction name="emptySessionRejectsGrade">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0253"/>
+  </TestFunction>
+  <TestFunction name="singleCardAgainDoesNotFinish">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.026"/>
+  </TestFunction>
+  <TestFunction name="repeatedGradeWhileNotRevealedFails">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0262"/>
+  </TestFunction>
+  <TestFunction name="againKeepsQueueOrder">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.029"/>
+  </TestFunction>
+  <TestFunction name="completedCountNeverExceedsTotal">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0267"/>
+  </TestFunction>
+  <TestFunction name="markMapsToCardStatus">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.025"/>
+  </TestFunction>
+  <TestFunction name="gradeOutcomeMatchesCurrentCard">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0263"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.023"/>
+  </TestFunction>
+  <Duration msecs="3.3497"/>
+</TestCase>
