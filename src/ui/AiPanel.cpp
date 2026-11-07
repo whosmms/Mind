@@ -2,6 +2,8 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -191,7 +193,41 @@ AiPanel::AiPanel(AiService* service, QWidget* parent) : QWidget(parent), m_servi
     configure->setText(QStringLiteral("AI服务与密钥设置"));
     configure->setCheckable(true);
     configure->setChecked(!m_service || !m_service->status().configured);
-    layout->addWidget(configure, 0, Qt::AlignLeft);
+    auto *configurationRow = new QHBoxLayout;
+    configurationRow->addWidget(configure);
+    configurationRow->addStretch();
+    auto *help = new QPushButton(QStringLiteral("接入教程"), this);
+    help->setObjectName("aiConnectionHelp");
+    configurationRow->addWidget(help);
+    layout->addLayout(configurationRow);
+    connect(help, &QPushButton::clicked, this,
+            [this]
+            {
+                QDialog dialog(this);
+                dialog.setObjectName("aiConnectionHelpDialog");
+                dialog.setWindowTitle(QStringLiteral("DeepSeek 接入教程"));
+                auto *column = new QVBoxLayout(&dialog);
+                auto *text = new QTextBrowser(&dialog);
+                text->setObjectName("aiConnectionHelpText");
+                text->setOpenExternalLinks(true);
+                text->setHtml(QStringLiteral(R"(<h2>第一次连接 AI</h2>
+<p>本软件连接 DeepSeek 官方 API。打开本教程不发出请求。</p>
+<ol><li>打开 <a href="https://platform.deepseek.com/api_keys">DeepSeek 开放平台 · API Keys</a>，登录自己的账号，创建 API 密钥。复制后妥善保管；不要发给别人或放进工程。</li>
+<li>返回“AI服务与密钥设置”，把密钥粘贴到输入框，点“保存密钥”。默认只在本次软件会话使用；需要下次继续使用时，主动勾选“保存到Windows凭据管理器”。账号邮箱登录与AI密钥分别配置。</li>
+<li>在“模型”填写该账号当前可用的模型名并点“应用模型”。当前官方示例为 <b>deepseek-flash</b>；模型调整以 <a href="https://api-docs.deepseek.com/">官方文档</a>为准。</li>
+<li>点“测试连接”。此操作会发送一次小请求，可能消耗余额；成功后再输入材料，选择“生成导图”或“生成文稿”。</li>
+<li>先检查预览，再点“应用”写入工程；可用主窗口“后退”撤回采用。关闭窗口可取消在途请求。</li></ol>
+<h3>费用与材料</h3><p>API费用与网页聊天会员分别以开放平台说明为准。生成会把当前选择的材料发送给DeepSeek，请先检查范围与内容。价格和余额查看自己的开放平台；软件不代购或自动充值。</p>
+<h3>常见问题</h3><ul><li>401：检查密钥是否正确、已删除或已失效，重新创建并保存。</li><li>402：检查开放平台余额；充值由本人决定。</li><li>429：请求过于频繁，稍候重试。</li><li>模型不可用：按当前文档及账号权限修改模型，点“应用模型”。</li><li>超时、500、503：检查网络或稍后重试，原工程保留。</li></ul>
+<p><a href="https://api-docs.deepseek.com/quick_start/error_codes/">官方错误说明</a> · “清除密钥”可移除本机已保存的密钥。联网账号配置中的publishable标识不能填到这里。</p>)"));
+                column->addWidget(text, 1);
+                auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+                buttons->button(QDialogButtonBox::Close)->setText(QStringLiteral("关闭"));
+                column->addWidget(buttons);
+                connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+                dialog.resize(640, 620);
+                dialog.exec();
+            });
     auto *credentials = new QWidget(this);
     auto *credentialLayout = new QVBoxLayout(credentials);
     credentialLayout->setContentsMargins(0, 0, 0, 0);

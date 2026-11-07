@@ -3,6 +3,7 @@
 #include <QFont>
 #include <QGraphicsItem>
 #include <QIcon>
+#include <QImage>
 #include <QPainterPath>
 #include <QRectF>
 #include <QString>
@@ -13,7 +14,8 @@ namespace lingya {
 class NodeItem : public QGraphicsItem {
 public:
   NodeItem(const QString &title, const QFont &font, QGraphicsItem *parent = nullptr,
-           const QString &iconId = QString(), const NodeStyle &style = NodeStyle{});
+           const QString &iconId = QString(), const NodeStyle &style = NodeStyle{},
+           const QString &imagePng = QString());
 
   // 渲染副本中合并默认值与局部覆盖，不回写领域数据。
   static NodeStyle resolvedStyle(const NodeStyle &defaults, const NodeStyleOverride &override);
@@ -32,6 +34,14 @@ public:
   // 稳定ID用于画布事件定位；可见边框用于连线端点，均不持有领域对象指针。
   void setNodeId(const QString &id);
   QString nodeId() const;
+  void enableAddHandle();
+
+protected:
+  QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
+  void hoverEnterEvent(QGraphicsSceneHoverEvent *) override;
+  void hoverLeaveEvent(QGraphicsSceneHoverEvent *) override;
+
+public:
   QRectF nodeRect() const;
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
   // 与画布同一绘制函数，但不带选择/剪切标记，供只读导出使用。
@@ -45,6 +55,10 @@ private:
     QRectF m_rect;
     QRectF m_textRect;
     QIcon m_icon;
+    QImage m_image;
+    QRectF m_imageRect;
+    QGraphicsItem *m_addHandle = nullptr;
+    bool m_hovered = false;
     NodeStyle m_style;
     bool m_cutPending = false;
     QPainterPath m_shape;

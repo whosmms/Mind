@@ -154,6 +154,7 @@ private:
     const FlowSheet *activeFlowSheet() const;
     void rebuildFlowCanvas(const FlowSheet &sheet);
     void drawFlowEdges(const FlowSheet &sheet);
+    void cancelFlowGesture();
     void editFlowNode(bool create);
     void editFlowEdge(const ID &edgeId = ID{}, const ID &sourceId = ID{},
                       const QString &sourcePort = QString(), const ID &targetId = ID{},
@@ -161,6 +162,18 @@ private:
     void deleteFlowSelection();
     void layoutFlow();
     bool handleFlowEvent(QObject *watched, QEvent *event);
+    bool handleTreeCanvasEvent(QObject *watched, QEvent *event);
+    bool handleCanvasContextMenu(QObject *watched, QEvent *event);
+    void cancelTreeDrag();
+    void drawTreeLinks(const TreeSheet &display);
+    void resetTreeLayout();
+    void quickAddNode(const ID &nodeId);
+    void showTemplates(bool insertSheet);
+    void chooseNodeImage(const ID &nodeId);
+    void insertCanvasImage(const QPointF &position);
+    QVector<CanvasImage> activeImages() const;
+    void drawCanvasImages();
+    bool handleImageEvent(QObject *watched, QEvent *event);
     void buildOfflineActions(QMenu *viewMenu);
     void refreshOfflineViews();
     void addTaskBadges();
@@ -222,9 +235,25 @@ private:
     QSet<ID> m_unfilteredCollapsed;
     bool m_filterWasActive = false;
     ID m_dragNodeId;
+    QMap<ID, QPointF> m_treeDragOrigins;
+    QPointF m_treePressScene;
+    bool m_treeStructuralDrag = false;
+    bool m_keepCanvasView = false;
+    QSet<ID> m_multiSelection;
+    ID m_pendingRelation;
+    ID m_selectedImageId, m_dragImageId;
+    QPointF m_imageDragOrigin, m_imagePress;
+    QSizeF m_imageSizeOrigin;
+    bool m_imageResize = false, m_imageMoved = false;
     ID m_flowDragNodeId, m_flowPortNodeId, m_selectedFlowEdge;
     QString m_flowPort;
     QPointF m_flowDragOrigin;
+    ID m_flowPendingNodeId, m_flowDragEdgeId;
+    QString m_flowPendingPort, m_flowDragHandle;
+    QPointF m_flowPointer, m_flowBendOrigin;
+    std::optional<QPointF> m_flowPreviewBend;
+    bool m_flowDragMoved = false;
+    qint64 m_flowGestureRevision = -1;
     QTableView *m_taskTable = nullptr;
     TaskTableModel *m_taskModel = nullptr;
     IssuePanel *m_issuePanel = nullptr;
@@ -243,6 +272,7 @@ private:
     QList<QPair<QPointer<QAction>, bool>> m_homeActionStates;
     ID m_propertySheetId, m_propertyNodeId;
     qint64 m_propertyRevision = -1;
+    bool m_updatingInline = false;
     BaseNode m_propertyInitial;
     NodeStyleOverride m_propertyStyle;
     QPoint m_dragStart;

@@ -22,6 +22,9 @@ struct FlowNodePatch {
 
 // 流程连线补丁：标签/箭头/端口整值替换；端口空串=自动，非空只允许left/right/top/bottom。
 struct FlowEdgePatch {
+    std::optional<ID> sourceId, targetId;
+    std::optional<QPointF> bendPoint;
+    bool resetBend = false;
     std::optional<QString> label;
     std::optional<QString> arrow;
     std::optional<QString> sourcePort;
@@ -41,6 +44,10 @@ public:
     // position须为有限数（自由坐标，网格吸附由界面决定）。成功返回新节点ID。
     std::variant<ID, AppError> addNode(const ID& sheetId, const QString& role,
                                        const QString& title, const QPointF& position);
+
+    // 新增处理节点并连接源节点，一次命令可整体撤回。
+    std::variant<ID, AppError> addSuccessor(const ID &sheetId, const ID &sourceId,
+                                            const QPointF &position);
 
     // 按补丁更新节点：标题/备注/类型/位置/标签/局部样式；contentRevision+1；可撤销。
     // 与当前值完全相同时短路，不入历史（D-M1-02显式例外）。

@@ -3,6 +3,7 @@
 #include "commands/NodeCommands.h"
 #include "document/ProjectDocument.h"
 #include "graphics/NodeItem.h"
+#include <QAbstractItemView>
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
@@ -14,16 +15,49 @@
 #include <QPixmap>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScopedValueRollback>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <QWheelEvent>
 #include <tuple>
 
 namespace lingya
 {
 namespace
 {
+// 收起的选项只接受明确选择；滚轮留给侧栏滚动。
+class PropertyWheelGuard : public QObject
+{
+  public:
+    using QObject::QObject;
+
+  protected:
+    bool eventFilter(QObject *object, QEvent *event) override
+    {
+        if (event->type() != QEvent::Wheel)
+            return false;
+        if (auto *combo = qobject_cast<QComboBox *>(object); combo && combo->view()->isVisible())
+            return false;
+        auto *wheel = static_cast<QWheelEvent *>(event);
+        for (auto *widget = qobject_cast<QWidget *>(object); widget;
+             widget = widget->parentWidget())
+            if (auto *area = qobject_cast<QScrollArea *>(widget))
+            {
+                auto *bar = area->verticalScrollBar();
+                const int amount = wheel->pixelDelta().y() != 0
+                                       ? wheel->pixelDelta().y()
+                                       : wheel->angleDelta().y() * bar->singleStep() * 3 / 120;
+                bar->setValue(bar->value() - amount);
+                break;
+            }
+        wheel->accept();
+        return true;
+    }
+};
 bool sameStyle(const NodeStyleOverride &a, const NodeStyleOverride &b)
 {
     return std::tie(a.fill, a.color, a.borderColor, a.fontFamily, a.fontSize, a.bold, a.shape,
@@ -124,7 +158,7 @@ void MainWindow::buildInlineStyle(QVBoxLayout *layout)
         swatch->setIcon(fill->itemIcon(i));
         swatch->setIconSize(QSize(18, 18));
         swatch->setToolTip(
-            QStringLiteral("填充色 %1；点击应用后生效").arg(fill->itemData(i).toString()));
+            QStringLiteral("填充色 %1；点击直接生效").arg(fill->itemData(i).toString()));
         connect(swatch, &QToolButton::clicked, this, [fill, i] { fill->setCurrentIndex(i); });
         palette->addWidget(swatch);
     }
@@ -157,11 +191,29 @@ void MainWindow::buildInlineStyle(QVBoxLayout *layout)
     form->addRow(QStringLiteral("边宽"), width);
     column->addLayout(form);
     column->addWidget(errorLabel(box, "inlineStyleError"));
-    auto *apply = new QPushButton(QStringLiteral("应用样式"), box);
-    apply->setObjectName("applyInlineStyle");
-    apply->setProperty("primary", true);
-    connect(apply, &QPushButton::clicked, this, [this] { applyInlineStyle(); });
-    column->addWidget(apply);
+    auto *guard = new PropertyWheelGuard(box);
+    const auto apply = [this]
+    {
+        if (!m_updatingInline)
+            applyInlineStyle();
+    };
+    for (auto *combo : box->findChildren<QComboBox *>())
+    {
+        combo->installEventFilter(guard);
+        connect(combo, &QComboBox::currentIndexChanged, this, apply);
+        connect(combo, &QComboBox::activated, this, apply);
+        if (combo->lineEdit())
+        {
+            combo->lineEdit()->installEventFilter(guard);
+            connect(combo->lineEdit(), &QLineEdit::editingFinished, this, apply);
+        }
+    }
+    connect(inherit, &QCheckBox::toggled, this, apply);
+    connect(bold, &QCheckBox::checkStateChanged, this, apply);
+    connect(family, &QLineEdit::editingFinished, this, apply);
+    width->setKeyboardTracking(false);
+    width->installEventFilter(guard);
+    connect(width, &QDoubleSpinBox::valueChanged, this, apply);
     auto *reset = new QPushButton(QStringLiteral("恢复工作表样式"), box);
     reset->setObjectName("resetInlineStyle");
     connect(reset, &QPushButton::clicked, this, [this] { applyInlineStyle(true); });
@@ -236,6 +288,7 @@ void MainWindow::updateInlineProperties()
     if (m_propertySheetId == tree->id && m_propertyNodeId == m_selectedNodeId &&
         m_propertyRevision == m_doc->sessionRevision())
         return;
+    const QScopedValueRollback<bool> updating(m_updatingInline, true);
     const BaseNode incoming = tree->nodes.value(m_selectedNodeId);
     const bool sameNode = m_propertySheetId == tree->id && m_propertyNodeId == m_selectedNodeId;
     const bool keepStyle = sameNode && sameStyle(incoming.style, m_propertyInitial.style);
@@ -324,6 +377,7 @@ void MainWindow::applyInlineStyle(bool reset)
             style.borderWidth =
                 width->value() == 0 ? std::nullopt : std::optional<double>(width->value());
     }
+    const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
     const auto result =
         NodeCommands(m_commands, m_doc).setStyle(m_propertySheetId, m_propertyNodeId, style);
     if (const auto *error = std::get_if<AppError>(&result))

@@ -19,6 +19,7 @@ class HomePage final : public QWidget
     void setCurrentTitle(const QString &title);
   signals:
     void templateRequested(QString kind);
+    void templateGalleryRequested();
     void openRequested();
     void recentRequested(QString path);
     void removeRecentRequested(QString path);

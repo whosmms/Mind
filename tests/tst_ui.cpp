@@ -1,5 +1,14 @@
 #include "AuthTestTransport.h"
+#include "commands/ImageCommands.h"
+#include "graphics/CanvasImageItem.h"
+#include "services/ImageService.h"
 #include "services/OnlineAuthService.h"
+#include "services/TemplateLibrary.h"
+#include <QBuffer>
+#include <QContextMenuEvent>
+#include <QPainter>
+#include <QTextBrowser>
+#include <QWheelEvent>
 #include <QtTest>
 
 // 崩溃链路用例用 _exit 绕过析构（模拟进程被杀）：POSIX 下由 unistd.h 声明，
@@ -164,6 +173,13 @@ class TstUi : public QObject {
 
 private slots:
     void initTestCase();
+    void freeTreeMouseAndPlus();
+    void flowCurveMouseReconnect();
+    void instantStyleWheelAndBrand();
+    void embeddedImagesAcrossViews_data();
+    void embeddedImagesAcrossViews();
+    void templateGalleryAndAiTutorial();
+    void quickMouseRelationsGroupsAndImagePicker();
     void onlineIdentityKeepsLocalDocumentAndHistory();
     void inlineStyleKeepsUneditedValues_data();
     void inlineStyleKeepsUneditedValues();
@@ -3940,14 +3956,14 @@ void TstUi::editorCanvasDragKeepsIdsAndRepairsFrames()
     const QPoint start = view->mapFromScene(items.value(a)->pos()),
                  end = view->mapFromScene(items.value(c)->pos());
     const qint64 beforeDrag = window.findChild<ProjectDocument *>()->sessionRevision();
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::AltModifier, start);
     QEvent leave(QEvent::Leave);
     QApplication::sendEvent(view->viewport(), &leave);
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::AltModifier, end);
     QCOMPARE(window.findChild<ProjectDocument *>()->sessionRevision(), beforeDrag);
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::AltModifier, start);
     QTest::mouseMove(view->viewport(), end);
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::AltModifier, end);
     auto *doc = window.findChild<ProjectDocument *>();
     QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(a).parentId.value(), c);
     QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).annotations.isEmpty());
@@ -4563,31 +4579,13 @@ void TstUi::flowPortsCreateEdgeAndCancel()
     const QPoint b = view->mapFromScene(
         items.value(second)->mapToScene(QPointF(0, items.value(second)->nodeRect().top())));
     const qint64 revision = doc->sessionRevision();
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
-    QTimer::singleShot(0, &window,
-                       [&]
-                       {
-                           auto *dialog = window.findChild<QDialog *>("flowEdgeDialog");
-                           QVERIFY(dialog);
-                           dialog->reject();
-                       });
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
+    QTest::keyClick(view, Qt::Key_Escape);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
+    QTest::keyClick(view, Qt::Key_Escape);
     QCOMPARE(doc->sessionRevision(), revision);
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
-    QTimer::singleShot(
-        0, &window,
-        [&]
-        {
-            auto *dialog = window.findChild<QDialog *>("flowEdgeDialog");
-            QVERIFY(dialog);
-            QCOMPARE(dialog->findChild<QComboBox *>("flowSource")->currentData().toString(), first);
-            QCOMPARE(dialog->findChild<QComboBox *>("flowTarget")->currentData().toString(),
-                     second);
-            dialog->findChild<QLineEdit *>("flowEdgeLabel")->setText(QStringLiteral("继续"));
-            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
-            dialog->reject();
-        });
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
     QCOMPARE(doc->sessionRevision(), revision + 1);
     const auto &edge = std::get<FlowSheet>(doc->project().sheets.first()).edges.first();
     QCOMPARE(edge.sourcePort, QStringLiteral("bottom"));
@@ -5452,12 +5450,11 @@ void TstUi::inlineStyleKeepsUneditedValues()
     auto *commands = window.findChild<CommandService *>();
     const auto initial = ProjectJson::toJson(doc->project());
     QSignalSpy changed(doc, &ProjectDocument::changed);
-    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QMetaObject::invokeMethod(window.findChild<QLineEdit *>("inlineFontFamily"), "editingFinished");
     QCOMPARE(changed.count(), 0);
     QVERIFY(!commands->canUndo());
     auto *size = window.findChild<QComboBox *>("inlineFontSize");
     size->setCurrentIndex(size->findData(20));
-    window.findChild<QPushButton *>("applyInlineStyle")->click();
     QCOMPARE(changed.count(), 1);
     const auto styled = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;
     QCOMPARE(styled.fontFamily.value(), family);
@@ -5468,12 +5465,13 @@ void TstUi::inlineStyleKeepsUneditedValues()
     changed.clear();
     auto *fill = window.findChild<QComboBox *>("inlineFill");
     fill->setEditText(QStringLiteral("不是颜色"));
-    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QMetaObject::invokeMethod(fill->lineEdit(), "editingFinished");
     QCOMPARE(changed.count(), 0);
     QCOMPARE(ProjectJson::toJson(doc->project()), initial);
     QVERIFY(!window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
     fill->setCurrentIndex(0);
-    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    fill->setEditText(fill->itemText(0));
+    QMetaObject::invokeMethod(fill->lineEdit(), "editingFinished");
     QVERIFY(window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
     window.findChild<QPushButton *>("resetInlineStyle")->click();
     const auto reset = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;
@@ -6198,6 +6196,8 @@ void TstUi::visualControlsStayInsideBounds()
     }
     window.findChild<ProjectDocument *>()->setClean();
 }
+
+#include "interaction_cases.inc"
 
 QTEST_MAIN(TstUi)
 #include "tst_ui.moc"

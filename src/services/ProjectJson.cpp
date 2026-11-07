@@ -120,6 +120,8 @@ void writeBaseNode(QJsonObject& j, const BaseNode& n) {
     j["tags"] = QJsonArray::fromStringList(n.tags);
     if (!overrideEmpty(n.style)) j["style"] = writeOverride(n.style);
     j["contentRevision"] = n.contentRevision;
+    if (!n.imagePng.isEmpty())
+        j["imagePng"] = n.imagePng;
     if (n.provenance.has_value()) j["provenance"] = writeProvenance(*n.provenance);
 }
 
@@ -130,6 +132,9 @@ QJsonObject writeTreeNode(const TreeNode& n) {
     j["order"] = n.order;
     j["collapsed"] = n.collapsed;
     j["side"] = n.side;
+    if (n.manualPosition)
+        j["manualPosition"] =
+            QJsonObject{{"x", n.manualPosition->x()}, {"y", n.manualPosition->y()}};
     return j;
 }
 
@@ -154,6 +159,8 @@ QJsonObject writeFlowEdge(const FlowEdge& e) {
     QJsonObject j = writeRelation(e);
     j["sourcePort"] = e.sourcePort;
     j["targetPort"] = e.targetPort;
+    if (e.bendPoint)
+        j["bendPoint"] = QJsonObject{{"x", e.bendPoint->x()}, {"y", e.bendPoint->y()}};
     return j;
 }
 
@@ -181,6 +188,18 @@ void writeSheetBase(QJsonObject& j, const SheetBase& s) {
     j["viewport"] = QJsonObject{{"x", s.viewport.x}, {"y", s.viewport.y}, {"zoom", s.viewport.zoom}};
     j["defaultNodeStyle"] = writeNodeStyle(s.defaultNodeStyle);
     j["defaultEdgeStyle"] = writeEdgeStyle(s.defaultEdgeStyle);
+    if (!s.images.isEmpty())
+    {
+        QJsonArray images;
+        for (const auto &image : s.images)
+            images.append(QJsonObject{{"id", image.id},
+                                      {"x", image.position.x()},
+                                      {"y", image.position.y()},
+                                      {"width", image.size.width()},
+                                      {"height", image.size.height()},
+                                      {"imagePng", image.imagePng}});
+        j["images"] = images;
+    }
 }
 
 QJsonObject writeSheet(const Sheet& s) {
@@ -574,8 +593,8 @@ NodeStyleOverride readOverride(const QJsonObject& o, const QString& path, QStrin
 
 template<typename Node>
 void readBaseNode(Reader& r, Node& n, const QStringList& extraKeys) {
-    QStringList known = {"id",       "title",          "note",     "iconId", "link",
-                         "tags",     "contentRevision", "style",   "provenance"};
+    QStringList known = {"id",   "title",           "note",  "iconId",     "link",
+                         "tags", "contentRevision", "style", "provenance", "imagePng"};
     known += extraKeys;
     r.unknownKeys(known);
     n.id = r.uuid("id");
@@ -585,6 +604,8 @@ void readBaseNode(Reader& r, Node& n, const QStringList& extraKeys) {
     n.link = r.optLink("link");
     n.tags = r.strList("tags");
     n.contentRevision = r.integer("contentRevision", 0, maxJsonInt);
+    if (r.has("imagePng"))
+        n.imagePng = r.str("imagePng");
     if (r.has("style")) {
         const QJsonValue sv = r.val("style");
         if (sv.isObject()) {
@@ -618,11 +639,18 @@ void readBaseNode(Reader& r, Node& n, const QStringList& extraKeys) {
 TreeNode readTreeNode(const QJsonObject& o, const QString& path, QStringList* es) {
     Reader r(o, path, es);
     TreeNode n;
-    readBaseNode(r, n, {"parentId", "order", "collapsed", "side"});
+    readBaseNode(r, n, {"parentId", "order", "collapsed", "side", "manualPosition"});
     n.parentId = r.optStr("parentId");
     n.order = r.int32("order", 0, 1000000);
     n.collapsed = r.boolean("collapsed");
     n.side = r.enumVal("side", {"left", "right", "auto"});
+    if (o.contains("manualPosition"))
+    {
+        const Reader pr(r.object("manualPosition"), path + ".manualPosition", es);
+        pr.unknownKeys({"x", "y"});
+        n.manualPosition =
+            QPointF(pr.real("x", -100000.0, 100000.0), pr.real("y", -100000.0, 100000.0));
+    }
     return n;
 }
 
@@ -653,7 +681,7 @@ Relation readRelation(const QJsonObject& o, const QString& path, QStringList* es
 FlowEdge readFlowEdge(const QJsonObject& o, const QString& path, QStringList* es) {
     Reader r(o, path, es);
     r.unknownKeys({"id", "sourceId", "targetId", "label", "arrow", "style", "sourcePort",
-                   "targetPort"});
+                   "targetPort", "bendPoint"});
     FlowEdge edge;
     edge.id = r.uuid("id");
     edge.sourceId = r.uuid("sourceId");
@@ -663,6 +691,13 @@ FlowEdge readFlowEdge(const QJsonObject& o, const QString& path, QStringList* es
     edge.style = readEdgeStyle(r.object("style"), path + ".style", es);
     edge.sourcePort = r.str("sourcePort");
     edge.targetPort = r.str("targetPort");
+    if (o.contains("bendPoint"))
+    {
+        const Reader pr(r.object("bendPoint"), path + ".bendPoint", es);
+        pr.unknownKeys({"x", "y"});
+        edge.bendPoint =
+            QPointF(pr.real("x", -100000.0, 100000.0), pr.real("y", -100000.0, 100000.0));
+    }
     return edge;
 }
 
@@ -809,6 +844,26 @@ void readSheetBase(Reader& r, SheetType& s, const QString& path, QStringList* es
     s.viewport.zoom = vr.real("zoom", Limits::kZoomMin, Limits::kZoomMax);
     s.defaultNodeStyle = readNodeStyle(r.object("defaultNodeStyle"), path + ".defaultNodeStyle", es);
     s.defaultEdgeStyle = readEdgeStyle(r.object("defaultEdgeStyle"), path + ".defaultEdgeStyle", es);
+    if (r.obj.contains("images"))
+    {
+        int i = 0;
+        for (const auto &value : r.array("images"))
+        {
+            if (!value.isObject())
+            {
+                es->append(path + ".images：应为对象数组");
+                continue;
+            }
+            const Reader item(value.toObject(), path + ".images[" + QString::number(i++) + "]", es);
+            item.unknownKeys({"id", "x", "y", "width", "height", "imagePng"});
+            CanvasImage image;
+            image.id = item.uuid("id");
+            image.position = {item.real("x", -100000, 100000), item.real("y", -100000, 100000)};
+            image.size = {item.real("width", 1, 2000), item.real("height", 1, 2000)};
+            image.imagePng = item.str("imagePng");
+            s.images.append(image);
+        }
+    }
 }
 
 Sheet readSheet(const QJsonObject& o, const QString& path, QStringList* es) {
@@ -819,13 +874,13 @@ Sheet readSheet(const QJsonObject& o, const QString& path, QStringList* es) {
 
     if (kind == "mindmap" || kind == "fishbone") {
         Reader r(o, path, es);
-        r.unknownKeys({"kind", "id", "name", "themeId", "viewport", "defaultNodeStyle",
+        r.unknownKeys({"kind", "id", "name", "themeId", "viewport", "defaultNodeStyle", "images",
                        "defaultEdgeStyle", "layout", "rootId", "nodes", "relations", "annotations",
                        "comments"});
         TreeSheet t;
         t.kind = kind;
         readSheetBase(r, t, path, es);
-        t.layout = r.enumVal("layout", {"bilateral", "right", "fishbone"});
+        t.layout = r.enumVal("layout", {"bilateral", "right", "left", "down", "up", "fishbone"});
         t.rootId = r.uuid("rootId");
         const QJsonObject nodes = r.object("nodes");
         for (auto it = nodes.constBegin(); it != nodes.constEnd(); ++it) {
@@ -850,7 +905,7 @@ Sheet readSheet(const QJsonObject& o, const QString& path, QStringList* es) {
     }
     if (kind == "flowchart") {
         Reader r(o, path, es);
-        r.unknownKeys({"kind", "id", "name", "themeId", "viewport", "defaultNodeStyle",
+        r.unknownKeys({"kind", "id", "name", "themeId", "viewport", "defaultNodeStyle", "images",
                        "defaultEdgeStyle", "nodes", "edges", "comments"});
         FlowSheet f;
         f.kind = kind;
@@ -874,7 +929,7 @@ Sheet readSheet(const QJsonObject& o, const QString& path, QStringList* es) {
     }
     if (kind == "gantt") {
         Reader r(o, path, es);
-        r.unknownKeys({"kind", "id", "name", "themeId", "viewport", "defaultNodeStyle",
+        r.unknownKeys({"kind", "id", "name", "themeId", "viewport", "defaultNodeStyle", "images",
                        "defaultEdgeStyle", "filter", "scale"});
         GanttSheet g;
         g.kind = kind;

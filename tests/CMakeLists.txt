@@ -90,6 +90,8 @@ add_executable(tst_ui tst_ui.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/HomePage.h
     ${CMAKE_SOURCE_DIR}/src/ui/HomePage.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowFlow.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowCanvas.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MainWindowImages.cpp
     ${CMAKE_SOURCE_DIR}/src/app/MainWindowOffline.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ReviewPage.cpp
     ${CMAKE_SOURCE_DIR}/src/app/RecoveryDialog.h
@@ -169,6 +171,10 @@ target_sources(tst_export PRIVATE
     ${CMAKE_SOURCE_DIR}/src/graphics/NodeItem.h
     ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
 target_sources(tst_appearance PRIVATE ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
+
+add_executable(tst_canvas tst_canvas.cpp)
+target_link_libraries(tst_canvas PRIVATE lingya_appcore Qt6::Test)
+add_test(NAME tst_canvas COMMAND tst_canvas)
 
 # 联网账号协议和窗口使用可控传输桩，不访问真实账号服务。
 add_executable(tst_onlineauth tst_onlineauth.cpp ${CMAKE_SOURCE_DIR}/resources/resources.qrc)

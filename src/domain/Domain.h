@@ -3,13 +3,14 @@
 // 约束：领域对象按值存储，不持有QWidget、QGraphicsItem或QObject指针（规范§2.3）。
 // 枚举的QString代码值只允许规范§4.2列出的取值，由ProjectValidator与ProjectJson严格验证；
 // 页面显示使用中文名称。ProjectJson显式逐字段读写，不序列化内存地址或对象二进制。
-#include <QString>
-#include <QStringList>
-#include <QMap>
-#include <QVector>
-#include <QPointF>
 #include <QDate>
 #include <QDateTime>
+#include <QMap>
+#include <QPointF>
+#include <QSizeF>
+#include <QString>
+#include <QStringList>
+#include <QVector>
 #include <optional>
 #include <variant>
 
@@ -50,6 +51,7 @@ struct BaseNode {
     QStringList tags;
     NodeStyleOverride style;
     qint64 contentRevision = 0;
+    QString imagePng; // 可选嵌入PNG的Base64；空串不序列化。
     std::optional<Provenance> provenance;
 };
 struct TreeNode : BaseNode {
@@ -57,6 +59,7 @@ struct TreeNode : BaseNode {
     int order = 0;
     bool collapsed = false;
     QString side = "auto";
+    std::optional<QPointF> manualPosition; // 手动中心坐标；缺失时使用自动布局。
 };
 struct FlowNode : BaseNode {
     QString role = "process";
@@ -70,6 +73,7 @@ struct Relation {
 };
 struct FlowEdge : Relation {
     QString sourcePort, targetPort;
+    std::optional<QPointF> bendPoint; // 手动曲线中点；缺失时自动走线。
 };
 struct GroupAnnotation {
     ID id, parentId;
@@ -86,12 +90,20 @@ struct Comment {
 struct Viewport {
     double x = 0, y = 0, zoom = 1;
 };
+struct CanvasImage
+{
+    ID id;
+    QPointF position;
+    QSizeF size;
+    QString imagePng;
+};
 struct SheetBase {
     ID id;
     QString name, themeId = "mint";
     Viewport viewport;
     NodeStyle defaultNodeStyle;
     EdgeStyle defaultEdgeStyle;
+    QVector<CanvasImage> images;
 };
 struct TreeSheet : SheetBase {
     QString kind = "mindmap";

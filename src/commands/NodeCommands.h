@@ -52,8 +52,13 @@ public:
 
     // 在父节点子主题末尾新增；root可作为父节点。成功返回新节点ID。
     // 标题先统一规范化；空白转为“未命名主题”；超过Limits::kTitleMaxChars返回LIMIT_EXCEEDED。
-    std::variant<ID, AppError> addChild(const ID& sheetId, const ID& parentId,
-                                        const QString& title);
+    std::variant<ID, AppError> addChild(const ID &sheetId, const ID &parentId, const QString &title,
+                                        const std::optional<QPointF> &position = std::nullopt);
+
+    // 位置写入只影响画面；批量一次提交，空集合/相同坐标不入历史。
+    std::variant<bool, AppError> setPositions(const ID &sheetId,
+                                              const QMap<ID, QPointF> &positions);
+    std::variant<bool, AppError> resetPositions(const ID &sheetId);
 
     // 在参照节点之后新增同级主题（D-M1-03：先按(order,ID)规范化形成兄弟序列，
     // 再在参照之后插入，最后写回连续order）。参照不能是根节点（根无同级）。

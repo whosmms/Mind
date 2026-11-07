@@ -1,4 +1,5 @@
 #include "charts/GanttView.h"
+#include "graphics/CanvasImageItem.h"
 
 #include <QBrush>
 #include <QColor>
@@ -278,6 +279,29 @@ void GanttView::rebuild() {
             visibleBounds = visibleBounds.united(item->sceneBoundingRect());
     }
     target->setSceneRect(visibleBounds);
+    drawImages();
+}
+
+void GanttView::setImages(const QVector<CanvasImage> &images)
+{
+    m_images = images;
+    drawImages();
+}
+void GanttView::drawImages()
+{
+    QList<QGraphicsItem *> old;
+    for (auto *item : scene()->items())
+        if (!item->parentItem() && item->data(0x21C6).isValid())
+            old.append(item);
+    qDeleteAll(old);
+    auto bounds = scene()->sceneRect();
+    for (const auto &image : m_images)
+    {
+        auto *item = new CanvasImageItem(image);
+        scene()->addItem(item);
+        bounds = bounds.united(item->sceneBoundingRect().adjusted(-20, -20, 20, 20));
+    }
+    scene()->setSceneRect(bounds);
 }
 
 void GanttView::mousePressEvent(QMouseEvent* event) {

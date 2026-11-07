@@ -344,12 +344,17 @@ void MainWindow::buildEditorChrome()
     row->setSpacing(12);
     auto *brand = new QWidget(shell);
     auto *brandLayout = new QVBoxLayout(brand);
-    brandLayout->setContentsMargins(8, 8, 8, 8);
+    brandLayout->setContentsMargins(8, 0, 8, 0);
+    brandLayout->setSpacing(4);
+    brandLayout->setAlignment(Qt::AlignCenter);
     auto *mark = new QLabel(brand);
+    mark->setObjectName("brandMark");
+    mark->setFixedHeight(36);
     mark->setPixmap(chromeIcon(Glyph::Leaf).pixmap(32, 32));
     mark->setAlignment(Qt::AlignCenter);
     auto *name = new QLabel(QStringLiteral("灵芽思维"), brand);
     name->setObjectName("brandName");
+    name->setFixedHeight(26);
     name->setAlignment(Qt::AlignCenter);
     brandLayout->addWidget(mark);
     brandLayout->addWidget(name);
@@ -416,6 +421,8 @@ void MainWindow::buildEditorChrome()
     group(start, QStringLiteral("历史"),
           {{"undoEdit", QStringLiteral("后退"), Glyph::Undo},
            {"redoEdit", QStringLiteral("前进"), Glyph::Redo}});
+    group(start, QStringLiteral("结构"),
+          {{"showTemplateGallery", QStringLiteral("模板"), Glyph::Frame}});
     group(start, QStringLiteral("查找"), {{"showSearch", QStringLiteral("搜索"), Glyph::Locate}});
     auto *insert = page(QStringLiteral("插入"));
     group(insert, QStringLiteral("主题信息"),
@@ -426,6 +433,9 @@ void MainWindow::buildEditorChrome()
           {{"editRelations", QStringLiteral("关系线"), Glyph::Link},
            {"editAnnotations", QStringLiteral("外框概要"), Glyph::Frame},
            {"editComments", QStringLiteral("批注"), Glyph::Note}});
+    group(insert, QStringLiteral("图片"),
+          {{"insertCanvasImage", QStringLiteral("画布图片"), Glyph::File},
+           {"insertNodeImageAction", QStringLiteral("节点图片"), Glyph::File}});
     group(insert, QStringLiteral("任务与复习"),
           {{"linkSelectedTask", QStringLiteral("设为任务"), Glyph::Task},
            {"addReviewCard", QStringLiteral("复习卡片"), Glyph::Review}});

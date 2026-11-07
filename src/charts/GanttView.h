@@ -26,6 +26,12 @@ public:
     explicit GanttView(QWidget* parent = nullptr);
 
     void setTasks(const QVector<Task>& tasks);
+    void setImages(const QVector<CanvasImage> &images);
+    void setTasksAndImages(const QVector<Task> &tasks, const QVector<CanvasImage> &images)
+    {
+        m_images = images;
+        setTasks(tasks);
+    }
     const QVector<Task>& tasks() const;
 
     void setPixelsPerDay(int pixelsPerDay);
@@ -47,6 +53,8 @@ private:
     enum class DragMode { None, Move, ResizeStart, ResizeEnd };
 
     void rebuild();
+    void drawImages();
+    QVector<CanvasImage> m_images;
 
     QVector<Task> m_tasks;
     int m_pixelsPerDay = GanttLayout::kDefaultPixelsPerDay;

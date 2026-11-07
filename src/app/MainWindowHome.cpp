@@ -1,8 +1,12 @@
 #include "app/MainWindow.h"
+#include "commands/CommandService.h"
 #include "document/ProjectDocument.h"
+#include "domain/Limits.h"
 #include "domain/ProjectFactory.h"
 #include "services/SettingsService.h"
+#include "services/TemplateLibrary.h"
 #include "ui/HomePage.h"
+#include "ui/TemplateGallery.h"
 #include <QAction>
 #include <QDockWidget>
 #include <QFileInfo>
@@ -62,6 +66,8 @@ void MainWindow::buildHomePage()
     connect(m_homePage, &HomePage::continueRequested, this, &MainWindow::returnFromHome);
     connect(m_homePage, &HomePage::preferencesRequested, this, &MainWindow::showPreferences);
     connect(m_homePage, &HomePage::templateRequested, this, &MainWindow::createFromHome);
+    connect(m_homePage, &HomePage::templateGalleryRequested, this,
+            [this] { showTemplates(false); });
     connect(m_homePage, &HomePage::openRequested, this, &MainWindow::openProject);
     connect(m_homePage, &HomePage::recentRequested, this, &MainWindow::openRecentFile);
     connect(m_homePage, &HomePage::removeRecentRequested, this,
@@ -141,8 +147,13 @@ void MainWindow::createFromHome(const QString &kind)
         next = ProjectFactory::createGantt(QStringLiteral("未命名甘特图"));
     else
     {
-        statusBar()->showMessage(QStringLiteral("无法创建：未知模板"));
-        return;
+        const auto result = TemplateLibrary::create(kind);
+        if (const auto *error = std::get_if<AppError>(&result))
+        {
+            statusBar()->showMessage(error->message, 8000);
+            return;
+        }
+        next = std::get<Project>(result);
     }
     if (!confirmDiscard())
         return;
@@ -167,4 +178,68 @@ void MainWindow::createFromHome(const QString &kind)
     loadNewDocument(std::move(next));
     fitCanvas();
 }
+void MainWindow::showTemplates(bool insertSheet)
+{
+    const auto *tree = activeTreeSheet();
+    TemplateGallery dialog(insertSheet && tree && tree->kind == "mindmap", this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    if (!dialog.layoutCode.isEmpty() && tree)
+    {
+        const auto id = tree->id, layout = dialog.layoutCode;
+        bool changed = tree->layout != layout;
+        for (const auto &node : tree->nodes)
+            changed |= node.manualPosition.has_value();
+        if (!changed)
+            return;
+        const auto result = m_commands->applyEdit(
+            QStringLiteral("切换导图结构"),
+            [id, layout](Project &project)
+            {
+                for (auto &sheet : project.sheets)
+                    if (auto *tree = std::get_if<TreeSheet>(&sheet); tree && tree->id == id)
+                    {
+                        tree->layout = layout;
+                        for (auto &node : tree->nodes)
+                            node.manualPosition.reset();
+                    }
+            });
+        if (const auto *error = std::get_if<AppError>(&result))
+            statusBar()->showMessage(error->message, 8000);
+        else
+            fitCanvas();
+        return;
+    }
+    if (dialog.templateId.isEmpty())
+        return;
+    if (!insertSheet || m_homeVisible)
+    {
+        createFromHome(dialog.templateId);
+        return;
+    }
+    if (m_doc->project().sheets.size() >= Limits::kMaxSheets)
+    {
+        statusBar()->showMessage(QStringLiteral("工作表数量已达上限"), 8000);
+        return;
+    }
+    const auto result = TemplateLibrary::create(dialog.templateId);
+    if (const auto *error = std::get_if<AppError>(&result))
+    {
+        statusBar()->showMessage(error->message, 8000);
+        return;
+    }
+    const auto created = std::get<Project>(result);
+    const auto applied = m_commands->applyEdit(QStringLiteral("插入模板工作表"),
+                                               [created](Project &project)
+                                               {
+                                                   project.sheets.append(created.sheets.first());
+                                                   project.tasks += created.tasks;
+                                                   project.activeSheetId = created.activeSheetId;
+                                               });
+    if (const auto *error = std::get_if<AppError>(&applied))
+        statusBar()->showMessage(error->message, 8000);
+    else
+        fitCanvas();
+}
+
 } // namespace lingya

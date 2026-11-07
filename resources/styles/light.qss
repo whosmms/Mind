@@ -118,3 +118,6 @@ QListWidget#homeRecentFiles { border: 1px solid #DDE6DF; border-radius: 10px; }
 QLabel#reviewFront, QLabel#reviewBack { background: #FFFFFF; border: 1px solid #DDE6DF; border-radius: 12px; padding: 20px; }
 QLabel#reviewFront { font-size: 20px; font-weight: 600; }
 QLabel#reviewBack { font-size: 16px; }
+
+QToolButton[templateCard="true"] { background: #FFFFFF; border: 1px solid #DDE6DF; border-radius: 12px; padding: 10px; font-size: 15px; }
+QToolButton[templateCard="true"]:hover { background: #EDF6F0; border-color: #247A62; }

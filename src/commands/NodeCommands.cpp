@@ -302,8 +302,10 @@ NodeCommands::NodeCommands(CommandService* commands, const ProjectDocument* docu
     : m_commands(commands), m_document(document) {
 }
 
-std::variant<ID, AppError> NodeCommands::addChild(const ID& sheetId, const ID& parentId,
-                                                  const QString& title) {
+std::variant<ID, AppError> NodeCommands::addChild(const ID &sheetId, const ID &parentId,
+                                                  const QString &title,
+                                                  const std::optional<QPointF> &position)
+{
     if (sheetId.isEmpty() || parentId.isEmpty()) {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("工作表ID与父节点ID不能为空")};
     }
@@ -328,15 +330,20 @@ std::variant<ID, AppError> NodeCommands::addChild(const ID& sheetId, const ID& p
 
     const ID newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const auto result = m_commands->applyEdit(
-        QStringLiteral("新增子主题"), [sheetId, parentId, newId, normalizedTitle](Project& project) {
+        QStringLiteral("新增子主题"),
+        [sheetId, parentId, newId, normalizedTitle, position](Project &project)
+        {
             TreeSheet* target = findTree(project, sheetId);
-            if (target == nullptr || !target->nodes.contains(parentId)) {
+            if (target == nullptr || !target->nodes.contains(parentId))
+            {
                 return;
             }
 
             int maxOrder = -1;
-            for (auto it = target->nodes.constBegin(); it != target->nodes.constEnd(); ++it) {
-                if (it.value().parentId.has_value() && *it.value().parentId == parentId) {
+            for (auto it = target->nodes.constBegin(); it != target->nodes.constEnd(); ++it)
+            {
+                if (it.value().parentId.has_value() && *it.value().parentId == parentId)
+                {
                     maxOrder = std::max(maxOrder, it.value().order);
                 }
             }
@@ -346,6 +353,7 @@ std::variant<ID, AppError> NodeCommands::addChild(const ID& sheetId, const ID& p
             node.parentId = parentId;
             node.order = maxOrder + 1;
             node.title = normalizedTitle;
+            node.manualPosition = position;
             node.contentRevision = 1;
             target->nodes.insert(newId, node);
             normalizeSiblings(*target, parentId);
@@ -716,6 +724,8 @@ std::variant<bool, AppError> NodeCommands::moveSubtree(const ID& sheetId, const 
             int at = beforeNodeId.isEmpty() ? newSequence.size() : newSequence.indexOf(beforeNodeId);
             if (at < 0) at = newSequence.size();
             newSequence.insert(at, nodeId);
+            for (const auto &id : subtreeIds(*target, nodeId))
+                target->nodes[id].manualPosition.reset();
             target->nodes[nodeId].parentId = newParentId;
             for (int i = 0; i < newSequence.size(); ++i)
                 target->nodes[newSequence.at(i)].order = i;
@@ -926,6 +936,7 @@ std::variant<bool, AppError> NodeCommands::moveSubtreeToSheet(const ID& sourceSh
 
             for (const auto& pair : pending) {
                 TreeNode node = pair.second;
+                node.manualPosition.reset();
                 if (pair.first == nodeId)
                 {
                     node.parentId = newParentId;
@@ -1538,6 +1549,7 @@ std::variant<ID, AppError> NodeCommands::pasteFragment(const ID& sheetId, const 
                 const ID newId = idMap.value(it.key());
                 TreeNode copy = it.value();
                 copy.id = newId;
+                copy.manualPosition.reset();
                 if (it.value().parentId.has_value())
                     copy.parentId = idMap.value(*it.value().parentId);
                 else
@@ -1600,6 +1612,50 @@ std::variant<ID, AppError> NodeCommands::pasteFragment(const ID& sheetId, const 
         return *error;
     }
     return firstRootId;
+}
+
+std::variant<bool, AppError> NodeCommands::setPositions(const ID &sheetId,
+                                                        const QMap<ID, QPointF> &positions)
+{
+    const auto *sheet = findTree(m_document->project(), sheetId);
+    if (!sheet)
+        return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在")};
+    bool changed = false;
+    for (auto it = positions.cbegin(); it != positions.cend(); ++it)
+    {
+        if (!sheet->nodes.contains(it.key()))
+            return AppError{"NOT_FOUND", QStringLiteral("移动的主题不存在")};
+        changed |=
+            sheet->nodes.value(it.key()).manualPosition != std::optional<QPointF>(it.value());
+    }
+    if (!changed)
+        return true;
+    return m_commands->applyEdit(QStringLiteral("移动分支位置"),
+                                 [sheetId, positions](Project &project)
+                                 {
+                                     auto *target = findTree(project, sheetId);
+                                     for (auto it = positions.cbegin(); it != positions.cend();
+                                          ++it)
+                                         target->nodes[it.key()].manualPosition = it.value();
+                                 });
+}
+std::variant<bool, AppError> NodeCommands::resetPositions(const ID &sheetId)
+{
+    const auto *sheet = findTree(m_document->project(), sheetId);
+    if (!sheet)
+        return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在")};
+    bool changed = false;
+    for (const auto &n : sheet->nodes)
+        changed |= n.manualPosition.has_value();
+    if (!changed)
+        return true;
+    return m_commands->applyEdit(QStringLiteral("恢复自动布局"),
+                                 [sheetId](Project &project)
+                                 {
+                                     auto *target = findTree(project, sheetId);
+                                     for (auto &node : target->nodes)
+                                         node.manualPosition.reset();
+                                 });
 }
 
 }  // namespace lingya

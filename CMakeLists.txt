@@ -17,6 +17,10 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Core Widgets Network Test)
 
 # 核心库：领域、校验器、JSON序列化与文件服务（纯规则，无界面）
 add_library(lingya_core STATIC
+    src/services/TemplateLibrary.h
+    src/services/TemplateLibrary.cpp
+    src/services/ImageService.h
+    src/services/ImageService.cpp
     src/domain/Domain.h
     src/domain/Limits.h
     src/domain/TitleRules.h
@@ -56,7 +60,7 @@ add_library(lingya_core STATIC
     src/layout/FishboneLayout.cpp
 )
 target_include_directories(lingya_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(lingya_core PUBLIC Qt6::Core)
+target_link_libraries(lingya_core PUBLIC Qt6::Core Qt6::Gui)
 if(MSVC)
     target_compile_options(lingya_core PUBLIC /utf-8)
 endif()
@@ -77,6 +81,8 @@ add_library(lingya_appcore STATIC
     src/commands/NodeCommands.cpp
     src/commands/FlowCommands.h
     src/commands/FlowCommands.cpp
+    src/commands/ImageCommands.h
+    src/commands/ImageCommands.cpp
     src/commands/SheetCommands.h
     src/commands/SheetCommands.cpp
     src/commands/AiCommands.h
@@ -123,6 +129,8 @@ add_library(lingya_appcore STATIC
     src/ui/IssuePanel.cpp
     src/ui/AiPanel.h
     src/ui/AiPanel.cpp
+    src/ui/TemplateGallery.h
+    src/ui/TemplateGallery.cpp
 )
 target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets Qt6::Network)
 if(WIN32)
@@ -149,6 +157,8 @@ add_executable(lingya
     src/ui/HomePage.h
     src/ui/HomePage.cpp
     src/app/MainWindowFlow.cpp
+    src/app/MainWindowCanvas.cpp
+    src/app/MainWindowImages.cpp
     src/app/MainWindowOffline.cpp
     src/app/RecoveryDialog.h
     src/app/RecoveryDialog.cpp

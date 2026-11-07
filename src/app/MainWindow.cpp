@@ -314,6 +314,8 @@ MainWindow::MainWindow(QWidget *parent, OnlineAuthService *authService)
     m_view->setObjectName(QStringLiteral("topicPreview"));
     m_view->setRenderHint(QPainter::Antialiasing);
     m_view->setDragMode(QGraphicsView::ScrollHandDrag);
+    m_view->setMouseTracking(true);
+    m_view->viewport()->setMouseTracking(true);
     m_view->installEventFilter(this);
     m_view->viewport()->installEventFilter(this);   // 双击画布节点重命名
     // 中央区两页：页0思维导图画布，页1甘特图（M3丙接入，见setGanttView）
@@ -522,6 +524,9 @@ void MainWindow::buildMenus() {
     toolbar->addAction(fit);
     toolbar->addAction(locate);
     buildEditorActions(editMenu);
+    auto *automaticTree =
+        editMenu->addAction(QStringLiteral("恢复导图自动布局"), this, &MainWindow::resetTreeLayout);
+    automaticTree->setObjectName("automaticTreeLayout");
     buildFlowActions(editMenu);
     buildOfflineActions(viewMenu);
 }
@@ -532,13 +537,13 @@ void MainWindow::showGanttView(bool forTaskLocation)
     if (qobject_cast<QLabel *>(m_ganttPage) != nullptr)
     {
         auto *gantt = new GanttView(this);
-        gantt->setTasks(visibleGanttTasks());
+        gantt->setTasksAndImages(visibleGanttTasks(), activeImages());
         setGanttView(gantt);
     }
     else
     {
         if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
-            gantt->setTasks(visibleGanttTasks());
+            gantt->setTasksAndImages(visibleGanttTasks(), activeImages());
         m_centralStack->setCurrentIndex(1);
     }
     if (!m_selectedTaskId.isEmpty())
@@ -570,6 +575,7 @@ void MainWindow::fitCanvas()
 void MainWindow::setGanttView(QGraphicsView* view) {
     // 同一指针重复调用或误传画布/空指针：无操作（评审指出重复调用会deleteLater后悬空）
     if (view == nullptr || view == m_ganttPage || view == m_view) return;
+    view->installEventFilter(this);
     view->viewport()->installEventFilter(this);
     if (auto *gantt = qobject_cast<GanttView *>(view))
         connect(gantt, &GanttView::taskDatesEdited, this,
@@ -584,13 +590,13 @@ void MainWindow::setGanttView(QGraphicsView* view) {
                             const auto result = TaskCommands(m_commands, m_doc).updateTask(changed);
                             if (const auto *error = std::get_if<AppError>(&result))
                             {
-                                gantt->setTasks(visibleGanttTasks());
+                                gantt->setTasksAndImages(visibleGanttTasks(), activeImages());
                                 showNotice(this, QMessageBox::Warning,
                                            QStringLiteral("无法修改排期"), error->message);
                             }
                             return;
                         }
-                    gantt->setTasks(visibleGanttTasks());
+                    gantt->setTasksAndImages(visibleGanttTasks(), activeImages());
                 });
     // 替换甘特页内容：移除旧页（占位或旧视图）后插入新视图，页序保持不变
     const int ganttIndex = m_centralStack->indexOf(m_ganttPage);
@@ -685,6 +691,8 @@ void MainWindow::writeRecoverySnapshot() {
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
+    if (handleImageEvent(watched, event) || handleCanvasContextMenu(watched, event))
+        return true;
     if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage);
         gantt && watched == gantt->viewport() && event->type() == QEvent::MouseButtonPress)
     {
@@ -701,72 +709,8 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     }
     if (handleFlowEvent(watched, event))
         return true;
-    if (watched == m_view->viewport() && event->type() == QEvent::Leave)
-        m_dragNodeId.clear(); // 离开画布即取消，不能让下次释放沿用旧的拖动源。
-    if (watched == m_view->viewport() && event->type() == QEvent::MouseMove &&
-        !m_dragNodeId.isEmpty())
-    {
-        const auto *mouse = static_cast<QMouseEvent *>(event);
-        if (!(mouse->buttons() & Qt::LeftButton))
-        {
-            m_dragNodeId.clear();
-            return QMainWindow::eventFilter(watched, event);
-        }
-        if ((mouse->position().toPoint() - m_dragStart).manhattanLength() >=
-            QApplication::startDragDistance())
-            statusBar()->showMessage(
-                QStringLiteral("松开到目标主题上，将作为其子主题；同级排序可在大纲拖到主题前后。"));
+    if (handleCanvasContextMenu(watched, event) || handleTreeCanvasEvent(watched, event))
         return true;
-    }
-    if (watched == m_view->viewport() &&
-        (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonDblClick))
-    {
-        const auto *mouse = static_cast<QMouseEvent *>(event);
-        if (mouse->button() == Qt::LeftButton)
-        {
-            const QPointF position = m_view->mapToScene(mouse->position().toPoint());
-            auto *hit = m_scene->itemAt(position, QTransform());
-            if (hit && hit->data(kTaskBadgeRole).isValid())
-            {
-                m_dragNodeId.clear();
-                editTask(hit->data(kTaskBadgeRole).toString());
-                return true;
-            }
-            if (const auto *item = owningNode(hit))
-            {
-                const ID nodeId = item->nodeId();
-                m_dragNodeId = nodeId;
-                m_dragStart = mouse->position().toPoint();
-                selectNode(nodeId);
-                m_view->setFocus();
-                if (event->type() == QEvent::MouseButtonDblClick)
-                {
-                    m_dragNodeId.clear();
-                    renameSelectedNode();
-                }
-                return true;
-            }
-        }
-    }
-    if (watched == m_view->viewport() && event->type() == QEvent::MouseButtonRelease)
-    {
-        const auto *mouse = static_cast<QMouseEvent *>(event);
-        const ID dragged = m_dragNodeId;
-        m_dragNodeId.clear();
-        if (mouse->button() == Qt::LeftButton && !dragged.isEmpty() &&
-            (mouse->position().toPoint() - m_dragStart).manhattanLength() >=
-                QApplication::startDragDistance())
-        {
-            if (const auto *target = owningNode(
-                    m_scene->itemAt(m_view->mapToScene(mouse->position().toPoint()), QTransform())))
-                if (target->nodeId() != dragged)
-                {
-                    moveSelection(dragged, target->nodeId());
-                    return true;
-                }
-        }
-        syncCanvasSelection();
-    }
     // 只处理大纲/画布，文本对话框和输入法预编辑不经过此入口。
     if ((watched == m_outline || watched == m_view || watched == m_view->viewport()) &&
         event->type() == QEvent::KeyPress)
@@ -1743,6 +1687,7 @@ void MainWindow::applyOutlineTagFilter()
 
 void MainWindow::selectNode(const ID &nodeId)
 {
+    m_selectedImageId.clear();
     const TreeSheet *sheet = activeTreeSheet();
     const FlowSheet *flow = activeFlowSheet();
     if ((!sheet || !sheet->nodes.contains(nodeId)) && (!flow || !flow->nodes.contains(nodeId)))
@@ -1778,12 +1723,34 @@ void MainWindow::selectNode(const ID &nodeId)
 
 void MainWindow::syncCanvasSelection()
 {
+    if (!m_selectedImageId.isEmpty())
+    {
+        bool found = false;
+        for (const auto &image : activeImages())
+            found |= image.id == m_selectedImageId;
+        if (found)
+        {
+            m_selectedNodeId.clear();
+            m_multiSelection.clear();
+            m_selectedFlowEdge.clear();
+        }
+        else
+            m_selectedImageId.clear();
+    }
     for (auto it = m_nodeItems.constBegin(); it != m_nodeItems.constEnd(); ++it)
     {
-        it.value()->setSelected(it.key() == m_selectedNodeId);
+        it.value()->setSelected(it.key() == m_selectedNodeId ||
+                                m_multiSelection.contains(it.key()));
         it.value()->setCutPending(it.key() == m_cutNodeId &&
                                   m_cutRevision == m_doc->sessionRevision());
     }
+    for (auto *image : m_scene->items())
+        if (image->data(0x21C6).isValid())
+            image->setSelected(image->data(0x21C6).toString() == m_selectedImageId);
+    if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
+        for (auto *image : gantt->scene()->items())
+            if (image->data(0x21C6).isValid())
+                image->setSelected(image->data(0x21C6).toString() == m_selectedImageId);
     const TreeSheet *sheet = activeTreeSheet();
     const bool nonRoot = sheet != nullptr && sheet->nodes.contains(m_selectedNodeId) &&
                          m_selectedNodeId != sheet->rootId;
@@ -1825,6 +1792,8 @@ void MainWindow::syncCanvasSelection()
 
 void MainWindow::focusSelectedNode()
 {
+    if (m_keepCanvasView)
+        return;
     if (NodeItem *item = m_nodeItems.value(m_selectedNodeId, nullptr))
         m_view->ensureVisible(item, 48, 48);
 }
@@ -1840,7 +1809,12 @@ void MainWindow::rebuildCanvas() {
         if (const auto *flow = activeFlowSheet())
             rebuildFlowCanvas(*flow);
         syncCanvasSelection();
-        m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
+        m_scene->setSceneRect(
+            m_scene->itemsBoundingRect()
+                .adjusted(-80, -80, 80, 80)
+                .united(m_keepCanvasView
+                            ? m_view->mapToScene(m_view->viewport()->rect()).boundingRect()
+                            : QRectF()));
         return;
     }
     TreeSheet display = *sheet;
@@ -1860,7 +1834,7 @@ void MainWindow::rebuildCanvas() {
         const NodeStyle style = NodeItem::resolvedStyle(display.defaultNodeStyle, it.value().style);
         const NodeItem measured(NodeItem::displayTitle(it.value()),
                                 NodeItem::styledFont(canvasFont(), style), nullptr,
-                                it.value().iconId.value_or(QString()), style);
+                                it.value().iconId.value_or(QString()), style, it.value().imagePng);
         const QRectF bounds = measured.boundingRect();
         sizes.append({it.key(), bounds.width(), bounds.height()});
     }
@@ -1888,7 +1862,8 @@ void MainWindow::rebuildCanvas() {
         if (const auto *error = std::get_if<AppError>(&tree))
             layoutError = *error;
         else
-            positions = std::get<QVector<TreeLayout::NodePosition>>(tree);
+            positions = TreeLayout::withManualPositions(
+                display, std::get<QVector<TreeLayout::NodePosition>>(tree));
     }
     if (layoutError.has_value())
     {
@@ -1897,7 +1872,12 @@ void MainWindow::rebuildCanvas() {
                                                                : QStringLiteral("无法显示导图"),
                                                       layoutError->message),
                          canvasFont());
-        m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
+        m_scene->setSceneRect(
+            m_scene->itemsBoundingRect()
+                .adjusted(-80, -80, 80, 80)
+                .united(m_keepCanvasView
+                            ? m_view->mapToScene(m_view->viewport()->rect()).boundingRect()
+                            : QRectF()));
         return;
     }
     for (const auto &position : positions)
@@ -1906,8 +1886,9 @@ void MainWindow::rebuildCanvas() {
         const NodeStyle style = NodeItem::resolvedStyle(display.defaultNodeStyle, node.style);
         auto *item =
             new NodeItem(NodeItem::displayTitle(node), NodeItem::styledFont(canvasFont(), style),
-                         nullptr, node.iconId.value_or(QString()), style);
+                         nullptr, node.iconId.value_or(QString()), style, node.imagePng);
         item->setNodeId(position.id);
+        item->enableAddHandle();
         if (node.provenance)
             item->setToolTip(
                 QStringLiteral("<span>AI生成 · 模型：%1 · 来源材料：%2</span>")
@@ -1917,32 +1898,14 @@ void MainWindow::rebuildCanvas() {
         m_scene->addItem(item);
         m_nodeItems.insert(position.id, item);
     }
-    if (fishbone)
-        addFishboneEdges(display);
-    for (auto it = m_nodeItems.constBegin(); !fishbone && it != m_nodeItems.constEnd(); ++it)
-    {
-        const auto parentId = display.nodes.value(it.key()).parentId;
-        if (!parentId.has_value() || !m_nodeItems.contains(*parentId))
-            continue;
-        const NodeItem *parent = m_nodeItems.value(*parentId);
-        const NodeItem *child = it.value();
-        const bool right = child->pos().x() >= parent->pos().x();
-        const QPointF start = parent->mapToScene(parent->horizontalAnchor(right));
-        const QPointF end = child->mapToScene(child->horizontalAnchor(!right));
-        const qreal middleX = (start.x() + end.x()) / 2;
-        QPainterPath path(start);
-        path.cubicTo(QPointF(middleX, start.y()), QPointF(middleX, end.y()), end);
-        QPen edgePen(QColor(display.defaultEdgeStyle.color), display.defaultEdgeStyle.width);
-        if (display.defaultEdgeStyle.dashed)
-            edgePen.setStyle(Qt::DashLine);
-        auto *edge = m_scene->addPath(path, edgePen);
-        edge->setZValue(-1);
-        edge->setAcceptedMouseButtons(Qt::NoButton);
-    }
-    addDecorations(display);
+    drawTreeLinks(display);
     addTaskBadges();
     syncCanvasSelection();
-    m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
+    m_scene->setSceneRect(
+        m_scene->itemsBoundingRect()
+            .adjusted(-80, -80, 80, 80)
+            .united(m_keepCanvasView ? m_view->mapToScene(m_view->viewport()->rect()).boundingRect()
+                                     : QRectF()));
     focusSelectedNode();
 }
 
@@ -2042,8 +2005,20 @@ void MainWindow::addFishboneEdges(const TreeSheet &display)
 }
 
 void MainWindow::onDocumentChanged() {
+    m_dragNodeId.clear();
+    m_treeDragOrigins.clear();
+    m_dragImageId.clear();
+    m_pendingRelation.clear();
     const QScopedValueRollback<bool> refreshing(m_refreshingViews, true);
     const bool sameSheet = m_outlineSheetId == m_doc->project().activeSheetId;
+    if (!sameSheet)
+        m_multiSelection.clear();
+    else if (const auto *tree = activeTreeSheet())
+        for (auto it = m_multiSelection.begin(); it != m_multiSelection.end();)
+            if (!tree->nodes.contains(*it))
+                it = m_multiSelection.erase(it);
+            else
+                ++it;
     if (!sameSheet)
         m_ganttTaskLocation = false;
     const auto previousAnnotations = m_annotationMembers;
@@ -2066,7 +2041,9 @@ void MainWindow::onDocumentChanged() {
     if (!m_cutNodeId.isEmpty() && m_cutRevision != m_doc->sessionRevision())
         m_editorNote += QStringLiteral(" 剪切标记因源修订变化已失效，请重新剪切。");
     if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage))
-        gantt->setTasks(visibleGanttTasks());
+        gantt->setTasksAndImages(visibleGanttTasks(), activeImages());
+    // 甘特重建会创建新的图片图元，最后再恢复统一选择与缩放手柄。
+    syncCanvasSelection();
     refreshOfflineViews();
     updateStatusLine();
     // 标题栏显示文件基名（有路径时）或工程标题；打开文件后用户看到的是自己认识的文件名
