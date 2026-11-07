@@ -428,13 +428,16 @@ bool MainWindow::handleCanvasContextMenu(QObject *watched, QEvent *event)
     {
         const ID sheetId = tree->id,
                  parent = tree->nodes.contains(m_selectedNodeId) ? m_selectedNodeId : tree->rootId;
-        menu.addAction(QStringLiteral("在此新建子主题"),
-                       [this, sheetId, parent, position, report]
+        const bool automatic = tree->kind == QStringLiteral("fishbone");
+        const std::optional<QPointF> placed =
+            automatic ? std::nullopt : std::optional<QPointF>(position);
+        menu.addAction(automatic ? QStringLiteral("新建子主题（自动排布）")
+                                 : QStringLiteral("在此新建子主题"),
+                       [this, sheetId, parent, placed, report]
                        {
                            const auto result =
                                NodeCommands(m_commands, m_doc)
-                                   .addChild(sheetId, parent, QStringLiteral("未命名主题"),
-                                             position);
+                                   .addChild(sheetId, parent, QStringLiteral("未命名主题"), placed);
                            report(result);
                            if (const auto *id = std::get_if<ID>(&result))
                                selectNewNode(*id);

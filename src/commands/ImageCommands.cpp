@@ -72,7 +72,8 @@ std::variant<ID, AppError> ImageCommands::add(const ID &sheetId, const QString &
     CanvasImage item;
     item.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     item.position = position;
-    item.size = image.size().scaled(320, 220, Qt::KeepAspectRatio);
+    const auto fitted = image.size().scaled(320, 220, Qt::KeepAspectRatio);
+    item.size = QSizeF(qMax(1, fitted.width()), qMax(1, fitted.height()));
     item.imagePng = png;
     sheet->images.append(item);
     if (ProjectJson::toBytes(p).size() > Limits::kMaxFileBytes)

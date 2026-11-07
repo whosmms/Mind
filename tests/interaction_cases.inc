@@ -529,4 +529,13 @@ void TstUi::quickMouseRelationsGroupsAndImagePicker()
         for (int x = 0; x < output.width(); ++x)
             green += output.pixelColor(x, y) == QColor("#4A9E83");
     QVERIFY(green > 1000);
+    loadEditorFixture(window, ProjectFactory::createFishbone(QStringLiteral("鱼骨快捷添加")));
+    window.findChild<QAction *>("fitTopic")->trigger();
+    const auto fish = std::get<TreeSheet>(doc->project().sheets.first());
+    contextAction(window, view, view->viewport()->rect().topRight() + QPoint(-20, 20),
+                  "createTopicHere");
+    const auto after = std::get<TreeSheet>(doc->project().sheets.first());
+    QCOMPARE(after.nodes.size(), fish.nodes.size() + 1);
+    for (const auto &added : after.nodes)
+        QVERIFY(!added.manualPosition.has_value());
 }

@@ -258,6 +258,19 @@ void TstCanvas::imageImportAndStrictRoundTrip()
     sheets[0] = sheet;
     invalid["sheets"] = sheets;
     QVERIFY(std::holds_alternative<AppError>(ProjectJson::fromObject(invalid)));
+    for (const QSize dimension : {QSize(1, 1024), QSize(1024, 1)})
+    {
+        QImage narrow(dimension, QImage::Format_ARGB32);
+        narrow.fill(Qt::green);
+        const auto local = files.filePath(QStringLiteral("细长-%1.png").arg(dimension.width()));
+        QVERIFY(narrow.save(local));
+        const auto normalized = ImageService::importFile(local);
+        QVERIFY(std::holds_alternative<QString>(normalized));
+        const auto inserted = commands.add(tree.id, std::get<QString>(normalized), {});
+        QVERIFY(std::holds_alternative<ID>(inserted));
+        const auto display = std::get<TreeSheet>(doc.project().sheets.first()).images.last().size;
+        QVERIFY(display.width() >= 1 && display.height() >= 1);
+    }
 }
 void TstCanvas::allTemplates_data()
 {

@@ -59,6 +59,8 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
     QSize picture = m_image.size();
     if (!m_image.isNull() && (picture.width() > width - kNodePadding * 2 || picture.height() > 140))
         picture = picture.scaled(int(width - kNodePadding * 2), 140, Qt::KeepAspectRatio);
+    if (!m_image.isNull())
+        picture = QSize(qMax(1, picture.width()), qMax(1, picture.height()));
     const qreal height =
         textHeight + kNodePadding * 2 + (m_image.isNull() ? 0 : picture.height() + 8);
     m_rect = QRectF(-width / 2, -height / 2, width, height);
