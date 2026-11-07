@@ -235,3 +235,10 @@ DPI图片未展示系统设置百分比，三档数值依据甲对100%/125%/150%
 操作前本地分支fix/a/S01-recovery-review、提交bfaf78f，源码与已自动验证dc580f9一致；图片不带二进制SHA。
 [五图及边界说明](evidence/20261025-恢复快照人工验收/README.md)。不重复声称原自动脚本覆盖了真实结束进程；甲自动复核记录现为INT-20261025-002，本次人工为INT-003。
 本轮只有文档与图片，无源码/工具/构建变化，未重新运行测试。无Qt电脑跨机仍按IF-005暂缓、未通过。
+
+## 单人候选打包工具补记（2026-11-07，H044）
+
+- Qt6.8.3、MinGW13.1.0、CMake3.30.5、Ninja1.12.1保持原冻结版本；新增Windows图标由同Kit已有GNU windres2.39编译，不加Svg模块。
+- 本机新准备Inno Setup6.7.4便携编译器，路径D:/mind/.tools/InnoSetup-6.7.4；官方安装器SHA256/signature见third-party与工具来源.json。以PORTABLE/CURRENTUSER/NOICONS方式准备，临时文件和工具目录均在D:/mind内，未注册系统关联或改Qt Kit。
+- 最新开发入口用WindowsPowerShell实测校验；显式UTF8读取中文JSON、.NET SHA256及有BOM脚本，避免依赖宿主PSModulePath中的Get-FileHash。开发打包/自动验证在本机既有开发终端执行，不将“另一台Windows”写成本机结果。
+- H044原生程序与安装器自动验证均使用D:/mind隔离资料根，运行库来源由逐项SHA256和进程模块核对；工具专项和QtTest套件计数分开。

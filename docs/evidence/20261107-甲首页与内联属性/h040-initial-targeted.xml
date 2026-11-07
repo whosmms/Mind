@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstUi">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.1866"/>
+  </TestFunction>
+  <TestFunction name="inlineStyleKeepsUneditedValues">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[normal]]></DataTag>
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ui.cpp" line="5185">
+      <DataTag><![CDATA[normal]]></DataTag>
+      <Description><![CDATA['!window.findChild<QLabel *>("inlineStyleError")->text().isEmpty()' returned FALSE. ()]]></Description>
+    </Incident>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ui.cpp" line="5185">
+      <DataTag><![CDATA[explicit-empty]]></DataTag>
+      <Description><![CDATA['!window.findChild<QLabel *>("inlineStyleError")->text().isEmpty()' returned FALSE. ()]]></Description>
+    </Incident>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ui.cpp" line="5185">
+      <DataTag><![CDATA[spaces]]></DataTag>
+      <Description><![CDATA['!window.findChild<QLabel *>("inlineStyleError")->text().isEmpty()' returned FALSE. ()]]></Description>
+    </Incident>
+    <Duration msecs="339.985"/>
+  </TestFunction>
+  <TestFunction name="inlineMetadataAndDraftIsolation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="65.8095"/>
+  </TestFunction>
+  <TestFunction name="homeNavigationKeepsEditorState">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="394.318"/>
+  </TestFunction>
+  <TestFunction name="homeTemplates">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[mindmap]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[fishbone]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flowchart]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[gantt]]></DataTag>
+    </Incident>
+    <Duration msecs="491.022"/>
+  </TestFunction>
+  <TestFunction name="homeRecentsAndCancelProtectContent">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_ui.cpp" line="5332">
+      <Description><![CDATA['window.findChild<HomePage *>()->isVisible()' returned FALSE. ()]]></Description>
+    </Incident>
+    <Duration msecs="117.262"/>
+  </TestFunction>
+  <TestFunction name="homeRecoveryReturnsToEditor">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="101.553"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0071"/>
+  </TestFunction>
+  <Duration msecs="1614.94"/>
+</TestCase>

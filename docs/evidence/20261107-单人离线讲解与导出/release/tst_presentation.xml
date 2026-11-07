@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstPresentation">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1215"/>
+  </TestFunction>
+  <TestFunction name="defaultOrderAndMissingSteps">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1241"/>
+  </TestFunction>
+  <TestFunction name="routeTransactionAndRoundTrip">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="12.4445"/>
+  </TestFunction>
+  <TestFunction name="rejectsInvalidRoute">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1957"/>
+  </TestFunction>
+  <TestFunction name="navigationAndPauseAreReadOnly">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="98.697"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0128"/>
+  </TestFunction>
+  <Duration msecs="113.903"/>
+</TestCase>

@@ -7,5 +7,6 @@
     <file>icons/idea.png</file>
     <file>icons/star.png</file>
     <file>icons/check.png</file>
+    <file>icons/app.png</file>
   </qresource>
 </RCC>

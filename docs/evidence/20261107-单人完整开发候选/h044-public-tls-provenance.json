@@ -1,0 +1,25 @@
+{
+  "toolCommit": "ecd8e2ef80a9806eea9a1159e604901ef36818b5",
+  "toolSourceSha256": "BF9A8F7D3C86494E1C297CF7AA916BD2A82B42EE0016D5A32D974D5DFA289F0A",
+  "toolBinarySha256": "714D3444DA2A02EC3C29F7D9C797819E0050BA263C476D193B04CB127BAC55F0",
+  "applicationSourceCommit": "59c8381ca7c621e9ff5813726ab858074d9c2c86",
+  "notCountedAsQtTest": true,
+  "publicHttps": {
+    "availableBackends": [
+      "cert-only",
+      "schannel"
+    ],
+    "backend": "schannel",
+    "backendSelected": true,
+    "endpoint": "https://www.qt.io/",
+    "httpStatus": 200,
+    "loadedTlsPlugin": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\tls\\qschannelbackend.dll",
+    "networkError": 0,
+    "qtVersion": "6.8.3",
+    "sslErrors": 0,
+    "success": true,
+    "timedOut": false,
+    "usesApiKey": false
+  },
+  "metadataWrittenAfterRestoringShellPath": true
+}

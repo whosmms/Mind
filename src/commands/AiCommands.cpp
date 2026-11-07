@@ -1,4 +1,5 @@
 #include "commands/AiCommands.h"
+#include "ai/AiMaterial.h"
 #include "commands/CommandService.h"
 #include "document/ProjectDocument.h"
 #include "domain/Limits.h"
@@ -321,6 +322,7 @@ std::variant<ID, AppError> AiCommands::saveDraft(const DraftProposal& proposal,
     draft.sourceSheetId = sourceSheetId;
     draft.title = title;
     draft.sourceRevision = sourceRevision >= 0 ? sourceRevision : m_document->sessionRevision();
+    draft.sourceHash = AiMaterial::treeHash(*tree);
     draft.purpose = normalizedPurpose;
     draft.sections = sections;
     draft.createdAt = QDateTime::currentDateTimeUtc();

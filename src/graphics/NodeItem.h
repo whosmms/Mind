@@ -18,6 +18,7 @@ public:
   // 渲染副本中合并默认值与局部覆盖，不回写领域数据。
   static NodeStyle resolvedStyle(const NodeStyle &defaults, const NodeStyleOverride &override);
   static QFont styledFont(const QFont &fallback, const NodeStyle &style);
+  static QString displayTitle(const BaseNode &node);
 
   // 仅识别内置ID，未知值不作为文件/网络路径读取。
   static QIcon iconForId(const QString &id);
@@ -33,8 +34,11 @@ public:
   QString nodeId() const;
   QRectF nodeRect() const;
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+  // 与画布同一绘制函数，但不带选择/剪切标记，供只读导出使用。
+  void paintSnapshot(QPainter *painter) const;
 
 private:
+    void paintContent(QPainter *painter, bool selected, bool cutPending) const;
     QString m_title;
     QString m_nodeId;
     QFont m_font;

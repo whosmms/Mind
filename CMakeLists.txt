@@ -44,6 +44,10 @@ add_library(lingya_core STATIC
     src/features/ReviewService.cpp
     src/features/ReviewSession.h
     src/features/ReviewSession.cpp
+    src/features/PresentationController.h
+    src/features/PresentationController.cpp
+    src/features/SearchService.h
+    src/features/SearchService.cpp
     src/layout/TreeLayout.h
     src/layout/TreeLayout.cpp
     src/layout/FlowLayout.h
@@ -79,7 +83,17 @@ add_library(lingya_appcore STATIC
     src/commands/AiCommands.cpp
     src/commands/ReviewCommands.h
     src/commands/ReviewCommands.cpp
+    src/commands/PresentationCommands.h
+    src/commands/PresentationCommands.cpp
+    src/commands/DraftCommands.h
+    src/commands/DraftCommands.cpp
+    src/services/ExportService.h
+    src/services/ExportService.cpp
+    src/services/AppearanceService.h
+    src/services/AppearanceService.cpp
     src/ai/AiTypes.h
+    src/ai/AiMaterial.h
+    src/ai/AiMaterial.cpp
     src/ai/IAiProvider.h
     src/ai/FakeAiProvider.h
     src/ai/FakeAiProvider.cpp
@@ -121,6 +135,15 @@ add_executable(lingya
     src/app/MainWindow.h
     src/app/MainWindow.cpp
     src/app/MainWindowChrome.cpp
+    src/app/MainWindowHome.cpp
+    src/app/MainWindowProperties.cpp
+    src/app/MainWindowExport.cpp
+    src/app/MainWindowPresentation.cpp
+    src/app/MainWindowAi.cpp
+    src/app/MainWindowPreferences.cpp
+    src/app/MainWindowSearch.cpp
+    src/ui/HomePage.h
+    src/ui/HomePage.cpp
     src/app/MainWindowFlow.cpp
     src/app/MainWindowOffline.cpp
     src/app/RecoveryDialog.h
@@ -140,10 +163,19 @@ if(MSVC)
     target_compile_options(lingya PRIVATE /utf-8)
 endif()
 if(WIN32)
+    enable_language(RC)
+    configure_file(resources/lingya.rc.in ${CMAKE_CURRENT_BINARY_DIR}/lingya.rc @ONLY)
+    target_sources(lingya PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/lingya.rc)
     set_target_properties(lingya PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
 # 测试：tst_domain与tst_projectjson只依赖核心库；tst_commands依赖应用支持层
+add_executable(lingya_project_check tools/check_projects.cpp)
+target_link_libraries(lingya_project_check PRIVATE lingya_appcore)
+if(MSVC)
+    target_compile_options(lingya_project_check PRIVATE /utf-8)
+endif()
+
 enable_testing()
 if(BUILD_TESTING)
     add_subdirectory(tests)

@@ -1,0 +1,309 @@
+Inno Setup 6 Command-Line Compiler
+Copyright (C) 1997-2026 Jordan Russell. All rights reserved.
+Portions Copyright (C) 2000-2026 Martijn Laan. All rights reserved.
+Portions Copyright (C) 2001-2004 Alex Yackimoff. All rights reserved.
+https://www.innosetup.com
+
+Compiler engine version: Inno Setup 6.7.4
+Non-commercial use only
+
+Preprocessing
+   Reading file: D:\mind\.tools\InnoSetup-6.7.4\ISPPBuiltins.iss
+Parsing [Setup] section, line 16
+Parsing [Setup] section, line 17
+Parsing [Setup] section, line 18
+Parsing [Setup] section, line 19
+Parsing [Setup] section, line 20
+Parsing [Setup] section, line 21
+Parsing [Setup] section, line 22
+Parsing [Setup] section, line 23
+Parsing [Setup] section, line 24
+Parsing [Setup] section, line 25
+Parsing [Setup] section, line 26
+Parsing [Setup] section, line 27
+Parsing [Setup] section, line 28
+Parsing [Setup] section, line 29
+Parsing [Setup] section, line 30
+Parsing [Setup] section, line 31
+Parsing [Setup] section, line 32
+Parsing [Setup] section, line 33
+Parsing [Setup] section, line 34
+Parsing [Setup] section, line 35
+Parsing [Setup] section, line 36
+Parsing [Setup] section, line 37
+Parsing [Setup] section, line 38
+Parsing [Setup] section, line 39
+Parsing [Setup] section, line 40
+Parsing [Setup] section, line 41
+Parsing [Setup] section, line 42
+Reading file (InfoBeforeFile)
+Reading file (WizardImageFile)
+Reading file (WizardSmallImageFile)
+Preparing Setup program executable
+   Verification successful
+   Updating icons (Setup.e32)
+   Updating version info (Setup.e32)
+Determining language code pages
+Parsing [Languages] section, line 45
+   Reading file: D:\mind\.worktrees\gantt-review\packaging\Languages\ChineseSimplified.isl
+   Messages in script file
+Reading default messages from Default.isl
+Parsing [Languages] section, line 45
+   Reading file: D:\mind\.worktrees\gantt-review\packaging\Languages\ChineseSimplified.isl
+Parsing [LangOptions], [Messages], and [CustomMessages] sections
+   Messages in script file
+Reading [Code] section
+Parsing [Tasks] section, line 48
+Parsing [Icons] section, line 55
+Parsing [Icons] section, line 56
+Parsing [Run] section, line 59
+Parsing [Files] section, line 51
+Parsing [Files] section, line 52
+Compiling [Code] section
+Creating setup files
+   Verification successful
+   Updating icons (Setup.exe)
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\候选程序校验.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\分发文件校验.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\源码与构建资料-ecd8e2e.zip
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\libgcc_s_seh-1.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\libstdc++-6.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\libwinpthread-1.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\lingya.exe
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\qt.conf
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\Qt6Core.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\Qt6Gui.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\Qt6Network.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\Qt6Widgets.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\generic\qtuiotouchplugin.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\imageformats\qgif.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\imageformats\qico.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\imageformats\qjpeg.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\networkinformation\qnetworklistmanager.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\platforms\qwindows.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\styles\qmodernwindowsstyle.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\tls\qcertonlybackend.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\program\tls\qschannelbackend.dll
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\01-basic.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\02-delete-impact.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\03-hundred-nodes.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\04-collapsed.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\05-flow.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\06-offline.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\07-gantt-filter.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\08-跨表保留学习记录_导图.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\09-跨表保留学习记录_鱼骨.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\10-讲解路线阻断.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\11-文稿引用阻断.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\12-AI导图_假响应.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\样例\13-AI文稿_假响应.lingya
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\GCC-GPL-3.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\GCC-Runtime-Library-Exception-3.1.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\InnoSetup-LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\winpthreads-COPYING.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\依赖与来源说明.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\安装器语言来源.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\来源与校验.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\cmake\3rdparty\extra-cmake-modules\COPYING-CMAKE-SCRIPTS
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\cmake\3rdparty\extra-cmake-modules\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\cmake\3rdparty\kwin\COPYING-CMAKE-SCRIPTS
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\cmake\3rdparty\kwin\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\AFL-2.1.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Apache-2.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Bitstream-Vera.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\blessing.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\BSD-2-Clause.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\BSD-3-Clause.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\BSD-4-Clause.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\BSL-1.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\CC0-1.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\FTL.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\GFDL-1.3-no-invariants-only.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\GPL-2.0-only.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\GPL-2.0-or-later.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\GPL-3.0-only.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\HPND.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\IJG.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Imlib2.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\IPL-1.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\LGPL-3.0-only.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\libpng-2.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Libpng.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\LicenseRef-ICC-License.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\LicenseRef-Lcs-Telegraphics.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\LicenseRef-Qt-Commercial.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\LicenseRef-SHA1-Public-Domain.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Linux-syscall-note.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\MIT-Khronos-old.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\MIT-open-group.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\MIT.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\MPL-2.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Qt-GPL-exception-1.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\SPL-1.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Unicode-3.0.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\X11.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Xerox.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\LICENSES\Zlib.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\android\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\android\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\blake2\COPYING
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\blake2\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\D3D12MemoryAllocator\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\D3D12MemoryAllocator\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\double-conversion\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\double-conversion\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\easing\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\easing\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\forkfd\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\forkfd\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\freetype\BDF-LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\freetype\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\freetype\PCF-LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\freetype\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\freetype\ZLIB-LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\gradle\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\gradle\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\harfbuzz-ng\COPYING
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\harfbuzz-ng\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\iaccessible2\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\iaccessible2\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\icc\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\icc\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\libjpeg\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\libpng\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\libpng\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\libpsl\PSL-LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\libpsl\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\libpsl\src\LICENSE.chromium
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\md4\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\md4c\LICENSE.md
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\md4c\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\md5\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\pcre2\LICENCE-SLJIT
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\pcre2\LICENCE.md
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\pcre2\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\pixman\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\pixman\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\rfc6234\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\rfc6234\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\sha1\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\sha3\BRG_ENDIAN_LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\sha3\CC0_LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\sha3\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\siphash\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\sqlite\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\tinycbor\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\tinycbor\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\VulkanMemoryAllocator\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\VulkanMemoryAllocator\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\wasm\DEJAVU-LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\wasm\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\wintab\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\xcb\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\xcb\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\zlib\LICENSE
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\3rdparty\zlib\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\corelib\kernel\QEVENTDISPATCHER_CF_LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\corelib\kernel\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\corelib\mimetypes\3rdparty\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\corelib\text\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\dbus\LIBDBUS-1-LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\dbus\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\opengl\KHRONOS_LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\opengl\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\painting\QIMAGETRANSFORM_LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\painting\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\painting\XCONSORTIUM_LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\rhi\MiniEngine_LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\rhi\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\text\AGLFN_LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\text\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\vulkan\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\gui\vulkan\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\plugins\platforms\cocoa\COCOA_LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\plugins\platforms\cocoa\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testinternal\3rdparty\cmake\Copyright.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testinternal\3rdparty\cmake\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testlib\3rdparty\catch2\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testlib\3rdparty\catch2\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testlib\3rdparty\cycle\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testlib\3rdparty\cycle\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testlib\3rdparty\linux\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testlib\3rdparty\linux\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testlib\3rdparty\valgrind\LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\src\testlib\3rdparty\valgrind\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\util\gradientgen\qt_attribution.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\许可证\qtbase\util\gradientgen\WEBGRADIENTS_LICENSE.txt
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\third-party.md
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\最终统一验收.md
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\演示顺序.md
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\用户使用说明.md
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\自动验证报告.md
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\validation.json
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_ai.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_aicommands.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_aicompletion.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_aipanel.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_appearance.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_charts.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_check.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_checkassistant.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_commands.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_deepseekclient.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_domain.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_export.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_fileservice.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_flow.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_ganttview.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_layout.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_nodecommands.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_presentation.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_projectjson.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_promptlibrary.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_recovery.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_review.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_reviewcommands.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_reviewpage.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_search.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_secret.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_session.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_tasks.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\debug\tst_ui.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_ai.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_aicommands.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_aicompletion.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_aipanel.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_appearance.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_charts.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_check.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_checkassistant.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_commands.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_deepseekclient.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_domain.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_export.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_fileservice.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_flow.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_ganttview.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_layout.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_nodecommands.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_presentation.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_projectjson.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_promptlibrary.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_recovery.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_review.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_reviewcommands.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_reviewpage.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_search.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_secret.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_session.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_tasks.xml
+   Compressing: D:\mind\候选版本\完整开发版_20261107_59c8381\分发内容\说明\测试证据\release\tst_ui.xml
+   Compressing: D:\mind\.worktrees\gantt-review\packaging\install-marker.txt
+   Compressing Setup program executable
+   Updating version info (Setup.exe)
+   Updating manifest (Setup.exe)
+
+
+Successful compile (9.219 sec). Resulting Setup program filename is:
+D:\mind\候选版本\完整开发版_20261107_59c8381\安装包与便携包\LingyaMind-Dev-59c8381-Setup.exe

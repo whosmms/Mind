@@ -6,6 +6,7 @@
 #include <QFontMetricsF>
 #include <QGraphicsItem>
 #include <QGraphicsScene>
+#include <QGraphicsSimpleTextItem>
 #include <QGraphicsTextItem>
 #include <QMouseEvent>
 #include <QPainter>
@@ -137,6 +138,7 @@ void GanttView::rebuild() {
     // 保留m_dragItem会成为野指针，下一次鼠标移动就会崩溃，故先复位拖拽状态。
     m_dragMode = DragMode::None;
     m_dragItem = nullptr;
+    m_dragPreview = nullptr;
     m_dragTaskId.clear();
     target->clear();
 
@@ -338,9 +340,42 @@ void GanttView::mouseMoveEvent(QMouseEvent* event) {
     const QDate currentDate = layout.dateForX(qRound(mapToScene(event->pos()).x()), m_rangeStart);
     const int deltaDays = pressDate.daysTo(currentDate);
 
-    // 整体平移时给位移预览；改端只改一端，不做整条位移以免误导
+    // 整体平移保留原位移预览；改端画只读虚线范围，松开后才请求命令提交。
     if (m_dragItem != nullptr) {
-        m_dragItem->setPos(m_dragMode == DragMode::Move ? deltaDays * m_pixelsPerDay : 0.0, 0.0);
+        if (m_dragMode == DragMode::Move)
+        {
+            m_dragItem->setPos(deltaDays * m_pixelsPerDay, 0.0);
+        }
+        else
+        {
+            const auto dates =
+                shiftTaskDates(m_dragOriginalStart, m_dragOriginalEnd, deltaDays,
+                               m_dragMode == DragMode::ResizeStart ? GanttDragMode::ResizeStart
+                                                                   : GanttDragMode::ResizeEnd);
+            if (!m_dragPreview)
+            {
+                m_dragPreview = scene()->addRect(QRectF(), QPen(primaryColor(), 1.5, Qt::DashLine),
+                                                 QBrush(mintAccent()));
+                m_dragPreview->setOpacity(0.9);
+                m_dragPreview->setZValue(10);
+                m_dragPreview->setData(kPreviewDataRole, true);
+                m_dragPreview->setAcceptedMouseButtons(Qt::NoButton);
+                auto *label = new QGraphicsSimpleTextItem(m_dragPreview);
+                label->setBrush(primaryColor());
+                label->setData(kPreviewDataRole, true);
+                label->setAcceptedMouseButtons(Qt::NoButton);
+            }
+            const qreal x = layout.xForDate(dates.start, m_rangeStart);
+            const qreal width = (dates.start.daysTo(dates.end) + 1) * m_pixelsPerDay;
+            const QRectF rect(x, rowTop(rowForTask(m_dragTaskId)), width,
+                              kRowHeight - 2 * kBarMargin);
+            m_dragPreview->setRect(rect);
+            auto *label =
+                static_cast<QGraphicsSimpleTextItem *>(m_dragPreview->childItems().first());
+            label->setText(dates.start.toString("yyyy-MM-dd") + QStringLiteral(" → ") +
+                           dates.end.toString("yyyy-MM-dd"));
+            label->setPos(rect.right() + 8, rect.top());
+        }
     }
     event->accept();
 }

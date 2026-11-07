@@ -263,6 +263,8 @@ QJsonObject writeDraft(const TextDraft& d) {
                   {"sourceRevision", d.sourceRevision},
                   {"purpose", d.purpose},
                   {"createdAt", d.createdAt.toUTC().toString(Qt::ISODateWithMs)}};
+    if (d.sourceHash)
+        j["sourceHash"] = *d.sourceHash;
     j["sections"] = mapArray(d.sections, [](const DraftSection& s) {
         QJsonObject o{{"heading", s.heading}, {"text", s.text}, {"origin", s.origin}};
         o["sourceNodeIds"] = QJsonArray::fromStringList(s.sourceNodeIds);
@@ -766,7 +768,7 @@ PresentationRoute readRoute(const QJsonObject& o, const QString& path, QStringLi
 TextDraft readDraft(const QJsonObject& o, const QString& path, QStringList* es) {
     Reader r(o, path, es);
     r.unknownKeys({"id", "sourceSheetId", "title", "sourceRevision", "purpose", "sections",
-                   "createdAt"});
+                   "createdAt", "sourceHash"});
     TextDraft d;
     d.id = r.uuid("id");
     d.sourceSheetId = r.uuid("sourceSheetId");
@@ -774,6 +776,12 @@ TextDraft readDraft(const QJsonObject& o, const QString& path, QStringList* es) 
     d.sourceRevision = r.integer("sourceRevision", 0, maxJsonInt);
     d.purpose = r.enumVal("purpose", {"summary", "explanation", "speech"});
     d.createdAt = r.dateTime("createdAt");
+    if (o.contains("sourceHash"))
+    {
+        d.sourceHash = r.str("sourceHash");
+        if (!QRegularExpression(QStringLiteral("^[0-9a-f]{64}$")).match(*d.sourceHash).hasMatch())
+            es->append(path + ".sourceHash：须为64位小写十六进制");
+    }
     int i = 0;
     for (const QJsonValue& e : r.array("sections")) {
         const QString sp = path + ".sections[" + QString::number(i++) + "]";

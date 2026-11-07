@@ -2,6 +2,7 @@
 #include "domain/Limits.h"
 #include <QHash>
 #include <QQueue>
+#include <QRegularExpression>
 #include <QSet>
 #include <algorithm>
 #include <functional>
@@ -332,6 +333,11 @@ QVector<AppError> validate(const Project& project) {
     // 文稿：来源工作表必须存在
     for (const TextDraft& draft : project.drafts) {
         claim(draft.id, "文稿");
+        if (draft.sourceHash && !QRegularExpression(QStringLiteral("^[0-9a-f]{64}$"))
+                                     .match(*draft.sourceHash)
+                                     .hasMatch())
+            es << AppError{"DRAFT_SOURCE_HASH",
+                           QStringLiteral("文字稿来源指纹须为64位小写十六进制")};
         if (!sheetIds.contains(draft.sourceSheetId))
             es << AppError{"DRAFT_SHEET", "文稿“" + draft.title + "”的来源工作表不存在"};
     }

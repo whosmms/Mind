@@ -1,0 +1,2 @@
+// 原创嫩芽标识，多尺寸ICO；图形运行时只读取PNG。
+1 ICON "@CMAKE_CURRENT_SOURCE_DIR@/resources/icons/app.ico"

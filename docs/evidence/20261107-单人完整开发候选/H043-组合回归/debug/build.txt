@@ -1,0 +1,59 @@
+[1/36] Automatic MOC for target lingya_appcore
+[2/35] Building CXX object CMakeFiles/lingya_appcore.dir/src/commands/NodeCommands.cpp.obj
+[3/35] Linking CXX static library liblingya_appcore.a
+[4/35] Automatic MOC for target lingya
+[5/34] Automatic MOC for target tst_nodecommands
+[6/33] Automatic MOC for target tst_ui
+[7/32] Building CXX object CMakeFiles/lingya.dir/src/app/MainWindow.cpp.obj
+[8/32] Building CXX object tests/CMakeFiles/tst_ui.dir/tst_ui.cpp.obj
+[9/32] Building CXX object tests/CMakeFiles/tst_ui.dir/__/src/app/MainWindow.cpp.obj
+[10/32] Building CXX object tests/CMakeFiles/tst_nodecommands.dir/tst_nodecommands.cpp.obj
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:952:66: warning: multi-character character constant [-Wmultichar]
+  952 |     update.note = QString(Limits::kNoteMaxChars + 1, QLatin1Char('备'));
+      |                                                                  ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1029:78: warning: multi-character character constant [-Wmultichar]
+ 1029 |     tooLong.tags = QStringList{QString(Limits::kTagMaxChars + 1, QLatin1Char('标'))};
+      |                                                                              ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::updateMetaNoteRejectsOverlong()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:952:66: warning: overflow in conversion from 'int' to 'char' changes value from '15049863' to '-121' [-Woverflow]
+  952 |     update.note = QString(Limits::kNoteMaxChars + 1, QLatin1Char('备'));
+      |                                                                  ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::updateMetaTagsReplaceTrimAndLimits()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1029:78: warning: overflow in conversion from 'int' to 'char' changes value from '15114375' to '-121' [-Woverflow]
+ 1029 |     tooLong.tags = QStringList{QString(Limits::kTagMaxChars + 1, QLatin1Char('标'))};
+      |                                                                              ^~~~
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp: In member function 'void TstNodeCommands::moveSubtreeToSheetKeepsIdsAndSyncsTaskAndCard()':
+D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:2072:72: warning: 'QDateTime::QDateTime(QDate, QTime, Qt::TimeSpec, int)' is deprecated: Pass QTimeZone instead [-Wdeprecated-declarations]
+ 2072 |     const QDateTime reviewed(QDate(2026, 10, 30), QTime(9, 30), Qt::UTC);
+      |                                                                        ^
+In file included from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qcborvalue.h:10,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qcborarray.h:7,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/QtCore:51,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtTest/QtTestDepends:3,
+                 from D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtTest/QtTest:3,
+                 from D:/mind/.worktrees/gantt-review/tests/tst_nodecommands.cpp:1:
+D:/mind/.tools/Qt/6.8.3/mingw_64/include/QtCore/qdatetime.h:359:5: note: declared here
+  359 |     QDateTime(QDate date, QTime time, Qt::TimeSpec spec, int offsetSeconds = 0);
+      |     ^~~~~~~~~
+[11/32] Linking CXX executable lingya_project_check.exe
+[12/32] Linking CXX executable tests\tst_commands.exe
+[13/32] Linking CXX executable tests\tst_tasks.exe
+[14/32] Linking CXX executable lingya.exe
+[15/32] Linking CXX executable tests\tst_nodecommands.exe
+[16/32] Linking CXX executable tests\tst_aicommands.exe
+[17/32] Linking CXX executable tests\tst_charts.exe
+[18/32] Linking CXX executable tests\tst_flow.exe
+[19/32] Linking CXX executable tests\tst_secret.exe
+[20/32] Linking CXX executable tests\tst_ai.exe
+[21/32] Linking CXX executable tests\tst_ganttview.exe
+[22/32] Linking CXX executable tests\tst_reviewpage.exe
+[23/32] Linking CXX executable tests\tst_checkassistant.exe
+[24/32] Linking CXX executable tests\tst_promptlibrary.exe
+[25/32] Linking CXX executable tests\tst_reviewcommands.exe
+[26/32] Linking CXX executable tests\tst_deepseekclient.exe
+[27/32] Linking CXX executable tests\tst_aipanel.exe
+[28/32] Linking CXX executable tests\tst_presentation.exe
+[29/32] Linking CXX executable tests\tst_export.exe
+[30/32] Linking CXX executable tests\tst_aicompletion.exe
+[31/32] Linking CXX executable tests\tst_appearance.exe
+[32/32] Linking CXX executable tests\tst_ui.exe

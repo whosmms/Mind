@@ -39,6 +39,8 @@ private slots:
   void unscheduledListShowsTasks();
   void dragFilledBarMovesWholeBar();
   void dragStartEdgeResizesStart();
+  void resizingPreviewsDatesWithoutEditing_data();
+  void resizingPreviewsDatesWithoutEditing();
   void rebuildDuringDragDropsState();
   void shiftTaskDatesMove();
   void shiftTaskDatesResizeClamps();
@@ -375,6 +377,67 @@ void TstGanttView::dragStartEdgeResizesStart() {
     QCOMPARE(spy.count(), 1);
     QCOMPARE(spy.at(0).at(1).toDate(), QDate(2026, 1, 3));   // 只改起点
     QCOMPARE(spy.at(0).at(2).toDate(), QDate(2026, 1, 9));   // 终点不动
+}
+
+void TstGanttView::resizingPreviewsDatesWithoutEditing_data()
+{
+    QTest::addColumn<bool>("startEdge");
+    QTest::addColumn<int>("deltaDays");
+    QTest::addColumn<QDate>("expectedStart");
+    QTest::addColumn<QDate>("expectedEnd");
+    QTest::newRow("延长开始") << true << -2 << QDate(2026, 1, 3) << QDate(2026, 1, 9);
+    QTest::newRow("结束夹到开始") << false << -5 << QDate(2026, 1, 5) << QDate(2026, 1, 5);
+}
+
+void TstGanttView::resizingPreviewsDatesWithoutEditing()
+{
+    QFETCH(bool, startEdge);
+    QFETCH(int, deltaDays);
+    QFETCH(QDate, expectedStart);
+    QFETCH(QDate, expectedEnd);
+    const Task task =
+        makeTask(QStringLiteral("拖动中只预览"), QDate(2026, 1, 5), QDate(2026, 1, 9));
+    GanttView view;
+    view.resize(1000, 400);
+    view.setTasks({task});
+    view.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+    GanttLayout layout(view.pixelsPerDay());
+    const auto result = layout.compute(view.tasks());
+    const int edgeX = startEdge ? layout.xForDate(*task.startDate, result.rangeStart) + 4
+                                : layout.xForDate(task.endDate->addDays(1), result.rangeStart) - 4;
+    const QPointF sceneEdge(edgeX, 34 + 4 + 10);
+    const QPointF destination = sceneEdge + QPointF(deltaDays * view.pixelsPerDay(), 0);
+    QSignalSpy spy(&view, &GanttView::taskDatesEdited);
+    QTest::mousePress(view.viewport(), Qt::LeftButton, Qt::NoModifier,
+                      viewportPointFor(view, sceneEdge));
+    QTest::mouseMove(view.viewport(), viewportPointFor(view, destination));
+    QGraphicsRectItem *preview = nullptr;
+    for (auto *item : view.scene()->items())
+        if (item->data(GanttView::kPreviewDataRole).isValid())
+            if (auto *rect = dynamic_cast<QGraphicsRectItem *>(item))
+                preview = rect;
+    QVERIFY(preview);
+    QCOMPARE(preview->rect().x(), layout.xForDate(expectedStart, result.rangeStart));
+    QCOMPARE(preview->rect().width(),
+             (expectedStart.daysTo(expectedEnd) + 1) * view.pixelsPerDay());
+    QVERIFY(!preview->childItems().isEmpty());
+    auto *dates = dynamic_cast<QGraphicsSimpleTextItem *>(preview->childItems().first());
+    QVERIFY(dates);
+    QVERIFY(dates->text().contains(expectedStart.toString("yyyy-MM-dd")));
+    QVERIFY(dates->text().contains(expectedEnd.toString("yyyy-MM-dd")));
+    QCOMPARE(view.tasks().first().startDate, task.startDate);
+    QCOMPARE(view.tasks().first().endDate, task.endDate);
+    QCOMPARE(spy.count(), 0);
+    const QString capture = qEnvironmentVariable("LINGYA_GANTT_RESIZE_CAPTURE");
+    if (startEdge && !capture.isEmpty())
+        QVERIFY(view.grab().save(capture));
+    view.setTasks({task});
+    for (auto *item : view.scene()->items())
+        QVERIFY(!item->data(GanttView::kPreviewDataRole).isValid());
+    QTest::mouseRelease(view.viewport(), Qt::LeftButton, Qt::NoModifier,
+                        viewportPointFor(view, destination));
+    QCOMPARE(spy.count(), 0);
 }
 
 void TstGanttView::rebuildDuringDragDropsState() {

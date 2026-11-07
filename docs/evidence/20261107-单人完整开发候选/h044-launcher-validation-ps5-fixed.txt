@@ -1,0 +1,7 @@
+
+sourceCommit                             runtimeFilesVerified candidate                           pullRequest          
+------------                             -------------------- ---------                           -----------          
+59c8381ca7c621e9ff5813726ab858074d9c2c86                   18 D:\mind\候选版本\完整开发版_20261107_59c8381 https://github.com...
+
+
+

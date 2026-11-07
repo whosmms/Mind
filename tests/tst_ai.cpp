@@ -185,6 +185,7 @@ void TstAi::serviceEmitsProposalOnSuccess() {
     QCOMPARE(readySpy.first().at(0).toString(), QStringLiteral("req-ok"));   // 携带 requestId
     QCOMPARE(service.state(), AiService::State::Preview);
     QVERIFY(!service.lastMapProposal().root.title.isEmpty());
+    QCOMPARE(service.lastMapProposal().root.children.first().title, QStringLiteral("需求分析"));
 }
 
 void TstAi::serviceRejectsConcurrentRequest() {

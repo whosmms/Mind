@@ -230,7 +230,7 @@ void MainWindow::rebuildFlowCanvas(const FlowSheet &sheet)
     for (const auto &node : sheet.nodes)
     {
         const auto style = flowStyle(sheet, node);
-        auto *item = new NodeItem(node.title, flowFont(style), nullptr,
+        auto *item = new NodeItem(NodeItem::displayTitle(node), flowFont(style), nullptr,
                                   node.iconId.value_or(QString()), style);
         item->setNodeId(node.id);
         item->setFlag(QGraphicsItem::ItemIsSelectable);
@@ -636,7 +636,7 @@ void MainWindow::layoutFlow()
     for (const auto &node : flow->nodes)
     {
         const auto style = flowStyle(*flow, node);
-        const NodeItem measured(node.title, flowFont(style), nullptr,
+        const NodeItem measured(NodeItem::displayTitle(node), flowFont(style), nullptr,
                                 node.iconId.value_or(QString()), style);
         const auto rect = measured.boundingRect();
         // 四个端口各延伸4px，纳入自动布局间距计算。

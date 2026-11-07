@@ -73,7 +73,7 @@ public:
 // 合法的 X05 导图响应（AiService 会做 schema 校验，必须是真结构）
 QByteArray validMapResponse() {
     const QString content = QStringLiteral(
-        R"({"title":"软件工程流程","root":{"title":"软件工程","note":"","sourceParagraphIds":[],"origin":"source","children":[{"title":"需求分析","note":"","sourceParagraphIds":[],"origin":"source","children":[]}]},"warnings":[]})");
+        R"({"title":"软件工程流程","root":{"title":"软件工程","note":"","sourceParagraphIds":["p1"],"origin":"source","children":[{"title":"需求分析","note":"","sourceParagraphIds":["p1"],"origin":"source","children":[]}]},"warnings":[]})");
     const QJsonObject response{
         {"model", QStringLiteral("deepseek-flash")},
         {"choices",

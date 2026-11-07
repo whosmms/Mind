@@ -1,0 +1,1541 @@
+{
+  "completed": true,
+  "directories": [
+    "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime",
+    "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压"
+  ],
+  "files": [
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\libgcc_s_seh-1.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\libgcc_s_seh-1.dll",
+      "bytes": 109056,
+      "sha256": "5E27589147CAA6D7A30F4CC058A14C455DC62233901FFFF9A1797EDE425E9F86"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\libstdc++-6.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\libstdc++-6.dll",
+      "bytes": 2243072,
+      "sha256": "8013488C5528BAD7966CA07F3EA2E7A9B743CACB258FE76B46A326F821CC83B0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\libwinpthread-1.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\libwinpthread-1.dll",
+      "bytes": 53248,
+      "sha256": "C7C7DCED65FFF71C7BB61F80C771C562F533D26D72722D9D6091129A3B03D5CE"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\lingya_tls_probe.exe",
+      "retained": "D:\\mind\\.worktrees\\gantt-review\\build\\lingya_tls_probe.exe",
+      "bytes": 105333,
+      "sha256": "714D3444DA2A02EC3C29F7D9C797819E0050BA263C476D193B04CB127BAC55F0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\lingya.exe",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\lingya.exe",
+      "bytes": 3373272,
+      "sha256": "39F4B5E654DFBDE8172337131E8A77C599EBCDD6EF5DD15F6E8F4C9DB71525F8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\qt.conf",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\qt.conf",
+      "bytes": 30,
+      "sha256": "E6047C864B52BC6648ECD2C44629751A10C148B05F743D425F97FB6305CC9640"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\Qt6Core.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\Qt6Core.dll",
+      "bytes": 6986928,
+      "sha256": "06D84A2E85BDA1A651C65F7D159B63BEE2458A8B50274DA52B70C9E3E9188E97"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\Qt6Gui.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\Qt6Gui.dll",
+      "bytes": 11041960,
+      "sha256": "EF458A379A4B588FD6042A3BCC7D0B9631352745600AE933A7FAEC4C851B16BB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\Qt6Network.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\Qt6Network.dll",
+      "bytes": 2012840,
+      "sha256": "3158E8979CE542C84A61257CFE03983144241AB4D11D8099C08DB7ECF5CF8B83"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\Qt6Widgets.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\Qt6Widgets.dll",
+      "bytes": 7025320,
+      "sha256": "9076B021A060DC8C0AE5A50F3DBF9C23018D7729FE102F7A75ADBDF863FA2D0D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\generic\\qtuiotouchplugin.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\generic\\qtuiotouchplugin.dll",
+      "bytes": 97464,
+      "sha256": "8CEBBF5DE9D64C86D8D5DA1F50A2026523C2C8934F37ED24314F9058FC9927DE"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\imageformats\\qgif.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\imageformats\\qgif.dll",
+      "bytes": 48824,
+      "sha256": "3FEB73BF829B33F64D7D7DEF5433913C0C81370E41ADB8ADC788A91E62CD2AEC"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\imageformats\\qico.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\imageformats\\qico.dll",
+      "bytes": 49848,
+      "sha256": "4EBCD838E56F9B398F4DFDA58E53B16ECC5F290A87871C0BA433FB805D93DC21"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\imageformats\\qjpeg.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\imageformats\\qjpeg.dll",
+      "bytes": 643256,
+      "sha256": "5B24F1FD458BB66564C7D691D234C497472AB8CD9D9658EBD12AF808A14CD51D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\networkinformation\\qnetworklistmanager.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\networkinformation\\qnetworklistmanager.dll",
+      "bytes": 100024,
+      "sha256": "E57A13F285D4D952B5F136F3A55EA79C0CA10C1F96BB7CACF3A8D49AB55B874E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\platforms\\qwindows.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\platforms\\qwindows.dll",
+      "bytes": 1102008,
+      "sha256": "FEF3FEBE3CF9FF206076DAB95F54164C67EFCFAB318E8018FA0888B61DFB6888"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\styles\\qmodernwindowsstyle.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\styles\\qmodernwindowsstyle.dll",
+      "bytes": 240312,
+      "sha256": "C6C8B32622ED43FEBFFCD3A61FC1EBE7ED443676EDEC6948D06C29B9B8139186"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\tls\\qcertonlybackend.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\tls\\qcertonlybackend.dll",
+      "bytes": 103608,
+      "sha256": "2B65FC60DBE119C73804824F9A2B6093CF495AEA588654810B4707FD3C40EC89"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-tls-runtime\\tls\\qschannelbackend.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\program\\tls\\qschannelbackend.dll",
+      "bytes": 258232,
+      "sha256": "C7386DCCA3C4277547D878CFA71C07B957A108E3538BE07900BF9BE18EEC89B8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\分发文件校验.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\分发文件校验.json",
+      "bytes": 43672,
+      "sha256": "A48B130693D4B749CAD95A505E616FF40C0BA7423685DB651D6599371E9AA652"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\候选程序校验.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\候选程序校验.json",
+      "bytes": 10609,
+      "sha256": "1953F4142B0F1D0E0E3BF0D7E4520E573E46DBB9B24A2D8D760C2A9F40C5992E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\源码与构建资料-ecd8e2e.zip",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\源码与构建资料-ecd8e2e.zip",
+      "bytes": 922531,
+      "sha256": "D405A97E04BB4818DFDF13591170D055E3C9485B3EB002C76C0BFE5279A52D03"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\libgcc_s_seh-1.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\libgcc_s_seh-1.dll",
+      "bytes": 109056,
+      "sha256": "5E27589147CAA6D7A30F4CC058A14C455DC62233901FFFF9A1797EDE425E9F86"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\libstdc++-6.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\libstdc++-6.dll",
+      "bytes": 2243072,
+      "sha256": "8013488C5528BAD7966CA07F3EA2E7A9B743CACB258FE76B46A326F821CC83B0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\libwinpthread-1.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\libwinpthread-1.dll",
+      "bytes": 53248,
+      "sha256": "C7C7DCED65FFF71C7BB61F80C771C562F533D26D72722D9D6091129A3B03D5CE"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\lingya.exe",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\lingya.exe",
+      "bytes": 3373272,
+      "sha256": "39F4B5E654DFBDE8172337131E8A77C599EBCDD6EF5DD15F6E8F4C9DB71525F8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\qt.conf",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\qt.conf",
+      "bytes": 30,
+      "sha256": "E6047C864B52BC6648ECD2C44629751A10C148B05F743D425F97FB6305CC9640"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\Qt6Core.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\Qt6Core.dll",
+      "bytes": 6986928,
+      "sha256": "06D84A2E85BDA1A651C65F7D159B63BEE2458A8B50274DA52B70C9E3E9188E97"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\Qt6Gui.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\Qt6Gui.dll",
+      "bytes": 11041960,
+      "sha256": "EF458A379A4B588FD6042A3BCC7D0B9631352745600AE933A7FAEC4C851B16BB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\Qt6Network.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\Qt6Network.dll",
+      "bytes": 2012840,
+      "sha256": "3158E8979CE542C84A61257CFE03983144241AB4D11D8099C08DB7ECF5CF8B83"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\Qt6Widgets.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\Qt6Widgets.dll",
+      "bytes": 7025320,
+      "sha256": "9076B021A060DC8C0AE5A50F3DBF9C23018D7729FE102F7A75ADBDF863FA2D0D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\generic\\qtuiotouchplugin.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\generic\\qtuiotouchplugin.dll",
+      "bytes": 97464,
+      "sha256": "8CEBBF5DE9D64C86D8D5DA1F50A2026523C2C8934F37ED24314F9058FC9927DE"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\imageformats\\qgif.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\imageformats\\qgif.dll",
+      "bytes": 48824,
+      "sha256": "3FEB73BF829B33F64D7D7DEF5433913C0C81370E41ADB8ADC788A91E62CD2AEC"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\imageformats\\qico.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\imageformats\\qico.dll",
+      "bytes": 49848,
+      "sha256": "4EBCD838E56F9B398F4DFDA58E53B16ECC5F290A87871C0BA433FB805D93DC21"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\imageformats\\qjpeg.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\imageformats\\qjpeg.dll",
+      "bytes": 643256,
+      "sha256": "5B24F1FD458BB66564C7D691D234C497472AB8CD9D9658EBD12AF808A14CD51D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\networkinformation\\qnetworklistmanager.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\networkinformation\\qnetworklistmanager.dll",
+      "bytes": 100024,
+      "sha256": "E57A13F285D4D952B5F136F3A55EA79C0CA10C1F96BB7CACF3A8D49AB55B874E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\platforms\\qwindows.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\platforms\\qwindows.dll",
+      "bytes": 1102008,
+      "sha256": "FEF3FEBE3CF9FF206076DAB95F54164C67EFCFAB318E8018FA0888B61DFB6888"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\styles\\qmodernwindowsstyle.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\styles\\qmodernwindowsstyle.dll",
+      "bytes": 240312,
+      "sha256": "C6C8B32622ED43FEBFFCD3A61FC1EBE7ED443676EDEC6948D06C29B9B8139186"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\tls\\qcertonlybackend.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\tls\\qcertonlybackend.dll",
+      "bytes": 103608,
+      "sha256": "2B65FC60DBE119C73804824F9A2B6093CF495AEA588654810B4707FD3C40EC89"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\program\\tls\\qschannelbackend.dll",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\program\\tls\\qschannelbackend.dll",
+      "bytes": 258232,
+      "sha256": "C7386DCCA3C4277547D878CFA71C07B957A108E3538BE07900BF9BE18EEC89B8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\01-basic.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\01-basic.lingya",
+      "bytes": 2594,
+      "sha256": "5E7696388A42D55D619D7C0E7AB52F395B6FB2BDFFED85F09356742E9B8C345C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\02-delete-impact.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\02-delete-impact.lingya",
+      "bytes": 4756,
+      "sha256": "0F91F81BDF6CCF35C8D08FB12A9A9DD19CA8F20EB70065A1046E22CA0672F699"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\03-hundred-nodes.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\03-hundred-nodes.lingya",
+      "bytes": 27407,
+      "sha256": "6F28CBE63606C111B2024E0A4AE33684CA0A6F4FBC60F1DD0A97FA429BC31F59"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\04-collapsed.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\04-collapsed.lingya",
+      "bytes": 2593,
+      "sha256": "D02B03E0F7288B14EC1297D0C2EB84D64F6E73D3913FCCB4A032452A91EC12D5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\05-flow.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\05-flow.lingya",
+      "bytes": 2137,
+      "sha256": "364BB15A941E08838378500D07127439C57545BD088886A06544495301A9996D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\06-offline.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\06-offline.lingya",
+      "bytes": 3205,
+      "sha256": "1A59F15931D49EA0A4CF15C8E89515F8DE34D952610EA72C654389E460317DF8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\07-gantt-filter.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\07-gantt-filter.lingya",
+      "bytes": 6979,
+      "sha256": "632E3C5ABAAC97BABF0BE57FC2ED1089E2FF46A2C54E3A806329F33FC076F7AF"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\08-跨表保留学习记录_导图.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\08-跨表保留学习记录_导图.lingya",
+      "bytes": 3205,
+      "sha256": "679DAB082ED2005B8BD3E054E2D2035C5810A4A863E517E39C0F783BCAFCB245"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\09-跨表保留学习记录_鱼骨.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\09-跨表保留学习记录_鱼骨.lingya",
+      "bytes": 4759,
+      "sha256": "D635C11AA708317327A17525A6BAFA442028F1B92AECE2778571428CC91CA711"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\10-讲解路线阻断.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\10-讲解路线阻断.lingya",
+      "bytes": 3491,
+      "sha256": "7C1940BAC1181BA74D962642A46302438E4CC323E9CAC2A1D4EA5A7E0E8DA4FF"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\11-文稿引用阻断.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\11-文稿引用阻断.lingya",
+      "bytes": 3552,
+      "sha256": "54EDB8460E079A87C48F268B42C5C7D0C4D66E338E18FB4E0ACED405891E0A0C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\12-AI导图_假响应.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\12-AI导图_假响应.lingya",
+      "bytes": 2665,
+      "sha256": "0F5C30F89D1107C2C280CDDA02F4566CA1C15E4645A9ED782AB9563A8423F6D5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\样例\\13-AI文稿_假响应.lingya",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\样例\\13-AI文稿_假响应.lingya",
+      "bytes": 5743,
+      "sha256": "D8BAD54E60F9683CE17BCB342BB8CE9989A0DE0AAEEC10DC7B96F24A4E5CD5CF"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\安装器语言来源.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\安装器语言来源.json",
+      "bytes": 247,
+      "sha256": "FEACCA1480E7352510A5B3D13F13DAAA731B99D510AAB87AAE7346120190E568"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\来源与校验.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\来源与校验.json",
+      "bytes": 37815,
+      "sha256": "219F5EFDF2B9609A2593FEF75B35B4C67A3A06A759D0F59A92C6BCBF1B50F6EB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\依赖与来源说明.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\依赖与来源说明.txt",
+      "bytes": 1863,
+      "sha256": "6E137A626DFEE483D655F3227F563892BD221C56085465858CFE43E2D9256223"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\GCC-GPL-3.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\GCC-GPL-3.0.txt",
+      "bytes": 35821,
+      "sha256": "0B383D5A63DA644F628D99C33976EA6487ED89AAA59F0B3257992DEAC1171E6B"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\GCC-Runtime-Library-Exception-3.1.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\GCC-Runtime-Library-Exception-3.1.txt",
+      "bytes": 3397,
+      "sha256": "90077BA306EE9D8ED966CAB1B4ABD69B6E728ACF08777283CC50283CD9503FA6"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\InnoSetup-LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\InnoSetup-LICENSE.txt",
+      "bytes": 1521,
+      "sha256": "2E5346868C2A18434489824E11D65C3031620F792FEFC415D05F19CD441ABF5C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\winpthreads-COPYING.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\winpthreads-COPYING.txt",
+      "bytes": 2940,
+      "sha256": "1C8D23063C3772B9435831410B31B51FEF3D9CF2138A442DC367EF5D72239F67"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\cmake\\3rdparty\\extra-cmake-modules\\COPYING-CMAKE-SCRIPTS",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\cmake\\3rdparty\\extra-cmake-modules\\COPYING-CMAKE-SCRIPTS",
+      "bytes": 1327,
+      "sha256": "46CDE7DC11E64C78D650B4851B88F6704B4665FF60F22A1CAF68CEB15E217E5B"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\cmake\\3rdparty\\extra-cmake-modules\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\cmake\\3rdparty\\extra-cmake-modules\\qt_attribution.json",
+      "bytes": 439,
+      "sha256": "1723EC7150C2181F373795FEB78E2C1BCD1EC1D748471E4E02048C2B32489157"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\cmake\\3rdparty\\kwin\\COPYING-CMAKE-SCRIPTS",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\cmake\\3rdparty\\kwin\\COPYING-CMAKE-SCRIPTS",
+      "bytes": 1327,
+      "sha256": "46CDE7DC11E64C78D650B4851B88F6704B4665FF60F22A1CAF68CEB15E217E5B"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\cmake\\3rdparty\\kwin\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\cmake\\3rdparty\\kwin\\qt_attribution.json",
+      "bytes": 555,
+      "sha256": "598CB7392971E68CA71039CE3A8063E4FC4504A170D7AD4B80B73857511376A3"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\AFL-2.1.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\AFL-2.1.txt",
+      "bytes": 8948,
+      "sha256": "93BB4F7417AA775BAB9026CC3D0AF28AEB64451FC5A8EC651876785EDD8EAF9B"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Apache-2.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Apache-2.0.txt",
+      "bytes": 10398,
+      "sha256": "E3BA223BB1423F0AAD8C3DFCE0FE3148DB48926D41E6FBC3AFBBF5FF9E1C89CB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Bitstream-Vera.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Bitstream-Vera.txt",
+      "bytes": 8816,
+      "sha256": "7A083B136E64D064794C3419751E5C7DD10D2F64C108FE5BA161EAE5E5958A93"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\blessing.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\blessing.txt",
+      "bytes": 244,
+      "sha256": "592DB1199AAB67AAFE4515DB9808B420DB122083807C5329B2F061951E79ACBE"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\BSD-2-Clause.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\BSD-2-Clause.txt",
+      "bytes": 1276,
+      "sha256": "8FDA146749CA071AC9CDCE2E24D25444676EA48D1F9DCCC2B7C15C054B717DB8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\BSD-3-Clause.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\BSD-3-Clause.txt",
+      "bytes": 1469,
+      "sha256": "9F0490F18656C6F2435BD14F603EF0C96434D1825615363DCE43ABB42ED1DCCE"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\BSD-4-Clause.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\BSD-4-Clause.txt",
+      "bytes": 1672,
+      "sha256": "83FAA0D205C316CE3EFEAFEE465B6A165914FB29595968C08DC6437021B7B6FD"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\BSL-1.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\BSL-1.0.txt",
+      "bytes": 1340,
+      "sha256": "3ABD6471B9A9A08D65CE771143F8E278BB4C1AEB10C1C2D476935A6B049653F5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\CC0-1.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\CC0-1.0.txt",
+      "bytes": 7048,
+      "sha256": "A2010F343487D3F7618AFFE54F789F5487602331C0A8D03F49E9A7C547CF0499"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\FTL.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\FTL.txt",
+      "bytes": 6743,
+      "sha256": "08C135755DD589039470F1FDBB400DAAABAAA50D0B366D19CEBFF4D22986BAA1"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\GFDL-1.3-no-invariants-only.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\GFDL-1.3-no-invariants-only.txt",
+      "bytes": 22955,
+      "sha256": "110535522396708CEA37C72A802C5E7E81391139F5F7985631C93EF242B206A4"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\GPL-2.0-only.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\GPL-2.0-only.txt",
+      "bytes": 18092,
+      "sha256": "8177F97513213526DF2CF6184D8FF986C675AFB514D4E68A404010521B880643"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\GPL-2.0-or-later.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\GPL-2.0-or-later.txt",
+      "bytes": 18092,
+      "sha256": "8177F97513213526DF2CF6184D8FF986C675AFB514D4E68A404010521B880643"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\GPL-3.0-only.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\GPL-3.0-only.txt",
+      "bytes": 35147,
+      "sha256": "8CEB4B9EE5ADEDDE47B31E975C1D90C73AD27B6B165A1DCD80C7C545EB65B903"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\HPND.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\HPND.txt",
+      "bytes": 1188,
+      "sha256": "67AC968431270291F5E9CD3ED76705E1169F57082EE102093B2543B28CEF63CF"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\IJG.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\IJG.txt",
+      "bytes": 1815,
+      "sha256": "1CB448F5E2E6D3ACA60943F4EEE1A04675628DC0266A074A42BC1560EBC28D61"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Imlib2.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Imlib2.txt",
+      "bytes": 1986,
+      "sha256": "8846F2BABA1A7F4C36F7CA19A923A000D8A21AFA37CF0FE006F6CE88A6058A89"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\IPL-1.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\IPL-1.0.txt",
+      "bytes": 11789,
+      "sha256": "D5328E672FB1BFF47EE18E890784541453380081CF3771BB7B3C06FC19C7D503"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\LGPL-3.0-only.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\LGPL-3.0-only.txt",
+      "bytes": 7651,
+      "sha256": "DA7EABB7BAFDF7D3AE5E9F223AA5BDC1EECE45AC569DC21B3B037520B4464768"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\libpng-2.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\libpng-2.0.txt",
+      "bytes": 5345,
+      "sha256": "7317E078E2D3B5D7BA5A6159E650945153262B44B76F6700F8E9EDB261C5143E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Libpng.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Libpng.txt",
+      "bytes": 4120,
+      "sha256": "58FE669792F9B4E0740BF75ECFE90B5326128BB2CE7E27E1C342ABD9DB4D8EA6"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception.txt",
+      "bytes": 1852,
+      "sha256": "0526625FCC746A42D3F19A0AB357D3DC8479FDBE3BFD168825498F50215C7A63"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\LicenseRef-ICC-License.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\LicenseRef-ICC-License.txt",
+      "bytes": 463,
+      "sha256": "9E34FF47B3A44814E183342E7E198D127A6740E29D20E8381FBA7688DAFC79DD"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\LicenseRef-Lcs-Telegraphics.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\LicenseRef-Lcs-Telegraphics.txt",
+      "bytes": 139,
+      "sha256": "C10225EBBD5191BFDD761B0D7752C785F2453AB665D6C454473FB12D254668AA"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\LicenseRef-Qt-Commercial.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\LicenseRef-Qt-Commercial.txt",
+      "bytes": 462,
+      "sha256": "9B1F50AAE6267F9D5E0CEB6775EE86450262C25EC7C0573E151FE5D3F18A4700"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\LicenseRef-SHA1-Public-Domain.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\LicenseRef-SHA1-Public-Domain.txt",
+      "bytes": 144,
+      "sha256": "65D86B8EC6B1CD8B8F6E64FD8710274BA00D6A3C520E00DFDCD1C3D2071F3305"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Linux-syscall-note.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Linux-syscall-note.txt",
+      "bytes": 624,
+      "sha256": "3F9E477523FEBAB58DE8B716CCFBCF02E6EF1C8E7728953905E8558637ABE2A9"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\MIT-Khronos-old.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\MIT-Khronos-old.txt",
+      "bytes": 1306,
+      "sha256": "3C58021633974F9ED3C3D445A374240A5244FD039628F4D7F6F3E674BC8E6694"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\MIT-open-group.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\MIT-open-group.txt",
+      "bytes": 897,
+      "sha256": "C55D2AB72D8A4F9E9CD8FBD1379268E575E8CFA16874AFFA5899B75A6D754514"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\MIT.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\MIT.txt",
+      "bytes": 1111,
+      "sha256": "D040359701C01996A017D5C515678929CD1B0625E64CB86DB44025FBB6CDF1FC"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\MPL-2.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\MPL-2.0.txt",
+      "bytes": 16726,
+      "sha256": "3F3D9E0024B1921B067D6F7F88DEB4A60CBE7A78E76C64E3F1D7FC3B779B9D04"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Qt-GPL-exception-1.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Qt-GPL-exception-1.0.txt",
+      "bytes": 965,
+      "sha256": "40678D338CE53CD93F8B22B281A2ECBCAA3EE65CE60B25FFB0C462B0530846B2"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\SPL-1.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\SPL-1.0.txt",
+      "bytes": 23547,
+      "sha256": "F58F2F30909982445F97F1A61667261920A7CAEAB21EF5BEA1B740F5B144D141"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Unicode-3.0.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Unicode-3.0.txt",
+      "bytes": 1995,
+      "sha256": "80BB6294022D8764ADB36A9D65EBB6BD94EFB1865918A71E31E6C247607D7634"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\X11.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\X11.txt",
+      "bytes": 1338,
+      "sha256": "E2936C6509784B4F0EC27BAC74182393866FAD9422B29A70E085FF14ABA87193"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Xerox.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Xerox.txt",
+      "bytes": 965,
+      "sha256": "B6BC52205D01E10CF43DBB7B8AEC06DCAA3B21D1486E7C9C0BEC329EE8244D8D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\LICENSES\\Zlib.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\LICENSES\\Zlib.txt",
+      "bytes": 1465,
+      "sha256": "D7E3139972874DC8ABDBBFCE27EC1E6F942B28279DD7D27453630A8B4610E080"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\android\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\android\\LICENSE",
+      "bytes": 525,
+      "sha256": "4A51CF7F724F51BEDB5FA4F9583A2762F1DB8D05E43A577E2487C7AAB2FDCE18"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\android\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\android\\qt_attribution.json",
+      "bytes": 373,
+      "sha256": "120710D661892CEB44A94556C56998795372334674C79710947282E8279EF415"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\blake2\\COPYING",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\blake2\\COPYING",
+      "bytes": 17914,
+      "sha256": "4103F471877ED0BAE500752C5FCD7ECCA409D4A4A8DC2AD40437DABA60F1A2BC"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\blake2\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\blake2\\qt_attribution.json",
+      "bytes": 926,
+      "sha256": "BAB552307BDD03ED9A4CF7F8F1397C3D18D4DBEE19EE576033284104785245BE"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\D3D12MemoryAllocator\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\D3D12MemoryAllocator\\LICENSE.txt",
+      "bytes": 1099,
+      "sha256": "1B3941C52B26D42C510AFBDF205A8B96A6D64F5A7B8EBFF0287979FD91DFD52F"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\D3D12MemoryAllocator\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\D3D12MemoryAllocator\\qt_attribution.json",
+      "bytes": 727,
+      "sha256": "182D7E5ED90DC592B01A50635C85F4039CA6F25F88EC4700B08FAF6F07FDA09E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\double-conversion\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\double-conversion\\LICENSE",
+      "bytes": 1527,
+      "sha256": "4AF93C12062C58058378DE2397DC1C92BBFF9DDFB1D583A01C84127557CE97CA"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\double-conversion\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\double-conversion\\qt_attribution.json",
+      "bytes": 771,
+      "sha256": "B68E633437CCE59DEC970776F5C4D3B9FC39C5D9EDAEC03E8894591A6721D1ED"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\easing\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\easing\\LICENSE",
+      "bytes": 1505,
+      "sha256": "92FAC99458F1754B73EDF50F9C9983E0EFAA06AD96E2AFD5E538C79F45B4B191"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\easing\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\easing\\qt_attribution.json",
+      "bytes": 471,
+      "sha256": "77D67A1DB5882BB0B9A1278B014885BEE45A4C059D1DA9F835B6DA5BC4B9C93D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\forkfd\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\forkfd\\LICENSE",
+      "bytes": 1148,
+      "sha256": "D0D683AE18E78FBEF90EB41168FB781920DA2D12BF80704490F0882915C18AE0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\forkfd\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\forkfd\\qt_attribution.json",
+      "bytes": 493,
+      "sha256": "525FD890017A3966F542DA42A9FF0CA2A0D71BC45F80A4871DE3E0BD0F612612"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\freetype\\BDF-LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\freetype\\BDF-LICENSE.txt",
+      "bytes": 2305,
+      "sha256": "E4E792F29E66750F2E410FD7B50A567652C180F6EE15E1A4DFA0BB5CDE524537"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\freetype\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\freetype\\LICENSE.txt",
+      "bytes": 26234,
+      "sha256": "BF543CDDA11864477B8D2CA2AA9AFC2AAA8F9133461B4D962ED6EC73646256A1"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\freetype\\PCF-LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\freetype\\PCF-LICENSE.txt",
+      "bytes": 2218,
+      "sha256": "6938597BFDECA0DB191A8F9EDE52EAF2482C2C71A0094C084747A1235F9958FE"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\freetype\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\freetype\\qt_attribution.json",
+      "bytes": 5328,
+      "sha256": "3BB2EABC9379310A420EC2461E85A3224396CF8BA15FD53591D770CA16715553"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\freetype\\ZLIB-LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\freetype\\ZLIB-LICENSE.txt",
+      "bytes": 962,
+      "sha256": "2B1F5D615382A151AF3EB71462AD17D89E2EFEE8FA7664058D35D3D9237EBB19"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\gradle\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\gradle\\LICENSE",
+      "bytes": 23622,
+      "sha256": "9536D88EA948603D18E232A13F5958D67807CD80828036B082BFF171D2CF0703"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\gradle\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\gradle\\qt_attribution.json",
+      "bytes": 581,
+      "sha256": "D8950522E452E35C44D3660DDEFFF2F28F2DD342B500A4ACB8FE1B9997627849"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\harfbuzz-ng\\COPYING",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\harfbuzz-ng\\COPYING",
+      "bytes": 1971,
+      "sha256": "BA8F810F2455C2F08E2D56BB49B72F37FCF68F1F4FADE38977CFD7372050AD64"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\harfbuzz-ng\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\harfbuzz-ng\\qt_attribution.json",
+      "bytes": 1646,
+      "sha256": "C998C9784A4A0021C2F68632A9E8CD5589DBC7F7336FEEB156A4240B6B32D718"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\iaccessible2\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\iaccessible2\\LICENSE",
+      "bytes": 1668,
+      "sha256": "603FB8E9A443C95CB56C0E458A0AD17FDCADFC5BBB7E580D2199EE0145882746"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\iaccessible2\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\iaccessible2\\qt_attribution.json",
+      "bytes": 932,
+      "sha256": "FC3B6C3ACEEB15B92302E1375AA8F48A692B39CE5250458E88AE137CEF2922C6"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\icc\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\icc\\LICENSE.txt",
+      "bytes": 463,
+      "sha256": "9E34FF47B3A44814E183342E7E198D127A6740E29D20E8381FBA7688DAFC79DD"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\icc\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\icc\\qt_attribution.json",
+      "bytes": 775,
+      "sha256": "509DA9BD2B3F769C730AA4627B1080D65F39B0ECD4130111C9E1122E13CD35B5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\libjpeg\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\libjpeg\\qt_attribution.json",
+      "bytes": 859,
+      "sha256": "874587F89655D70E9926048B2C9F4F2C15F8795DC64E4A492F753CEE06ED6432"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\libpng\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\libpng\\LICENSE",
+      "bytes": 5345,
+      "sha256": "16D9DAAAFBF63A31A5BDC91D4600972548FEF5AAA1244202393288DBD079C49A"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\libpng\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\libpng\\qt_attribution.json",
+      "bytes": 1763,
+      "sha256": "2970938574023E02B60B5B7C75D21E11B7E4476CDC2C1A5386B01AC5BC678943"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\libpsl\\PSL-LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\libpsl\\PSL-LICENSE.txt",
+      "bytes": 16726,
+      "sha256": "3F3D9E0024B1921B067D6F7F88DEB4A60CBE7A78E76C64E3F1D7FC3B779B9D04"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\libpsl\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\libpsl\\qt_attribution.json",
+      "bytes": 2498,
+      "sha256": "52D2286E673CDC88DD0B02DB46352F994DAC2C359E4632644DC4D595CF144CE7"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\libpsl\\src\\LICENSE.chromium",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\libpsl\\src\\LICENSE.chromium",
+      "bytes": 1664,
+      "sha256": "1D7F52747A9169751CDF2641A8299C0098E9ECDF9429296FFD55BDB14C9ED5B3"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\md4\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\md4\\qt_attribution.json",
+      "bytes": 574,
+      "sha256": "34BDA63A2FCC23C83F2E5364CCD394553B4BAA505B1F79DED9CC2161C56A9B4C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\md4c\\LICENSE.md",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\md4c\\LICENSE.md",
+      "bytes": 1096,
+      "sha256": "D30937367D5413E7EAA218B1640B8946FF76FD34D97152F6979FD96169D5D0FC"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\md4c\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\md4c\\qt_attribution.json",
+      "bytes": 673,
+      "sha256": "59098B9262AC268E73495CB1B1603B5C899D5C532DB6CA96E69FFAC7062445F5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\md5\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\md5\\qt_attribution.json",
+      "bytes": 446,
+      "sha256": "20B0F1B17CCD1BD5E8D763B1CDCA4B095B8F0C037644B5EE18154536B7D8425E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\pcre2\\LICENCE-SLJIT",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\pcre2\\LICENCE-SLJIT",
+      "bytes": 1444,
+      "sha256": "5F216505C0F6EA3273CAEC89E766EEF93CDEB7BBB0C429F9360116D7C938FEEB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\pcre2\\LICENCE.md",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\pcre2\\LICENCE.md",
+      "bytes": 3867,
+      "sha256": "9CF7AC6976099A1D856826D3EF1B093BD6B84489DC6100628AC79E740CF9885A"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\pcre2\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\pcre2\\qt_attribution.json",
+      "bytes": 1915,
+      "sha256": "CB7AE8B37A3E8E1D2A20FBE44FC5306ED5CDA404035A667FED56F7139636048E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\pixman\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\pixman\\LICENSE",
+      "bytes": 1092,
+      "sha256": "942C4F2A80394D3F53599B8382E9F27349B95C45D92B69B84F26D404F4DD74A5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\pixman\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\pixman\\qt_attribution.json",
+      "bytes": 597,
+      "sha256": "F1DC159B63BF84A4C9C367E8FF79AA748B63F5FC622D5080C0A7DDD98DDC7AC7"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\rfc6234\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\rfc6234\\LICENSE",
+      "bytes": 1568,
+      "sha256": "7CCEBD514AAABC86192F957D773CEBF06577C12FE9F25ECD419C6CAC5DA7A14C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\rfc6234\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\rfc6234\\qt_attribution.json",
+      "bytes": 660,
+      "sha256": "FA24413BDC5015FC7FC84297FA17D4C8A598F8F7C76B9495A6E6B26A77B4A324"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\sha1\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\sha1\\qt_attribution.json",
+      "bytes": 618,
+      "sha256": "53CAB2C771F7F7FFBF6A58FF759E5846B746E91D98DFE467D5145EDF8CD7D306"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\sha3\\BRG_ENDIAN_LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\sha3\\BRG_ENDIAN_LICENSE",
+      "bytes": 645,
+      "sha256": "2FED6F252CA4A7E813811DE3CD3CD08183EDD4138BDEE909410EF6EEE394E82C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\sha3\\CC0_LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\sha3\\CC0_LICENSE",
+      "bytes": 7013,
+      "sha256": "1F2786E2C5BEFEB4DCBA6638DB6528BF96EF5D2CF24BC85AB5A81EF00ABEF59D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\sha3\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\sha3\\qt_attribution.json",
+      "bytes": 2357,
+      "sha256": "C14F8C923BDDE00E14D52AC826475F29C690B0615337E641D818D3243EB26A87"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\siphash\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\siphash\\qt_attribution.json",
+      "bytes": 793,
+      "sha256": "8614947DFC0CA1D21AAD2F88B4400598262AB8C08AA87C4F7ACC0C2DE6E5619E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\sqlite\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\sqlite\\qt_attribution.json",
+      "bytes": 799,
+      "sha256": "0BB4312DFE1E3896713954ACCEDB0ED50453268F0983A7C10FA5DF038D2B7E89"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\tinycbor\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\tinycbor\\LICENSE",
+      "bytes": 1074,
+      "sha256": "3C6BA0B5BFA7830505301FFB336A17B0748E0D61C4D34216E9DC98F10E40395E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\tinycbor\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\tinycbor\\qt_attribution.json",
+      "bytes": 691,
+      "sha256": "3CD7042C743868AA67D792B85CD1E113B02CFA5273EA727A5A40915C9163B377"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\VulkanMemoryAllocator\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\VulkanMemoryAllocator\\LICENSE.txt",
+      "bytes": 1099,
+      "sha256": "846D97C8B74CCAA92B9AD031140A04363B3B3985F318094552F297B8BDA1C68E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\VulkanMemoryAllocator\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\VulkanMemoryAllocator\\qt_attribution.json",
+      "bytes": 699,
+      "sha256": "D00A867E3DF29E108BD60194DCAD6DA8D9EA89D185C8AFD93A00429628156346"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\wasm\\DEJAVU-LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\wasm\\DEJAVU-LICENSE",
+      "bytes": 8816,
+      "sha256": "7A083B136E64D064794C3419751E5C7DD10D2F64C108FE5BA161EAE5E5958A93"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\wasm\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\wasm\\qt_attribution.json",
+      "bytes": 730,
+      "sha256": "2019D37665BFB2CE7D4931D0BDF7427EA178919399CF37C0FEF14A229144936B"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\wintab\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\wintab\\qt_attribution.json",
+      "bytes": 602,
+      "sha256": "B879EA91B719531D45E1CFE33D2241D060A9260200BD91A09ADA074B16063F9C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\xcb\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\xcb\\LICENSE",
+      "bytes": 1246,
+      "sha256": "82775191BC05F85B40404D77BB69B1EDEAEB4033F48387E9E5EAB4DD67F5D6F1"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\xcb\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\xcb\\qt_attribution.json",
+      "bytes": 825,
+      "sha256": "8BAE8861957BC0168D586D24DA6E8E93EDCEB11796811C5F614D211F4674D437"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\zlib\\LICENSE",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\zlib\\LICENSE",
+      "bytes": 1465,
+      "sha256": "D7E3139972874DC8ABDBBFCE27EC1E6F942B28279DD7D27453630A8B4610E080"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\3rdparty\\zlib\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\3rdparty\\zlib\\qt_attribution.json",
+      "bytes": 731,
+      "sha256": "6A37EAF51D8EBB7BD19E01A9A2334DA8557409ACB520EF6D1813C6D742771030"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\corelib\\kernel\\QEVENTDISPATCHER_CF_LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\corelib\\kernel\\QEVENTDISPATCHER_CF_LICENSE.txt",
+      "bytes": 1501,
+      "sha256": "E9E5B9F66D21C0E88A4179525AB39CD8D7EAC9AF78A8404F322C32B0874783D5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\corelib\\kernel\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\corelib\\kernel\\qt_attribution.json",
+      "bytes": 564,
+      "sha256": "35639D420FB5AAC3E5A702269E3CB8E9E18F5145DD36003EA6DEE45ED4AF4E2D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\corelib\\mimetypes\\3rdparty\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\corelib\\mimetypes\\3rdparty\\qt_attribution.json",
+      "bytes": 1383,
+      "sha256": "45B454443CC0D5450FDE18B76B555700DBFF0937B925B8482290950330C9B370"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\corelib\\text\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\corelib\\text\\qt_attribution.json",
+      "bytes": 2058,
+      "sha256": "6A2AC10D23F98E987A7176281CC1AF6DA01F5289A7B41A473E20F023A952C0E4"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\dbus\\LIBDBUS-1-LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\dbus\\LIBDBUS-1-LICENSE.txt",
+      "bytes": 27248,
+      "sha256": "AD90AA08BB1A9B7056AA51E2E215B36630855457CDE5DFFD36AA0FAA7B169F24"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\dbus\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\dbus\\qt_attribution.json",
+      "bytes": 937,
+      "sha256": "C03E804FB402AD8CE4C2268CF2F820493A1C5C06D624FB61A24EAA0BC2FCB66D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\opengl\\KHRONOS_LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\opengl\\KHRONOS_LICENSE.txt",
+      "bytes": 1084,
+      "sha256": "2E484F3C26FF5008C704A3CA9DD809D43F24A004A1ABB6C202660FBFF0D19715"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\opengl\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\opengl\\qt_attribution.json",
+      "bytes": 1526,
+      "sha256": "50FCB16F440DF6E7EA2778DBC81CC8CAEB0DBD770DAA4EFDDD125ADACAA6CF36"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\painting\\QIMAGETRANSFORM_LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\painting\\QIMAGETRANSFORM_LICENSE.txt",
+      "bytes": 3004,
+      "sha256": "46B3CBFA2F2946B93291506351E9BE1DD0A28D2A53260F5AA488ABD36FBECA9D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\painting\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\painting\\qt_attribution.json",
+      "bytes": 2256,
+      "sha256": "6827F1FEC09E4A3C89381F0724C998243E412A56A47735AB5B899D470FB47DDF"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\painting\\XCONSORTIUM_LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\painting\\XCONSORTIUM_LICENSE.txt",
+      "bytes": 2294,
+      "sha256": "A216B01291EB38FC1AF93CFCCF1FC67B48D9923612E517C2A695E95B3F03C22C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\rhi\\MiniEngine_LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\rhi\\MiniEngine_LICENSE.txt",
+      "bytes": 1077,
+      "sha256": "CF248820BF1178370BB4F1670A59F8748D46BC96D0F64080CD631511C6046409"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\rhi\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\rhi\\qt_attribution.json",
+      "bytes": 782,
+      "sha256": "2F362DFBFB7D8F4B3998D3ADDE8D2F2124DF588E6A48F177E335679FDED585ED"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\text\\AGLFN_LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\text\\AGLFN_LICENSE.txt",
+      "bytes": 1425,
+      "sha256": "40818155548FF41C67D3A40EDF355E9658992B292C227F4C1147425CEDC746C6"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\text\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\text\\qt_attribution.json",
+      "bytes": 807,
+      "sha256": "CC5C2EEDAE7D50DF84088F1F73A7E3B4720EB3DE07019E0DDCC97AF74E631671"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\vulkan\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\vulkan\\LICENSE.txt",
+      "bytes": 11473,
+      "sha256": "5F618873B0CDD1E84C611C5529212C2524BFC887BDFD7D1F3B568BAD3C649612"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\gui\\vulkan\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\gui\\vulkan\\qt_attribution.json",
+      "bytes": 801,
+      "sha256": "4DCB0C227CE6D6079C413E226D67F19A477338AF1945DE4D7C841BA992CF0505"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\plugins\\platforms\\cocoa\\COCOA_LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\plugins\\platforms\\cocoa\\COCOA_LICENSE.txt",
+      "bytes": 1501,
+      "sha256": "E9E5B9F66D21C0E88A4179525AB39CD8D7EAC9AF78A8404F322C32B0874783D5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\plugins\\platforms\\cocoa\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\plugins\\platforms\\cocoa\\qt_attribution.json",
+      "bytes": 720,
+      "sha256": "15D905306337542288D20AAC31C3CFFBCF28A488DBA6236EAB17CC8B86F51975"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testinternal\\3rdparty\\cmake\\Copyright.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testinternal\\3rdparty\\cmake\\Copyright.txt",
+      "bytes": 5477,
+      "sha256": "0676E30827684487AA0EA8F72F01E9460A6320FA34A2888DF0AD1DD3E8A06EB8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testinternal\\3rdparty\\cmake\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testinternal\\3rdparty\\cmake\\qt_attribution.json",
+      "bytes": 515,
+      "sha256": "F194EA33CF9B0D44615A6FA9EB4D45E7796B50CB0A88CDADF5D9B15745BF52F0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testlib\\3rdparty\\catch2\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testlib\\3rdparty\\catch2\\LICENSE.txt",
+      "bytes": 1338,
+      "sha256": "C9BFF75738922193E67FA726FA225535870D2AA1059F91452C411736284AD566"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testlib\\3rdparty\\catch2\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testlib\\3rdparty\\catch2\\qt_attribution.json",
+      "bytes": 821,
+      "sha256": "9D48FA7B86E9B0412B699E0411815766914478592DA5BBB614A45443C14504B0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testlib\\3rdparty\\cycle\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testlib\\3rdparty\\cycle\\LICENSE.txt",
+      "bytes": 1023,
+      "sha256": "CB5AEDB296C5246D1F22E9099F925A65146F9F0D6B4EEBBA97FD27A6CDBBAB2D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testlib\\3rdparty\\cycle\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testlib\\3rdparty\\cycle\\qt_attribution.json",
+      "bytes": 1176,
+      "sha256": "A3FF23399B7ECE1A0C6A9696E4F8C671A495F92A74C9C53EA5B66F27BD56B056"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testlib\\3rdparty\\linux\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testlib\\3rdparty\\linux\\LICENSE.txt",
+      "bytes": 18458,
+      "sha256": "ED71CFCA021790F74094E9810F42E31288E7F43CF00C8D9AC8D6F904124BD815"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testlib\\3rdparty\\linux\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testlib\\3rdparty\\linux\\qt_attribution.json",
+      "bytes": 1678,
+      "sha256": "44299F5C08474790C164E73894B81B650463F9E40121041CEFDEEBD9B5EB734C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testlib\\3rdparty\\valgrind\\LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testlib\\3rdparty\\valgrind\\LICENSE.txt",
+      "bytes": 1667,
+      "sha256": "EC72EEBD6326165156787DA828CAAA18386489387AEFAA073C9BD40B8B2A400E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\src\\testlib\\3rdparty\\valgrind\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\src\\testlib\\3rdparty\\valgrind\\qt_attribution.json",
+      "bytes": 979,
+      "sha256": "9FAB633484B2C78F3FDC789F0E9DFDA493B425978D2164C06BF86F733BD878BF"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\util\\gradientgen\\qt_attribution.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\util\\gradientgen\\qt_attribution.json",
+      "bytes": 596,
+      "sha256": "A25F10E47D2B7D9369486D94602AD01B60382B9F032CBBD6F465D87328D8B0E0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\许可证\\qtbase\\util\\gradientgen\\WEBGRADIENTS_LICENSE.txt",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\许可证\\qtbase\\util\\gradientgen\\WEBGRADIENTS_LICENSE.txt",
+      "bytes": 1062,
+      "sha256": "9BE732E45B638C74F9C0E5248541DD54DC7E8E9A5545DF96B5C4B7C9AC0C68BA"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\演示顺序.md",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\演示顺序.md",
+      "bytes": 1119,
+      "sha256": "A5188433B48D39679D7046A068EB2A60BF7C6FA12E94BD88BD392FA28438334A"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\用户使用说明.md",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\用户使用说明.md",
+      "bytes": 6249,
+      "sha256": "5B62CF8AFEA8EC3FD8992EB316E5257B309464CBDBCA0B6470179F4F261E05AA"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\自动验证报告.md",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\自动验证报告.md",
+      "bytes": 668,
+      "sha256": "D92D637F980495199E0A818CEEBA8600809D80F9BCF1F51EC26548FFB7E0EC1C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\最终统一验收.md",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\最终统一验收.md",
+      "bytes": 2051,
+      "sha256": "5A58DFB9A113AD2107BE43BE9DD4531B6DF618E89FA7B3A86CFEA74928E5075F"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\third-party.md",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\third-party.md",
+      "bytes": 9385,
+      "sha256": "E16BA5FD42C56BECEEA0AFF56FF5E5AA5613913C7D012632C554482E6EDCB8BC"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\validation.json",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\validation.json",
+      "bytes": 9612,
+      "sha256": "1BCAF71A884C7AD6D5E235A081C56AFD728C4A0E0E7DEDB9EA090681297E1A39"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_ai.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_ai.xml",
+      "bytes": 2659,
+      "sha256": "D5272E35ED9E0AF843E55A0A97A7BBA99532DDD4D10D4F8911DD6333F39FE9C2"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_aicommands.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_aicommands.xml",
+      "bytes": 3140,
+      "sha256": "20D722F50A6460A8A06A7FA1152C6974847CC5B5CFBC08250D328EC5F46E8463"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_aicompletion.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_aicompletion.xml",
+      "bytes": 1727,
+      "sha256": "8D831FD3380E9CF1161E5C728EB4DEC4B0FA0E7617A40392374C448890586ED2"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_aipanel.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_aipanel.xml",
+      "bytes": 2138,
+      "sha256": "F90C8C60A59D82BDBCF91689BD9C287EE487CBE1BA2037312D2F4F8F88B66F9E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_appearance.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_appearance.xml",
+      "bytes": 1215,
+      "sha256": "0601071917D7656F9853DF33FF95756D135FA6F7B1D82D3E8D6D6F661739D3E1"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_charts.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_charts.xml",
+      "bytes": 2219,
+      "sha256": "A562C6950CB0A1A56EF43F50A63C843D1D40A3716977D0B40230A379F7102B60"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_check.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_check.xml",
+      "bytes": 2177,
+      "sha256": "357050906A4DD91DB53A5269AD343707A4551020FB157B51D1C3AC5876426602"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_checkassistant.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_checkassistant.xml",
+      "bytes": 1826,
+      "sha256": "F57CCC40DC3A7EE3ECE259187A22C61A0CBCE8702165BB80C53E8C089D9D1DF2"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_commands.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_commands.xml",
+      "bytes": 1653,
+      "sha256": "B20ED8AED76F2B63E806FC0C618F640DAC829CF419E50B97A14981A92ACA4B80"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_deepseekclient.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_deepseekclient.xml",
+      "bytes": 3369,
+      "sha256": "C63EE87419614D1B05F88C6F9376E69ED5B4DB7B472F59183260C5E89E85E353"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_domain.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_domain.xml",
+      "bytes": 3563,
+      "sha256": "08490B4FBD9E4F9EF05886B2488E0720B27BC2BE0B3E4D40EDB92536E31495F4"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_export.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_export.xml",
+      "bytes": 1662,
+      "sha256": "126E77E52C4794D9E5F4C84A07B8E3FA666635AB819FF816841050585E6D39CD"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_fileservice.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_fileservice.xml",
+      "bytes": 3352,
+      "sha256": "43097A8D5E14C831483CBBE3625FE93CB1C6953865FD165E585EF735DCDB26E8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_flow.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_flow.xml",
+      "bytes": 6371,
+      "sha256": "F460FAB99C1597D4010FC1F8C7EFC5A2DCDF876D5E3615C08AB0AA6585BB33F9"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_ganttview.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_ganttview.xml",
+      "bytes": 5541,
+      "sha256": "A70FE0FDA4A9F2B36494FED1279AEE32FBE8E5F01219EEA40DB28CE65791CA08"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_layout.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_layout.xml",
+      "bytes": 4062,
+      "sha256": "E7E9BB6A1F4D3DEE2B066B999A3DEA62E0682E9085BD79B813D3A8A4073D8B3E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_nodecommands.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_nodecommands.xml",
+      "bytes": 11286,
+      "sha256": "FBC3A83F902E410303E5F9D04DED2F8CE05C1076BCFA5912B757714006D5A8B4"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_presentation.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_presentation.xml",
+      "bytes": 1225,
+      "sha256": "51F367814313E1EA78A0E82D397C9E8BC3BEBE168891BEBC64593928A155BC56"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_projectjson.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_projectjson.xml",
+      "bytes": 2802,
+      "sha256": "FB4677B08988239E771BE196CC2046C1D6FFFFFE9E4B92D7988C792548E634DA"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_promptlibrary.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_promptlibrary.xml",
+      "bytes": 1342,
+      "sha256": "230F8791DDC4829508B6BA7C70CB655E3A76784AE2618BA552DF9270FDA07C07"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_recovery.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_recovery.xml",
+      "bytes": 2593,
+      "sha256": "D0FE56D6403753F6D2FB77792FEF0865A5073E02A409EB9660CD1D999F22B564"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_review.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_review.xml",
+      "bytes": 3720,
+      "sha256": "A2218161319FC903D76551B98A7630A893FCA44A412650D8EC960F8BE3E25949"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_reviewcommands.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_reviewcommands.xml",
+      "bytes": 2493,
+      "sha256": "0819C7B563563916EDBA0E53D76F45DE3D752007B381113CA3172034C9BB7707"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_reviewpage.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_reviewpage.xml",
+      "bytes": 2146,
+      "sha256": "425174782E50E1BA7051AAB6F912862410C83A6CB1C3B2AE21FF229E6C696931"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_search.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_search.xml",
+      "bytes": 1057,
+      "sha256": "76C322BD887B1358602D8B30EF7BC9221D93CAA78084BC40C2B7058A9449A5B8"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_secret.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_secret.xml",
+      "bytes": 1187,
+      "sha256": "1846BA3722CE4602D2C853E8031B06838874B7721BF081853BF16CBB044A894A"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_session.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_session.xml",
+      "bytes": 4226,
+      "sha256": "66AC140AEAC84333B663DD6B1DAAF24B62521BC30951B7C6946BD14045FE35F1"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_tasks.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_tasks.xml",
+      "bytes": 1815,
+      "sha256": "DDF80D526466D81F4CFC60B238B230A8FAD09726B52D9F233071C364E83908E0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\debug\\tst_ui.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\debug\\tst_ui.xml",
+      "bytes": 65282,
+      "sha256": "2A6F7F01F352583725FFFCC17A0642A8BA61EB31B7997625A46914A0EF5A05B4"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_ai.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_ai.xml",
+      "bytes": 2659,
+      "sha256": "11F589B4EDBF7EC4F19210963076CCDB54AD86C7500BCE515A8F26FD4AFF3728"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_aicommands.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_aicommands.xml",
+      "bytes": 3137,
+      "sha256": "A1B67A7B9FC7429F1382C4BA4519469DF63418A3939DC75882EC297C8AF7BAE0"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_aicompletion.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_aicompletion.xml",
+      "bytes": 1729,
+      "sha256": "7CA1951102F766AA1BEA9A0EFDEE1BBC7B904B253FDEFC42301D8E72AB639319"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_aipanel.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_aipanel.xml",
+      "bytes": 2138,
+      "sha256": "F50975B0D83D01ABEF00F3026B48F8B8FCDDE8A2D9B3EE6799CF43BDE572AE69"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_appearance.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_appearance.xml",
+      "bytes": 1214,
+      "sha256": "D3A0EE5AF2D4E19DF24C15ADCCC4E50393657AFBBDA6FD2CD32A227820C81BE2"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_charts.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_charts.xml",
+      "bytes": 2220,
+      "sha256": "51CC41523719E02816E42DC5773BA4674EEA5F7426325C3929F32748586A8CDB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_check.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_check.xml",
+      "bytes": 2177,
+      "sha256": "1EF0E320C3D213A323DAFB58FD13B4E93DC7A80817C9BF82CF2A83F6135B458F"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_checkassistant.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_checkassistant.xml",
+      "bytes": 1824,
+      "sha256": "795B8054CDD73E40E3094AD1C4D4C68438D4DAC72FB3BF4534956AB330485067"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_commands.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_commands.xml",
+      "bytes": 1654,
+      "sha256": "9A6453E69DF1FFE120FA95ABD696DE978AF3BBA9E4F8DD2CA7F26894674328EB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_deepseekclient.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_deepseekclient.xml",
+      "bytes": 3369,
+      "sha256": "5F1CEEB22F81D6FB91ED0E652AD06FB7FB66D6D9CB794F0062DB989BA62C12A3"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_domain.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_domain.xml",
+      "bytes": 3567,
+      "sha256": "0CBC5B0E81280E3D3C70027135B1B0BE2D646DBDFEDCC527DCB3B34617AAC9B3"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_export.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_export.xml",
+      "bytes": 1659,
+      "sha256": "8965E50101028FFEE588E9481A13AD2023E0071EDC2E583B1B92CB5DD0334F76"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_fileservice.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_fileservice.xml",
+      "bytes": 3351,
+      "sha256": "EDDC4857F45E99E74338B9DCCF0DEFEDC28649F02A6551C6E284E0B600C01C8C"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_flow.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_flow.xml",
+      "bytes": 6373,
+      "sha256": "7548AE91CDBE53A071AA7B12379C697EE6079CFDE4C03E151F80C18EAE01948F"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_ganttview.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_ganttview.xml",
+      "bytes": 5542,
+      "sha256": "0C82BD13BEAF301C4B70F4A9F6FDB7F640D838CB19055AE9F0F1B585FAD0F1B5"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_layout.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_layout.xml",
+      "bytes": 4063,
+      "sha256": "4B9B3ABE64AE4B50C0202AC9740B4C6CDF9A0D32EB67C2E039743F6B067787CB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_nodecommands.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_nodecommands.xml",
+      "bytes": 11278,
+      "sha256": "C083C51792E6E785E00BA58A26686D6F97502A8701F0AF7F8D57D387954B43B3"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_presentation.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_presentation.xml",
+      "bytes": 1226,
+      "sha256": "91D408F62D5AD6D1662637ADE586540F7507E984C4B7530973D75BC9ECCA2753"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_projectjson.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_projectjson.xml",
+      "bytes": 2799,
+      "sha256": "FEB4C600A430BA9D3844CCACD7EA9577396DF3F099F7513DFF741EDD7FBCE6C2"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_promptlibrary.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_promptlibrary.xml",
+      "bytes": 1344,
+      "sha256": "01AB336422257EA21082053619F3640CC41CAD3D0EC62C61EB83470CBAC32BB1"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_recovery.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_recovery.xml",
+      "bytes": 2595,
+      "sha256": "0E503E4B229D63F4D08126820B2F43A1498AA62E6007D5B7B3BEEB130FA588A1"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_review.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_review.xml",
+      "bytes": 3718,
+      "sha256": "9779ED75F27236D842A8ADA5A5BE1F291CE1DA9E1DC255BA155ED3C68403FEBC"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_reviewcommands.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_reviewcommands.xml",
+      "bytes": 2494,
+      "sha256": "7FF55ADA8CE76E4B595095D59E609D98525C2DB96A6AC1ACEB2DD552F84EBF8D"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_reviewpage.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_reviewpage.xml",
+      "bytes": 2145,
+      "sha256": "8792A3081DE2FCF8BB5CB4752784A09BE511ECA9C58D9AF2539456059B4469AB"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_search.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_search.xml",
+      "bytes": 1058,
+      "sha256": "CC68700BDA2185FAF0BE643135D18A8A14E2A54C5BFFC6C1AA9B2D97C485CF45"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_secret.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_secret.xml",
+      "bytes": 1186,
+      "sha256": "4D19FAFB054F56DE9C2271A4DE6EADF309B1E475F6B4AF1D02CD5A3CA6AEFC42"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_session.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_session.xml",
+      "bytes": 4228,
+      "sha256": "DD6B7C38F6187B3E4C813F6D1328569C804F594D914DDE09673149CD2C45E36F"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_tasks.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_tasks.xml",
+      "bytes": 1818,
+      "sha256": "1B64BD0BBFCD70E52CDFDB148A4D35F5611967CA4855F866497C3384FC83C94E"
+    },
+    {
+      "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h044-安装验证\\便携包解压\\说明\\测试证据\\release\\tst_ui.xml",
+      "retained": "D:\\mind\\候选版本\\完整开发版_20261107_59c8381\\分发内容\\说明\\测试证据\\release\\tst_ui.xml",
+      "bytes": 65285,
+      "sha256": "CD09E31129AC9557BF5C8EFB929B0CED78D8C98315A01E09DD6593C2304D2B20"
+    }
+  ],
+  "bytes": 73042407.0,
+  "retainedProof": "H044安装236/便携236及TLS原始报告均已归档"
+}

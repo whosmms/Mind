@@ -12,6 +12,10 @@ class QPlainTextEdit;
 class QPushButton;
 class QSpinBox;
 class QTextBrowser;
+class QCheckBox;
+class QListWidget;
+class QTreeWidget;
+class QTabWidget;
 
 namespace lingya {
 
@@ -27,8 +31,19 @@ public:
     void setSourceText(const QString& text);
     // 文稿/导图的目标工作表（空的导图请求不填）
     void setTargetSheet(const ID& sheetId);
+    void setDraftContext(const GenerateDraftRequest &request, const QString &error = {});
+    void setDraftSupported(bool supported);
+    void reportApplyResult(const QString &error);
+    QString currentRequestId() const;
+    QString draftPurpose() const;
+    void cancelPending();
+    QWidget *actionBar() const
+    {
+        return m_actionBar;
+    }
 
-signals:
+  signals:
+    void contextRequested(bool draft);
     void applyMapRequested(const MapProposal& proposal);
     void applyDraftRequested(const DraftProposal& proposal);
 
@@ -47,11 +62,14 @@ private:
     void onConnectionReady(const QString& requestId, const QString& model);
     void showPreview(const QString& text);
     void setBusy(bool busy);
+    void clearProposal();
 
     AiService* m_service = nullptr;
     ID m_targetSheet;
 
     QLineEdit* m_keyEdit = nullptr;
+    QLineEdit *m_modelEdit = nullptr;
+    QPushButton *m_modelButton = nullptr;
     QPushButton* m_saveKeyButton = nullptr;
     QPushButton* m_testButton = nullptr;
     QLabel* m_statusLabel = nullptr;
@@ -64,6 +82,22 @@ private:
     QPushButton* m_cancelButton = nullptr;
     QPushButton* m_applyButton = nullptr;
     QTextBrowser* m_preview = nullptr;
+    QWidget *m_actionBar = nullptr;
+    QTreeWidget *m_mapTree = nullptr;
+    QTabWidget *m_workflows = nullptr;
+    QCheckBox *m_rememberKey = nullptr;
+    QLineEdit *m_requirements = nullptr;
+    QComboBox *m_purpose = nullptr;
+    QSpinBox *m_targetChars = nullptr;
+    QWidget *m_draftEditor = nullptr;
+    QListWidget *m_draftSections = nullptr;
+    QLineEdit *m_sectionHeading = nullptr;
+    QPlainTextEdit *m_sectionText = nullptr;
+    int m_editingSection = -1;
+    bool m_draftSupported = true;
+    GenerateDraftRequest m_draftContext;
+    QString m_contextError, m_proposalRequestId;
+    QString m_generatedDraftPurpose = "summary";
 
     MapProposal m_map;
     DraftProposal m_draft;

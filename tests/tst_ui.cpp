@@ -8,19 +8,29 @@
 #include <unistd.h>
 #endif
 
+#include "ai/AiService.h"
+#include "ai/FakeAiProvider.h"
+#include "ai/IAiProvider.h"
+#include "ai/SecretStore.h"
 #include "charts/GanttView.h"
 #include "charts/TaskTableModel.h"
 #include "commands/CommandService.h"
 #include "commands/FlowCommands.h"
 #include "commands/NodeCommands.h"
+#include "commands/PresentationCommands.h"
 #include "commands/ReviewCommands.h"
 #include "commands/SheetCommands.h"
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
+#include "domain/ProjectFactory.h"
 #include "domain/ProjectValidator.h"
+#include "features/PresentationController.h"
 #include "features/ReviewService.h"
 #include "graphics/NodeItem.h"
+#include "services/AppearanceService.h"
 #include "services/ProjectJson.h"
+#include "ui/AiPanel.h"
+#include "ui/HomePage.h"
 #include "ui/IssuePanel.h"
 #include "ui/ReviewPage.h"
 #include <QAbstractButton>
@@ -46,7 +56,9 @@
 #include <QImage>
 #include <QInputDialog>
 #include <QInputMethodEvent>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QKeySequenceEdit>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -106,11 +118,64 @@ public slots:
 // UI层测试（规范§3 tst_ui规划、§19.1）：进程内验证快捷键绑定与文件打开行为。
 // QTest::keyClick走Qt事件系统（ShortcutMap），不经Windows输入队列，
 // 因此不受真实环境IME与前台焦点干扰，可直接判定快捷键绑定正确性。
+class UiDraftProvider : public IAiProvider
+{
+  public:
+    explicit UiDraftProvider(ID nodeId) : IAiProvider(nullptr), m_nodeId(std::move(nodeId)) {}
+    QJsonObject lastBody;
+    void start(const QString &id, const QJsonObject &body) override
+    {
+        lastBody = body;
+        const int generation = ++m_generation;
+        const QJsonObject section{{"heading", QStringLiteral("来源摘要")},
+                                  {"text", QStringLiteral("基于主题的原始正文")},
+                                  {"sourceNodeIds", QJsonArray{m_nodeId}},
+                                  {"origin", "source"}};
+        const QJsonObject proposal{{"title", QStringLiteral("受控测试稿")},
+                                   {"sections", QJsonArray{section}},
+                                   {"warnings", QJsonArray{}}};
+        const QJsonObject message{
+            {"content", QString::fromUtf8(QJsonDocument(proposal).toJson(QJsonDocument::Compact))}};
+        const QJsonObject response{{"model", "test-only"},
+                                   {"choices", QJsonArray{QJsonObject{{"message", message}}}}};
+        QTimer::singleShot(5, this,
+                           [this, generation, id, response]
+                           {
+                               if (generation == m_generation)
+                                   emit completed(id, response);
+                           });
+    }
+    void cancel(const QString &) override
+    {
+        ++m_generation;
+    }
+
+  private:
+    ID m_nodeId;
+    int m_generation = 0;
+};
+
 class TstUi : public QObject {
     Q_OBJECT
 
 private slots:
     void initTestCase();
+    void inlineStyleKeepsUneditedValues_data();
+    void inlineStyleKeepsUneditedValues();
+    void inlineMetadataAndDraftIsolation();
+    void homeNavigationKeepsEditorState();
+    void homeTemplates_data();
+    void homeTemplates();
+    void homeRecentsAndCancelProtectContent();
+    void homeRecoveryReturnsToEditor();
+    void presentationPlaybackRestoresEditor();
+    void exportDialogIsReadOnly();
+    void exportCanvasWritesWithoutSelectionState();
+    void aiMapApplyOnceAndUndo();
+    void aiStaleProposalKeepsCurrentContent();
+    void aiDraftEditApplyAndManage();
+    void preferencesKeepDocumentAndDefaultShortcuts();
+    void searchLocatesAcrossSheetsWithoutContentHistory();
     void desktopChromeKeepsCommandsAndViewState();
     void desktopChromeModesAndResponsiveLayout();
     void undoRedoViaShortcuts();
@@ -5288,7 +5353,7 @@ void TstUi::desktopChromeModesAndResponsiveLayout()
     QCOMPARE(window.findChild<QLabel *>("workspaceMode")->text(), QStringLiteral("鱼骨图"));
     selector->setCurrentIndex(selector->findData(ganttId));
     QCOMPARE(ribbon->tabText(ribbon->currentIndex()), QStringLiteral("任务"));
-    QCOMPARE(window.findChild<QTabWidget *>("propertyTabs")->currentIndex(), 2);
+    QCOMPARE(window.findChild<QTabWidget *>("propertyTabs")->currentIndex(), 3);
     auto *ganttView = window.findChild<GanttView *>();
     QVERIFY(ganttView);
     QVERIFY(!window.findChild<QAction *>("fitTopic")->isEnabled());
@@ -5309,6 +5374,630 @@ void TstUi::desktopChromeModesAndResponsiveLayout()
     QVERIFY(!commands->canUndo());
     QVERIFY(window.findChild<QAction *>("editTaskProperties")
                 ->isEnabled()); // 独立任务不受当前主题限制。
+    doc->setClean();
+}
+
+void TstUi::inlineStyleKeepsUneditedValues_data()
+{
+    QTest::addColumn<QString>("family");
+    QTest::newRow("normal") << QStringLiteral("Microsoft YaHei");
+    QTest::newRow("explicit-empty") << QString();
+    QTest::newRow("spaces") << QStringLiteral("  Microsoft YaHei  ");
+}
+
+void TstUi::inlineStyleKeepsUneditedValues()
+{
+    QFETCH(QString, family);
+    Project fixture = canvasProject(2, 1);
+    auto &tree = std::get<TreeSheet>(fixture.sheets.first());
+    const ID root = tree.rootId;
+    tree.nodes[root].style.fontFamily = family;
+    tree.nodes[root].style.borderWidth = 0.1234567;
+    MainWindow window;
+    loadEditorFixture(window, fixture);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QCOMPARE(changed.count(), 0);
+    QVERIFY(!commands->canUndo());
+    auto *size = window.findChild<QComboBox *>("inlineFontSize");
+    size->setCurrentIndex(size->findData(20));
+    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QCOMPARE(changed.count(), 1);
+    const auto styled = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;
+    QCOMPARE(styled.fontFamily.value(), family);
+    QCOMPARE(styled.borderWidth.value(), 0.1234567);
+    QCOMPARE(styled.fontSize.value(), 20);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    changed.clear();
+    auto *fill = window.findChild<QComboBox *>("inlineFill");
+    fill->setEditText(QStringLiteral("不是颜色"));
+    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QVERIFY(!window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
+    fill->setCurrentIndex(0);
+    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QVERIFY(window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
+    window.findChild<QPushButton *>("resetInlineStyle")->click();
+    const auto reset = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;
+    QVERIFY(!reset.fontFamily);
+    QVERIFY(!reset.borderWidth);
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    doc->setClean();
+}
+
+void TstUi::inlineMetadataAndDraftIsolation()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 1));
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    const ID root = std::get<TreeSheet>(doc->project().sheets.first()).rootId;
+    auto *note = window.findChild<QPlainTextEdit *>("inlineNote");
+    auto *link = window.findChild<QLineEdit *>("inlineLink");
+    note->setPlainText(QStringLiteral("尚未提交的中文备注"));
+    window.findChild<QToolButton *>("inlineIcon_idea")->click();
+    QCOMPARE(note->toPlainText(), QStringLiteral("尚未提交的中文备注"));
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).note, QString());
+    link->setText(QStringLiteral("file:///C:/private.txt"));
+    const auto before = ProjectJson::toJson(doc->project());
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    window.findChild<QPushButton *>("applyInlineNotes")->click();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    QVERIFY(!window.findChild<QLabel *>("inlineNoteError")->text().isEmpty());
+    link->setText(QStringLiteral("https://example.com/notes"));
+    window.findChild<QPushButton *>("applyInlineNotes")->click();
+    QCOMPARE(changed.count(), 1);
+    auto node = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root);
+    QCOMPARE(node.note, QStringLiteral("尚未提交的中文备注"));
+    QCOMPARE(node.iconId.value(), QStringLiteral("idea"));
+    commands->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    note->setPlainText(QStringLiteral("不应带到另一个主题"));
+    chooseTopic(window, canvasId("branch-0"));
+    QCOMPARE(note->toPlainText(), QString());
+    doc->setClean();
+}
+
+void TstUi::homeNavigationKeepsEditorState()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(2, 1));
+    QVERIFY(window.renameRootTo(QStringLiteral("保留当前工程")));
+    window.resize(1536, 960);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    const auto snapshot = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    const auto transform = view->transform();
+    window.showHomePage();
+    auto *home = window.findChild<HomePage *>();
+    QVERIFY(home->isVisible());
+    QVERIFY(!window.findChild<QAction *>("undoEdit")->isEnabled());
+    QVERIFY(!window.findChild<QAction *>("pasteTopic")->isEnabled());
+    const QString captures = qEnvironmentVariable("LINGYA_UI_DETAIL_CAPTURE_DIR");
+    if (!captures.isEmpty())
+    {
+        QVERIFY(QDir().mkpath(captures));
+        QTest::qWait(30);
+        QVERIFY(window.grab().save(QDir(captures).filePath("01-首页-1536.png")));
+    }
+    window.resize(800, 650);
+    QTest::qWait(30);
+    QCOMPARE(window.width(), 800);
+    if (!captures.isEmpty())
+        QVERIFY(window.grab().save(QDir(captures).filePath("02-首页-800.png")));
+    window.findChild<QPushButton *>("homeContinue")->click();
+    QVERIFY(!home->isVisible());
+    QCOMPARE(ProjectJson::toJson(doc->project()), snapshot);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(view->transform(), transform);
+    QVERIFY(doc->isModified());
+    QVERIFY(commands->canUndo());
+    QVERIFY(window.findChild<QAction *>("undoEdit")->isEnabled());
+    window.resize(1536, 960);
+    window.findChild<QAction *>("fitTopic")->trigger();
+    QTest::qWait(30);
+    if (!captures.isEmpty())
+        QVERIFY(window.grab().save(QDir(captures).filePath("03-内联样式-1536.png")));
+    doc->setClean();
+}
+
+void TstUi::homeTemplates_data()
+{
+    QTest::addColumn<QString>("kind");
+    for (const QString kind : {"mindmap", "fishbone", "flowchart", "gantt"})
+        QTest::newRow(qPrintable(kind)) << kind;
+}
+
+void TstUi::homeTemplates()
+{
+    QFETCH(QString, kind);
+    MainWindow window;
+    window.showHomePage();
+    window.findChild<QPushButton *>(QStringLiteral("homeTemplate_") + kind)->click();
+    auto *doc = window.findChild<ProjectDocument *>();
+    QCOMPARE(std::visit([](const auto &s) { return s.kind; }, doc->project().sheets.first()), kind);
+    QCOMPARE(ProjectValidator::validate(doc->project()).size(), 0);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+    QVERIFY(!doc->isModified());
+    if (kind == "fishbone")
+        QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), 7);
+    QTemporaryDir files;
+    const QString path = files.filePath(kind + ".lingya");
+    QVERIFY(window.saveProjectTo(path));
+    const auto loaded = FileService::load(path);
+    QVERIFY(std::holds_alternative<Project>(loaded));
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(loaded)), ProjectJson::toJson(doc->project()));
+}
+
+void TstUi::homeRecentsAndCancelProtectContent()
+{
+    QTemporaryDir files;
+    const QString path = files.filePath(QStringLiteral("首页最近工程.lingya"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, canvasProject(1, 1))));
+    SettingsService::addRecentFile(path);
+    MainWindow window;
+    window.show();
+    QVERIFY(window.renameRootTo(QStringLiteral("未保存内容")));
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    window.showHomePage();
+    auto *list = window.findChild<QListWidget *>("homeRecentFiles");
+    QVERIFY(list->count() > 0);
+    list->setCurrentRow(0);
+    QTimer::singleShot(0, &window,
+                       [&window]
+                       {
+                           for (auto *box : window.findChildren<QMessageBox *>())
+                               if (box->isVisible())
+                                   box->button(QMessageBox::Cancel)->click();
+                       });
+    window.findChild<QPushButton *>("homeOpenRecent")->click();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(window.findChild<HomePage *>()->isVisible());
+    QVERIFY(SettingsService::recentFiles().contains(path));
+    list->setCurrentRow(0);
+    window.findChild<QPushButton *>("homeRemoveRecent")->click();
+    QVERIFY(!SettingsService::recentFiles().contains(path));
+    QVERIFY(QFile::exists(path));
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    doc->setClean();
+}
+
+void TstUi::homeRecoveryReturnsToEditor()
+{
+    QTemporaryDir root;
+    MainWindow::setRecoveryRootForTest(root.path());
+    const auto restoreRoot =
+        qScopeGuard([this] { MainWindow::setRecoveryRootForTest(m_recoveryDir.path()); });
+    MainWindow window;
+    const auto initial = ProjectJson::toJson(window.findChild<ProjectDocument *>()->project());
+    const Project recovered =
+        makeRecoveredProject(QStringLiteral("恢复工程"), QStringLiteral("从首页采用"));
+    QVERIFY(std::holds_alternative<RecoveryService::SnapshotWrite>(
+        RecoveryService::writeSnapshot(root.path(), recovered)));
+    const auto snapshots = RecoveryService::list(root.path(), recovered.id);
+    QVERIFY(!snapshots.isEmpty());
+    window.showHomePage();
+    QVERIFY(window.adoptRecoverySnapshot(snapshots.first()));
+    QVERIFY(!window.findChild<HomePage *>()->isVisible());
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("从首页采用"));
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(ProjectJson::toJson(window.findChild<ProjectDocument *>()->project()), initial);
+    window.findChild<ProjectDocument *>()->setClean();
+}
+
+void TstUi::presentationPlaybackRestoresEditor()
+{
+    auto project = canvasProject(2, 1);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.nodes[tree.rootId].collapsed = true;
+    auto route = PresentationController::defaultRoute(tree);
+    for (const auto &node : tree.nodes)
+        if (node.parentId && *node.parentId != tree.rootId)
+            route.steps[1].nodeId = node.id;
+    route.steps[1].speakerNote =
+        QStringLiteral("这是中文演讲备注，长内容应当滚动且保留讲解画布。\n").repeated(160);
+    project.routes.append(route);
+    MainWindow window;
+    window.show();
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    view->scale(1.1, 1.1);
+    const auto transform = view->transform();
+    const int horizontal = view->horizontalScrollBar()->value();
+    const int vertical = view->verticalScrollBar()->value();
+    const auto initial = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    QTimer::singleShot(0, &window, [&] {
+        auto *dialog = window.findChild<QDialog *>("presentationRoutes");
+        QVERIFY(dialog);
+        const auto close = qScopeGuard([dialog] { dialog->reject(); });
+        dialog->findChild<QComboBox *>("presentationRouteChoice")->setCurrentIndex(1);
+        QTimer::singleShot(0, &window, [&] {
+            auto *player = window.findChild<QDialog *>("presentationPlayer");
+            QVERIFY(player);
+            const auto exit = qScopeGuard([player] { player->reject(); });
+            QVERIFY(player->isFullScreen());
+            QTest::qWait(5);
+            QTest::keyClick(player, Qt::Key_Right);
+            QVERIFY(player->findChild<QLabel *>("presentationHeading")
+                        ->text()
+                        .contains(QStringLiteral("2 / 3")));
+            QTest::keyClick(player, Qt::Key_Left);
+            QVERIFY(!player->findChild<QLabel *>("presentationVisibleNote")->isVisible());
+            player->findChild<QPushButton *>("presentationNext")->click();
+            player->findChild<QCheckBox *>("presentationShowNote")->setChecked(true);
+            QCOMPARE(player->findChild<QLabel *>("presentationVisibleNote")->text(), route.steps[1].speakerNote);
+            auto *notes = player->findChild<QScrollArea *>("presentationNoteScroll");
+            QVERIFY(notes);
+            QTRY_VERIFY(notes->verticalScrollBar()->maximum() > 0);
+            QVERIFY(notes->height() <= 160);
+            QVERIFY(player->findChild<QGraphicsView *>("presentationCanvas")->height() > 250);
+            QVERIFY(player->findChild<QPushButton *>("presentationNext")->isVisible());
+            QTest::keyClick(player, Qt::Key_Space);
+            QCOMPARE(player->findChild<QPushButton *>("presentationPause")->text(), QStringLiteral("继续计时"));
+            const QString capture = qEnvironmentVariable("LINGYA_COMPLETION_CAPTURE_DIR");
+            if (!capture.isEmpty()) {
+                QDir().mkpath(capture);
+                QVERIFY(player->grab().save(capture + "/04-分支讲解.png"));
+            }
+        });
+        dialog->findChild<QPushButton *>("playPresentation")->click();
+    });
+    window.findChild<QAction *>("managePresentation")->trigger();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(view->transform(), transform);
+    QCOMPARE(view->horizontalScrollBar()->value(), horizontal);
+    QCOMPARE(view->verticalScrollBar()->value(), vertical);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+    QVERIFY(!doc->isModified());
+}
+
+void TstUi::exportDialogIsReadOnly()
+{
+    MainWindow window;
+    window.show();
+    loadEditorFixture(window, canvasProject(2, 1));
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    QTimer::singleShot(0, &window, [&] {
+        auto *dialog = window.findChild<QDialog *>("exportDialog");
+        QVERIFY(dialog);
+        const auto close = qScopeGuard([dialog] { dialog->reject(); });
+        auto *format = dialog->findChild<QComboBox *>("exportFormat");
+        format->setCurrentIndex(1);
+        QVERIFY(dialog->findChild<QLabel *>("exportInfo")->text().contains(QStringLiteral("页")));
+        const QString capture = qEnvironmentVariable("LINGYA_COMPLETION_CAPTURE_DIR");
+        if (!capture.isEmpty()) {
+            QDir().mkpath(capture);
+            QVERIFY(dialog->grab().save(capture + "/05-分页导出.png"));
+        }
+        format->setCurrentIndex(2);
+        QVERIFY(!dialog->findChild<QDoubleSpinBox *>("exportScale")->isEnabled());
+    });
+    window.findChild<QAction *>("exportSheet")->trigger();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+}
+
+void TstUi::aiMapApplyOnceAndUndo()
+{
+    registerAiMetaTypes();
+    FakeAiProvider provider;
+    SessionSecretStore store;
+    store.setApiKey("test-only", false);
+    AiService service(&provider, &store);
+    MainWindow window;
+    window.setAiServiceForTest(&service);
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    const int count = doc->project().sheets.size();
+    QTimer::singleShot(0, &window,
+                       [&]
+                       {
+                           auto *dialog = window.findChild<QDialog *>("aiWorkspace");
+                           QVERIFY(dialog);
+                           const auto close = qScopeGuard([dialog] { dialog->reject(); });
+                           auto *panel = dialog->findChild<AiPanel *>("hostAiPanel");
+                           QVERIFY(panel);
+                           dialog->findChild<QPushButton *>("aiGenerateMap")->click();
+                           auto *apply = dialog->findChild<QPushButton *>("aiApply");
+                           QTRY_VERIFY_WITH_TIMEOUT(apply->isEnabled(), 3000);
+                           const QString capture = qEnvironmentVariable("LINGYA_AI_CAPTURE_DIR");
+                           if (!capture.isEmpty())
+                           {
+                               QDir().mkpath(capture);
+                               QVERIFY(dialog->grab().save(capture + "/06-AI导图预览_假响应.png"));
+                           }
+                           apply->click();
+                           QCOMPARE(doc->project().sheets.size(), count + 1);
+                           QVERIFY(!apply->isEnabled());
+                           apply->click();
+                           QCOMPARE(doc->project().sheets.size(), count + 1);
+                       });
+    window.findChild<QAction *>("showAiWorkspace")->trigger();
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    doc->setClean();
+}
+
+void TstUi::aiStaleProposalKeepsCurrentContent()
+{
+    registerAiMetaTypes();
+    FakeAiProvider provider;
+    SessionSecretStore store;
+    store.setApiKey("test-only", false);
+    AiService service(&provider, &store);
+    MainWindow window;
+    window.setAiServiceForTest(&service);
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto sheet = std::get<TreeSheet>(doc->project().sheets.first());
+    QTimer::singleShot(
+        0, &window,
+        [&]
+        {
+            auto *dialog = window.findChild<QDialog *>("aiWorkspace");
+            QVERIFY(dialog);
+            const auto close = qScopeGuard([dialog] { dialog->reject(); });
+            auto *panel = dialog->findChild<AiPanel *>("hostAiPanel");
+            dialog->findChild<QPushButton *>("aiGenerateMap")->click();
+            auto *apply = dialog->findChild<QPushButton *>("aiApply");
+            QTRY_VERIFY_WITH_TIMEOUT(apply->isEnabled(), 3000);
+            auto *previewTree = panel->findChild<QTreeWidget *>("aiMapTree");
+            QCOMPARE(previewTree->topLevelItem(0)->child(0)->text(0), QStringLiteral("需求分析"));
+            QVERIFY(window.renameRootTo(QStringLiteral("生成后修改")));
+            const auto current = ProjectJson::toJson(doc->project());
+            QSignalSpy changed(doc, &ProjectDocument::changed);
+            apply->click();
+            QCOMPARE(changed.count(), 0);
+            QCOMPARE(ProjectJson::toJson(doc->project()), current);
+            QVERIFY(
+                panel->findChild<QLabel *>("aiStatus")->text().contains(QStringLiteral("修改")));
+        });
+    window.findChild<QAction *>("showAiWorkspace")->trigger();
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("生成后修改"));
+    doc->setClean();
+}
+
+void TstUi::aiDraftEditApplyAndManage()
+{
+    registerAiMetaTypes();
+    const auto project = canvasProject(2, 1);
+    const auto tree = std::get<TreeSheet>(project.sheets.first());
+    UiDraftProvider provider(tree.rootId);
+    SessionSecretStore store;
+    store.setApiKey("test-only", false);
+    AiService service(&provider, &store);
+    MainWindow window;
+    window.setAiServiceForTest(&service);
+    window.show();
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    QTimer::singleShot(0, &window,
+                       [&]
+                       {
+                           auto *dialog = window.findChild<QDialog *>("aiWorkspace");
+                           QVERIFY(dialog);
+                           const auto close = qScopeGuard([dialog] { dialog->reject(); });
+                           auto *panel = dialog->findChild<AiPanel *>("hostAiPanel");
+                           dialog->findChild<QPushButton *>("aiGenerateDraft")->click();
+                           auto *apply = dialog->findChild<QPushButton *>("aiApply");
+                           QTRY_VERIFY_WITH_TIMEOUT(apply->isEnabled(), 3000);
+                           QVERIFY(provider.lastBody["messages"]
+                                       .toArray()[1]
+                                       .toObject()["content"]
+                                       .toString()
+                                       .contains(tree.rootId));
+                           panel->findChild<QPlainTextEdit *>("aiSectionText")
+                               ->setPlainText(QStringLiteral("采用前已编辑的中文正文"));
+                           const QString capture = qEnvironmentVariable("LINGYA_AI_CAPTURE_DIR");
+                           if (!capture.isEmpty())
+                           {
+                               QDir().mkpath(capture);
+                               QVERIFY(dialog->grab().save(capture + "/07-AI文稿编辑_假响应.png"));
+                           }
+                           apply->click();
+                           QCOMPARE(doc->project().drafts.size(), 1);
+                           QCOMPARE(doc->project().drafts.first().sections.first().text,
+                                    QStringLiteral("采用前已编辑的中文正文"));
+                           QVERIFY(doc->project().drafts.first().sourceHash);
+                           QVERIFY(!apply->isEnabled());
+                       });
+    window.findChild<QAction *>("showAiWorkspace")->trigger();
+    const auto adopted = ProjectJson::toJson(doc->project());
+    QTimer::singleShot(
+        0, &window,
+        [&]
+        {
+            auto *dialog = window.findChild<QDialog *>("draftManager");
+            QVERIFY(dialog);
+            const auto close = qScopeGuard([dialog] { dialog->reject(); });
+            QVERIFY(
+                dialog->findChild<QLabel *>("draftInfo")->text().contains(QStringLiteral("一致")));
+            dialog->findChild<QPlainTextEdit *>("draftText")
+                ->setPlainText(QStringLiteral("稿件管理中的新正文"));
+            dialog->findChild<QPushButton *>("saveDraftText")->click();
+            dialog->findChild<QPushButton *>("copyDraftText")->click();
+            QVERIFY(
+                QApplication::clipboard()->text().contains(QStringLiteral("稿件管理中的新正文")));
+            QTest::qWait(10);
+            const QString capture = qEnvironmentVariable("LINGYA_AI_CAPTURE_DIR");
+            if (!capture.isEmpty())
+                QVERIFY(dialog->grab().save(capture + "/08-工程文字稿.png"));
+        });
+    window.findChild<QAction *>("manageDrafts")->trigger();
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), adopted);
+    doc->setClean();
+}
+
+void TstUi::exportCanvasWritesWithoutSelectionState()
+{
+    const bool native = QCoreApplication::testAttribute(Qt::AA_DontUseNativeDialogs);
+    QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+    const auto restore = qScopeGuard(
+        [native] { QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs, native); });
+    QTemporaryDir dir;
+    MainWindow window;
+    window.show();
+    loadEditorFixture(window, canvasProject(2, 1));
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    QSignalSpy changed(doc, &ProjectDocument::changed);
+    const auto exportImage = [&](const QString &path)
+    {
+        QTimer::singleShot(
+            0, &window,
+            [&window, path]
+            {
+                auto *dialog = window.findChild<QDialog *>("exportDialog");
+                QVERIFY(dialog);
+                const auto close = qScopeGuard([dialog] { dialog->reject(); });
+                QTimer::singleShot(
+                    0, &window,
+                    [&window, path]
+                    {
+                        auto *picker = window.findChild<QFileDialog *>();
+                        QVERIFY(picker);
+                        picker->selectFile(path);
+                        QVERIFY(QMetaObject::invokeMethod(picker, "accept", Qt::DirectConnection));
+                    });
+                dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Save)->click();
+            });
+        window.findChild<QAction *>("exportSheet")->trigger();
+    };
+    const QString first = dir.filePath(QStringLiteral("原选中.png")),
+                  second = dir.filePath(QStringLiteral("剪切标记.png"));
+    exportImage(first);
+    QVERIFY(QFile::exists(first));
+    const auto nodes = canvasNodes(window.findChild<QGraphicsView *>("topicPreview"));
+    for (auto *node : nodes)
+    {
+        node->setSelected(false);
+        node->setCutPending(true);
+    }
+    exportImage(second);
+    QVERIFY(QFile::exists(second));
+    const QImage left(first), right(second);
+    QVERIFY(!left.isNull());
+    QCOMPARE(left, right);
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+}
+
+void TstUi::preferencesKeepDocumentAndDefaultShortcuts()
+{
+    const auto original = AppearanceService::read();
+    const auto originalStyle = qApp->styleSheet();
+    const auto restore = qScopeGuard(
+        [&]
+        {
+            AppearanceService::write(original);
+            qApp->setStyleSheet(originalStyle);
+        });
+    MainWindow window;
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto json = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    auto *create = window.findChild<QAction *>("newProject");
+    const auto previous = create->shortcut();
+    QTimer::singleShot(
+        0, &window,
+        [&]
+        {
+            auto *dialog = window.findChild<QDialog *>("preferencesDialog");
+            QVERIFY(dialog);
+            const auto close = qScopeGuard([dialog] { dialog->reject(); });
+            auto *edit = dialog->findChild<QKeySequenceEdit *>("shortcut_newProject");
+            auto *other = dialog->findChild<QKeySequenceEdit *>("shortcut_openProject");
+            QVERIFY(edit);
+            QVERIFY(other);
+            dialog->findChild<QTabWidget *>("preferenceTabs")->setCurrentIndex(1);
+            const auto dir = qEnvironmentVariable("LINGYA_FINAL_CAPTURE_DIR");
+            if (!dir.isEmpty())
+            {
+                QDir().mkpath(dir);
+                QVERIFY(dialog->grab().save(dir + "/09-设置与快捷键.png"));
+            }
+            auto *buttons = dialog->findChild<QDialogButtonBox *>();
+            edit->setKeySequence(other->keySequence());
+            buttons->button(QDialogButtonBox::Save)->click();
+            QVERIFY(!dialog->findChild<QLabel *>("preferenceError")->text().isEmpty());
+            QCOMPARE(create->shortcut(), previous);
+            edit->setKeySequence(QKeySequence("Ctrl+Alt+J"));
+            auto *theme = dialog->findChild<QComboBox *>("preferenceTheme");
+            theme->setCurrentIndex(theme->findData("lavender"));
+            buttons->button(QDialogButtonBox::Save)->click();
+        });
+    window.findChild<QAction *>("showPreferences")->trigger();
+    QCOMPARE(create->shortcut(), QKeySequence("Ctrl+Alt+J"));
+    QVERIFY(qApp->styleSheet().contains("#675087"));
+    QCOMPARE(ProjectJson::toJson(doc->project()), json);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+}
+
+void TstUi::searchLocatesAcrossSheetsWithoutContentHistory()
+{
+    auto project = canvasProject(1, 0);
+    auto extra = ProjectFactory::createMindmap(QStringLiteral("第二张"));
+    auto sheet = std::get<TreeSheet>(extra.sheets.first());
+    sheet.name = QStringLiteral("第二张");
+    sheet.nodes[sheet.rootId].title = QStringLiteral("跨表中文目标");
+    project.sheets.append(sheet);
+    MainWindow window;
+    window.show();
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto revision = doc->sessionRevision();
+    const auto sheets = ProjectJson::toJson(doc->project()).value("sheets");
+    QTimer::singleShot(
+        0, &window,
+        [&]
+        {
+            auto *dialog = window.findChild<QDialog *>("projectSearch");
+            QVERIFY(dialog);
+            const auto close = qScopeGuard([dialog] { dialog->reject(); });
+            dialog->findChild<QLineEdit *>("searchQuery")->setText(QStringLiteral("中文目标"));
+            auto *list = dialog->findChild<QListWidget *>("searchResults");
+            QCOMPARE(list->count(), 1);
+            const auto dir = qEnvironmentVariable("LINGYA_FINAL_CAPTURE_DIR");
+            if (!dir.isEmpty())
+            {
+                QDir().mkpath(dir);
+                QVERIFY(dialog->grab().save(dir + "/10-跨表搜索定位.png"));
+            }
+            dialog->findChild<QPushButton *>("locateSearchResult")->click();
+        });
+    window.findChild<QAction *>("showSearch")->trigger();
+    QCOMPARE(doc->project().activeSheetId, sheet.id);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("跨表中文目标"));
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(doc->project()).value("sheets"), sheets);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
     doc->setClean();
 }
 
