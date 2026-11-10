@@ -24,6 +24,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsSimpleTextItem>
 #include <QHBoxLayout>
+#include <QHash>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QItemSelectionModel>
@@ -34,15 +35,20 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QScopedValueRollback>
 #include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSet>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTableView>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
+#include <algorithm>
 
 namespace lingya
 {
@@ -62,6 +68,109 @@ QVector<Issue> currentIssues(const Project &project)
         card.sourceState = card.mode == "custom" ? QStringLiteral("ok")
                                                  : ReviewService::detectSourceState(card, project);
     return CheckService::checkProject(display);
+}
+
+QVector<ReviewCommands::Source> chooseReviewTopics(QWidget *parent, const Project &project)
+{
+    QDialog dialog(parent);
+    dialog.setObjectName("pickReviewTopicsDialog");
+    dialog.setWindowTitle(QStringLiteral("从导图选取复习主题"));
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *intro = new QLabel(
+        QStringLiteral("展开工作表，勾选想复习的主题。答案优先使用备注，否则使用直属子主题。"),
+        &dialog);
+    intro->setWordWrap(true);
+    layout->addWidget(intro);
+    auto *tree = new QTreeWidget(&dialog);
+    tree->setObjectName("reviewTopicTree");
+    tree->setHeaderLabels({QStringLiteral("工作表与主题"), QStringLiteral("建卡状态")});
+    tree->header()->setStretchLastSection(false);
+    tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    tree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    layout->addWidget(tree, 1);
+
+    QSet<QPair<ID, ID>> existing;
+    for (const auto &card : project.cards)
+        existing.insert({card.sheetId, card.nodeId});
+    QTreeWidgetItem *initialSheet = nullptr;
+    for (const auto &value : project.sheets)
+    {
+        const auto *sheet = std::get_if<TreeSheet>(&value);
+        if (!sheet)
+            continue;
+        auto *sheetItem = new QTreeWidgetItem(tree, {sheet->name});
+        if (!initialSheet || sheet->id == project.activeSheetId)
+            initialSheet = sheetItem;
+
+        QVector<const TreeNode *> topics;
+        QHash<ID, QTreeWidgetItem *> rows;
+        for (const auto &topic : sheet->nodes)
+        {
+            topics.append(&topic);
+            auto *row = new QTreeWidgetItem({topic.title});
+            rows.insert(topic.id, row);
+            row->setData(0, Qt::UserRole, topic.id);
+            row->setData(0, Qt::UserRole + 1, sheet->id);
+            row->setToolTip(0, topic.title);
+            const bool alreadyAdded = existing.contains({sheet->id, topic.id});
+            if (!alreadyAdded && ReviewService::createCard(project, sheet->id, topic.id))
+                row->setCheckState(0, Qt::Unchecked);
+            else
+            {
+                row->setFlags(row->flags() & ~Qt::ItemIsUserCheckable);
+                row->setText(1,
+                             alreadyAdded ? QStringLiteral("已加入") : QStringLiteral("缺少答案"));
+            }
+        }
+        std::stable_sort(topics.begin(), topics.end(),
+                         [](const TreeNode *a, const TreeNode *b) { return a->order < b->order; });
+        for (const auto *topic : topics)
+        {
+            auto *parentRow = rows.value(topic->parentId.value_or(ID{}), sheetItem);
+            parentRow->addChild(rows.value(topic->id));
+        }
+        if (auto *root = rows.value(sheet->rootId))
+            root->setExpanded(true);
+    }
+    if (initialSheet)
+        initialSheet->setExpanded(true);
+    else
+        intro->setText(QStringLiteral("当前工程没有思维导图或鱼骨图工作表。"));
+
+    const auto checkedSources = [tree]
+    {
+        QVector<ReviewCommands::Source> sources;
+        for (QTreeWidgetItemIterator it(tree, QTreeWidgetItemIterator::Checked); *it; ++it)
+            sources.append({(*it)->data(0, Qt::UserRole + 1).toString(),
+                            (*it)->data(0, Qt::UserRole).toString()});
+        return sources;
+    };
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    auto *add = buttons->addButton(QStringLiteral("加入复习"), QDialogButtonBox::AcceptRole);
+    add->setObjectName("confirmReviewTopics");
+    add->setProperty("primary", true);
+    add->setEnabled(false);
+    auto *selected = new QLabel(QStringLiteral("已选 0 个主题"), &dialog);
+    selected->setObjectName("reviewTopicSelectionCount");
+    QObject::connect(tree, &QTreeWidget::itemChanged, &dialog,
+                     [add, selected, checkedSources]
+                     {
+                         const auto count = checkedSources().size();
+                         add->setEnabled(count > 0);
+                         selected->setText(QStringLiteral("已选 %1 个主题").arg(count));
+                     });
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    auto *footer = new QHBoxLayout;
+    footer->addWidget(selected);
+    footer->addStretch();
+    footer->addWidget(buttons);
+    layout->addLayout(footer);
+    const auto available = parent->screen()->availableGeometry();
+    dialog.resize(qMin(600, available.width() - 60), qMin(540, available.height() - 70));
+    return dialog.exec() == QDialog::Accepted ? checkedSources()
+                                              : QVector<ReviewCommands::Source>{};
 }
 } // namespace
 const GanttSheet *MainWindow::ganttTaskFilter(bool includeLocationOverride) const
@@ -641,13 +750,18 @@ void MainWindow::manageReviewCards(ID cardId)
     };
     auto *start = new QPushButton(QStringLiteral("开始 / 重新开始"), &dialog);
     start->setObjectName("startReview");
-    layout->insertWidget(3, start);
+    auto *pick = new QPushButton(QStringLiteral("从导图选取…"), &dialog);
+    pick->setObjectName("pickReviewTopics");
+    auto *reviewActions = new QHBoxLayout;
+    reviewActions->addWidget(pick);
+    reviewActions->addWidget(start, 1);
+    layout->insertLayout(3, reviewActions);
     auto *refresh = button(QStringLiteral("更新卡片"), "refreshReviewCard");
     auto *custom = button(QStringLiteral("保留自定义"), "keepReviewCustom");
     auto *standalone = button(QStringLiteral("转独立卡片"), "standaloneReviewCard");
     auto *remove = button(QStringLiteral("移除卡片"), "removeReviewCard");
     layout->addWidget(buttons);
-    bool grading = false;
+    bool preserveSession = false;
     const auto reload = [&, this]
     {
         const ID selected =
@@ -702,10 +816,31 @@ void MainWindow::manageReviewCards(ID cardId)
             [&]
             {
                 reload();
-                if (!grading)
+                if (!preserveSession)
                     page->setCards({});
             });
     connect(start, &QPushButton::clicked, &dialog, begin);
+    connect(pick, &QPushButton::clicked, &dialog,
+            [&]
+            {
+                const auto sources = chooseReviewTopics(&dialog, m_doc->project());
+                if (sources.isEmpty())
+                    return;
+                const QScopedValueRollback<bool> preserve(preserveSession, true);
+                const auto result = ReviewCommands(m_commands, m_doc).addCards(sources);
+                if (const auto *failure = std::get_if<AppError>(&result))
+                {
+                    error->setText(failure->message);
+                    return;
+                }
+                if (page->isFinished())
+                {
+                    filter->setCurrentIndex(filter->findData(QStringLiteral("new")));
+                    begin();
+                }
+                error->setText(
+                    QStringLiteral("已加入 %1 张卡片。").arg(std::get<QVector<ID>>(result).size()));
+            });
     connect(page, &ReviewPage::cardGraded, &dialog,
             [&, this](const ID &id, ReviewMark mark)
             {
@@ -718,9 +853,8 @@ void MainWindow::manageReviewCards(ID cardId)
                             page->setCards({});
                             return;
                         }
-                grading = true;
+                const QScopedValueRollback<bool> preserve(preserveSession, true);
                 const auto result = ReviewCommands(m_commands, m_doc).gradeCard(id, mark);
-                grading = false;
                 if (const auto *failure = std::get_if<AppError>(&result))
                 {
                     error->setText(failure->message);

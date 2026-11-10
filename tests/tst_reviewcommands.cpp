@@ -55,6 +55,8 @@ private slots:
     void addCardExtractsFrontAndBack();
     void addCardRejectsDuplicateNode();
     void addCardRejectsNodeWithoutContent();
+    void addCardsUsesOneUndoStep();
+    void addCardsRejectsInvalidBatch();
     void removeCardAndUndoRestores();
     // 源变化处置
     void refreshFromSourceKeepsIdStatusAndReviewedAt();
@@ -227,6 +229,78 @@ void TstReviewCommands::addCardRejectsNodeWithoutContent() {
     QVERIFY(std::holds_alternative<AppError>(added));
     QCOMPARE(std::get<AppError>(added).code, QStringLiteral("NO_CONTENT"));
     QVERIFY(document.project().cards.isEmpty());
+}
+
+void TstReviewCommands::addCardsUsesOneUndoStep()
+{
+    Project project = ProjectFactory::createMindmap(QStringLiteral("复习"));
+    const ID root = treeOf(project).rootId;
+    const ID first =
+        addRawNode(project, root, 0, QStringLiteral("主题一"), QStringLiteral("答案一"));
+    const ID second =
+        addRawNode(project, root, 1, QStringLiteral("主题二"), QStringLiteral("答案二"));
+    const ID sheet = project.activeSheetId;
+    ProjectDocument document;
+    document.replaceProject(project);
+    CommandService history(&document);
+    const auto revision = document.sessionRevision();
+
+    const auto result =
+        ReviewCommands(&history, &document).addCards({{sheet, second}, {sheet, first}});
+    QVERIFY(std::holds_alternative<QVector<ID>>(result));
+    const auto &ids = std::get<QVector<ID>>(result);
+    QCOMPARE(ids.size(), 2);
+    QCOMPARE(document.sessionRevision(), revision + 1);
+    QCOMPARE(document.project().cards.size(), 2);
+    QCOMPARE(document.project().cards.at(0).nodeId, second);
+    QCOMPARE(document.project().cards.at(1).nodeId, first);
+    QCOMPARE(document.project().cards.at(0).id, ids.at(0));
+    QCOMPARE(document.project().cards.at(1).id, ids.at(1));
+
+    history.undo();
+    QVERIFY(document.project().cards.isEmpty());
+    QVERIFY(!history.canUndo());
+    history.redo();
+    QCOMPARE(document.project().cards.size(), 2);
+    QCOMPARE(document.project().cards.at(0).id, ids.at(0));
+    QCOMPARE(document.project().cards.at(1).id, ids.at(1));
+}
+
+void TstReviewCommands::addCardsRejectsInvalidBatch()
+{
+    Project project = ProjectFactory::createMindmap(QStringLiteral("复习"));
+    const ID root = treeOf(project).rootId;
+    const ID ready = addRawNode(project, root, 0, QStringLiteral("有答案"), QStringLiteral("备注"));
+    const ID empty = addRawNode(project, root, 1, QStringLiteral("无答案"));
+    const ID sheet = project.activeSheetId;
+    ProjectDocument document;
+    document.replaceProject(project);
+    CommandService history(&document);
+    ReviewCommands review(&history, &document);
+    const auto existing = review.addCard(sheet, root);
+    QVERIFY(std::holds_alternative<ID>(existing));
+    history.clearHistory();
+    const auto revision = document.sessionRevision();
+
+    const QVector<QPair<ID, QString>> invalid{
+        {root, QStringLiteral("CARD_EXISTS")},
+        {ready, QStringLiteral("CARD_EXISTS")},
+        {empty, QStringLiteral("NO_CONTENT")},
+        {QStringLiteral("missing"), QStringLiteral("NO_CONTENT")},
+    };
+    for (const auto &[node, code] : invalid)
+    {
+        const auto result = review.addCards({{sheet, ready}, {sheet, node}});
+        QVERIFY(std::holds_alternative<AppError>(result));
+        QCOMPARE(std::get<AppError>(result).code, code);
+    }
+    const auto noSelection = review.addCards({});
+    QVERIFY(std::holds_alternative<QVector<ID>>(noSelection));
+    QVERIFY(std::get<QVector<ID>>(noSelection).isEmpty());
+    QCOMPARE(document.sessionRevision(), revision);
+    QCOMPARE(document.project().cards.size(), 1);
+    QCOMPARE(document.project().cards.first().id, std::get<ID>(existing));
+    QVERIFY(!history.canUndo());
 }
 
 void TstReviewCommands::removeCardAndUndoRestores() {

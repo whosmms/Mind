@@ -84,16 +84,17 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QSlider>
-#include <QStyleOptionSpinBox>
-#include <QToolTip>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QStyleOptionSpinBox>
+#include <QStyleOptionViewItem>
 #include <QTabWidget>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
+#include <QToolTip>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QUrl>
@@ -221,6 +222,8 @@ private slots:
     void ganttSheetFilterKeepsProjectAndHistory();
     void ganttClickKeepsPageDuringDrag();
     void offlineReviewGradesAndSourceChanges();
+    void offlineReviewPicksTopics_data();
+    void offlineReviewPicksTopics();
     void offlineCheckLocatesAndRefreshes();
     void editorClipboardRejectsStaleAndInvalid();
     void editorCanvasDragKeepsIdsAndRepairsFrames();
@@ -4815,6 +4818,180 @@ void TstUi::offlineReviewGradesAndSourceChanges()
     QVERIFY(reopened.openFile(path));
     QCOMPARE(reopened.findChild<ProjectDocument *>()->project().cards.first().status,
              QStringLiteral("mastered"));
+}
+
+void TstUi::offlineReviewPicksTopics_data()
+{
+    QTest::addColumn<bool>("reviewing");
+    QTest::newRow("keep-current-card") << true;
+    QTest::newRow("start-new-cards") << false;
+}
+
+void TstUi::offlineReviewPicksTopics()
+{
+    QFETCH(bool, reviewing);
+    MainWindow window;
+    Project project = canvasProject(2, 1);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.name = QStringLiteral("课程提纲");
+    const ID sheetId = tree.id, rootId = tree.rootId;
+    const ID duplicate = canvasId("branch-0"), target = canvasId("branch-1"),
+             empty = canvasId("leaf-1-0");
+    auto previous = ReviewService::createCard(project, sheetId, duplicate);
+    QVERIFY(previous);
+    previous->status = QStringLiteral("mastered");
+    project.cards.append(*previous);
+    auto extra = ProjectFactory::createFishbone(QStringLiteral("错题分析"));
+    auto &fishbone = std::get<TreeSheet>(extra.sheets.first());
+    fishbone.name = QStringLiteral("错题分析");
+    const ID fishRoot = fishbone.rootId, fishId = fishbone.id;
+    fishbone.nodes[fishRoot].note = QStringLiteral("先找到问题根因");
+    project.sheets.append(extra.sheets.first());
+    project.sheets.append(
+        ProjectFactory::createFlowchart(QStringLiteral("流程示例")).sheets.first());
+    loadEditorFixture(window, project);
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    const auto revision = doc->sessionRevision();
+
+    runEditor(
+        window, "showReviewCards", "reviewCardsDialog",
+        [&](QDialog *review)
+        {
+            auto *page = review->findChild<ReviewPage *>();
+            auto *filter = review->findChild<QComboBox *>("reviewStatusFilter");
+            auto *pick = review->findChild<QPushButton *>("pickReviewTopics");
+            auto *cards = review->findChild<QListWidget *>("reviewCards");
+            QVERIFY(page && filter && pick && cards);
+            auto *answer = page->findChild<QLabel *>("reviewBack");
+            QVERIFY(answer);
+            if (reviewing)
+            {
+                QCOMPARE(page->totalCount(), 1);
+                QTest::mouseClick(page->findChild<QPushButton *>("reviewReveal"), Qt::LeftButton);
+                QVERIFY(answer->isVisible());
+            }
+            else
+            {
+                filter->setCurrentIndex(filter->findData(QStringLiteral("mastered")));
+                QVERIFY(page->isFinished());
+            }
+
+            const auto selectTopics = [&](bool confirm)
+            {
+                QTimer::singleShot(
+                    0, review,
+                    [&, confirm]
+                    {
+                        auto *chooser = review->findChild<QDialog *>("pickReviewTopicsDialog");
+                        QVERIFY(chooser && chooser->isVisible());
+                        const auto close = qScopeGuard(
+                            [chooser]
+                            {
+                                if (chooser->isVisible())
+                                    chooser->reject();
+                            });
+                        auto *topics = chooser->findChild<QTreeWidget *>("reviewTopicTree");
+                        auto *add = chooser->findChild<QPushButton *>("confirmReviewTopics");
+                        auto *selected = chooser->findChild<QLabel *>("reviewTopicSelectionCount");
+                        QVERIFY(topics && selected && add && !add->isEnabled());
+                        QCOMPARE(selected->text(), QStringLiteral("已选 0 个主题"));
+                        QCOMPARE(topics->topLevelItemCount(), 2);
+                        auto *outline = topics->topLevelItem(0);
+                        QCOMPARE(outline->text(0), QStringLiteral("课程提纲"));
+                        QVERIFY(outline->isExpanded());
+                        auto *root = outline->child(0);
+                        QVERIFY(root && root->isExpanded());
+                        QCOMPARE(root->data(0, Qt::UserRole).toString(), rootId);
+                        auto *existingRow = root->child(0);
+                        auto *targetRow = root->child(1);
+                        QCOMPARE(existingRow->data(0, Qt::UserRole).toString(), duplicate);
+                        QCOMPARE(existingRow->text(1), QStringLiteral("已加入"));
+                        QVERIFY(!(existingRow->flags() & Qt::ItemIsUserCheckable));
+                        QCOMPARE(targetRow->data(0, Qt::UserRole).toString(), target);
+                        auto *emptyRow = targetRow->child(0);
+                        QCOMPARE(emptyRow->data(0, Qt::UserRole).toString(), empty);
+                        QCOMPARE(emptyRow->text(1), QStringLiteral("缺少答案"));
+                        QVERIFY(!(emptyRow->flags() & Qt::ItemIsUserCheckable));
+                        auto *otherSheet = topics->topLevelItem(1);
+                        QCOMPARE(otherSheet->text(0), QStringLiteral("错题分析"));
+                        otherSheet->setExpanded(true);
+
+                        const auto clickCheckBox = [topics](QTreeWidgetItem *row)
+                        {
+                            topics->scrollToItem(row);
+                            QStyleOptionViewItem option;
+                            option.initFrom(topics->viewport());
+                            option.rect = topics->visualItemRect(row);
+                            option.features = QStyleOptionViewItem::HasCheckIndicator;
+                            option.checkState = row->checkState(0);
+                            const QRect indicator = topics->style()->subElementRect(
+                                QStyle::SE_ItemViewItemCheckIndicator, &option, topics->viewport());
+                            QVERIFY(topics->viewport()->rect().contains(indicator.center()));
+                            QTest::mouseClick(topics->viewport(), Qt::LeftButton, Qt::NoModifier,
+                                              indicator.center());
+                            QCOMPARE(row->checkState(0), Qt::Checked);
+                        };
+                        clickCheckBox(targetRow);
+                        clickCheckBox(otherSheet->child(0));
+                        QVERIFY(add->isEnabled());
+                        QCOMPARE(selected->text(), QStringLiteral("已选 2 个主题"));
+                        const auto capture = qEnvironmentVariable("LINGYA_REVIEW_TOPIC_CAPTURE");
+                        if (confirm && reviewing && !capture.isEmpty())
+                            QVERIFY(chooser->grab().save(capture));
+                        if (confirm)
+                            QTest::mouseClick(add, Qt::LeftButton);
+                        else
+                            QTest::mouseClick(chooser->findChild<QDialogButtonBox *>()->button(
+                                                  QDialogButtonBox::Cancel),
+                                              Qt::LeftButton);
+                    });
+                QTest::mouseClick(pick, Qt::LeftButton);
+            };
+
+            selectTopics(false);
+            QCOMPARE(doc->sessionRevision(), revision);
+            QCOMPARE(doc->project().cards.size(), 1);
+            selectTopics(true);
+            QCOMPARE(doc->sessionRevision(), revision + 1);
+            QCOMPARE(doc->project().cards.size(), 3);
+            QCOMPARE(doc->project().activeSheetId, sheetId);
+            const auto &added = doc->project().cards;
+            QCOMPARE(added.at(1).nodeId, target);
+            QCOMPARE(added.at(1).back, QStringLiteral("任务2-1"));
+            QCOMPARE(added.at(2).nodeId, fishRoot);
+            QCOMPARE(added.at(2).sheetId, fishId);
+            QCOMPARE(added.at(2).back, QStringLiteral("先找到问题根因"));
+            if (reviewing)
+            {
+                QCOMPARE(cards->count(), 3);
+                QCOMPARE(page->totalCount(), 1);
+                QVERIFY(answer->isVisible());
+                QTest::mouseClick(review->findChild<QPushButton *>("startReview"), Qt::LeftButton);
+                QCOMPARE(page->totalCount(), 3);
+            }
+            else
+            {
+                QCOMPARE(filter->currentData().toString(), QStringLiteral("new"));
+                QCOMPARE(cards->count(), 2);
+                QCOMPARE(page->totalCount(), 2);
+                QVERIFY(!answer->isVisible());
+            }
+        });
+
+    history->undo();
+    QCOMPARE(doc->project().cards.size(), 1);
+    QVERIFY(!history->canUndo());
+    history->redo();
+    QCOMPARE(doc->project().cards.size(), 3);
+    QTemporaryDir files;
+    const auto path = files.filePath(QStringLiteral("批量复习.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    QCOMPARE(ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()),
+             ProjectJson::toJson(doc->project()));
 }
 
 void TstUi::offlineCheckLocatesAndRefreshes()
