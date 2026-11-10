@@ -933,7 +933,8 @@ bool MainWindow::handleFlowEvent(QObject *watched, QEvent *event)
         bool addHandle = false;
         for (auto *ancestor = hit; ancestor; ancestor = ancestor->parentItem())
             addHandle |= ancestor->data(0x21C5).isValid();
-        if (addHandle && node)
+        // 已选起点时，目标端口优先于覆盖在端口上的加号。
+        if (addHandle && node && (m_flowPendingNodeId.isEmpty() || port.isEmpty()))
         {
             quickAddNode(node->nodeId());
             return true;

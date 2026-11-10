@@ -253,16 +253,29 @@ void TstUi::flowAutoRoutes()
     const auto *b = flowPort(view, target, targetPort);
     QVERIFY(a && b);
     const auto start = a->sceneBoundingRect().center(), finish = b->sceneBoundingRect().center();
-    const auto startClick = view->mapFromScene(start), finishClick = view->mapFromScene(finish);
+    const auto startClick = view->mapFromScene(start);
     QVERIFY(view->viewport()->rect().contains(startClick));
-    QVERIFY(view->viewport()->rect().contains(finishClick));
     QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, startClick);
+    const auto finishClick = view->mapFromScene(finish);
+    QVERIFY(view->viewport()->rect().contains(finishClick));
+    if (QByteArray(QTest::currentDataTag()) == "short-gap")
+    {
+        // 强制起点的加号覆盖目标端口，消除随机节点ID对叠放顺序的影响。
+        auto *sourceItem = canvasNodes(view).value(source);
+        QVERIFY(sourceItem);
+        sourceItem->setZValue(1);
+        const auto *hit = view->itemAt(finishClick);
+        QVERIFY(hit && hit->data(0x21C5).toBool());
+    }
     QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, finishClick);
-    const auto &edges = std::get<FlowSheet>(doc->project().sheets.first()).edges;
-    QCOMPARE(edges.size(), 1);
-    QCOMPARE(edges.first().sourcePort, sourcePort);
-    QCOMPARE(edges.first().targetPort, targetPort);
-    const auto *line = flowLine(view, edges.first().id);
+    const auto &shown = std::get<FlowSheet>(doc->project().sheets.first());
+    QCOMPARE(shown.edges.size(), 1);
+    const auto &edge = shown.edges.first();
+    QCOMPARE(edge.sourceId, source);
+    QCOMPARE(edge.targetId, target);
+    QCOMPARE(edge.sourcePort, sourcePort);
+    QCOMPARE(edge.targetPort, targetPort);
+    const auto *line = flowLine(view, edge.id);
     QVERIFY(line);
     const auto path = line->path();
     QCOMPARE(path.elementCount(), turns + 2);
