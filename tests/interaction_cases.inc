@@ -51,10 +51,11 @@ void mouseDrag(QWidget *viewport, QPoint from, QPoint to,
     if (release)
         QTest::mouseRelease(viewport, Qt::LeftButton, modifiers, to);
 }
-void contextAction(MainWindow &window, QGraphicsView *view, QPoint at, const QString &name)
+void contextAction(MainWindow &window, QGraphicsView *view, QPoint at, const QString &name,
+                   const std::function<void()> &beforeTrigger = {})
 {
     QTimer::singleShot(0, &window,
-                       [&window, name]
+                       [&window, name, beforeTrigger]
                        {
                            auto *menu = window.findChild<QMenu *>("canvasContextMenu");
                            QVERIFY(menu);
@@ -64,6 +65,8 @@ void contextAction(MainWindow &window, QGraphicsView *view, QPoint at, const QSt
                                if (action->objectName() == name)
                                    chosen = action;
                            QVERIFY(chosen);
+                           if (beforeTrigger)
+                               beforeTrigger();
                            chosen->trigger();
                            menu->close();
                        });
@@ -103,9 +106,10 @@ const QGraphicsPathItem *flowLine(QGraphicsView *view, const ID &id)
                 return line;
     return nullptr;
 }
-void captureEfficiency(QWidget &widget, const QString &name)
+void captureEfficiency(QWidget &widget, const QString &name,
+                       const char *environment = "LINGYA_H052_CAPTURE_DIR")
 {
-    const auto directory = qEnvironmentVariable("LINGYA_H052_CAPTURE_DIR");
+    const auto directory = qEnvironmentVariable(environment);
     if (directory.isEmpty())
         return;
     QVERIFY(QDir().mkpath(directory));
@@ -136,7 +140,281 @@ QGraphicsItem *flowHandle(QGraphicsView *view, const QString &kind)
             return item;
     return nullptr;
 }
+QMap<ID, QTreeWidgetItem *> reviewPickerRows(QDialog *picker)
+{
+    QMap<ID, QTreeWidgetItem *> rows;
+    auto *tree = picker->findChild<QTreeWidget *>("reviewTopicTree");
+    if (!tree)
+        return rows;
+    for (QTreeWidgetItemIterator it(tree); *it; ++it)
+    {
+        const auto id = (*it)->data(0, Qt::UserRole).toString();
+        if (!id.isEmpty())
+            rows.insert(id, *it);
+    }
+    return rows;
+}
+void answerChildDialog(QWidget &parent, const char *name,
+                       const std::function<void(QDialog *)> &answer)
+{
+    QTimer::singleShot(0, &parent,
+                       [&parent, name, answer]
+                       {
+                           auto *dialog = parent.findChild<QDialog *>(name);
+                           QVERIFY(dialog && dialog->isVisible());
+                           const auto close = qScopeGuard(
+                               [dialog]
+                               {
+                                   if (dialog->isVisible())
+                                       dialog->reject();
+                               });
+                           answer(dialog);
+                       });
+}
 } // namespace
+
+void TstUi::branchReviewLimitsQueueAndTopicPicker()
+{
+    MainWindow window;
+    auto project = canvasProject(2, 2);
+    auto &tree = std::get<TreeSheet>(project.sheets.front());
+    const auto branch = canvasId("branch-0");
+    const auto leaf = canvasId("leaf-0-0");
+    const auto unmade = canvasId("leaf-0-1");
+    const auto other = canvasId("branch-1");
+    tree.nodes[leaf].note = QStringLiteral("已经掌握的答案");
+    tree.nodes[unmade].note = QStringLiteral("来自备注的新答案");
+    project.cards = {*ReviewService::createCard(project, tree.id, branch),
+                     *ReviewService::createCard(project, tree.id, leaf),
+                     *ReviewService::createCard(project, tree.id, other)};
+    project.cards[1].status = "mastered";
+    project.cards[1].lastReviewedAt = QDateTime::currentDateTimeUtc();
+    loadEditorFixture(window, project);
+    window.resize(1240, 760);
+    window.show();
+    QApplication::processEvents();
+    window.findChild<QAction *>("fitTopic")->trigger();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    auto *node = visibleTopic(view, branch);
+    QVERIFY(node);
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto revision = doc->sessionRevision();
+    const auto pickTopic = [&](QDialog *picker)
+    {
+        const auto rows = reviewPickerRows(picker);
+        QCOMPARE(rows.size(), 3);
+        QVERIFY(rows.contains(branch) && rows.contains(leaf) && rows.contains(unmade));
+        QCOMPARE(rows.value(leaf)->text(1), QStringLiteral("已加入"));
+        rows.value(unmade)->setCheckState(0, Qt::Checked);
+        picker->findChild<QPushButton *>("confirmReviewTopics")->click();
+    };
+    const auto checkReview = [&](QDialog *dialog)
+    {
+        auto *filter = dialog->findChild<QComboBox *>("reviewStatusFilter");
+        auto *list = dialog->findChild<QListWidget *>("reviewCards");
+        auto *page = dialog->findChild<ReviewPage *>();
+        const auto *scope = dialog->findChild<QLabel *>("reviewScopeLabel");
+        QVERIFY(scope && scope->text().contains(QStringLiteral("阶段1")));
+        QCOMPARE(filter->currentData().toString(), QString("due"));
+        QCOMPARE(list->count(), 1);
+        QCOMPARE(page->totalCount(), 1);
+        QCOMPARE(list->item(0)->data(Qt::UserRole).toString(), project.cards[0].id);
+        captureEfficiency(*dialog, QStringLiteral("01-分支复习"), "LINGYA_H053_CAPTURE_DIR");
+        answerChildDialog(*dialog, "pickReviewTopicsDialog", pickTopic);
+        dialog->findChild<QPushButton *>("pickReviewTopics")->click();
+        QCOMPARE(doc->sessionRevision(), revision + 1);
+        QCOMPARE(list->count(), 2);
+        QCOMPARE(page->totalCount(), 1);
+        filter->setCurrentIndex(0);
+        dialog->findChild<QPushButton *>("startReview")->click();
+        QCOMPARE(list->count(), 3);
+        QCOMPARE(page->totalCount(), 3);
+    };
+    contextAction(window, view, view->mapFromScene(node->scenePos()), "reviewBranch",
+                  [&] { answerChildDialog(window, "reviewCardsDialog", checkReview); });
+    QCOMPARE(doc->project().cards.size(), 4);
+    QCOMPARE(doc->project().cards.back().nodeId, unmade);
+    QCOMPARE(doc->project().cards.back().back, QStringLiteral("来自备注的新答案"));
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), ProjectJson::toJson(project));
+}
+
+void TstUi::compareReviewSourceKeepsProgressAndFindsTopic()
+{
+    MainWindow window;
+    auto project = canvasProject(1, 1);
+    auto &tree = std::get<TreeSheet>(project.sheets.front());
+    const auto leaf = canvasId("leaf-0-0");
+    const auto sourceSheet = tree.id;
+    tree.nodes[leaf].note = QStringLiteral("保存时的答案");
+    ReviewCard card = *ReviewService::createCard(project, tree.id, leaf);
+    card.status = "mastered";
+    card.lastReviewedAt = QDateTime::currentDateTimeUtc();
+    auto missing = card;
+    missing.id = canvasId("missing-card");
+    missing.nodeId = canvasId("missing-source");
+    project.cards = {card, missing};
+    tree.nodes[leaf].title = QStringLiteral("重新命名的主题");
+    tree.nodes[leaf].note = QStringLiteral("修改后的答案");
+    auto other = ProjectFactory::createMindmap(QStringLiteral("另一张表"));
+    project.activeSheetId = other.activeSheetId;
+    project.sheets.append(other.sheets.front());
+    loadEditorFixture(window, project);
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto revision = doc->sessionRevision();
+    runEditor(
+        window, "showReviewCards", "reviewCardsDialog",
+        [&](QDialog *dialog)
+        {
+            auto *list = dialog->findChild<QListWidget *>("reviewCards");
+            auto *compare = dialog->findChild<QPushButton *>("compareReviewSource");
+            auto *locate = dialog->findChild<QPushButton *>("locateReviewSource");
+            list->setCurrentRow(1);
+            QVERIFY(!compare->isEnabled() && !locate->isEnabled());
+            list->setCurrentRow(0);
+            QVERIFY(compare->isEnabled() && locate->isEnabled());
+            const auto showComparison = [&](bool apply)
+            {
+                answerChildDialog(
+                    *dialog, "reviewSourceComparison",
+                    [apply](QDialog *preview)
+                    {
+                        auto *saved = preview->findChild<QPlainTextEdit *>("savedReviewContent");
+                        auto *latest = preview->findChild<QPlainTextEdit *>("latestReviewContent");
+                        QVERIFY(saved && latest && saved->isReadOnly() && latest->isReadOnly());
+                        QVERIFY(saved->toPlainText().contains(QStringLiteral("保存时的答案")));
+                        QVERIFY(latest->toPlainText().contains(QStringLiteral("修改后的答案")));
+                        if (apply)
+                            preview->findChild<QPushButton *>("adoptReviewSource")->click();
+                        else
+                            captureEfficiency(*preview, QStringLiteral("02-卡片来源对照"),
+                                              "LINGYA_H053_CAPTURE_DIR");
+                    });
+                compare->click();
+            };
+            showComparison(false);
+            QCOMPARE(doc->sessionRevision(), revision);
+            QCOMPARE(doc->project().cards.front().back, card.back);
+            showComparison(true);
+            QCOMPARE(doc->sessionRevision(), revision + 1);
+            const auto updated = doc->project().cards.front();
+            QCOMPARE(updated.id, card.id);
+            QCOMPARE(updated.front, QStringLiteral("重新命名的主题"));
+            QCOMPARE(updated.back, QStringLiteral("修改后的答案"));
+            QCOMPARE(updated.status, card.status);
+            QCOMPARE(updated.lastReviewedAt, card.lastReviewedAt);
+            locate->click();
+        });
+    QCOMPARE(doc->project().activeSheetId, sourceSheet);
+    auto *outline = window.findChild<QTreeWidget *>("topicOutline");
+    QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), leaf);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    window.findChild<CommandService *>()->undo();
+    QCOMPARE(doc->project().cards.front().back, card.back);
+}
+
+void TstUi::branchDraftPreviewAndCardsFromSources()
+{
+    MainWindow window;
+    auto project = canvasProject(2, 2);
+    auto &tree = std::get<TreeSheet>(project.sheets.front());
+    const auto branch = canvasId("branch-0");
+    const auto leaf = canvasId("leaf-0-0");
+    const auto empty = canvasId("leaf-0-1");
+    tree.nodes[branch].note = QStringLiteral("原图里的阶段备注");
+    tree.nodes[branch].collapsed = true;
+    tree.nodes[leaf].note = QStringLiteral("原图里的任务备注");
+    loadEditorFixture(window, project);
+    window.resize(1240, 760);
+    window.show();
+    QApplication::processEvents();
+    window.findChild<QAction *>("fitTopic")->trigger();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto revision = doc->sessionRevision();
+    const auto pickTopics = [&](QDialog *picker)
+    {
+        const auto rows = reviewPickerRows(picker);
+        QCOMPARE(rows.size(), 3);
+        QVERIFY(rows.contains(branch) && rows.contains(leaf) && rows.contains(empty));
+        QCOMPARE(rows.value(empty)->text(1), QStringLiteral("缺少答案"));
+        rows.value(branch)->setCheckState(0, Qt::Checked);
+        rows.value(leaf)->setCheckState(0, Qt::Checked);
+        captureEfficiency(*picker, QStringLiteral("04-从文稿选题建卡"), "LINGYA_H053_CAPTURE_DIR");
+        picker->findChild<QPushButton *>("confirmReviewTopics")->click();
+    };
+    const auto checkManager = [&](QDialog *manager)
+    {
+        QCOMPARE(doc->sessionRevision(), revision + 1);
+        QCOMPARE(manager->findChild<QLineEdit *>("draftTitle")->text(),
+                 QStringLiteral("阶段讲解稿"));
+        auto *edit = manager->findChild<QPlainTextEdit *>("draftText");
+        edit->setPlainText(QStringLiteral("尚未保存的手改稿"));
+        answerChildDialog(*manager, "pickReviewTopicsDialog", pickTopics);
+        manager->findChild<QPushButton *>("reviewDraftSources")->click();
+        QCOMPARE(doc->sessionRevision(), revision + 2);
+        QCOMPARE(edit->toPlainText(), QStringLiteral("尚未保存的手改稿"));
+        manager->findChild<QPushButton *>("saveDraftText")->click();
+        QCOMPARE(doc->sessionRevision(), revision + 3);
+    };
+    const auto openPreview = [&](bool save)
+    {
+        auto *node = visibleTopic(view, branch);
+        QVERIFY(node);
+        const auto checkPreview = [&, save](QDialog *preview)
+        {
+            const auto text =
+                preview->findChild<QPlainTextEdit *>("branchDraftText")->toPlainText();
+            QVERIFY(text.contains(QStringLiteral("原图里的阶段备注")));
+            QVERIFY(text.contains(QStringLiteral("原图里的任务备注")));
+            QVERIFY(text.contains(QStringLiteral("待补充正文")));
+            QVERIFY(!text.contains(QStringLiteral("阶段2")));
+            if (!save)
+                return;
+            preview->findChild<QLineEdit *>("branchDraftTitle")
+                ->setText(QStringLiteral("阶段讲解稿"));
+            captureEfficiency(*preview, QStringLiteral("03-分支文稿预览"),
+                              "LINGYA_H053_CAPTURE_DIR");
+            answerChildDialog(window, "draftManager", checkManager);
+            preview->findChild<QPushButton *>("saveBranchDraft")->click();
+        };
+        contextAction(window, view, view->mapFromScene(node->scenePos()), "draftFromBranch",
+                      [&] { answerChildDialog(window, "branchDraftPreview", checkPreview); });
+    };
+    openPreview(false);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(doc->project().drafts.isEmpty());
+    openPreview(true);
+    QCOMPARE(doc->project().drafts.size(), 1);
+    QCOMPARE(doc->project().cards.size(), 2);
+    const auto &draft = doc->project().drafts.front();
+    QVERIFY(draft.sourceHash.has_value());
+    QCOMPARE(draft.sections.size(), 3);
+    QCOMPARE(draft.sections[0].sourceNodeIds, QStringList{branch});
+    QCOMPARE(draft.sections[1].sourceNodeIds, QStringList{leaf});
+    QCOMPARE(draft.sections[2].sourceNodeIds, QStringList{empty});
+    QCOMPARE(draft.sections.front().text, QStringLiteral("尚未保存的手改稿"));
+    QCOMPARE(doc->project().cards.front().back, QStringLiteral("原图里的阶段备注"));
+    QTemporaryDir files;
+    QVERIFY(files.isValid());
+    const auto path = files.filePath(QStringLiteral("分支文字稿.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    reopened.show();
+    auto *reopenedDoc = reopened.findChild<ProjectDocument *>();
+    QCOMPARE(ProjectJson::toJson(reopenedDoc->project()), ProjectJson::toJson(doc->project()));
+    runEditor(reopened, "manageDrafts", "draftManager",
+              [&](QDialog *manager)
+              {
+                  manager->findChild<QListWidget *>("draftSections")->setCurrentRow(1);
+                  manager->findChild<QPushButton *>("locateDraftSource")->click();
+                  auto *outline = reopened.findChild<QTreeWidget *>("topicOutline");
+                  QCOMPARE(outline->currentItem()->data(0, Qt::UserRole).toString(), leaf);
+              });
+}
+
 void TstUi::outlinePastePreviewsAndCommitsOnce()
 {
     MainWindow window;

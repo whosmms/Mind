@@ -194,6 +194,9 @@ private slots:
     void focusBranchKeepsViewAndFolding();
     void dueReviewStartsOnlyAvailableCards();
     void historyCopyNeverOverwritesExistingFiles();
+    void branchReviewLimitsQueueAndTopicPicker();
+    void compareReviewSourceKeepsProgressAndFindsTopic();
+    void branchDraftPreviewAndCardsFromSources();
     void topRightAccountShowsPreview_data();
     void topRightAccountShowsPreview();
     void onlineIdentityKeepsLocalDocumentAndHistory();

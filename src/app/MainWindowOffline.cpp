@@ -34,6 +34,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScopedValueRollback>
 #include <QScreen>
@@ -70,14 +71,17 @@ QVector<Issue> currentIssues(const Project &project)
     return CheckService::checkProject(display);
 }
 
-QVector<ReviewCommands::Source> chooseReviewTopics(QWidget *parent, const Project &project)
+QVector<ReviewCommands::Source> chooseReviewTopics(QWidget *parent, const Project &project,
+                                                   const ID &sheetId, const QSet<ID> &topicsInScope)
 {
     QDialog dialog(parent);
     dialog.setObjectName("pickReviewTopicsDialog");
     dialog.setWindowTitle(QStringLiteral("从导图选取复习主题"));
     auto *layout = new QVBoxLayout(&dialog);
     auto *intro = new QLabel(
-        QStringLiteral("展开工作表，勾选想复习的主题。答案优先使用备注，否则使用直属子主题。"),
+        sheetId.isEmpty()
+            ? QStringLiteral("展开工作表，勾选想复习的主题。答案优先使用备注，否则使用直属子主题。")
+            : QStringLiteral("这里只列出范围内仍存在的主题。勾选后加入复习，答案取自原导图。"),
         &dialog);
     intro->setWordWrap(true);
     layout->addWidget(intro);
@@ -96,7 +100,7 @@ QVector<ReviewCommands::Source> chooseReviewTopics(QWidget *parent, const Projec
     for (const auto &value : project.sheets)
     {
         const auto *sheet = std::get_if<TreeSheet>(&value);
-        if (!sheet)
+        if (!sheet || (!sheetId.isEmpty() && sheet->id != sheetId))
             continue;
         auto *sheetItem = new QTreeWidgetItem(tree, {sheet->name});
         if (!initialSheet || sheet->id == project.activeSheetId)
@@ -106,6 +110,8 @@ QVector<ReviewCommands::Source> chooseReviewTopics(QWidget *parent, const Projec
         QHash<ID, QTreeWidgetItem *> rows;
         for (const auto &topic : sheet->nodes)
         {
+            if (!sheetId.isEmpty() && !topicsInScope.contains(topic.id))
+                continue;
             topics.append(&topic);
             auto *row = new QTreeWidgetItem({topic.title});
             rows.insert(topic.id, row);
@@ -132,7 +138,13 @@ QVector<ReviewCommands::Source> chooseReviewTopics(QWidget *parent, const Projec
         if (auto *root = rows.value(sheet->rootId))
             root->setExpanded(true);
     }
-    if (initialSheet)
+    if (!sheetId.isEmpty())
+    {
+        tree->expandToDepth(1);
+        if (!initialSheet || initialSheet->childCount() == 0)
+            intro->setText(QStringLiteral("这个范围内没有仍存在的主题。"));
+    }
+    else if (initialSheet)
         initialSheet->setExpanded(true);
     else
         intro->setText(QStringLiteral("当前工程没有思维导图或鱼骨图工作表。"));
@@ -172,7 +184,67 @@ QVector<ReviewCommands::Source> chooseReviewTopics(QWidget *parent, const Projec
     return dialog.exec() == QDialog::Accepted ? checkedSources()
                                               : QVector<ReviewCommands::Source>{};
 }
+
+bool compareReviewSource(QWidget *parent, const ReviewCard &saved,
+                         const std::optional<ReviewCard> &latest)
+{
+    QDialog dialog(parent);
+    dialog.setObjectName("reviewSourceComparison");
+    dialog.setWindowTitle(QStringLiteral("对照复习卡片与原图"));
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *hint = new QLabel(
+        latest ? QStringLiteral("采用原图内容后，卡片会重新关联原主题，复习状态和时间会保留。")
+               : QStringLiteral("原主题当前没有可用答案。请先补充备注或直属子主题。"),
+        &dialog);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+    auto *columns = new QHBoxLayout;
+    const auto addColumn = [&](const QString &label, const char *name, const ReviewCard *card)
+    {
+        auto *column = new QVBoxLayout;
+        column->addWidget(new QLabel(label, &dialog));
+        auto *text = new QPlainTextEdit(&dialog);
+        text->setObjectName(name);
+        text->setAccessibleName(label);
+        text->setReadOnly(true);
+        text->setPlainText(card
+                               ? QStringLiteral("题面\n%1\n\n答案\n%2").arg(card->front, card->back)
+                               : QStringLiteral("暂无可用答案"));
+        column->addWidget(text, 1);
+        columns->addLayout(column, 1);
+    };
+    addColumn(QStringLiteral("当前卡片"), "savedReviewContent", &saved);
+    addColumn(QStringLiteral("原图最新内容"), "latestReviewContent", latest ? &*latest : nullptr);
+    layout->addLayout(columns, 1);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Cancel, &dialog);
+    auto *close = buttons->button(QDialogButtonBox::Cancel);
+    close->setText(QStringLiteral("关闭"));
+    close->setDefault(true);
+    if (latest)
+    {
+        auto *apply =
+            buttons->addButton(QStringLiteral("采用原图内容"), QDialogButtonBox::AcceptRole);
+        apply->setObjectName("adoptReviewSource");
+        apply->setAutoDefault(false);
+    }
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    const auto screen = parent->screen()->availableGeometry();
+    dialog.resize(qMin(720, screen.width() - 48), qMin(460, screen.height() - 72));
+    return dialog.exec() == QDialog::Accepted;
+}
 } // namespace
+
+std::variant<QVector<ID>, AppError>
+MainWindow::addReviewTopics(QWidget *parent, const std::optional<ReviewScope> &scope)
+{
+    const auto sources = chooseReviewTopics(parent, m_doc->project(), scope ? scope->sheetId : ID{},
+                                            scope ? scope->topics : QSet<ID>{});
+    if (sources.isEmpty())
+        return QVector<ID>{};
+    return ReviewCommands(m_commands, m_doc).addCards(sources);
+}
 const GanttSheet *MainWindow::ganttTaskFilter(bool includeLocationOverride) const
 {
     if (includeLocationOverride && m_ganttTaskLocation)
@@ -708,7 +780,7 @@ void MainWindow::editTask(ID taskId)
     dialog.exec();
 }
 
-void MainWindow::manageReviewCards(ID cardId)
+void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
 {
     QDialog dialog(this);
     dialog.setObjectName("reviewCardsDialog");
@@ -722,6 +794,8 @@ void MainWindow::manageReviewCards(ID cardId)
     filter->addItem(QStringLiteral("已掌握"), "mastered");
     const int dueIndex = filter->count();
     filter->addItem(QStringLiteral("今日待复习"), "due");
+    if (scope)
+        filter->setCurrentIndex(dueIndex);
     auto *today = new QPushButton(&dialog);
     today->setObjectName("reviewDueToday");
     today->setToolTip(QStringLiteral("新卡片当天可练，已复习隔一天，已掌握隔七天"));
@@ -730,7 +804,7 @@ void MainWindow::manageReviewCards(ID cardId)
     filterRow->addWidget(today);
     auto *list = new QListWidget(&dialog);
     list->setObjectName("reviewCards");
-    list->setMaximumHeight(140);
+    list->setMaximumHeight(100);
     auto *notice = new QLabel(QStringLiteral("来源变化需先更新或保留自定义；来源缺失可转独立卡片。"
                                              "每个操作立即写入，可在主窗口撤回。"),
                               &dialog);
@@ -740,14 +814,32 @@ void MainWindow::manageReviewCards(ID cardId)
     error->setObjectName("reviewError");
     error->setWordWrap(true);
     layout->addWidget(notice);
+    if (scope)
+    {
+        auto *range = new QLabel(
+            QStringLiteral("复习范围：「%1」及其子主题").arg(scope->label.left(80)), &dialog);
+        range->setObjectName("reviewScopeLabel");
+        range->setTextFormat(Qt::PlainText);
+        range->setWordWrap(true);
+        layout->addWidget(range);
+    }
     layout->addLayout(filterRow);
     layout->addWidget(list);
+    auto *sourceActions = new QHBoxLayout;
+    sourceActions->addWidget(new QLabel(QStringLiteral("选中卡片"), &dialog));
+    auto *compare = new QPushButton(QStringLiteral("对照来源…"), &dialog);
+    compare->setObjectName("compareReviewSource");
+    auto *locate = new QPushButton(QStringLiteral("返回原主题"), &dialog);
+    locate->setObjectName("locateReviewSource");
+    locate->setToolTip(QStringLiteral("关闭复习窗口并在画布定位所选卡片的原主题"));
+    sourceActions->addWidget(compare);
+    sourceActions->addWidget(locate);
+    sourceActions->addStretch();
+    layout->addLayout(sourceActions);
     auto *reviewScroll = new QScrollArea(&dialog);
     reviewScroll->setObjectName("reviewScroll");
     reviewScroll->setWidgetResizable(true);
     reviewScroll->setWidget(page);
-    layout->addWidget(reviewScroll, 1);
-    layout->addWidget(error);
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
     buttons->button(QDialogButtonBox::Close)->setText(QStringLiteral("关闭"));
     const auto button = [buttons](const QString &title, const char *name)
@@ -758,18 +850,23 @@ void MainWindow::manageReviewCards(ID cardId)
     };
     auto *start = new QPushButton(QStringLiteral("开始 / 重新开始"), &dialog);
     start->setObjectName("startReview");
-    auto *pick = new QPushButton(QStringLiteral("从导图选取…"), &dialog);
+    auto *pick = new QPushButton(
+        scope ? QStringLiteral("从此分支选取…") : QStringLiteral("从导图选取…"), &dialog);
     pick->setObjectName("pickReviewTopics");
     auto *reviewActions = new QHBoxLayout;
     reviewActions->addWidget(pick);
     reviewActions->addWidget(start, 1);
-    layout->insertLayout(3, reviewActions);
+    layout->addLayout(reviewActions);
+    layout->addWidget(reviewScroll, 1);
+    layout->addWidget(error);
     auto *refresh = button(QStringLiteral("更新卡片"), "refreshReviewCard");
     auto *custom = button(QStringLiteral("保留自定义"), "keepReviewCustom");
     auto *standalone = button(QStringLiteral("转独立卡片"), "standaloneReviewCard");
     auto *remove = button(QStringLiteral("移除卡片"), "removeReviewCard");
     layout->addWidget(buttons);
     bool preserveSession = false;
+    const auto inScope = [&scope](const ReviewCard &card)
+    { return !scope || (card.sheetId == scope->sheetId && scope->topics.contains(card.nodeId)); };
     const auto matches = [filter, dueIndex](const ReviewCard &card, const QDate &date)
     {
         if (filter->currentIndex() == dueIndex)
@@ -786,6 +883,8 @@ void MainWindow::manageReviewCards(ID cardId)
         int dueCount = 0;
         for (const auto &card : m_doc->project().cards)
         {
+            if (!inScope(card))
+                continue;
             const QString state = ReviewService::detectSourceState(card, m_doc->project());
             if ((card.mode == "custom" || state == "ok") && ReviewService::isDue(card, date))
                 ++dueCount;
@@ -815,7 +914,7 @@ void MainWindow::manageReviewCards(ID cardId)
         QVector<ReviewCard> cards;
         const auto date = QDate::currentDate();
         for (const auto &card : m_doc->project().cards)
-            if (matches(card, date) &&
+            if (inScope(card) && matches(card, date) &&
                 (card.mode == "custom" ||
                  ReviewService::detectSourceState(card, m_doc->project()) == "ok"))
                 cards.append(card);
@@ -823,7 +922,10 @@ void MainWindow::manageReviewCards(ID cardId)
         error->setText(
             cards.isEmpty()
                 ? (filter->currentIndex() == dueIndex
-                       ? QStringLiteral("今天没有可复习的到期卡片。来源变化的卡片需先处理。")
+                       ? (scope ? QStringLiteral("此分支今天没有可复习的到期卡片。可从此分支选取新"
+                                                 "卡，或切换全部状态。")
+                                : QStringLiteral(
+                                      "今天没有可复习的到期卡片。来源变化的卡片需先处理。"))
                        : QStringLiteral(
                              "没有可复习的卡片。来源变化的卡片需先处理，空答案不能直接建卡。"))
                 : QString());
@@ -851,23 +953,22 @@ void MainWindow::manageReviewCards(ID cardId)
     connect(pick, &QPushButton::clicked, &dialog,
             [&]
             {
-                const auto sources = chooseReviewTopics(&dialog, m_doc->project());
-                if (sources.isEmpty())
-                    return;
                 const QScopedValueRollback<bool> preserve(preserveSession, true);
-                const auto result = ReviewCommands(m_commands, m_doc).addCards(sources);
+                const auto result = addReviewTopics(&dialog, scope);
                 if (const auto *failure = std::get_if<AppError>(&result))
                 {
                     error->setText(failure->message);
                     return;
                 }
+                const auto count = std::get<QVector<ID>>(result).size();
+                if (count == 0)
+                    return;
                 if (page->isFinished())
                 {
                     filter->setCurrentIndex(filter->findData(QStringLiteral("new")));
                     begin();
                 }
-                error->setText(
-                    QStringLiteral("已加入 %1 张卡片。").arg(std::get<QVector<ID>>(result).size()));
+                error->setText(QStringLiteral("已加入 %1 张卡片。").arg(count));
             });
     connect(page, &ReviewPage::cardGraded, &dialog,
             [&, this](const ID &id, ReviewMark mark)
@@ -889,11 +990,27 @@ void MainWindow::manageReviewCards(ID cardId)
                     page->setCards({});
                 }
             });
-    const auto mutate = [&, this](int action)
+    const auto currentCard = [&]() -> const ReviewCard *
     {
         if (!list->currentItem())
-            return;
+            return nullptr;
         const ID id = list->currentItem()->data(Qt::UserRole).toString();
+        for (const auto &card : m_doc->project().cards)
+            if (card.id == id)
+                return &card;
+        return nullptr;
+    };
+    const auto sourceAvailable = [&](const ReviewCard *card)
+    { return card && ReviewService::detectSourceState(*card, m_doc->project()) != "missing"; };
+    const auto updateSourceActions = [&]
+    {
+        const bool available = sourceAvailable(currentCard());
+        compare->setEnabled(available);
+        locate->setEnabled(available);
+    };
+    connect(list, &QListWidget::currentItemChanged, &dialog, updateSourceActions);
+    const auto mutate = [&, this](const ID &id, int action)
+    {
         ReviewCommands commands(m_commands, m_doc);
         const auto result = action == 0   ? commands.refreshFromSource(id)
                             : action == 1 ? commands.keepCustom(id)
@@ -904,16 +1021,55 @@ void MainWindow::manageReviewCards(ID cardId)
         else
             error->clear();
     };
-    connect(refresh, &QPushButton::clicked, &dialog, [=] { mutate(0); });
-    connect(custom, &QPushButton::clicked, &dialog, [=] { mutate(1); });
-    connect(standalone, &QPushButton::clicked, &dialog, [=] { mutate(2); });
-    connect(remove, &QPushButton::clicked, &dialog, [=] { mutate(3); });
+    const auto mutateSelected = [&](int action)
+    {
+        if (const auto *card = currentCard())
+        {
+            const auto id = card->id;
+            mutate(id, action);
+        }
+    };
+    connect(refresh, &QPushButton::clicked, &dialog, [&] { mutateSelected(0); });
+    connect(custom, &QPushButton::clicked, &dialog, [&] { mutateSelected(1); });
+    connect(standalone, &QPushButton::clicked, &dialog, [&] { mutateSelected(2); });
+    connect(remove, &QPushButton::clicked, &dialog, [&] { mutateSelected(3); });
+    connect(compare, &QPushButton::clicked, &dialog,
+            [&]
+            {
+                const auto *card = currentCard();
+                if (!sourceAvailable(card))
+                    return;
+                const auto saved = *card;
+                const auto revision = m_doc->sessionRevision();
+                const auto latest = ReviewService::refreshCard(saved, m_doc->project());
+                if (!compareReviewSource(&dialog, saved, latest))
+                    return;
+                if (m_doc->sessionRevision() != revision)
+                {
+                    error->setText(QStringLiteral("工程内容已变化，请重新对照来源。"));
+                    return;
+                }
+                mutate(saved.id, 0);
+            });
+    std::optional<QPair<ID, ID>> sourceToLocate;
+    connect(locate, &QPushButton::clicked, &dialog,
+            [&]
+            {
+                const auto *card = currentCard();
+                if (sourceAvailable(card))
+                {
+                    sourceToLocate = QPair<ID, ID>{card->sheetId, card->nodeId};
+                    dialog.accept();
+                }
+            });
     connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    list->setMaximumHeight(100);
     reload();
+    updateSourceActions();
     begin();
     dialog.resize(800, qMin(650, screen()->availableGeometry().height() - 70));
     dialog.exec();
+    if (sourceToLocate)
+        locateIssue(sourceToLocate->first, sourceToLocate->second);
 }
 
 void MainWindow::locateIssue(ID sheetId, ID targetId)

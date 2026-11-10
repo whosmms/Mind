@@ -45,7 +45,9 @@ NodeItem *owner(QGraphicsItem *hit)
             return node;
     return nullptr;
 }
-QSet<ID> branchIds(const TreeSheet &sheet, const ID &id)
+} // namespace
+
+QSet<ID> MainWindow::branchIds(const TreeSheet &sheet, const ID &id)
 {
     QMultiHash<ID, ID> children;
     for (const auto &node : sheet.nodes)
@@ -66,6 +68,24 @@ QSet<ID> branchIds(const TreeSheet &sheet, const ID &id)
     return ids;
 }
 
+void MainWindow::addBranchLearningActions(QMenu &menu, const ID &rootId)
+{
+    menu.addAction(QStringLiteral("复习此分支…"), this,
+                   [this, rootId]
+                   {
+                       const auto *tree = activeTreeSheet();
+                       if (tree && tree->nodes.contains(rootId))
+                           manageReviewCards({}, ReviewScope{tree->id, branchIds(*tree, rootId),
+                                                             tree->nodes.value(rootId).title});
+                   })
+        ->setObjectName("reviewBranch");
+    menu.addAction(QStringLiteral("把分支整理为文字稿…"), this,
+                   [this, rootId] { createDraftFromBranch(rootId); })
+        ->setObjectName("draftFromBranch");
+}
+
+namespace
+{
 std::variant<Fragment, QString> outlineFragment(const QString &text, QTreeWidget *preview)
 {
     preview->clear();
@@ -656,6 +676,7 @@ bool MainWindow::handleCanvasContextMenu(QObject *watched, QEvent *event)
                 menu.addAction(action);
             if (auto *action = findChild<QAction *>("addReviewCard"))
                 menu.addAction(action);
+            addBranchLearningActions(menu, nodeId);
         }
         menu.addSeparator();
         menu.addAction(QStringLiteral("插入 / 更换节点图片…"),

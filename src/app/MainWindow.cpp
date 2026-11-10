@@ -378,10 +378,13 @@ MainWindow::MainWindow(QWidget *parent, OnlineAuthService *authService)
                 if (!row || !activeTreeSheet())
                     return;
                 const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
-                selectNode(row->data(0, Qt::UserRole).toString());
+                const auto id = row->data(0, Qt::UserRole).toString();
+                selectNode(id);
                 QMenu menu(this);
                 menu.addAction(findChild<QAction *>("pasteOutline"));
                 menu.addAction(findChild<QAction *>("focusBranch"));
+                menu.addSeparator();
+                addBranchLearningActions(menu, id);
                 menu.exec(m_outline->viewport()->mapToGlobal(position));
             });
     connect(m_tagFilter, &QComboBox::currentIndexChanged, this,

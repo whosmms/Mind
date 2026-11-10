@@ -328,10 +328,8 @@ std::variant<ID, AppError> AiCommands::saveDraft(const DraftProposal& proposal,
     draft.createdAt = QDateTime::currentDateTimeUtc();
 
     const ID draftId = draft.id;
-    const auto result = m_commands->applyEdit(QStringLiteral("保存AI文字稿"),
-                                              [draft](Project& target) {
-                                                  target.drafts.push_back(draft);
-                                              });
+    const auto result = m_commands->applyEdit(QStringLiteral("保存文字稿"), [draft](Project &target)
+                                              { target.drafts.push_back(draft); });
     if (const auto* error = std::get_if<AppError>(&result)) return *error;
     return draftId;
 }

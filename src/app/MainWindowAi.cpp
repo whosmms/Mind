@@ -12,6 +12,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
@@ -201,7 +202,90 @@ void MainWindow::showAiWorkspace()
     dialog.exec();
 }
 
+void MainWindow::createDraftFromBranch(const ID &rootId)
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree)
+        return;
+    const auto sheetId = tree->id;
+    const auto revision = m_doc->sessionRevision();
+    const auto material = AiMaterial::fromTree(m_doc->project(), sheetId, rootId);
+    if (const auto *failure = std::get_if<AppError>(&material))
+    {
+        statusBar()->showMessage(failure->message, 8000);
+        return;
+    }
+    const auto &topics = std::get<GenerateDraftRequest>(material).source;
+    DraftProposal proposal;
+    proposal.title = topics.front().title;
+    QStringList previewLines;
+    for (const auto &topic : topics)
+    {
+        const auto body =
+            topic.note.trimmed().isEmpty() ? QStringLiteral("待补充正文。") : topic.note;
+        proposal.sections.append({topic.title, body, {topic.id}, QStringLiteral("source")});
+        previewLines.append(QStringLiteral("%1\n%2").arg(topic.title, body));
+    }
+
+    QDialog dialog(this);
+    dialog.setObjectName("branchDraftPreview");
+    dialog.setWindowTitle(QStringLiteral("从分支整理文字稿"));
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *hint = new QLabel(
+        QStringLiteral("按导图顺序整理 %1 个主题。每个主题对应一段，备注作为正文，空段标为待补充。")
+            .arg(topics.size()),
+        &dialog);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+    auto *title = new QLineEdit(proposal.title, &dialog);
+    title->setObjectName("branchDraftTitle");
+    title->setAccessibleName(QStringLiteral("文字稿标题"));
+    layout->addWidget(title);
+    auto *preview = new QPlainTextEdit(previewLines.join(QStringLiteral("\n\n")), &dialog);
+    preview->setReadOnly(true);
+    preview->setObjectName("branchDraftText");
+    preview->setAccessibleName(QStringLiteral("分支文字稿预览"));
+    layout->addWidget(preview, 1);
+    auto *notice = new QLabel(&dialog);
+    notice->setTextFormat(Qt::PlainText);
+    notice->setWordWrap(true);
+    layout->addWidget(notice);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    auto *save = buttons->addButton(QStringLiteral("保存为文字稿"), QDialogButtonBox::AcceptRole);
+    save->setObjectName("saveBranchDraft");
+    save->setProperty("primary", true);
+    layout->addWidget(buttons);
+    ID created;
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog,
+            [&]
+            {
+                proposal.title = title->text();
+                AiApplyOptions options;
+                options.expectedRevision = revision;
+                const auto result = AiCommands(m_commands, m_doc)
+                                        .saveDraft(proposal, sheetId, "summary", revision, options);
+                if (const auto *error = std::get_if<AppError>(&result))
+                {
+                    notice->setText(error->message);
+                    return;
+                }
+                created = std::get<ID>(result);
+                dialog.accept();
+            });
+    const auto available = screen()->availableGeometry();
+    dialog.resize(qMin(690, available.width() - 48), qMin(540, available.height() - 72));
+    if (dialog.exec() == QDialog::Accepted && !created.isEmpty())
+        openDraftManager(created);
+}
+
 void MainWindow::manageDrafts()
+{
+    openDraftManager({});
+}
+
+void MainWindow::openDraftManager(const ID &draftId)
 {
     if (m_homeVisible)
         return;
@@ -214,6 +298,8 @@ void MainWindow::manageDrafts()
     draftChoice->setObjectName("draftChoice");
     for (const auto &draft : m_doc->project().drafts)
         draftChoice->addItem(draft.title, draft.id);
+    if (const int index = draftChoice->findData(draftId); index >= 0)
+        draftChoice->setCurrentIndex(index);
     column->addWidget(draftChoice);
     auto *title = new QLineEdit(&dialog);
     title->setObjectName("draftTitle");
@@ -243,6 +329,7 @@ void MainWindow::manageDrafts()
          *copy = new QPushButton(QStringLiteral("复制全文"), &dialog),
          *exportButton = new QPushButton(QStringLiteral("导出文字…"), &dialog),
          *locate = new QPushButton(QStringLiteral("定位来源"), &dialog),
+         *reviewSources = new QPushButton(QStringLiteral("把来源加入复习…"), &dialog),
          *erase = new QPushButton(QStringLiteral("删除稿件"), &dialog),
          *close = new QPushButton(QStringLiteral("关闭"), &dialog);
     save->setObjectName("saveDraftText");
@@ -250,12 +337,20 @@ void MainWindow::manageDrafts()
     exportButton->setObjectName("exportDraftText");
     erase->setObjectName("deleteDraftText");
     locate->setObjectName("locateDraftSource");
-    for (auto *button : {save, copy, exportButton, locate, erase})
+    reviewSources->setObjectName("reviewDraftSources");
+    reviewSources->setToolTip(QStringLiteral("从本篇稿件关联的原主题选题，答案取自原导图"));
+    auto *sourceActions = new QHBoxLayout;
+    sourceActions->addWidget(locate);
+    sourceActions->addWidget(reviewSources);
+    sourceActions->addStretch();
+    column->insertLayout(column->indexOf(info), sourceActions);
+    for (auto *button : {save, copy, exportButton, erase})
         row->addWidget(button);
     row->addStretch();
     row->addWidget(close);
     column->addLayout(row);
     TextDraft editing;
+    QSet<ID> topicIds;
     int sectionIndex = -1;
     qint64 editRevision = -1;
     const auto selectSection = [&](int index)
@@ -303,6 +398,11 @@ void MainWindow::manageDrafts()
         const bool valid = !editing.id.isEmpty();
         for (auto *button : {save, copy, exportButton, erase, locate})
             button->setEnabled(valid);
+        topicIds.clear();
+        for (const auto &section : editing.sections)
+            for (const auto &id : section.sourceNodeIds)
+                topicIds.insert(id);
+        reviewSources->setEnabled(valid && !topicIds.isEmpty());
         title->setEnabled(valid);
         QString sourceState = QStringLiteral("旧稿未记录来源指纹，请核对原图；稿件保持原样。");
         if (editing.sourceHash)
@@ -315,7 +415,8 @@ void MainWindow::manageDrafts()
                             : QStringLiteral("源导图已更新，请核对稿件；不会自动重写已有内容。");
         info->setText(
             valid ? sourceState
-                  : QStringLiteral("暂无文字稿。请先通过AI创作预览并采用；生成前会发送所选材料。"));
+                  : QStringLiteral(
+                        "暂无文字稿。可在主题右键把分支整理为文字稿，也可从 AI 创作采用。"));
     };
     connect(draftChoice, &QComboBox::currentIndexChanged, &dialog, load);
     connect(sections, &QListWidget::currentRowChanged, &dialog, selectSection);
@@ -406,6 +507,25 @@ void MainWindow::manageDrafts()
                 info->setText(found
                                   ? QStringLiteral("已在编辑器定位第一个仍存在的来源主题")
                                   : QStringLiteral("本段没有仍存在的来源主题；保留当前稿件文本。"));
+            });
+    connect(reviewSources, &QPushButton::clicked, &dialog,
+            [&]
+            {
+                const auto before = m_doc->sessionRevision();
+                const auto result = addReviewTopics(
+                    &dialog, ReviewScope{editing.sourceSheetId, topicIds, editing.title});
+                if (const auto *error = std::get_if<AppError>(&result))
+                {
+                    info->setText(error->message);
+                    return;
+                }
+                const auto count = std::get<QVector<ID>>(result).size();
+                if (count == 0)
+                    return;
+                // 建卡只改复习数据，保留本窗口尚未保存的文字稿修改。
+                if (editRevision == before && m_doc->sessionRevision() == before + 1)
+                    editRevision = m_doc->sessionRevision();
+                info->setText(QStringLiteral("已把 %1 个原主题加入复习。").arg(count));
             });
     connect(erase, &QPushButton::clicked, &dialog,
             [&]

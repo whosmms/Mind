@@ -121,6 +121,8 @@ private:
     void showPreferences();
     void applyUserShortcuts();
     void manageDrafts();
+    void openDraftManager(const ID &draftId);
+    void createDraftFromBranch(const ID &rootId);
     void managePresentation();
     void playPresentation(const PresentationRoute &route);
     void exportCurrentSheet();
@@ -168,6 +170,8 @@ private:
     void cancelTreeDrag();
     void drawTreeLinks(const TreeSheet &display);
     void focusBranch();
+    static QSet<ID> branchIds(const TreeSheet &sheet, const ID &rootId);
+    void addBranchLearningActions(QMenu &menu, const ID &rootId);
     void exitBranchFocus();
     QRectF focusedBranchBounds() const;
     void applyBranchFocus(const TreeSheet &sheet);
@@ -188,7 +192,15 @@ private:
     void addTaskBadges();
     void selectTask(ID taskId, bool locateSource = false);
     void editTask(ID taskId);
-    void manageReviewCards(ID cardId = ID{});
+    struct ReviewScope
+    {
+        ID sheetId;
+        QSet<ID> topics;
+        QString label;
+    };
+    void manageReviewCards(ID cardId = {}, std::optional<ReviewScope> scope = std::nullopt);
+    std::variant<QVector<ID>, AppError> addReviewTopics(QWidget *parent,
+                                                        const std::optional<ReviewScope> &scope);
     void locateIssue(ID sheetId, ID targetId);
     void rebuildSheets();
     void createSheet();
