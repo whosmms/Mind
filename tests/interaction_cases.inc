@@ -1038,24 +1038,27 @@ void TstUi::flowAutoRoutes_data()
     QTest::addColumn<QPointF>("position");
     QTest::addColumn<QString>("sourcePort");
     QTest::addColumn<QString>("targetPort");
-    QTest::addColumn<int>("turns");
+    QTest::addColumn<bool>("curved");
     QTest::addColumn<bool>("blocked");
-    QTest::newRow("horizontal") << QPointF(330, 0) << QString("right") << QString("left") << 0
+    QTest::newRow("horizontal") << QPointF(330, 0) << QString("right") << QString("left") << false
                                 << false;
     QTest::newRow("horizontal-reverse")
-        << QPointF(-330, 0) << QString("left") << QString("right") << 0 << false;
-    QTest::newRow("short-gap") << QPointF(140, 0) << QString("right") << QString("left") << 0
+        << QPointF(-330, 0) << QString("left") << QString("right") << false << false;
+    QTest::newRow("short-gap") << QPointF(140, 0) << QString("right") << QString("left") << false
                                << false;
-    QTest::newRow("vertical") << QPointF(0, 250) << QString("bottom") << QString("top") << 0
+    QTest::newRow("vertical") << QPointF(0, 250) << QString("bottom") << QString("top") << false
                               << false;
     QTest::newRow("vertical-reverse")
-        << QPointF(0, -250) << QString("top") << QString("bottom") << 0 << false;
+        << QPointF(0, -250) << QString("top") << QString("bottom") << false << false;
     QTest::newRow("perpendicular")
-        << QPointF(330, 200) << QString("right") << QString("top") << 1 << false;
-    QTest::newRow("offset") << QPointF(330, 120) << QString("right") << QString("left") << 2
+        << QPointF(330, 200) << QString("right") << QString("top") << true << false;
+    QTest::newRow("offset") << QPointF(330, 120) << QString("right") << QString("left") << true
                             << false;
-    QTest::newRow("same-side") << QPointF(330, 0) << QString("top") << QString("top") << 2 << false;
-    QTest::newRow("obstacle") << QPointF(500, 0) << QString("right") << QString("left") << 4
+    QTest::newRow("offset-vertical")
+        << QPointF(120, 300) << QString("bottom") << QString("top") << true << false;
+    QTest::newRow("same-side") << QPointF(330, 0) << QString("top") << QString("top") << true
+                               << false;
+    QTest::newRow("obstacle") << QPointF(500, 0) << QString("right") << QString("left") << true
                               << true;
 }
 
@@ -1064,7 +1067,7 @@ void TstUi::flowAutoRoutes()
     QFETCH(QPointF, position);
     QFETCH(QString, sourcePort);
     QFETCH(QString, targetPort);
-    QFETCH(int, turns);
+    QFETCH(bool, curved);
     QFETCH(bool, blocked);
     MainWindow window;
     auto project = ProjectFactory::createFlowchart(QStringLiteral("流程自动走线"));
@@ -1123,27 +1126,94 @@ void TstUi::flowAutoRoutes()
     const auto *line = flowLine(view, edge.id);
     QVERIFY(line);
     const auto path = line->path();
-    QCOMPARE(path.elementCount(), turns + 2);
     QCOMPARE(QPointF(path.elementAt(0)), start);
     QCOMPARE(path.currentPosition(), finish);
+    int curves = 0;
     for (int i = 1; i < path.elementCount(); ++i)
-    {
-        QVERIFY(path.elementAt(i).isLineTo());
-        const QPointF previous = path.elementAt(i - 1), point = path.elementAt(i);
-        QVERIFY((point.x() == previous.x()) != (point.y() == previous.y()));
-        if (blocked)
-            QVERIFY(!QRectF(previous, point)
-                         .normalized()
-                         .adjusted(-0.1, -0.1, 0.1, 0.1)
-                         .intersects(canvasNodes(view).value(blocker)->sceneBoundingRect()));
-    }
+        curves += path.elementAt(i).isCurveTo();
     if (blocked)
     {
+        QVERIFY(curves >= 2);
+        QPainterPathStroker stroke;
+        stroke.setWidth(line->pen().widthF());
+        QVERIFY(!stroke.createStroke(path).intersects(
+            canvasNodes(view).value(blocker)->sceneBoundingRect()));
         QVERIFY(path.boundingRect().right() <= finish.x());
-        captureInteraction(window, "流程自动避障");
+        captureInteraction(window, "流程圆滑避障");
     }
-    else if (QByteArray(QTest::currentDataTag()) == "horizontal")
-        captureInteraction(window, "端口水平直连");
+    else
+    {
+        QCOMPARE(curves, curved ? 1 : 0);
+        if (!curved)
+        {
+            QCOMPARE(path.elementCount(), 2);
+            QVERIFY(path.elementAt(1).isLineTo());
+        }
+        if (QByteArray(QTest::currentDataTag()) == "horizontal")
+            captureInteraction(window, "端口水平直连");
+    }
+}
+
+void TstUi::flowCurveFollowsDraggedNode()
+{
+    MainWindow window;
+    auto project = ProjectFactory::createFlowchart(QStringLiteral("拖动节点时曲线跟随"));
+    auto &sheet = std::get<FlowSheet>(project.sheets.first());
+    const ID source = sheet.nodes.firstKey(), target = canvasId("dragged-flow-target");
+    FlowNode node;
+    node.id = target;
+    node.title = QStringLiteral("处理步骤");
+    node.position = {330, 0};
+    sheet.nodes.insert(target, node);
+    loadEditorFixture(window, project);
+    window.show();
+    QTest::qWait(30);
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    window.findChild<QAction *>("fitTopic")->trigger();
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier,
+                      portPoint(view, source, "right"));
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier,
+                      portPoint(view, target, "left"));
+    const auto &edges = std::get<FlowSheet>(doc->project().sheets.first()).edges;
+    QCOMPARE(edges.size(), 1);
+    const ID edgeId = edges.first().id;
+    QVERIFY(flowLine(view, edgeId));
+    const auto straight = flowLine(view, edgeId)->path();
+    QCOMPARE(straight.elementCount(), 2);
+
+    const auto before = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    const QPoint from = view->mapFromScene(canvasNodes(view).value(target)->pos());
+    const QPoint to = from + QPoint(-35, 125);
+    QVERIFY(view->viewport()->rect().contains(to));
+    mouseDrag(view->viewport(), from, to, Qt::NoModifier, false);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    QVERIFY(flowLine(view, edgeId));
+    const auto preview = flowLine(view, edgeId)->path();
+    const auto *port = flowPort(view, target, "left");
+    QVERIFY(port);
+    QCOMPARE(preview.currentPosition(), port->sceneBoundingRect().center());
+    QCOMPARE(QPointF(preview.elementAt(0)), QPointF(straight.elementAt(0)));
+    bool hasCurve = false;
+    for (int i = 1; i < preview.elementCount(); ++i)
+        hasCurve |= preview.elementAt(i).isCurveTo();
+    QVERIFY(hasCurve);
+    captureEfficiency(*view->viewport(), "拖动节点时曲线跟随", "LINGYA_H055_CAPTURE_DIR");
+
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, to);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    QVERIFY(flowLine(view, edgeId));
+    QCOMPARE(flowLine(view, edgeId)->path(), preview);
+    history->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    QVERIFY(flowLine(view, edgeId));
+    QCOMPARE(flowLine(view, edgeId)->path(), straight);
+    history->redo();
+    QVERIFY(flowLine(view, edgeId));
+    QCOMPARE(flowLine(view, edgeId)->path(), preview);
 }
 
 void TstUi::flowAutoRouteAndReconnect()

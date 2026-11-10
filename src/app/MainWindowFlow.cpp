@@ -46,6 +46,7 @@ constexpr int kEdgeHandleRole = 0x21C3;
 constexpr int kPendingRole = 0x21C4;
 constexpr qreal kNodeClearance = 10;
 constexpr qreal kTurnCost = 32;
+constexpr qreal kCornerRadius = 2 * kNodeClearance;
 // 扩大细线命中区，便于选中或双击编辑。
 class FlowConnectionItem : public QGraphicsPathItem
 {
@@ -304,6 +305,70 @@ QVector<QPointF> routeBetween(QPointF from, QPointF to, QPointF fromOut, QPointF
     // 节点可以被手动重叠。端口完全堵住时仍显示连接，方便拉开节点后重新走线。
     return preferred;
 }
+
+QPainterPath naturalFlowCurve(QPointF start, QPointF end, QPointF fromOut, QPointF toOut,
+                              const QVector<QRectF> &obstacles)
+{
+    const QPointF delta = end - start;
+    qreal fromReach = QPointF::dotProduct(delta, fromOut) / 2;
+    qreal toReach = QPointF::dotProduct(-delta, toOut) / 2;
+    if (fromOut == toOut)
+    {
+        // 同侧端口在外侧成拱，控制点随两端的侧向距离移动。
+        const qreal span = std::abs(QPointF::dotProduct(delta, QPointF(-fromOut.y(), fromOut.x())));
+        if (span == 0)
+        {
+            return {};
+        }
+        const qreal arc = std::clamp(span / 3, 24.0, 96.0);
+        fromReach = arc + qMax(0.0, 2 * fromReach);
+        toReach = arc + qMax(0.0, 2 * toReach);
+    }
+    else if (fromReach <= 0 || toReach <= 0)
+    {
+        return {};
+    }
+
+    QPainterPath curve(start);
+    curve.cubicTo(start + fromOut * fromReach, end + toOut * toReach, end);
+    // 用细描边检测曲线本身，避免把开口曲线围成的整块区域误判为占用。
+    QPainterPathStroker stroke;
+    stroke.setWidth(2);
+    stroke.setCapStyle(Qt::FlatCap);
+    const auto trace = stroke.createStroke(curve);
+    for (const auto &box : obstacles)
+    {
+        // 端口外的短线可贴近安全框边界，其余部分仍保留大部分节点间距。
+        if (trace.intersects(box.adjusted(2, 2, -2, -2)))
+        {
+            return {};
+        }
+    }
+    return curve;
+}
+
+QPainterPath roundedFlowRoute(const QVector<QPointF> &points)
+{
+    QPainterPath path(points.first());
+    for (qsizetype i = 1; i + 1 < points.size(); ++i)
+    {
+        const auto corner = points.at(i);
+        const auto before = points.at(i - 1) - corner;
+        const auto after = points.at(i + 1) - corner;
+        if (QPointF::dotProduct(before, after) != 0)
+        {
+            path.lineTo(corner);
+            continue;
+        }
+        const qreal incoming = before.manhattanLength(), outgoing = after.manhattanLength();
+        // 圆角最多离开原通道四分之一半径，仍留在节点安全间距之内。
+        const qreal radius = std::min({kCornerRadius, incoming / 2, outgoing / 2});
+        path.lineTo(corner + before * (radius / incoming));
+        path.quadTo(corner, corner + after * (radius / outgoing));
+    }
+    path.lineTo(points.last());
+    return path;
+}
 } // namespace
 
 const FlowSheet *MainWindow::activeFlowSheet() const
@@ -410,7 +475,7 @@ void MainWindow::drawFlowEdges(const FlowSheet &sheet)
             reconnecting && m_flowDragHandle == "source" ? m_flowPointer : anchor(source, from);
         const QPointF b =
             reconnecting && m_flowDragHandle == "target" ? m_flowPointer : anchor(target, to);
-        QVector<QPointF> points{a};
+        QPainterPath path(a);
         if (!reconnecting)
         {
             const auto fromOut = direction(from), toOut = direction(to);
@@ -429,24 +494,45 @@ void MainWindow::drawFlowEdges(const FlowSheet &sheet)
             {
                 const QPointF a1 = portExit(a, fromOut, routingBounds(source));
                 const QPointF b1 = portExit(b, toOut, routingBounds(target));
-                if (source == target && from == to)
+                const bool samePort = source == target && from == to;
+                const auto curve =
+                    samePort ? QPainterPath{} : naturalFlowCurve(a1, b1, fromOut, toOut, obstacles);
+                if (!curve.isEmpty())
                 {
-                    // 文件里的同端口自环也要保留一条可见的回路。
-                    const QPointF across(-fromOut.y() * 28, fromOut.x() * 28);
-                    const QPointF far = a1 + fromOut * 28;
-                    for (const auto &point : {a1, far, far + across, a1 + across, a1})
-                        appendRoutePoint(points, point);
+                    path.lineTo(a1);
+                    path.connectPath(curve);
+                    path.lineTo(b);
                 }
                 else
-                    for (const auto &point : routeBetween(a1, b1, fromOut, toOut, obstacles))
-                        appendRoutePoint(points, point);
+                {
+                    QVector<QPointF> points{a};
+                    if (samePort)
+                    {
+                        // 文件里的同端口自环也要保留一条可见的回路。
+                        const QPointF across(-fromOut.y() * 28, fromOut.x() * 28);
+                        const QPointF far = a1 + fromOut * 28;
+                        for (const auto &point : {a1, far, far + across, a1 + across, a1})
+                        {
+                            appendRoutePoint(points, point);
+                        }
+                    }
+                    else
+                    {
+                        for (const auto &point : routeBetween(a1, b1, fromOut, toOut, obstacles))
+                        {
+                            appendRoutePoint(points, point);
+                        }
+                    }
+                    appendRoutePoint(points, b);
+                    path = roundedFlowRoute(points);
+                }
             }
         }
         // 旧工程的手动中点仍能往返存盘，显示统一使用自动路线。
-        appendRoutePoint(points, b);
-        QPainterPath path(a);
-        for (qsizetype i = 1; i < points.size(); ++i)
-            path.lineTo(points.at(i));
+        if (path.isEmpty())
+        {
+            path.lineTo(b);
+        }
         auto *line = new FlowConnectionItem(path);
         line->setPen(QPen(QColor(edge.style.color.isEmpty() ? "#247A62" : edge.style.color),
                           edge.id == m_selectedFlowEdge ? 3 : edge.style.width,
@@ -470,12 +556,12 @@ void MainWindow::drawFlowEdges(const FlowSheet &sheet)
             auto *item = new QGraphicsPathItem(head, line);
             item->setPen(line->pen());
         };
-        if (points.size() > 1)
+        if (path.elementCount() > 1)
         {
             if (edge.arrow == "end" || edge.arrow == "both")
-                arrow(b, points.at(points.size() - 2));
+                arrow(b, path.elementAt(path.elementCount() - 2));
             if (edge.arrow == "both")
-                arrow(a, points.at(1));
+                arrow(a, path.elementAt(1));
         }
         if (!edge.label.isEmpty())
         {

@@ -7,6 +7,7 @@
 #include <QBuffer>
 #include <QContextMenuEvent>
 #include <QPainter>
+#include <QPainterPathStroker>
 #include <QTextBrowser>
 #include <QWheelEvent>
 #include <QtTest>
@@ -183,6 +184,7 @@ private slots:
     void freeTreeMouseAndPlus();
     void flowAutoRoutes_data();
     void flowAutoRoutes();
+    void flowCurveFollowsDraggedNode();
     void flowAutoRouteAndReconnect();
     void instantStyleWheelAndBrand();
     void embeddedImagesAcrossViews_data();
