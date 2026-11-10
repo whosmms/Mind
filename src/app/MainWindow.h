@@ -250,8 +250,7 @@ private:
     QPointF m_flowDragOrigin;
     ID m_flowPendingNodeId, m_flowDragEdgeId;
     QString m_flowPendingPort, m_flowDragHandle;
-    QPointF m_flowPointer, m_flowBendOrigin;
-    std::optional<QPointF> m_flowPreviewBend;
+    QPointF m_flowPointer;
     bool m_flowDragMoved = false;
     qint64 m_flowGestureRevision = -1;
     QTableView *m_taskTable = nullptr;

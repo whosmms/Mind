@@ -397,19 +397,7 @@ bool MainWindow::handleCanvasContextMenu(QObject *watched, QEvent *event)
                        });
     }
     else if (!edgeId.isEmpty() && activeFlowSheet())
-    {
-        const ID sheetId = activeFlowSheet()->id;
         menu.addAction(QStringLiteral("编辑连线…"), [this, edgeId] { editFlowEdge(edgeId); });
-        menu.addAction(QStringLiteral("恢复自动走线"),
-                       [this, edgeId, sheetId, report]
-                       {
-                           FlowEdgePatch patch;
-                           patch.resetBend = true;
-                           report(
-                               FlowCommands(m_commands, m_doc).updateEdge(sheetId, edgeId, patch));
-                       })
-            ->setObjectName("resetFlowCurve");
-    }
     else if (view != m_view)
     {
         if (!taskId.isEmpty())

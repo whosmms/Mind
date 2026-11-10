@@ -44,7 +44,9 @@ constexpr int kPortRole = 0x21C0;
 constexpr int kEdgeRole = 0x21C1;
 constexpr int kEdgeHandleRole = 0x21C3;
 constexpr int kPendingRole = 0x21C4;
-// 扩大细线命中区，避免必须点中单个像素才能拖动。
+constexpr qreal kNodeClearance = 10;
+constexpr qreal kTurnCost = 32;
+// 扩大细线命中区，便于选中或双击编辑。
 class FlowConnectionItem : public QGraphicsPathItem
 {
   public:
@@ -112,96 +114,195 @@ void reportError(QLabel *label, const AppError &error)
     label->setText(error.message);
 }
 
-// 以节点包围盒的边界作正交网格，A*只在可见通道前进；不改变手工坐标。
-// 起终点是端口向外伸出的短线端点，短线本身允许经过所属节点的安全边距。
-QVector<QPointF> routeBetween(QPointF from, QPointF to, const QVector<QRectF> &obstacles)
+QRectF routingBounds(const NodeItem *node)
 {
+    return node->sceneBoundingRect().adjusted(-kNodeClearance, -kNodeClearance, kNodeClearance,
+                                              kNodeClearance);
+}
+
+QPointF portExit(QPointF point, QPointF outward, const QRectF &box)
+{
+    if (outward.x() != 0)
+        return {outward.x() > 0 ? box.right() : box.left(), point.y()};
+    return {point.x(), outward.y() > 0 ? box.bottom() : box.top()};
+}
+
+bool crossesInterior(QPointF from, QPointF to, const QRectF &box)
+{
+    if (from.x() == to.x())
+        return from.x() > box.left() && from.x() < box.right() &&
+               qMin(from.y(), to.y()) < box.bottom() && qMax(from.y(), to.y()) > box.top();
+    return from.y() > box.top() && from.y() < box.bottom() &&
+           qMin(from.x(), to.x()) < box.right() && qMax(from.x(), to.x()) > box.left();
+}
+
+void appendRoutePoint(QVector<QPointF> &points, QPointF point)
+{
+    if (!points.isEmpty() && points.last() == point)
+        return;
+    if (points.size() >= 2)
+    {
+        const auto prior = points.last() - points.at(points.size() - 2);
+        const auto next = point - points.last();
+        if (((prior.x() == 0 && next.x() == 0) || (prior.y() == 0 && next.y() == 0)) &&
+            QPointF::dotProduct(prior, next) > 0)
+        {
+            points.last() = point;
+            return;
+        }
+    }
+    points.append(point);
+}
+
+// 从端口安全边距的边缘开始，先尝试直接或少折角的线路，再在节点之间搜索。
+QVector<QPointF> routeBetween(QPointF from, QPointF to, QPointF fromOut, QPointF toOut,
+                              const QVector<QRectF> &obstacles)
+{
+    if (from == to)
+        return {from};
+    const bool fromHorizontal = fromOut.x() != 0, toHorizontal = toOut.x() != 0;
+    const auto clear = [&](QPointF a, QPointF b)
+    {
+        return std::none_of(obstacles.cbegin(), obstacles.cend(),
+                            [&](const QRectF &box) { return crossesInterior(a, b, box); });
+    };
+    const auto allowed = [&](const QVector<QPointF> &points)
+    {
+        if (QPointF::dotProduct(points.at(1) - from, fromOut) < 0 ||
+            QPointF::dotProduct(to - points.at(points.size() - 2), toOut) > 0)
+            return false;
+        for (qsizetype i = 1; i < points.size(); ++i)
+            if (!clear(points.at(i - 1), points.at(i)))
+                return false;
+        return true;
+    };
+    const auto via = [&](qreal channel, bool horizontal)
+    {
+        QVector<QPointF> points{from};
+        appendRoutePoint(points,
+                         horizontal ? QPointF(channel, from.y()) : QPointF(from.x(), channel));
+        appendRoutePoint(points, horizontal ? QPointF(channel, to.y()) : QPointF(to.x(), channel));
+        appendRoutePoint(points, to);
+        return points;
+    };
+
+    QVector<QPointF> preferred{from};
+    if (fromHorizontal != toHorizontal)
+    {
+        appendRoutePoint(preferred,
+                         fromHorizontal ? QPointF(to.x(), from.y()) : QPointF(from.x(), to.y()));
+        appendRoutePoint(preferred, to);
+    }
+    else
+    {
+        const qreal a = fromHorizontal ? from.x() : from.y();
+        const qreal b = fromHorizontal ? to.x() : to.y();
+        // 相向端口在中间转折，同向端口在两者共有的外侧转折。
+        qreal channel = (a + b) / 2;
+        if (fromOut == toOut)
+            channel = fromOut.x() + fromOut.y() > 0 ? qMax(a, b) : qMin(a, b);
+        preferred = via(channel, fromHorizontal);
+    }
+    if (allowed(preferred))
+        return preferred;
+
     QVector<qreal> xs{from.x(), to.x()}, ys{from.y(), to.y()};
     for (const auto &rect : obstacles)
     {
         xs << rect.left() << rect.right();
         ys << rect.top() << rect.bottom();
     }
-    const auto sort = [](QVector<qreal> &values)
+    const auto prepareAxis = [](QVector<qreal> &values)
     {
         std::sort(values.begin(), values.end());
         values.erase(std::unique(values.begin(), values.end()), values.end());
+        values.prepend(values.first() - 24);
+        values.append(values.last() + 24);
     };
-    sort(xs);
-    sort(ys);
-    // 极大手工图不分配无界二维网格；保留可见外通道，后续压力优化不改领域数据。
+    prepareAxis(xs);
+    prepareAxis(ys);
+    // 极大手工图仍限制网格尺寸，先尝试四侧通道中最短的可行路线。
     if (qint64(xs.size()) * ys.size() > 250000)
     {
-        const qreal outside = qMax(xs.last(), qMax(from.x(), to.x())) + 40;
-        return {from, {outside, from.y()}, {outside, to.y()}, to};
+        QVector<QPointF> best;
+        qreal bestCost = std::numeric_limits<qreal>::infinity();
+        for (const auto &points : {via(xs.first(), true), via(xs.last(), true),
+                                   via(ys.first(), false), via(ys.last(), false)})
+        {
+            if (!allowed(points))
+                continue;
+            qreal cost = kTurnCost * points.size();
+            for (qsizetype i = 1; i < points.size(); ++i)
+                cost += QLineF(points.at(i - 1), points.at(i)).length();
+            if (cost < bestCost)
+            {
+                best = points;
+                bestCost = cost;
+            }
+        }
+        return best.isEmpty() ? preferred : best;
     }
     const int width = xs.size(), count = width * ys.size();
     const auto point = [&](int i) { return QPointF(xs.at(i % width), ys.at(i / width)); };
     const int start = ys.indexOf(from.y()) * width + xs.indexOf(from.x());
     const int finish = ys.indexOf(to.y()) * width + xs.indexOf(to.x());
-    QVector<qreal> distance(count, std::numeric_limits<qreal>::infinity());
-    QVector<int> previous(count, -1);
+    // 同一个网格点沿不同轴进入，接下来的转折代价不同。
+    QVector<qreal> distance(count * 2, std::numeric_limits<qreal>::infinity());
+    QVector<int> previous(count * 2, -1);
     using Entry = std::pair<qreal, int>;
     std::priority_queue<Entry, std::vector<Entry>, std::greater<Entry>> pending;
     const auto manhattan = [](QPointF a, QPointF b)
     { return std::abs(a.x() - b.x()) + std::abs(a.y() - b.y()); };
-    distance[start] = 0;
-    pending.push({manhattan(from, to), start});
-    QVector<bool> visited(count, false);
+    const int startState = start * 2 + !fromHorizontal;
+    const int targetAxis = !toHorizontal;
+    distance[startState] = 0;
+    pending.push({manhattan(from, to), startState});
     while (!pending.empty())
     {
-        const int current = pending.top().second;
+        const auto [score, state] = pending.top();
         pending.pop();
-        if (visited[current])
-            continue;
-        visited[current] = true;
-        if (current == finish)
-            break;
+        const int current = state / 2;
         const auto a = point(current);
-        const int x = current % width, y = current / width;
-        QVector<int> next;
-        if (x)
-            next.append(current - 1);
-        if (x + 1 < width)
-            next.append(current + 1);
-        if (y)
-            next.append(current - width);
-        if (y + 1 < ys.size())
-            next.append(current + width);
-        for (const int candidate : next)
+        if (score > distance.at(state) + manhattan(a, to))
+            continue;
+        if (current == finish)
         {
-            const auto b = point(candidate), mid = (a + b) / 2;
-            bool blocked = false;
-            for (const auto &rect : obstacles)
-            {
-                const auto inside = [&](QPointF p)
-                {
-                    return p.x() > rect.left() && p.x() < rect.right() && p.y() > rect.top() &&
-                           p.y() < rect.bottom();
-                };
-                if (inside(b) || inside(mid))
-                {
-                    blocked = true;
-                    break;
-                }
-            }
-            if (blocked)
+            QVector<QPointF> result;
+            for (int step = state; step != -1; step = previous.at(step))
+                result.append(point(step / 2));
+            std::reverse(result.begin(), result.end());
+            return result;
+        }
+        const int x = current % width, y = current / width;
+        const int neighbors[]{x > 0 ? current - 1 : -1, x + 1 < width ? current + 1 : -1,
+                              y > 0 ? current - width : -1,
+                              y + 1 < ys.size() ? current + width : -1};
+        for (const int candidate : neighbors)
+        {
+            if (candidate < 0 || candidate == start)
                 continue;
-            const qreal cost = distance[current] + manhattan(a, b);
-            if (cost < distance[candidate])
+            const auto b = point(candidate), step = b - a;
+            // 端口旁可以转向，但不能沿刚经过的端口短线折返。
+            if ((current == start && QPointF::dotProduct(step, fromOut) < 0) ||
+                (candidate == finish && QPointF::dotProduct(step, toOut) > 0) || !clear(a, b))
+                continue;
+            const int axis = step.x() == 0;
+            const int next = candidate * 2 + axis;
+            qreal cost = distance.at(state) + manhattan(a, b);
+            if (axis != state % 2)
+                cost += kTurnCost;
+            if (candidate == finish && axis != targetAxis)
+                cost += kTurnCost;
+            if (cost < distance.at(next))
             {
-                distance[candidate] = cost;
-                previous[candidate] = current;
-                pending.push({cost + manhattan(b, to), candidate});
+                distance[next] = cost;
+                previous[next] = state;
+                pending.push({cost + manhattan(b, to), next});
             }
         }
     }
-    if (!std::isfinite(distance.at(finish)))
-        return {from, {to.x(), from.y()}, to};
-    QVector<QPointF> result;
-    for (int i = finish; i != -1; i = previous.at(i))
-        result.prepend(point(i));
-    return result;
+    // 节点可以被手动重叠。端口完全堵住时仍显示连接，方便拉开节点后重新走线。
+    return preferred;
 }
 } // namespace
 
@@ -242,7 +343,6 @@ void MainWindow::rebuildFlowCanvas(const FlowSheet &sheet)
         m_flowPortNodeId.clear();
         m_flowPendingNodeId.clear();
         m_flowDragEdgeId.clear();
-        m_flowPreviewBend.reset();
         m_flowDragMoved = false;
         m_flowGestureRevision = m_doc->sessionRevision();
     }
@@ -281,8 +381,8 @@ void MainWindow::rebuildFlowCanvas(const FlowSheet &sheet)
     drawCanvasImages();
     if (sheet.nodes.isEmpty())
         m_scene->addText(QStringLiteral("编辑 → 流程图 → 新增流程节点，建立第一步。"));
-    m_editorNote = QStringLiteral(
-        "流程图：点击两个端口连线；选中线后拖中点调弯、拖两端重接。Esc取消，右键空白新建。");
+    m_editorNote =
+        QStringLiteral("流程图：点击两个端口自动连线，选中后拖端点重接。Esc取消，右键空白新建。");
 }
 
 void MainWindow::drawFlowEdges(const FlowSheet &sheet)
@@ -296,8 +396,7 @@ void MainWindow::drawFlowEdges(const FlowSheet &sheet)
     qDeleteAll(oldEdges);
     QVector<QRectF> obstacles;
     for (const auto *node : m_nodeItems)
-        obstacles.append(node->sceneBoundingRect().adjusted(-10, -10, 10, 10));
-    int channel = 0;
+        obstacles.append(routingBounds(node));
     for (const auto &edge : sheet.edges)
     {
         const auto *source = m_nodeItems.value(edge.sourceId);
@@ -306,41 +405,48 @@ void MainWindow::drawFlowEdges(const FlowSheet &sheet)
             continue;
         const QString from = edge.sourcePort.isEmpty() ? QStringLiteral("bottom") : edge.sourcePort;
         const QString to = edge.targetPort.isEmpty() ? QStringLiteral("top") : edge.targetPort;
+        const bool reconnecting = edge.id == m_flowDragEdgeId && m_flowDragMoved;
         const QPointF a =
-            (edge.id == m_flowDragEdgeId && m_flowDragMoved && m_flowDragHandle == "source")
-                ? m_flowPointer
-                : anchor(source, from);
+            reconnecting && m_flowDragHandle == "source" ? m_flowPointer : anchor(source, from);
         const QPointF b =
-            (edge.id == m_flowDragEdgeId && m_flowDragMoved && m_flowDragHandle == "target")
-                ? m_flowPointer
-                : anchor(target, to);
-        const QPointF a1 = a + direction(from) * 24, b1 = b + direction(to) * 24;
+            reconnecting && m_flowDragHandle == "target" ? m_flowPointer : anchor(target, to);
+        QVector<QPointF> points{a};
+        if (!reconnecting)
+        {
+            const auto fromOut = direction(from), toOut = direction(to);
+            const auto delta = b - a;
+            // 对齐的相向端口直接相连，间距很小时也无需额外短线。
+            const bool direct = fromOut == -toOut &&
+                                (fromOut.x() != 0 ? delta.y() == 0 : delta.x() == 0) &&
+                                QPointF::dotProduct(delta, fromOut) > 0 &&
+                                std::none_of(m_nodeItems.cbegin(), m_nodeItems.cend(),
+                                             [&](const NodeItem *node)
+                                             {
+                                                 return node != source && node != target &&
+                                                        crossesInterior(a, b, routingBounds(node));
+                                             });
+            if (!direct)
+            {
+                const QPointF a1 = portExit(a, fromOut, routingBounds(source));
+                const QPointF b1 = portExit(b, toOut, routingBounds(target));
+                if (source == target && from == to)
+                {
+                    // 文件里的同端口自环也要保留一条可见的回路。
+                    const QPointF across(-fromOut.y() * 28, fromOut.x() * 28);
+                    const QPointF far = a1 + fromOut * 28;
+                    for (const auto &point : {a1, far, far + across, a1 + across, a1})
+                        appendRoutePoint(points, point);
+                }
+                else
+                    for (const auto &point : routeBetween(a1, b1, fromOut, toOut, obstacles))
+                        appendRoutePoint(points, point);
+            }
+        }
+        // 旧工程的手动中点仍能往返存盘，显示统一使用自动路线。
+        appendRoutePoint(points, b);
         QPainterPath path(a);
-        path.lineTo(a1);
-        const auto bend =
-            (edge.id == m_flowDragEdgeId && m_flowPreviewBend) ? m_flowPreviewBend : edge.bendPoint;
-        if (bend)
-            path.quadTo(*bend * 2 - (a1 + b1) / 2, b1);
-        else if (source == target || b1.y() <= a1.y())
-        {
-            // 自环/回边放在节点右侧的外通道；不会把合法回路当树环拒绝。
-            qreal right = qMax(a1.x(), b1.x());
-            for (const auto *node : m_nodeItems)
-                right = qMax(right, node->sceneBoundingRect().right());
-            right += 40 + 18 * channel++;
-            const QPointF outside(right, (a1.y() + b1.y()) / 2);
-            for (const auto &point : routeBetween(a1, outside, obstacles))
-                path.lineTo(point);
-            for (const auto &point : routeBetween(outside, b1, obstacles))
-                path.lineTo(point);
-        }
-        else
-        {
-            for (const auto &point : routeBetween(a1, b1, obstacles))
-                path.lineTo(point);
-        }
-        path.lineTo(b1);
-        path.lineTo(b);
+        for (qsizetype i = 1; i < points.size(); ++i)
+            path.lineTo(points.at(i));
         auto *line = new FlowConnectionItem(path);
         line->setPen(QPen(QColor(edge.style.color.isEmpty() ? "#247A62" : edge.style.color),
                           edge.id == m_selectedFlowEdge ? 3 : edge.style.width,
@@ -348,8 +454,7 @@ void MainWindow::drawFlowEdges(const FlowSheet &sheet)
         m_scene->addItem(line);
         line->setData(kEdgeRole, edge.id);
         line->setZValue(-1);
-        line->setToolTip(edge.label +
-                         QStringLiteral("（拖动调弯；选中后拖两端重接；双击编辑，Delete删除）"));
+        line->setToolTip(edge.label + QStringLiteral("（选中后拖端点重接，双击编辑，Delete删除）"));
         const auto arrow = [line](QPointF tip, QPointF prior)
         {
             const auto d = tip - prior;
@@ -357,17 +462,21 @@ void MainWindow::drawFlowEdges(const FlowSheet &sheet)
             if (length == 0)
                 return;
             const auto unit = d / length;
-            const QPointF normal(-unit.y(), unit.x());
-            QPainterPath head(tip - unit * 11 + normal * 5);
+            const qreal size = qMin(length, 11.0);
+            const QPointF wing = QPointF(-unit.y(), unit.x()) * (size * 5 / 11);
+            QPainterPath head(tip - unit * size + wing);
             head.lineTo(tip);
-            head.lineTo(tip - unit * 11 - normal * 5);
+            head.lineTo(tip - unit * size - wing);
             auto *item = new QGraphicsPathItem(head, line);
             item->setPen(line->pen());
         };
-        if (edge.arrow == "end" || edge.arrow == "both")
-            arrow(b, b1);
-        if (edge.arrow == "both")
-            arrow(a, a1);
+        if (points.size() > 1)
+        {
+            if (edge.arrow == "end" || edge.arrow == "both")
+                arrow(b, points.at(points.size() - 2));
+            if (edge.arrow == "both")
+                arrow(a, points.at(1));
+        }
         if (!edge.label.isEmpty())
         {
             auto *label = new QGraphicsTextItem(line);
@@ -387,14 +496,10 @@ void MainWindow::drawFlowEdges(const FlowSheet &sheet)
                 dot->setData(kEdgeHandleRole, kind);
                 dot->setZValue(10);
                 dot->setCursor(Qt::SizeAllCursor);
-                dot->setToolTip(
-                    kind == "bend"
-                        ? QStringLiteral("拖动调整曲线；右键可恢复自动走线")
-                        : QStringLiteral("拖到任意节点的端口，重新连接；无效落点保留原连接"));
+                dot->setToolTip(QStringLiteral("拖到节点端口即可重接，无效落点保留原连接"));
             };
             handle(a, "source");
             handle(b, "target");
-            handle(bend.value_or(path.pointAtPercent(0.5)), "bend");
         }
     }
     if (!m_flowPendingNodeId.isEmpty() && m_nodeItems.contains(m_flowPendingNodeId))
@@ -731,7 +836,6 @@ void MainWindow::cancelFlowGesture()
     m_flowPortNodeId.clear();
     m_flowPendingNodeId.clear();
     m_flowDragEdgeId.clear();
-    m_flowPreviewBend.reset();
     m_flowDragMoved = false;
     if (const auto *sheet = activeFlowSheet())
         drawFlowEdges(*sheet);
@@ -820,20 +924,8 @@ bool MainWindow::handleFlowEvent(QObject *watched, QEvent *event)
             m_flowPendingNodeId.clear();
             m_selectedFlowEdge = edgeId;
             m_selectedNodeId.clear();
-            m_flowDragEdgeId = edgeId;
-            m_flowDragHandle = handle.isEmpty() ? QStringLiteral("bend") : handle;
-            m_flowPreviewBend.reset();
-            m_flowBendOrigin = position;
-            for (auto *item : m_scene->items())
-                if (auto *line = dynamic_cast<QGraphicsPathItem *>(item);
-                    line && !item->parentItem() && item->data(kEdgeRole).toString() == edgeId)
-                {
-                    m_flowBendOrigin = line->path().pointAtPercent(0.5);
-                    break;
-                }
-            for (const auto &edge : activeFlowSheet()->edges)
-                if (edge.id == edgeId && edge.bendPoint)
-                    m_flowBendOrigin = *edge.bendPoint;
+            m_flowDragEdgeId = handle.isEmpty() ? ID{} : edgeId;
+            m_flowDragHandle = handle;
             syncCanvasSelection();
             drawFlowEdges(*activeFlowSheet());
             return true;
@@ -900,8 +992,6 @@ bool MainWindow::handleFlowEvent(QObject *watched, QEvent *event)
             return true;
         if (auto *moving = m_nodeItems.value(m_flowDragNodeId))
             moving->setPos(m_flowDragOrigin + position - m_view->mapToScene(m_dragStart));
-        if (!m_flowDragEdgeId.isEmpty() && m_flowDragHandle == "bend")
-            m_flowPreviewBend = m_flowBendOrigin + position - m_view->mapToScene(m_dragStart);
         if (!m_flowPortNodeId.isEmpty())
         {
             m_flowPendingNodeId = m_flowPortNodeId;
@@ -917,12 +1007,10 @@ bool MainWindow::handleFlowEvent(QObject *watched, QEvent *event)
         const bool moved =
             m_flowDragMoved || (mouse->position().toPoint() - m_dragStart).manhattanLength() >=
                                    QApplication::startDragDistance();
-        const auto bend = m_flowPreviewBend;
         QPointF next = m_nodeItems.contains(moving) ? m_nodeItems.value(moving)->pos() : QPointF();
         m_flowDragNodeId.clear();
         m_flowPortNodeId.clear();
         m_flowDragEdgeId.clear();
-        m_flowPreviewBend.reset();
         m_flowDragMoved = false;
         const auto center = m_view->mapToScene(m_view->viewport()->rect().center());
         const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
@@ -948,28 +1036,21 @@ bool MainWindow::handleFlowEvent(QObject *watched, QEvent *event)
         }
         if (!editing.isEmpty())
         {
-            if (moved)
+            if (moved && !port.isEmpty())
             {
                 FlowEdgePatch patch;
-                if (kind == "bend")
-                    patch.bendPoint = bend.value_or(m_flowBendOrigin + position -
-                                                    m_view->mapToScene(m_dragStart));
-                else if (!port.isEmpty())
+                if (kind == "source")
                 {
-                    if (kind == "source")
-                    {
-                        patch.sourceId = portNode;
-                        patch.sourcePort = port;
-                    }
-                    else
-                    {
-                        patch.targetId = portNode;
-                        patch.targetPort = port;
-                    }
+                    patch.sourceId = portNode;
+                    patch.sourcePort = port;
                 }
-                if (kind == "bend" || !port.isEmpty())
-                    report(FlowCommands(m_commands, m_doc)
-                               .updateEdge(activeFlowSheet()->id, editing, patch));
+                else
+                {
+                    patch.targetId = portNode;
+                    patch.targetPort = port;
+                }
+                report(FlowCommands(m_commands, m_doc)
+                           .updateEdge(activeFlowSheet()->id, editing, patch));
             }
             drawFlowEdges(*activeFlowSheet());
             m_view->centerOn(center);

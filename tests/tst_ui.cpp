@@ -174,7 +174,9 @@ class TstUi : public QObject {
 private slots:
     void initTestCase();
     void freeTreeMouseAndPlus();
-    void flowCurveMouseReconnect();
+    void flowAutoRoutes_data();
+    void flowAutoRoutes();
+    void flowAutoRouteAndReconnect();
     void instantStyleWheelAndBrand();
     void embeddedImagesAcrossViews_data();
     void embeddedImagesAcrossViews();
