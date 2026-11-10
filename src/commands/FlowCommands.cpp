@@ -2,6 +2,7 @@
 #include "commands/CommandService.h"
 #include "document/ProjectDocument.h"
 #include "domain/Limits.h"
+#include "domain/NodeShapes.h"
 #include "domain/TitleRules.h"
 
 #include <QDateTime>
@@ -81,7 +82,7 @@ int totalNodeCount(const Project& project) {
     return count;
 }
 
-// 局部样式预检：与ProjectJson读写规则一致（颜色#RRGGBB、shape五枚举、字号范围、边宽正数）
+// 局部样式预检与ProjectJson读写规则一致。
 std::optional<AppError> validateOverride(const NodeStyleOverride& style) {
     const auto validColor = [](const std::optional<QString>& color) {
         return !color.has_value() || isHexColor(*color);
@@ -89,10 +90,8 @@ std::optional<AppError> validateOverride(const NodeStyleOverride& style) {
     if (!validColor(style.fill) || !validColor(style.color) || !validColor(style.borderColor)) {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("颜色必须为#RRGGBB格式")};
     }
-    if (style.shape.has_value() && *style.shape != QStringLiteral("roundRect") &&
-        *style.shape != QStringLiteral("rect") && *style.shape != QStringLiteral("ellipse") &&
-        *style.shape != QStringLiteral("diamond") &&
-        *style.shape != QStringLiteral("parallelogram")) {
+    if (style.shape.has_value() && !NodeShapes::isSupported(*style.shape))
+    {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("节点形状不在支持列表内")};
     }
     if (style.fontSize.has_value() &&

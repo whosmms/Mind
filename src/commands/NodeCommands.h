@@ -101,13 +101,13 @@ public:
                                                 const NodeMetaUpdate& update);
 
     // 整值替换节点局部样式override：空override=清除，回退工作表默认样式；可撤销。
-    // 预检（基础码）：颜色#RRGGBB、shape五枚举、字号12至32、边宽正数；与当前相同则短路。
+    // 预检（基础码）：颜色#RRGGBB、支持的形状、字号12至32、边宽正数；与当前相同则短路。
     std::variant<bool, AppError> setStyle(const ID& sheetId, const ID& nodeId,
                                           const NodeStyleOverride& style);
 
     // 工作表默认样式（R05 全局样式）：整值替换defaultNodeStyle/defaultEdgeStyle，
     // 未做局部覆盖的节点/连线随之变化；局部override优先级不变。与当前相同则短路。
-    // 预检：颜色#RRGGBB、字号12至32、shape五枚举、边宽0.1至20且有限。
+    // 预检：颜色#RRGGBB、字号12至32、支持的形状、边宽0.1至20且有限。
     std::variant<bool, AppError> setSheetStyle(const ID& sheetId, const NodeStyle& nodeStyle,
                                                const EdgeStyle& edgeStyle);
 

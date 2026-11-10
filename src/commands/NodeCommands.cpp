@@ -1,6 +1,7 @@
 #include "commands/NodeCommands.h"
 #include "commands/CommandService.h"
 #include "document/ProjectDocument.h"
+#include "domain/NodeShapes.h"
 #include "domain/TitleRules.h"
 
 #include <QSet>
@@ -173,12 +174,6 @@ bool sameNodeStyle(const NodeStyle& a, const NodeStyle& b) {
 
 bool sameEdgeStyle(const EdgeStyle& a, const EdgeStyle& b) {
     return a.color == b.color && std::abs(a.width - b.width) < 1e-9 && a.dashed == b.dashed;
-}
-
-bool isSupportedShape(const QString& shape) {
-    return shape == QStringLiteral("roundRect") || shape == QStringLiteral("rect") ||
-           shape == QStringLiteral("ellipse") || shape == QStringLiteral("diamond") ||
-           shape == QStringLiteral("parallelogram");
 }
 
 bool isSupportedArrow(const QString& arrow) {
@@ -652,17 +647,15 @@ std::variant<bool, AppError> NodeCommands::setStyle(const ID& sheetId, const ID&
         return AppError{"NOT_FOUND", QStringLiteral("工作表或节点不存在：%1").arg(nodeId)};
     }
 
-    // 预检与ProjectJson读写规则一致（颜色#RRGGBB、shape五枚举、字号范围、边宽正数）
+    // 预检与ProjectJson读写规则一致（颜色、形状枚举、字号范围、边宽正数）。
     const auto validColor = [](const std::optional<QString>& color) {
         return !color.has_value() || isHexColor(*color);
     };
     if (!validColor(style.fill) || !validColor(style.color) || !validColor(style.borderColor)) {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("颜色必须为#RRGGBB格式")};
     }
-    if (style.shape.has_value() &&
-        *style.shape != QStringLiteral("roundRect") && *style.shape != QStringLiteral("rect") &&
-        *style.shape != QStringLiteral("ellipse") && *style.shape != QStringLiteral("diamond") &&
-        *style.shape != QStringLiteral("parallelogram")) {
+    if (style.shape.has_value() && !NodeShapes::isSupported(*style.shape))
+    {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("节点形状不在支持列表内")};
     }
     if (style.fontSize.has_value() &&
@@ -1026,12 +1019,13 @@ std::variant<bool, AppError> NodeCommands::setSheetStyle(const ID& sheetId,
         return AppError{"NOT_FOUND", QStringLiteral("工作表不存在：%1").arg(sheetId)};
     }
 
-    // 预检与ProjectJson读写规则一致（颜色#RRGGBB、shape五枚举、字号/边宽范围）
+    // 预检与ProjectJson读写规则一致（颜色、形状枚举、字号与边宽范围）。
     if (!isHexColor(nodeStyle.fill) || !isHexColor(nodeStyle.color) ||
         !isHexColor(nodeStyle.borderColor)) {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("颜色必须为#RRGGBB格式")};
     }
-    if (!isSupportedShape(nodeStyle.shape)) {
+    if (!NodeShapes::isSupported(nodeStyle.shape))
+    {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("节点形状不在支持列表内")};
     }
     if (nodeStyle.fontSize < Limits::kFontSizeMin || nodeStyle.fontSize > Limits::kFontSizeMax) {

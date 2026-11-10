@@ -1,5 +1,6 @@
 #include "app/MainWindow.h"
 
+#include "app/StyleChoices.h"
 #include "charts/GanttView.h"
 #include "document/ProjectDocument.h"
 #include "graphics/NodeItem.h"
@@ -777,7 +778,8 @@ void MainWindow::updateEditorChrome()
                                                       : resolved.fontFamily)
                  .arg(resolved.fontSize)
                  .arg(resolved.bold ? QStringLiteral(" · 加粗") : QString())
-                 .arg(resolved.fill, resolved.color));
+                 .arg(StyleChoices::colorName(resolved.fill),
+                      StyleChoices::colorName(resolved.color)));
         text("nodeContentSummary",
              preview(node->note.isEmpty() ? QStringLiteral("尚无备注") : node->note) +
                  QStringLiteral("\n") + preview(node->link.value_or(QStringLiteral("尚无链接"))));
@@ -792,7 +794,7 @@ void MainWindow::updateEditorChrome()
         text("nodeTagsSummary", QStringLiteral("选中主题后查看标签与批注"));
     }
     text("sheetStyleSummary",
-         flow ? QStringLiteral("未覆盖的颜色和字体使用本表默认值，形状随节点类型")
+         flow ? QStringLiteral("未覆盖的颜色和字体使用本表默认值，形状默认随节点类型")
               : QStringLiteral("局部样式优先，未覆盖字段使用本表默认值"));
     text("nodeTaskSummary",
          task ? QStringLiteral("%1\n%2 · %3%")

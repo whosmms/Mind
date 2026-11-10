@@ -1,18 +1,24 @@
 #include "app/MainWindow.h"
 
+#include "app/StyleChoices.h"
 #include "commands/NodeCommands.h"
 #include "document/ProjectDocument.h"
+#include "domain/NodeShapes.h"
 #include "graphics/NodeItem.h"
 #include <QAbstractItemView>
 #include <QAction>
 #include <QButtonGroup>
 #include <QCheckBox>
+#include <QColor>
 #include <QComboBox>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPainter>
 #include <QPixmap>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -20,14 +26,215 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSignalBlocker>
+#include <QSlider>
 #include <QStackedWidget>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWheelEvent>
+#include <array>
 #include <tuple>
 
 namespace lingya
 {
+namespace StyleChoices
+{
+namespace
+{
+struct NamedChoice
+{
+    const char *value;
+    const char *label;
+};
+
+constexpr NamedChoice kColors[] = {
+    {"#FFFFFF", "纯白"},     {"#DDF2E7", "薄荷绿"}, {"#247A62", "森林绿"}, {"#FFF0D0", "浅杏黄"},
+    {"#EEE8FA", "薰衣草紫"}, {"#243A34", "墨绿"},   {"#DDE6DF", "浅灰绿"}, {"#E7F0FF", "冰蓝"},
+    {"#102040", "深海蓝"},   {"#406080", "灰蓝"},   {"#FBE1EA", "樱花粉"}, {"#F4D6BF", "珊瑚橙"},
+    {"#F7E28C", "蜂蜜黄"},   {"#F0F2F5", "雾灰"},   {"#182326", "炭黑"}};
+constexpr NamedChoice kShapes[] = {{"roundRect", "圆角矩形"},
+                                   {"rect", "矩形"},
+                                   {"ellipse", "椭圆"},
+                                   {"diamond", "菱形"},
+                                   {"parallelogram", "平行四边形"},
+                                   {NodeShapes::kCapsule, "胶囊形"},
+                                   {NodeShapes::kHexagon, "六边形"},
+                                   {NodeShapes::kCutRectangle, "切角矩形"}};
+
+QIcon colorSwatch(const QColor &color)
+{
+    QPixmap sample(18, 18);
+    sample.fill(color);
+    QPainter painter(&sample);
+    painter.setPen(QColor("#B7C4BC"));
+    painter.drawRect(sample.rect().adjusted(0, 0, -1, -1));
+    painter.end();
+    return QIcon(sample);
+}
+
+QColor chooseColor(QWidget *parent, const QColor &initial)
+{
+    QDialog dialog(parent);
+    dialog.setObjectName("customStyleColorDialog");
+    dialog.setWindowTitle(QStringLiteral("自定义颜色"));
+    dialog.setMinimumWidth(320);
+    auto *layout = new QFormLayout(&dialog);
+    auto *sample = new QLabel(&dialog);
+    sample->setAccessibleName(QStringLiteral("颜色预览"));
+    layout->addRow(QStringLiteral("预览"), sample);
+    std::array<QSlider *, 3> sliders{};
+    const std::array names{"customStyleRed", "customStyleGreen", "customStyleBlue"};
+    const std::array labels{QStringLiteral("红色"), QStringLiteral("绿色"), QStringLiteral("蓝色")};
+    const std::array levels{initial.red(), initial.green(), initial.blue()};
+    for (std::size_t i = 0; i < sliders.size(); ++i)
+    {
+        auto *slider = new QSlider(Qt::Horizontal, &dialog);
+        sliders[i] = slider;
+        slider->setObjectName(QString::fromLatin1(names[i]));
+        slider->setAccessibleName(labels[i]);
+        slider->setRange(0, 255);
+        slider->setValue(levels[i]);
+        layout->addRow(labels[i], slider);
+    }
+    const auto color = [sliders]
+    { return QColor(sliders[0]->value(), sliders[1]->value(), sliders[2]->value()); };
+    const auto preview = [sample, color]
+    {
+        QPixmap block(146, 36);
+        block.fill(color());
+        sample->setPixmap(block);
+    };
+    for (auto *slider : sliders)
+    {
+        QObject::connect(slider, &QSlider::valueChanged, &dialog, preview);
+    }
+    preview();
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("选用颜色"));
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addRow(buttons);
+    return dialog.exec() == QDialog::Accepted ? color() : QColor{};
+}
+} // namespace
+
+QString colorName(const QString &color)
+{
+    for (const auto &choice : kColors)
+    {
+        if (color.compare(QLatin1StringView(choice.value), Qt::CaseInsensitive) == 0)
+        {
+            return QString::fromUtf8(choice.label);
+        }
+    }
+    return QStringLiteral("自定义色");
+}
+
+QString shapeName(const QString &shape)
+{
+    for (const auto &choice : kShapes)
+    {
+        if (shape == QLatin1StringView(choice.value))
+        {
+            return QString::fromUtf8(choice.label);
+        }
+    }
+    return QStringLiteral("默认形状");
+}
+
+void addShapes(QComboBox *box, bool flowOnly)
+{
+    for (const auto &choice : kShapes)
+    {
+        const QString id = QString::fromLatin1(choice.value);
+        if (!flowOnly || NodeShapes::isFlowBorder(id))
+        {
+            box->addItem(QString::fromUtf8(choice.label), id);
+        }
+    }
+}
+
+ColorBox::ColorBox(QWidget *parent, const QString &automaticText) : QComboBox(parent)
+{
+    setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    setMinimumContentsLength(6);
+    if (!automaticText.isEmpty())
+    {
+        m_automaticRow = count();
+        addItem(automaticText);
+    }
+    for (const auto &choice : kColors)
+    {
+        const QString color = QString::fromLatin1(choice.value);
+        addItem(colorSwatch(QColor(color)), QString::fromUtf8(choice.label), color);
+    }
+    m_pickerRow = count();
+    addItem(QStringLiteral("选择自定义颜色…"));
+    m_previousRow = currentIndex();
+    connect(this, &QComboBox::currentIndexChanged, this,
+            [this](int index)
+            {
+                if (index != m_pickerRow)
+                {
+                    m_previousRow = index;
+                }
+            });
+    connect(this, &QComboBox::activated, this,
+            [this](int index)
+            {
+                if (index != m_pickerRow)
+                {
+                    return;
+                }
+                const auto previous = colorValue();
+                const QColor initial(previous.value_or(QStringLiteral("#247A62")));
+                const QColor chosen = chooseColor(this, initial);
+                if (!chosen.isValid() || (previous && chosen == initial))
+                {
+                    const QSignalBlocker blocker(this);
+                    setCurrentIndex(m_previousRow);
+                }
+                else
+                {
+                    setColorValue(chosen.name().toUpper());
+                }
+            });
+}
+
+void ColorBox::setColorValue(const std::optional<QString> &color)
+{
+    if (!color || color->isEmpty())
+    {
+        setCurrentIndex(m_automaticRow);
+        return;
+    }
+    int row = findData(*color);
+    if (row < 0)
+    {
+        const QSignalBlocker blocker(this);
+        if (m_customRow < 0)
+        {
+            m_customRow = count();
+            addItem(colorSwatch(QColor(*color)), colorName(*color), *color);
+        }
+        else
+        {
+            setItemData(m_customRow, *color);
+            setItemText(m_customRow, colorName(*color));
+            setItemIcon(m_customRow, colorSwatch(QColor(*color)));
+        }
+        row = m_customRow;
+    }
+    setCurrentIndex(row);
+}
+
+std::optional<QString> ColorBox::colorValue() const
+{
+    const auto data = itemData(currentIndex() == m_pickerRow ? m_previousRow : currentIndex());
+    return data.isValid() ? std::optional<QString>(data.toString()) : std::nullopt;
+}
+} // namespace StyleChoices
+
 namespace
 {
 // 收起的选项只接受明确选择；滚轮留给侧栏滚动。
@@ -83,32 +290,6 @@ QLabel *errorLabel(QWidget *parent, const char *name)
     return label;
 }
 
-void selectOptional(QComboBox *combo, const std::optional<QString> &value)
-{
-    if (!value)
-        combo->setCurrentIndex(0);
-    else
-    {
-        int index = combo->findData(*value);
-        if (index < 0)
-        {
-            combo->addItem(*value, *value);
-            index = combo->count() - 1;
-        }
-        combo->setCurrentIndex(index);
-    }
-}
-
-std::optional<QString> optionalValue(QComboBox *combo)
-{
-    if (combo->isEditable() && combo->currentText() != combo->itemText(combo->currentIndex()))
-        return combo->currentText().trimmed();
-    if (combo->currentIndex() == 0)
-        return std::nullopt;
-    if (combo->currentIndex() >= 0)
-        return combo->currentData().toString();
-    return combo->currentText().trimmed();
-}
 } // namespace
 
 void MainWindow::buildInlineStyle(QVBoxLayout *layout)
@@ -122,13 +303,8 @@ void MainWindow::buildInlineStyle(QVBoxLayout *layout)
     auto *shape = new QComboBox(box);
     shape->setObjectName("inlineShape");
     shape->addItem(QStringLiteral("继承工作表"));
-    const QStringList codes{"roundRect", "rect", "ellipse", "diamond", "parallelogram"};
-    const QStringList names{QStringLiteral("圆角矩形"), QStringLiteral("矩形"),
-                            QStringLiteral("椭圆"), QStringLiteral("菱形"),
-                            QStringLiteral("平行四边形")};
-    for (int i = 0; i < codes.size(); ++i)
-        shape->addItem(names.at(i), codes.at(i));
-    form->addRow(QStringLiteral("形状"), shape);
+    StyleChoices::addShapes(shape);
+    form->addRow(QStringLiteral("边框形状"), shape);
     auto *flowType = new QToolButton(box);
     flowType->setObjectName("inlineFlowType");
     flowType->setDefaultAction(findChild<QAction *>("editFlowNode"));
@@ -136,20 +312,10 @@ void MainWindow::buildInlineStyle(QVBoxLayout *layout)
     form->addRow(QStringLiteral("节点类型"), flowType);
     const auto color = [box, form](const char *name, const QString &label)
     {
-        auto *combo = new QComboBox(box);
+        auto *combo = new StyleChoices::ColorBox(box, QStringLiteral("继承工作表"));
         combo->setObjectName(QString::fromLatin1(name));
-        combo->setEditable(true);
-        combo->setInsertPolicy(QComboBox::NoInsert);
         combo->setMinimumWidth(0);
         combo->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-        combo->addItem(QStringLiteral("继承工作表"));
-        for (const QString value :
-             {"#FFFFFF", "#DDF2E7", "#247A62", "#FFF0D0", "#EEE8FA", "#243A34"})
-        {
-            QPixmap swatch(18, 18);
-            swatch.fill(QColor(value));
-            combo->addItem(QIcon(swatch), value, value);
-        }
         form->addRow(label, combo);
         return combo;
     };
@@ -158,14 +324,15 @@ void MainWindow::buildInlineStyle(QVBoxLayout *layout)
     color("inlineBorderColor", QStringLiteral("边框"));
     auto *palette = new QHBoxLayout;
     palette->setSpacing(5);
-    for (int i = 1; i < fill->count(); ++i)
+    constexpr int kQuickColors = 6;
+    for (int i = 1; i <= kQuickColors; ++i)
     {
         auto *swatch = new QToolButton(box);
         swatch->setFixedSize(30, 30);
         swatch->setIcon(fill->itemIcon(i));
         swatch->setIconSize(QSize(18, 18));
-        swatch->setToolTip(
-            QStringLiteral("填充色 %1；点击直接生效").arg(fill->itemData(i).toString()));
+        swatch->setToolTip(QStringLiteral("填充色：%1").arg(fill->itemText(i)));
+        swatch->setAccessibleName(swatch->toolTip());
         connect(swatch, &QToolButton::clicked, this, [fill, i] { fill->setCurrentIndex(i); });
         palette->addWidget(swatch);
     }
@@ -208,12 +375,6 @@ void MainWindow::buildInlineStyle(QVBoxLayout *layout)
     {
         combo->installEventFilter(guard);
         connect(combo, &QComboBox::currentIndexChanged, this, apply);
-        connect(combo, &QComboBox::activated, this, apply);
-        if (combo->lineEdit())
-        {
-            combo->lineEdit()->installEventFilter(guard);
-            connect(combo->lineEdit(), &QLineEdit::editingFinished, this, apply);
-        }
     }
     connect(inherit, &QCheckBox::toggled, this, apply);
     connect(bold, &QCheckBox::checkStateChanged, this, apply);
@@ -324,11 +485,19 @@ void MainWindow::updateInlineProperties()
     }
     const bool flow = activeFlowSheet() != nullptr;
     auto *shape = findChild<QComboBox *>("inlineShape");
-    form->setRowVisible(shape, !flow);
+    const bool shapeOptionsChanged = shape->property("flowBorderChoices").toBool() != flow;
+    if (shapeOptionsChanged)
+    {
+        shape->setProperty("flowBorderChoices", flow);
+        shape->clear();
+        shape->addItem(flow ? QStringLiteral("随节点类型") : QStringLiteral("继承工作表"));
+        StyleChoices::addShapes(shape, flow);
+    }
     form->setRowVisible(findChild<QToolButton *>("inlineFlowType"), flow);
     const ID sheetId = m_doc->project().activeSheetId;
     const bool sameNode = m_propertySheetId == sheetId && m_propertyNodeId == m_selectedNodeId;
-    if (!node || (sameNode && m_propertyRevision == m_doc->sessionRevision()))
+    if (!node ||
+        (sameNode && m_propertyRevision == m_doc->sessionRevision() && !shapeOptionsChanged))
     {
         return;
     }
@@ -341,12 +510,20 @@ void MainWindow::updateInlineProperties()
     m_propertyRevision = m_doc->sessionRevision();
     m_propertyInitial = incoming;
     m_propertyStyle = m_propertyInitial.style;
+    if (shapeOptionsChanged || !keepStyle)
+    {
+        shape->setCurrentIndex(qMax(0, shape->findData(m_propertyStyle.shape.value_or(QString()))));
+    }
     if (!keepStyle)
     {
-        selectOptional(shape, m_propertyStyle.shape);
-        selectOptional(findChild<QComboBox *>("inlineFill"), m_propertyStyle.fill);
-        selectOptional(findChild<QComboBox *>("inlineTextColor"), m_propertyStyle.color);
-        selectOptional(findChild<QComboBox *>("inlineBorderColor"), m_propertyStyle.borderColor);
+        const auto setColor = [this](const char *name, const std::optional<QString> &value)
+        {
+            static_cast<StyleChoices::ColorBox *>(findChild<QComboBox *>(name))
+                ->setColorValue(value);
+        };
+        setColor("inlineFill", m_propertyStyle.fill);
+        setColor("inlineTextColor", m_propertyStyle.color);
+        setColor("inlineBorderColor", m_propertyStyle.borderColor);
         auto *family = findChild<QLineEdit *>("inlineFontFamily");
         family->setText(m_propertyStyle.fontFamily.value_or(QString()));
         family->setProperty("initialText", family->text());
@@ -397,10 +574,16 @@ void MainWindow::applyInlineStyle(bool reset)
     if (!reset)
     {
         style = m_propertyStyle;
-        style.shape = optionalValue(findChild<QComboBox *>("inlineShape"));
-        style.fill = optionalValue(findChild<QComboBox *>("inlineFill"));
-        style.color = optionalValue(findChild<QComboBox *>("inlineTextColor"));
-        style.borderColor = optionalValue(findChild<QComboBox *>("inlineBorderColor"));
+        const auto shape = findChild<QComboBox *>("inlineShape")->currentData().toString();
+        style.shape = shape.isEmpty() ? std::nullopt : std::optional<QString>(shape);
+        const auto color = [this](const char *name)
+        {
+            return static_cast<StyleChoices::ColorBox *>(findChild<QComboBox *>(name))
+                ->colorValue();
+        };
+        style.fill = color("inlineFill");
+        style.color = color("inlineTextColor");
+        style.borderColor = color("inlineBorderColor");
         auto *family = findChild<QLineEdit *>("inlineFontFamily");
         if (findChild<QCheckBox *>("inlineInheritFont")->isChecked())
             style.fontFamily.reset();
@@ -418,9 +601,10 @@ void MainWindow::applyInlineStyle(bool reset)
             style.borderWidth =
                 width->value() == 0 ? std::nullopt : std::optional<double>(width->value());
     }
-    if (activeFlowSheet())
+    if (activeFlowSheet() && !style.shape && m_propertyStyle.shape &&
+        !NodeShapes::isFlowBorder(*m_propertyStyle.shape))
     {
-        // 流程节点由类型决定形状，保留旧文件的形状覆盖字段。
+        // 保留旧工程中从未生效的形状字段。
         style.shape = m_propertyStyle.shape;
     }
     const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);

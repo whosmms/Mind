@@ -1,5 +1,6 @@
 #include "app/MainWindow.h"
 
+#include "app/StyleChoices.h"
 #include "layout/FishboneLayout.h"
 #include "layout/TreeLayout.h"
 #include <QAction>
@@ -75,6 +76,7 @@
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
 #include "domain/Limits.h"
+#include "domain/NodeShapes.h"
 #include "domain/ProjectFactory.h"
 #include "graphics/NodeItem.h"
 #include "services/FileService.h"
@@ -1021,13 +1023,25 @@ void MainWindow::editNodeStyle(bool global)
     dialog.setWindowTitle(global ? QStringLiteral("工作表默认样式") : QStringLiteral("节点样式"));
     dialog.resize(430, 440);
     auto *layout = new QVBoxLayout(&dialog);
-    auto *hint = new QLabel(QStringLiteral("留空或选择“继承”时，使用工作表样式。"), &dialog);
+    auto *hint = new QLabel(QStringLiteral("选择「继承」时使用工作表样式。"), &dialog);
     hint->setWordWrap(true);
     if (global)
         hint->setText(QStringLiteral(
             "工作表默认值影响未覆盖的节点；节点局部覆盖优先。此处修改不清除局部覆盖。"));
     layout->addWidget(hint);
     auto *form = new QFormLayout;
+    const auto colorField = [&](const char *name, const QString &label,
+                                const std::optional<QString> &value, const QString &fallback)
+    {
+        const auto automatic =
+            global ? QString()
+                   : QStringLiteral("继承（%1）").arg(StyleChoices::colorName(fallback));
+        auto *box = new StyleChoices::ColorBox(&dialog, automatic);
+        box->setObjectName(QString::fromLatin1(name));
+        box->setColorValue(value);
+        form->addRow(label, box);
+        return box;
+    };
     const auto textField = [&](const QString &name, const QString &label,
                                const std::optional<QString> &value, const QString &fallback)
     {
@@ -1037,13 +1051,11 @@ void MainWindow::editNodeStyle(bool global)
         form->addRow(label, edit);
         return edit;
     };
-    auto *fill = textField(QStringLiteral("styleFill"), QStringLiteral("填充色（#RRGGBB）"),
-                           original.fill, defaults.fill);
-    auto *color = textField(QStringLiteral("styleColor"), QStringLiteral("文字色（#RRGGBB）"),
-                            original.color, defaults.color);
-    auto *border =
-        textField(QStringLiteral("styleBorderColor"), QStringLiteral("边框色（#RRGGBB）"),
-                  original.borderColor, defaults.borderColor);
+    auto *fill = colorField("styleFill", QStringLiteral("填充色"), original.fill, defaults.fill);
+    auto *color =
+        colorField("styleColor", QStringLiteral("文字色"), original.color, defaults.color);
+    auto *border = colorField("styleBorderColor", QStringLiteral("边框色"), original.borderColor,
+                              defaults.borderColor);
     auto *family = textField(
         QStringLiteral("styleFontFamily"), QStringLiteral("字体名称"), original.fontFamily,
         defaults.fontFamily == QStringLiteral("system") ? QStringLiteral("系统字体")
@@ -1069,19 +1081,14 @@ void MainWindow::editNodeStyle(bool global)
     form->addRow(QStringLiteral("字重"), bold);
     auto *shape = new QComboBox(&dialog);
     shape->setObjectName(QStringLiteral("styleShape"));
-    const QStringList codes{QStringLiteral("roundRect"), QStringLiteral("rect"),
-                            QStringLiteral("ellipse"), QStringLiteral("diamond"),
-                            QStringLiteral("parallelogram")};
-    const QStringList names{QStringLiteral("圆角矩形"), QStringLiteral("矩形"),
-                            QStringLiteral("椭圆"), QStringLiteral("菱形"),
-                            QStringLiteral("平行四边形")};
-    shape->addItem(QStringLiteral("继承（%1）").arg(names.value(codes.indexOf(defaults.shape))));
-    for (int index = 0; index < codes.size(); ++index)
-        shape->addItem(names[index], codes[index]);
+    shape->addItem(flow
+                       ? QStringLiteral("随节点类型")
+                       : QStringLiteral("继承（%1）").arg(StyleChoices::shapeName(defaults.shape)));
+    StyleChoices::addShapes(shape, flow != nullptr);
     if (original.shape)
-        shape->setCurrentIndex(shape->findData(*original.shape));
-    form->addRow(QStringLiteral("节点形状"), shape);
-    if (flow)
+        shape->setCurrentIndex(qMax(0, shape->findData(*original.shape)));
+    form->addRow(QStringLiteral("边框形状"), shape);
+    if (flow && global)
     {
         form->setRowVisible(shape, false);
     }
@@ -1097,8 +1104,9 @@ void MainWindow::editNodeStyle(bool global)
     styleScroll->setWidgetResizable(true);
     styleScroll->setWidget(styleContent);
     layout->addWidget(styleScroll, 1);
-    auto *edgeColor = new QLineEdit(edgeDefaults.color, &dialog);
+    auto *edgeColor = new StyleChoices::ColorBox(&dialog);
     edgeColor->setObjectName(QStringLiteral("sheetEdgeColor"));
+    edgeColor->setColorValue(edgeDefaults.color);
     auto *edgeWidth = new QDoubleSpinBox(&dialog);
     edgeWidth->setObjectName(QStringLiteral("sheetEdgeWidth"));
     edgeWidth->setRange(0.1, 20);
@@ -1110,7 +1118,7 @@ void MainWindow::editNodeStyle(bool global)
     edgeDashed->setChecked(edgeDefaults.dashed);
     if (global && !flow)
     {
-        form->addRow(QStringLiteral("连线颜色（#RRGGBB）"), edgeColor);
+        form->addRow(QStringLiteral("连线颜色"), edgeColor);
         form->addRow(QStringLiteral("连线宽度"), edgeWidth);
         form->addRow(edgeDashed);
     }
@@ -1146,7 +1154,11 @@ void MainWindow::editNodeStyle(bool global)
             [=, &resetStyle]
             {
                 resetStyle = true;
-                for (auto *edit : {fill, color, border, family, width})
+                for (auto *box : {fill, color, border})
+                {
+                    box->setColorValue(std::nullopt);
+                }
+                for (auto *edit : {family, width})
                     edit->clear();
                 for (auto *combo : {size, bold, shape})
                     combo->setCurrentIndex(0);
@@ -1162,9 +1174,9 @@ void MainWindow::editNodeStyle(bool global)
                     const QString text = edit->text().trimmed();
                     return text.isEmpty() ? std::nullopt : std::optional<QString>(text);
                 };
-                style.fill = optionalText(fill);
-                style.color = optionalText(color);
-                style.borderColor = optionalText(border);
+                style.fill = fill->colorValue();
+                style.color = color->colorValue();
+                style.borderColor = border->colorValue();
                 // 旧文件允许显式空串和首尾空白；未编辑时保留optional及原字符串。
                 // 恢复按钮则明确清除覆盖，不把“原来为空”误判为未操作。
                 style.fontFamily = !resetStyle && family->text() == initialFamily
@@ -1174,7 +1186,8 @@ void MainWindow::editNodeStyle(bool global)
                     style.fontSize = size->currentData().toInt();
                 if (global || bold->currentIndex() > 0)
                     style.bold = bold->currentData().toBool();
-                if (flow)
+                if (flow && (global || (shape->currentIndex() == 0 && original.shape &&
+                                        !NodeShapes::isFlowBorder(*original.shape))))
                 {
                     style.shape = original.shape;
                 }
@@ -1208,7 +1221,7 @@ void MainWindow::editNodeStyle(bool global)
                     EdgeStyle edge = edgeDefaults;
                     if (!flow)
                     {
-                        edge = {edgeColor->text().trimmed(),
+                        edge = {edgeColor->colorValue().value_or(edgeDefaults.color),
                                 edgeWidth->value() == initialEdgeWidth ? edgeDefaults.width
                                                                        : edgeWidth->value(),
                                 edgeDashed->isChecked()};
@@ -2892,7 +2905,7 @@ void MainWindow::editRelations()
     arrow->addItem(QStringLiteral("终点箭头"), "end");
     arrow->addItem(QStringLiteral("双向箭头"), "both");
     arrow->setCurrentIndex(1);
-    auto *color = new QLineEdit(tree->defaultEdgeStyle.color, &ui.dialog);
+    auto *color = new StyleChoices::ColorBox(&ui.dialog);
     color->setObjectName("relationColor");
     auto *width = new QLineEdit(QString::number(tree->defaultEdgeStyle.width, 'g', 17), &ui.dialog);
     width->setObjectName("relationWidth");
@@ -2927,6 +2940,7 @@ void MainWindow::editRelations()
         label->clear();
         source->setEnabled(true);
         target->setEnabled(true);
+        color->setColorValue(activeTreeSheet()->defaultEdgeStyle.color);
         color->setEnabled(false);
         width->setEnabled(false);
         dashed->setEnabled(false);
@@ -2947,7 +2961,7 @@ void MainWindow::editRelations()
                         target->setEnabled(false);
                         label->setText(relation.label);
                         arrow->setCurrentIndex(arrow->findData(relation.arrow));
-                        color->setText(relation.style.color);
+                        color->setColorValue(relation.style.color);
                         width->setText(QString::number(relation.style.width, 'g', 17));
                         dashed->setChecked(relation.style.dashed);
                         color->setEnabled(true);
@@ -2983,7 +2997,8 @@ void MainWindow::editRelations()
                     RelationUpdate update;
                     update.label = label->text();
                     update.arrow = arrow->currentData().toString();
-                    update.style = EdgeStyle{color->text().trimmed(), value, dashed->isChecked()};
+                    update.style = EdgeStyle{color->colorValue().value_or(QString()), value,
+                                             dashed->isChecked()};
                     const auto result = nodes.updateRelation(sheetId, selected, update);
                     if (const auto *error = std::get_if<AppError>(&result))
                     {
@@ -3035,9 +3050,8 @@ void MainWindow::editAnnotations()
     members->setMaximumHeight(140);
     auto *text = new QLineEdit(&ui.dialog);
     text->setObjectName("annotationText");
-    auto *color = new QLineEdit(&ui.dialog);
+    auto *color = new StyleChoices::ColorBox(&ui.dialog, QStringLiteral("使用主题色"));
     color->setObjectName("annotationColor");
-    color->setPlaceholderText(QStringLiteral("留空使用主题色；或#RRGGBB"));
     ui.fields->addRow(QStringLiteral("父主题"), parent);
     ui.fields->addRow(QStringLiteral("类型"), kind);
     ui.fields->addRow(QStringLiteral("连续兄弟≥2（点击多选）"), members);
@@ -3079,7 +3093,7 @@ void MainWindow::editAnnotations()
         selected.clear();
         ui.list->clearSelection();
         text->clear();
-        color->clear();
+        color->setColorValue(std::nullopt);
         parent->setEnabled(true);
         kind->setEnabled(true);
         ui.remove->setEnabled(false);
@@ -3101,7 +3115,7 @@ void MainWindow::editAnnotations()
                         parent->setEnabled(false);
                         kind->setEnabled(false);
                         text->setText(annotation.text);
-                        color->setText(annotation.color);
+                        color->setColorValue(annotation.color);
                         for (int i = 0; i < members->count(); ++i)
                             members->item(i)->setSelected(annotation.memberIds.contains(
                                 members->item(i)->data(Qt::UserRole).toString()));
@@ -3122,7 +3136,7 @@ void MainWindow::editAnnotations()
                     // 渲染时回退到工作表主题色（BUG-022/§44），不再把当时的主题色字面值冻进批注。
                     const auto result = nodes.createAnnotation(
                         sheetId, parent->currentData().toString(), kind->currentData().toString(),
-                        ids, text->text(), color->text().trimmed());
+                        ids, text->text(), color->colorValue().value_or(QString()));
                     if (const auto *failure = std::get_if<AppError>(&result))
                         error = *failure;
                 }
@@ -3131,7 +3145,7 @@ void MainWindow::editAnnotations()
                     AnnotationUpdate update;
                     update.memberIds = ids;
                     update.text = text->text();
-                    update.color = color->text().trimmed();
+                    update.color = color->colorValue().value_or(QString());
                     const auto result = nodes.updateAnnotation(sheetId, selected, update);
                     if (const auto *failure = std::get_if<AppError>(&result))
                         error = *failure;

@@ -1342,7 +1342,9 @@ void TstUi::flowInlinePropertiesEditAndRoundTrip()
     QVERIFY(fill && fill->isEnabled());
     QVERIFY(!tabs->isTabVisible(3));
     QCOMPARE(tabs->currentIndex(), 0);
-    QVERIFY(window.findChild<QComboBox *>("inlineShape")->isHidden());
+    auto *shape = window.findChild<QComboBox *>("inlineShape");
+    QVERIFY(shape && !shape->isHidden());
+    QCOMPARE(shape->currentText(), QStringLiteral("随节点类型"));
     QVERIFY(window.findChild<QToolButton *>("inlineFlowType")->isEnabled());
     const auto beforeStyle = doc->sessionRevision();
     fill->setCurrentIndex(fill->findData("#FFF0D0"));
@@ -1476,7 +1478,7 @@ void TstUi::flowPropertyActionsAndEdgeSelection()
     runEditor(window, "editSheetStyle", "sheetStyleDialog",
               [](QDialog *dialog)
               {
-                  dialog->findChild<QLineEdit *>("styleFill")->setText("#DDF2E7");
+                  chooseStyleColor(dialog, "styleFill", QStringLiteral("#DDF2E7"));
                   dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
               });
     QCOMPARE(current().defaultNodeStyle.fill, QString("#DDF2E7"));
@@ -1533,7 +1535,8 @@ void TstUi::propertyTabsFollowNodeAndTaskSelection()
     const auto switchTo = [selector](const ID &id)
     { selector->setCurrentIndex(selector->findData(id)); };
     switchTo(flowId);
-    QVERIFY(fill->isEnabled() && shape->isHidden());
+    QVERIFY(fill->isEnabled() && !shape->isHidden());
+    QCOMPARE(shape->currentText(), QStringLiteral("随节点类型"));
     QVERIFY(!tabs->isTabVisible(3));
     switchTo(ganttId);
     QCOMPARE(tabs->currentIndex(), 3);
@@ -1554,6 +1557,202 @@ void TstUi::propertyTabsFollowNodeAndTaskSelection()
     QCOMPARE(doc->sessionRevision(), revision);
     QVERIFY(!window.findChild<CommandService *>()->canUndo());
     doc->setClean();
+}
+
+void TstUi::namedBorderShapesPersistAcrossDiagrams_data()
+{
+    QTest::addColumn<QString>("kind");
+    QTest::newRow("mindmap") << QStringLiteral("mindmap");
+    QTest::newRow("fishbone") << QStringLiteral("fishbone");
+    QTest::newRow("flowchart") << QStringLiteral("flowchart");
+}
+
+void TstUi::namedBorderShapesPersistAcrossDiagrams()
+{
+    QFETCH(QString, kind);
+    const bool flow = kind == "flowchart";
+    const QString title = QStringLiteral("边框示例");
+    const QString nodeTitle =
+        QStringLiteral("检查节点内容\n确认交接信息\n再进入下一步\n保留中文标题");
+    auto project = flow                 ? ProjectFactory::createFlowchart(title)
+                   : kind == "fishbone" ? ProjectFactory::createFishbone(title)
+                                        : ProjectFactory::createMindmap(title);
+    ID nodeId;
+    const auto edgeId = canvasId("shape-preview-edge");
+    if (flow)
+    {
+        auto &sheet = std::get<FlowSheet>(project.sheets.first());
+        nodeId = sheet.nodes.firstKey();
+        sheet.nodes[nodeId].title = nodeTitle;
+        sheet.nodes[nodeId].role = "decision";
+        sheet.nodes[nodeId].style.shape = QStringLiteral("rect");
+        FlowNode target;
+        target.id = canvasId("shape-preview-target");
+        target.title = QStringLiteral("后续步骤");
+        target.position = {440, 140};
+        sheet.nodes.insert(target.id, target);
+        FlowEdge edge;
+        edge.id = edgeId;
+        edge.sourceId = nodeId;
+        edge.sourcePort = "right";
+        edge.targetId = target.id;
+        edge.targetPort = "left";
+        edge.style = sheet.defaultEdgeStyle;
+        sheet.edges.append(edge);
+    }
+    else
+    {
+        auto &sheet = std::get<TreeSheet>(project.sheets.first());
+        nodeId = sheet.rootId;
+        sheet.nodes[nodeId].title = nodeTitle;
+    }
+    MainWindow window;
+    loadEditorFixture(window, project);
+    window.resize(1536, 960);
+    window.show();
+    QTest::qWait(30);
+    chooseTopic(window, nodeId);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    auto *shape = window.findChild<QComboBox *>("inlineShape");
+    QVERIFY(shape && shape->isEnabled());
+    const auto original = canvasNodes(view).value(nodeId)->nodeStyle().shape;
+    if (flow)
+    {
+        QCOMPARE(shape->currentText(), QStringLiteral("随节点类型"));
+        QCOMPARE(original, QString("diamond"));
+    }
+    const auto stored = [&]() -> std::optional<QString>
+    {
+        const auto &sheet = doc->project().sheets.first();
+        return flow ? std::get<FlowSheet>(sheet).nodes.value(nodeId).style.shape
+                    : std::get<TreeSheet>(sheet).nodes.value(nodeId).style.shape;
+    };
+    const std::array names{QStringLiteral("胶囊形"), QStringLiteral("六边形"),
+                           QStringLiteral("切角矩形")};
+    const std::array ids{QString("capsule"), QString("hexagon"), QString("cutRect")};
+    for (std::size_t i = 0; i < ids.size(); ++i)
+    {
+        const int option = shape->findText(names[i]);
+        QVERIFY(option > 0);
+        const auto revision = doc->sessionRevision();
+        shape->setCurrentIndex(option);
+        QCOMPARE(doc->sessionRevision(), revision + 1);
+        QVERIFY(stored());
+        QCOMPARE(stored().value(), ids[i]);
+        const auto *item = canvasNodes(view).value(nodeId);
+        QVERIFY(item);
+        QCOMPARE(item->nodeStyle().shape, ids[i]);
+        const auto outline = item->shape();
+        const auto text = item->textRect();
+        QVERIFY(outline.contains(text.topLeft()) && outline.contains(text.bottomRight()));
+        const auto anchor = item->horizontalAnchor(true);
+        QVERIFY(outline.contains(anchor - QPointF(1, 0)));
+        QVERIFY(!outline.contains(anchor + QPointF(1, 0)));
+        if (flow)
+        {
+            const auto *line = flowLine(view, edgeId);
+            QVERIFY(line);
+            QCOMPARE(QPointF(line->path().elementAt(0)), item->mapToScene(anchor));
+        }
+    }
+    history->undo();
+    QCOMPARE(shape->currentText(), QStringLiteral("六边形"));
+    if (flow && !qEnvironmentVariableIsEmpty("LINGYA_H057_CAPTURE_DIR"))
+    {
+        auto *dock = window.findChild<QDockWidget *>("propertyDock");
+        if (dock->isHidden())
+        {
+            window.findChild<QAction *>("toggleProperties")->trigger();
+        }
+        QTRY_VERIFY(dock->isVisible());
+        chooseStyleColor(&window, "inlineFill", QStringLiteral("#DDF2E7"));
+        window.findChild<QAction *>("fitTopic")->trigger();
+        captureEfficiency(window, "01-流程边框和中文配色", "LINGYA_H057_CAPTURE_DIR");
+    }
+    QTemporaryDir files;
+    const auto path = files.filePath("边框示例.lingya");
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    QCOMPARE(ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()),
+             ProjectJson::toJson(doc->project()));
+    shape->setCurrentIndex(0);
+    QVERIFY(!stored());
+    QCOMPARE(canvasNodes(view).value(nodeId)->nodeStyle().shape, original);
+}
+
+void TstUi::namedColorsAndCustomPicker()
+{
+    MainWindow window;
+    auto project = ProjectFactory::createMindmap(QStringLiteral("中文选色"));
+    auto &sheet = std::get<TreeSheet>(project.sheets.first());
+    const ID root = sheet.rootId;
+    const QString oldColor = QStringLiteral("#2468ad");
+    sheet.nodes[root].style.fill = oldColor;
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    auto *fill = window.findChild<QComboBox *>("inlineFill");
+    QVERIFY(fill && !fill->isEditable());
+    QCOMPARE(fill->currentText(), QStringLiteral("自定义色"));
+    QCOMPARE(fill->currentData().toString(), oldColor);
+    QCOMPARE(fill->itemText(fill->findData(QStringLiteral("#FFF0D0"))), QStringLiteral("浅杏黄"));
+    for (int row = 0; row < fill->count(); ++row)
+    {
+        QVERIFY(!fill->itemText(row).contains('#'));
+    }
+    const int custom = fill->findText(QStringLiteral("选择自定义颜色…"));
+    QVERIFY(custom >= 0);
+    const auto original = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    const auto pick = [&](bool accept)
+    {
+        fill->setCurrentIndex(custom);
+        QCOMPARE(doc->sessionRevision(), revision);
+        QTimer::singleShot(
+            0, &window,
+            [&, accept]
+            {
+                auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+                QVERIFY(dialog);
+                const auto close = qScopeGuard(
+                    [dialog]
+                    {
+                        if (dialog->isVisible())
+                        {
+                            dialog->reject();
+                        }
+                    });
+                QCOMPARE(dialog->objectName(), QString("customStyleColorDialog"));
+                QVERIFY(dialog->findChildren<QLineEdit *>().isEmpty());
+                dialog->findChild<QSlider *>("customStyleRed")->setValue(123);
+                dialog->findChild<QSlider *>("customStyleGreen")->setValue(89);
+                dialog->findChild<QSlider *>("customStyleBlue")->setValue(207);
+                if (accept)
+                {
+                    captureEfficiency(*dialog, "02-自定义选色滑块", "LINGYA_H057_CAPTURE_DIR");
+                }
+                const auto button = accept ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel;
+                dialog->findChild<QDialogButtonBox *>()->button(button)->click();
+            });
+        QVERIFY(QMetaObject::invokeMethod(fill, "activated", Q_ARG(int, custom)));
+    };
+    pick(false);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QCOMPARE(fill->currentData().toString(), oldColor);
+    QCOMPARE(ProjectJson::toJson(doc->project()), original);
+    pick(true);
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    QCOMPARE(fill->currentText(), QStringLiteral("自定义色"));
+    QCOMPARE(fill->currentData().toString(), QString("#7B59CF"));
+    QCOMPARE(
+        std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style.fill.value(),
+        QString("#7B59CF"));
+    history->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), original);
+    QCOMPARE(fill->currentData().toString(), oldColor);
 }
 
 void TstUi::instantStyleWheelAndBrand()

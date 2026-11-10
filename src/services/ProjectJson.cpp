@@ -1,5 +1,6 @@
 #include "services/ProjectJson.h"
 #include "domain/Limits.h"
+#include "domain/NodeShapes.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonParseError>
@@ -567,7 +568,7 @@ NodeStyle readNodeStyle(const QJsonObject& o, const QString& path, QStringList* 
     s.fontSize = r.int32("fontSize", Limits::kFontSizeMin, Limits::kFontSizeMax);
     s.fontFamily = r.str("fontFamily");
     s.bold = r.boolean("bold");
-    s.shape = r.enumVal("shape", {"roundRect", "rect", "ellipse", "diamond", "parallelogram"});
+    s.shape = r.enumVal("shape", NodeShapes::kIds);
     s.borderWidth = r.real("borderWidth", 0.1, 20.0);
     return s;
 }
@@ -592,7 +593,7 @@ NodeStyleOverride readOverride(const QJsonObject& o, const QString& path, QStrin
     v.borderColor = r.optHexColor("borderColor");
     v.fontSize = r.optInt("fontSize", Limits::kFontSizeMin, Limits::kFontSizeMax);
     v.fontFamily = r.optStr("fontFamily");
-    v.shape = r.optEnum("shape", {"roundRect", "rect", "ellipse", "diamond", "parallelogram"});
+    v.shape = r.optEnum("shape", NodeShapes::kIds);
     v.bold = r.optBool("bold");
     v.borderWidth = r.optReal("borderWidth", 0.1, 20.0);
     return v;

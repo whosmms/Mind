@@ -107,9 +107,10 @@
 #include <QUrl>
 #include <QUuid>
 
+#include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstdlib>
-#include <algorithm>
 
 #include "app/MainWindow.h"
 #include "app/RecoveryDialog.h"
@@ -189,6 +190,9 @@ private slots:
     void flowInlinePropertiesEditAndRoundTrip();
     void flowPropertyActionsAndEdgeSelection();
     void propertyTabsFollowNodeAndTaskSelection();
+    void namedBorderShapesPersistAcrossDiagrams_data();
+    void namedBorderShapesPersistAcrossDiagrams();
+    void namedColorsAndCustomPicker();
     void instantStyleWheelAndBrand();
     void embeddedImagesAcrossViews_data();
     void embeddedImagesAcrossViews();
@@ -375,6 +379,14 @@ private:
                                  dialog->reject();
                          });
       window.findChild<QAction *>(QString::fromLatin1(action))->trigger();
+  }
+  static void chooseStyleColor(QWidget *widget, const char *name, const QString &color)
+  {
+      auto *box = widget->findChild<QComboBox *>(name);
+      QVERIFY(box);
+      const int index = box->findData(color);
+      QVERIFY(index >= 0);
+      box->setCurrentIndex(index);
   }
   static void answerNodeTags(MainWindow &window, std::function<void(QDialog *)> answer)
   {
@@ -3171,12 +3183,9 @@ void TstUi::nodeStyleEditUndoAndRoundTrip()
         window,
         [](QDialog *dialog)
         {
-            dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"))
-                ->setText(QStringLiteral("#E7F0FF"));
-            dialog->findChild<QLineEdit *>(QStringLiteral("styleColor"))
-                ->setText(QStringLiteral("#102040"));
-            dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderColor"))
-                ->setText(QStringLiteral("#406080"));
+            chooseStyleColor(dialog, "styleFill", QStringLiteral("#E7F0FF"));
+            chooseStyleColor(dialog, "styleColor", QStringLiteral("#102040"));
+            chooseStyleColor(dialog, "styleBorderColor", QStringLiteral("#406080"));
             dialog->findChild<QLineEdit *>(QStringLiteral("styleFontFamily"))
                 ->setText(QStringLiteral("Microsoft YaHei"));
             dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderWidth"))
@@ -3263,18 +3272,15 @@ void TstUi::nodeStyleCancelInvalidResetAndNoOp()
         window,
         [](QDialog *dialog)
         {
-            auto *fill = dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"));
+            auto *fill = dialog->findChild<QComboBox *>(QStringLiteral("styleFill"));
             auto *width = dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderWidth"));
             auto *buttons = dialog->findChild<QDialogButtonBox *>();
-            fill->setText(QStringLiteral("red"));
+            QVERIFY(fill && !fill->isEditable());
+            width->setText(QStringLiteral("21"));
             buttons->button(QDialogButtonBox::Ok)->click();
             QVERIFY(dialog->isVisible());
             QVERIFY(
                 !dialog->findChild<QLabel *>(QStringLiteral("nodeStyleError"))->text().isEmpty());
-            fill->clear();
-            width->setText(QStringLiteral("21"));
-            buttons->button(QDialogButtonBox::Ok)->click();
-            QVERIFY(dialog->isVisible());
             dialog->findChild<QPushButton *>(QStringLiteral("resetNodeStyle"))->click();
             buttons->button(QDialogButtonBox::Cancel)->click();
         });
@@ -3343,8 +3349,7 @@ void TstUi::nodeStyleUneditedFontOverride()
         window,
         [](QDialog *dialog)
         {
-            dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"))
-                ->setText(QStringLiteral("#E7F0FF"));
+            chooseStyleColor(dialog, "styleFill", QStringLiteral("#E7F0FF"));
             dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
         });
     edit->trigger();
@@ -4144,7 +4149,7 @@ void TstUi::editorGlobalStylePrecedenceAndRoundTrip()
     runEditor(window, "editSheetStyle", "sheetStyleDialog",
               [](QDialog *dialog)
               {
-                  dialog->findChild<QLineEdit *>("styleFill")->setText("wrong");
+                  dialog->findChild<QLineEdit *>("styleBorderWidth")->setText("0.05");
                   dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
                   QVERIFY(dialog->isVisible());
                   QVERIFY(!dialog->findChild<QLabel *>("nodeStyleError")->text().isEmpty());
@@ -4153,8 +4158,10 @@ void TstUi::editorGlobalStylePrecedenceAndRoundTrip()
     runEditor(window, "editSheetStyle", "sheetStyleDialog",
               [](QDialog *dialog)
               {
-                  dialog->findChild<QLineEdit *>("styleFill")->setText("#E7F0FF");
-                  dialog->findChild<QLineEdit *>("sheetEdgeColor")->setText("#406080");
+                  chooseStyleColor(dialog, "styleFill", QStringLiteral("#E7F0FF"));
+                  chooseStyleColor(dialog, "sheetEdgeColor", QStringLiteral("#406080"));
+                  auto *shape = dialog->findChild<QComboBox *>("styleShape");
+                  shape->setCurrentIndex(shape->findData(QStringLiteral("cutRect")));
                   dialog->findChild<QCheckBox *>("sheetEdgeDashed")->setChecked(true);
                   dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
               });
@@ -4163,6 +4170,8 @@ void TstUi::editorGlobalStylePrecedenceAndRoundTrip()
              QStringLiteral("#FFF0D0"));
     QCOMPARE(canvasNodes(view).value(canvasId("branch-1"))->nodeStyle().fill,
              QStringLiteral("#E7F0FF"));
+    QCOMPARE(canvasNodes(view).value(canvasId("branch-1"))->nodeStyle().shape,
+             QStringLiteral("cutRect"));
     QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).defaultEdgeStyle.dashed);
     commands->undo();
     QVERIFY(!commands->canUndo());
@@ -4195,7 +4204,7 @@ void TstUi::editorRelationsAndCommentsRoundTrip()
             QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).relations.size(), 1);
             auto *list = dialog->findChild<QListWidget *>("records");
             list->itemClicked(list->item(0));
-            dialog->findChild<QLineEdit *>("relationColor")->setText("#406080");
+            chooseStyleColor(dialog, "relationColor", QStringLiteral("#406080"));
             auto *arrow = dialog->findChild<QComboBox *>("relationArrow");
             arrow->setCurrentIndex(arrow->findData("both"));
             dialog->findChild<QPushButton *>("applyRecord")->click();
@@ -4360,12 +4369,12 @@ void TstUi::editorAnnotationEditDeleteAndThemeColor()
             list->itemClicked(list->item(0));
             dialog->findChild<QLineEdit *>("annotationText")
                 ->setText(QStringLiteral("修改后的外框"));
-            dialog->findChild<QLineEdit *>("annotationColor")->setText("#406080");
+            chooseStyleColor(dialog, "annotationColor", QStringLiteral("#406080"));
             dialog->findChild<QPushButton *>("applyRecord")->click();
             QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).annotations.first().text,
                      QStringLiteral("修改后的外框"));
             list->itemClicked(list->item(0));
-            dialog->findChild<QLineEdit *>("annotationColor")->clear();
+            dialog->findChild<QComboBox *>("annotationColor")->setCurrentIndex(0);
             dialog->findChild<QPushButton *>("applyRecord")->click();
             const auto &tree = std::get<TreeSheet>(doc->project().sheets.first());
             // 留空=跟随主题色：界面写空串而不是把当前主题色冻进批注（§44；渲染回退到 defaultEdgeStyle.color）
@@ -5792,14 +5801,11 @@ void TstUi::inlineStyleKeepsUneditedValues()
     QCOMPARE(ProjectJson::toJson(doc->project()), initial);
     changed.clear();
     auto *fill = window.findChild<QComboBox *>("inlineFill");
-    fill->setEditText(QStringLiteral("不是颜色"));
-    QMetaObject::invokeMethod(fill->lineEdit(), "editingFinished");
+    QVERIFY(fill && !fill->isEditable());
+    QCOMPARE(fill->currentText(), QStringLiteral("继承工作表"));
+    fill->setCurrentIndex(0);
     QCOMPARE(changed.count(), 0);
     QCOMPARE(ProjectJson::toJson(doc->project()), initial);
-    QVERIFY(!window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
-    fill->setCurrentIndex(0);
-    fill->setEditText(fill->itemText(0));
-    QMetaObject::invokeMethod(fill->lineEdit(), "editingFinished");
     QVERIFY(window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
     window.findChild<QPushButton *>("resetInlineStyle")->click();
     const auto reset = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;

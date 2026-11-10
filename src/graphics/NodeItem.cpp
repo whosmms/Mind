@@ -1,4 +1,5 @@
 #include "graphics/NodeItem.h"
+#include "domain/NodeShapes.h"
 #include "services/ImageService.h"
 #include <QColor>
 #include <QCursor>
@@ -7,6 +8,7 @@
 #include <QGraphicsSceneHoverEvent>
 #include <QGraphicsSimpleTextItem>
 #include <QPainter>
+#include <QPolygonF>
 #include <cmath>
 
 namespace lingya
@@ -72,6 +74,7 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
         m_imageRect = QRectF(-picture.width() / 2.0, m_textRect.bottom() + 8, picture.width(),
                              picture.height());
     // 扩大斜角形状的外轮廓，完整内容矩形保持居中，避免长标题和图标被切入。
+    const qreal slant = qMin(24.0, height / 3);
     if (m_style.shape == QStringLiteral("ellipse"))
         m_rect = QRectF(-width / std::sqrt(2.0), -height / std::sqrt(2.0), width * std::sqrt(2.0),
                         height * std::sqrt(2.0));
@@ -79,6 +82,8 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
         m_rect = QRectF(-width, -height, width * 2, height * 2);
     else if (m_style.shape == QStringLiteral("parallelogram"))
         m_rect.adjust(-24, 0, 24, 0);
+    else if (m_style.shape == QLatin1StringView(NodeShapes::kHexagon))
+        m_rect.adjust(-slant, 0, slant, 0);
     if (m_style.shape == QStringLiteral("ellipse"))
         m_shape.addEllipse(m_rect);
     else if (m_style.shape == QStringLiteral("diamond"))
@@ -99,8 +104,33 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
     }
     else if (m_style.shape == QStringLiteral("rect"))
         m_shape.addRect(m_rect);
-    else if (m_style.shape == QStringLiteral("capsule"))
-        m_shape.addRoundedRect(m_rect, height / 2, height / 2);
+    else if (m_style.shape == QLatin1StringView(NodeShapes::kCapsule))
+    {
+        const qreal radius = qMin(height / 2, 2 * kNodePadding);
+        m_shape.addRoundedRect(m_rect, radius, radius);
+    }
+    else if (m_style.shape == QLatin1StringView(NodeShapes::kHexagon))
+    {
+        const QPointF inset(slant, 0);
+        QPolygonF vertices;
+        vertices << m_rect.topLeft() + inset << m_rect.topRight() - inset
+                 << QPointF(m_rect.right(), 0) << m_rect.bottomRight() - inset
+                 << m_rect.bottomLeft() + inset << QPointF(m_rect.left(), 0);
+        m_shape.addPolygon(vertices);
+        m_shape.closeSubpath();
+    }
+    else if (m_style.shape == QLatin1StringView(NodeShapes::kCutRectangle))
+    {
+        const qreal cut = qMin(14.0, height / 4);
+        const QPointF horizontal(cut, 0), vertical(0, cut);
+        QPolygonF vertices;
+        vertices << m_rect.topLeft() + horizontal << m_rect.topRight() - horizontal
+                 << m_rect.topRight() + vertical << m_rect.bottomRight() - vertical
+                 << m_rect.bottomRight() - horizontal << m_rect.bottomLeft() + horizontal
+                 << m_rect.bottomLeft() - vertical << m_rect.topLeft() + vertical;
+        m_shape.addPolygon(vertices);
+        m_shape.closeSubpath();
+    }
     else
         m_shape.addRoundedRect(m_rect, kNodeRadius, kNodeRadius);
     setFlag(QGraphicsItem::ItemIsSelectable);

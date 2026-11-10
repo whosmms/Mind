@@ -3,6 +3,7 @@
 #include "commands/CommandService.h"
 #include "commands/FlowCommands.h"
 #include "document/ProjectDocument.h"
+#include "domain/NodeShapes.h"
 #include "graphics/NodeItem.h"
 #include <QAction>
 #include <QApplication>
@@ -67,10 +68,14 @@ class FlowConnectionItem : public QGraphicsPathItem
 NodeStyle flowStyle(const FlowSheet &sheet, const FlowNode &node)
 {
     NodeStyle style = NodeItem::resolvedStyle(sheet.defaultNodeStyle, node.style);
-    // 类型形状只作用于渲染副本；不把capsule这个显示值写入领域样式枚举。
+    if (node.style.shape && NodeShapes::isFlowBorder(*node.style.shape))
+    {
+        return style;
+    }
+    // 旧流程节点仍随类型使用标准形状。
     style.shape = node.role == "decision"                      ? "diamond"
                   : node.role == "io"                          ? "parallelogram"
-                  : node.role == "start" || node.role == "end" ? "capsule"
+                  : node.role == "start" || node.role == "end" ? NodeShapes::kCapsule
                                                                : "rect";
     return style;
 }
