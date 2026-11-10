@@ -217,7 +217,7 @@ private:
     void onDocumentChanged();
     void updateStatusLine();        // 状态栏统一拼装：文档状态+恢复快照备注
     void showLoginDialog();
-    void showOnlineAccount();
+    void showOnlineAccount(bool serviceSettings = false);
     QString activeSessionRoot() const;
     void showOwnedFilesDialog();
     void updateSessionActions();    // 登录/退出登录/我的文件菜单项的可用性

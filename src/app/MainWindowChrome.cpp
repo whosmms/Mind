@@ -59,7 +59,8 @@ enum class Glyph
     Task,
     Review,
     Check,
-    Flow
+    Flow,
+    Account
 };
 
 // 用Qt画笔生成多倍率图标，不依赖QtSvg、字体图标或外部图标引擎。
@@ -80,6 +81,15 @@ QIcon chromeIcon(Glyph glyph)
             { p.drawLine(QPointF(x1, y1), QPointF(x2, y2)); };
             switch (glyph)
             {
+                case Glyph::Account:
+                {
+                    p.drawEllipse(QRectF(8.5, 3, 7, 7));
+                    QPainterPath shoulders;
+                    shoulders.moveTo(4.5, 20);
+                    shoulders.cubicTo(4.5, 10.5, 19.5, 10.5, 19.5, 20);
+                    p.drawPath(shoulders);
+                    break;
+                }
                 case Glyph::Leaf:
                 {
                     QPainterPath leaf;
@@ -333,6 +343,23 @@ void installDockTitle(QDockWidget *dock)
 
 void MainWindow::buildEditorChrome()
 {
+    auto *account = new QToolButton(menuBar());
+    account->setObjectName("accountCornerButton");
+    m_onlineAccountAction->setIcon(chromeIcon(Glyph::Account));
+    account->setDefaultAction(m_onlineAccountAction);
+    account->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    account->setIconSize(QSize(18, 18));
+    account->setFocusPolicy(Qt::StrongFocus);
+    account->setCursor(Qt::PointingHandCursor);
+    const auto updateAccountLabel = [account, action = m_onlineAccountAction]
+    {
+        account->setText(action->iconText());
+        account->setAccessibleName(action->iconText());
+    };
+    connect(m_onlineAccountAction, &QAction::changed, account, updateAccountLabel);
+    updateAccountLabel();
+    menuBar()->setCornerWidget(account, Qt::TopRightCorner);
+
     auto *toolbar = findChild<QToolBar *>("editorToolbar");
     toolbar->clear();
     toolbar->setFloatable(false);

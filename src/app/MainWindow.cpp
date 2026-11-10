@@ -438,8 +438,10 @@ void MainWindow::buildMenus() {
     fileMenu->addAction(QStringLiteral("另存为(&A)..."), QKeySequence::SaveAs, this,
                         [this] { saveProject(true); });
     m_onlineAccountAction =
-        fileMenu->addAction(QStringLiteral("联网账号..."), this, &MainWindow::showOnlineAccount);
+        fileMenu->addAction(QStringLiteral("联网账号…"), this, [this] { showOnlineAccount(); });
     m_onlineAccountAction->setObjectName("onlineAccount");
+    fileMenu->addAction(QStringLiteral("账号服务设置…"), this, [this] { showOnlineAccount(true); })
+        ->setObjectName("onlineAccountSettings");
     m_loginAction = fileMenu->addAction(QStringLiteral("本机账号（旧）..."), this,
                                         &MainWindow::showLoginDialog);
     m_logoutAction = fileMenu->addAction(QStringLiteral("退出登录(&I)"), this,
@@ -2233,17 +2235,20 @@ QString MainWindow::activeSessionRoot() const
 {
     return m_onlineSession ? m_onlineAuth->localFilesRoot() : m_sessionRoot;
 }
-void MainWindow::showOnlineAccount()
+void MainWindow::showOnlineAccount(bool serviceSettings)
 {
     if (!m_onlineAuth)
         return;
-    if (!m_sessionUser.isEmpty() && !m_onlineSession)
+    if (serviceSettings && m_onlineAuth->loggedIn())
     {
-        showNotice(this, QMessageBox::Information, QStringLiteral("账号切换"),
-                   QStringLiteral("请先退出本机账号，再登录联网账号。当前工程不会被关闭或上传。"));
+        showNotice(this, QMessageBox::Information, QStringLiteral("账号服务设置"),
+                   QStringLiteral("请先退出联网账号，再更改账号服务。"));
         return;
     }
-    OnlineAccountDialog dialog(m_onlineAuth, this);
+    const auto entry = serviceSettings ? OnlineAccountDialog::Entry::ServiceSettings
+                                       : OnlineAccountDialog::Entry::Account;
+    OnlineAccountDialog dialog(m_onlineAuth, this, entry,
+                               !m_sessionUser.isEmpty() && !m_onlineSession);
     dialog.exec();
 }
 void MainWindow::showLoginDialog() {
@@ -2268,6 +2273,13 @@ void MainWindow::showOwnedFilesDialog() {
 
 void MainWindow::updateSessionActions() {
     const bool loggedIn = !m_sessionUser.isEmpty();
+    if (m_onlineAccountAction)
+    {
+        m_onlineAccountAction->setIconText(m_onlineSession ? QStringLiteral("我的账号")
+                                                           : QStringLiteral("登录"));
+        m_onlineAccountAction->setToolTip(m_onlineSession ? QStringLiteral("查看或退出联网账号")
+                                                          : QStringLiteral("登录或注册联网账号"));
+    }
     if (m_loginAction != nullptr) m_loginAction->setVisible(!loggedIn);
     if (m_logoutAction != nullptr) m_logoutAction->setVisible(loggedIn);
     if (m_ownedFilesAction != nullptr) {

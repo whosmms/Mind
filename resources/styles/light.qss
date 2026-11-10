@@ -33,6 +33,11 @@ QToolButton:hover { background: #F0F7F2; border-color: #DDE6DF; }
 QToolButton:pressed, QToolButton:checked { background: #DDF2E7; color: #247A62; }
 QToolButton:disabled { color: #A4B1A9; }
 QToolButton:focus { border-color: #247A62; }
+QToolButton#accountCornerButton { background: #EDF6F0; border-color: #DDE6DF; border-radius: 8px; color: #247A62; font-weight: 600; padding: 4px 10px; }
+QToolButton#accountCornerButton:hover, QToolButton#accountCornerButton:focus { background: #DDF2E7; border-color: #247A62; }
+QLabel#onlineAuthTitle { font-size: 24px; font-weight: 600; }
+QLabel#onlineAuthStatus { background: #EDF6F0; border: 1px solid #DDE6DF; border-radius: 8px; padding: 8px 10px; }
+QWidget#onlineAuthForm { background: #FFFFFF; border-radius: 8px; }
 QDockWidget { titlebar-close-icon: url(:/lingya/icons/controls/close.png); titlebar-normal-icon: url(:/lingya/icons/controls/float.png); }
 QDockWidget::title { background: #F6F8F5; color: #63766E; padding: 10px 12px; font-size: 12px; }
 QDockWidget::close-button, QDockWidget::float-button { background: transparent; border: 1px solid transparent; border-radius: 5px; icon-size: 16px; padding: 4px; }

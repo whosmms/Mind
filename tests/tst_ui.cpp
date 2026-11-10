@@ -74,6 +74,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPlainTextEdit>
@@ -88,6 +89,7 @@
 #include <QStatusBar>
 #include <QStyleOptionSpinBox>
 #include <QStyleOptionViewItem>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QTableView>
 #include <QTemporaryDir>
@@ -183,6 +185,8 @@ private slots:
     void embeddedImagesAcrossViews();
     void templateGalleryAndAiTutorial();
     void quickMouseRelationsGroupsAndImagePicker();
+    void topRightAccountShowsPreview_data();
+    void topRightAccountShowsPreview();
     void onlineIdentityKeepsLocalDocumentAndHistory();
     void inlineStyleKeepsUneditedValues_data();
     void inlineStyleKeepsUneditedValues();
@@ -2505,6 +2509,121 @@ void TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent()
     QVERIFY(window.findChild<ProjectDocument *>()->isModified());
 }
 
+void TstUi::topRightAccountShowsPreview_data()
+{
+    QTest::addColumn<int>("width");
+    QTest::newRow("wide") << 1536;
+    QTest::newRow("narrow-with-local-account") << 800;
+}
+
+void TstUi::topRightAccountShowsPreview()
+{
+    QFETCH(int, width);
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setSessionRootForTest(root.path());
+    const auto restoreRoot =
+        qScopeGuard([this] { MainWindow::setSessionRootForTest(m_sessionDir.path()); });
+    auth_test::Network network;
+    auto *auth = new OnlineAuthService(root.path(), nullptr, &network,
+                                       std::make_unique<SessionSecretStore>());
+    MainWindow window(nullptr, auth);
+    window.setStyleSheet(AppearanceService::styleSheet("mint"));
+    const bool local = width == 800;
+    if (local)
+    {
+        QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+            root.path(), QStringLiteral("本机测试账号"), QStringLiteral("test123"))));
+        QVERIFY(window.loginSession(QStringLiteral("本机测试账号"), QStringLiteral("test123")));
+    }
+    QVERIFY(window.renameRootTo(QStringLiteral("编辑内容保留在本机")));
+    auto *document = window.findChild<ProjectDocument *>();
+    QVERIFY(document);
+    const auto revision = document->sessionRevision();
+    const auto projectId = window.currentProjectId();
+    window.resize(width, 820);
+    window.showHomePage();
+    window.show();
+    const auto captures = qEnvironmentVariable("LINGYA_ACCOUNT_CORNER_CAPTURE_DIR");
+    if (!captures.isEmpty())
+        QVERIFY(QDir().mkpath(captures));
+    auto *menu = window.menuBar();
+    auto *corner = qobject_cast<QToolButton *>(menu->cornerWidget(Qt::TopRightCorner));
+    QVERIFY(corner && !corner->icon().isNull());
+    for (bool home : {true, false})
+    {
+        if (!home)
+            window.findChild<QPushButton *>("homeContinue")->click();
+        QCoreApplication::processEvents();
+        QCOMPARE(window.findChild<QWidget *>("homePage")->isVisible(), home);
+        QVERIFY(corner->isVisible() && corner->isEnabled());
+        QCOMPARE(corner->text(), QStringLiteral("登录"));
+        QCOMPARE(corner->accessibleName(), corner->text());
+        QVERIFY(menu->rect().contains(corner->geometry()));
+        QVERIFY(menu->width() - corner->geometry().right() < 32);
+        for (auto *action : menu->actions())
+            QVERIFY(!corner->geometry().intersects(menu->actionGeometry(action)));
+        if (!captures.isEmpty() && home)
+            QVERIFY(window.grab().save(captures + QStringLiteral("/首页右上角-%1.png").arg(width)));
+
+        bool opened = false;
+        QTimer::singleShot(
+            0, &window,
+            [&]
+            {
+                auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+                QVERIFY(dialog);
+                const auto close = qScopeGuard([dialog] { dialog->reject(); });
+                QCOMPARE(dialog->objectName(), QStringLiteral("onlineAccountDialog"));
+                auto *tabs = dialog->findChild<QTabWidget *>("onlineAuthTabs");
+                auto *status = dialog->findChild<QLabel *>("onlineAuthStatus");
+                QVERIFY(tabs && status && status->isVisible());
+                QVERIFY(status->text().contains(QStringLiteral("账号服务待接入")));
+                QVERIFY(!dialog->findChild<QLineEdit *>("onlineProjectUrl"));
+                QCOMPARE(tabs->currentIndex(), 0);
+                QCOMPARE(tabs->count(), 3);
+                auto *email = dialog->findChild<QLineEdit *>("onlineLoginEmail");
+                QVERIFY(email && email->isReadOnly());
+                QTest::keyClicks(email, "test@example.com");
+                QVERIFY(email->text().isEmpty());
+                const QStringList pages{QStringLiteral("登录"), QStringLiteral("注册"),
+                                        QStringLiteral("找回密码")};
+                const QStringList submits{"onlineLogin", "onlineConfirm", "onlineReset"};
+                for (int i = 0; i < pages.size(); ++i)
+                {
+                    QTest::mouseClick(tabs->tabBar(), Qt::LeftButton, Qt::NoModifier,
+                                      tabs->tabBar()->tabRect(i).center());
+                    QCOMPARE(tabs->currentIndex(), i);
+                    QCOMPARE(tabs->tabText(i), pages.at(i));
+                    auto *scroll = qobject_cast<QScrollArea *>(tabs->currentWidget());
+                    auto *submit = dialog->findChild<QPushButton *>(submits.at(i));
+                    QVERIFY(scroll && submit && !submit->isEnabled());
+                    QCoreApplication::processEvents();
+                    if (dialog->height() < 540 || dialog->width() < 480)
+                        scroll->ensureWidgetVisible(submit);
+                    const QRect actionBounds(submit->mapTo(scroll->viewport(), QPoint()),
+                                             submit->size());
+                    QVERIFY(scroll->viewport()->rect().contains(actionBounds));
+                    if (!captures.isEmpty() && home && width == 1536)
+                    {
+                        QCoreApplication::processEvents();
+                        QVERIFY(dialog->grab().save(captures + QLatin1Char('/') + pages.at(i) +
+                                                    QStringLiteral("预览.png")));
+                    }
+                }
+                opened = true;
+            });
+        QTest::mouseClick(corner, Qt::LeftButton);
+        QVERIFY(opened);
+    }
+    QCOMPARE(network.sent.size(), 0);
+    QVERIFY(!auth->loggedIn());
+    QCOMPARE(window.isLoggedIn(), local);
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(window.currentProjectId(), projectId);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("编辑内容保留在本机"));
+}
+
 void TstUi::onlineIdentityKeepsLocalDocumentAndHistory()
 {
     QTemporaryDir root;
@@ -2527,9 +2646,13 @@ void TstUi::onlineIdentityKeepsLocalDocumentAndHistory()
     const auto projectId = window.currentProjectId();
     auto *undo = window.findChild<QAction *>("undoEdit");
     QVERIFY(undo && undo->isEnabled());
+    auto *corner = window.findChild<QToolButton *>("accountCornerButton");
+    QVERIFY(corner);
+    QCOMPARE(corner->text(), QStringLiteral("登录"));
     network.replies << auth_test::good();
     auth->login("reader@example.com", "fake-password-123", false);
     QTRY_VERIFY(window.isLoggedIn());
+    QCOMPARE(corner->text(), QStringLiteral("我的账号"));
     QCOMPARE(window.sessionUserName(), QString("reader@example.com"));
     QCOMPARE(document->sessionRevision(), revision);
     QCOMPARE(window.currentProjectId(), projectId);
@@ -2544,6 +2667,7 @@ void TstUi::onlineIdentityKeepsLocalDocumentAndHistory()
     window.logoutSession();
     QTRY_VERIFY(!auth->busy());
     QVERIFY(!window.isLoggedIn());
+    QCOMPARE(corner->text(), QStringLiteral("登录"));
     QCOMPARE(document->sessionRevision(), revision);
     QCOMPARE(window.currentRootTitle(), QStringLiteral("只保存在本机的内容"));
     QVERIFY(QFile::exists(saved));
