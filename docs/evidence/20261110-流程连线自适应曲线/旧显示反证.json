@@ -1,0 +1,37 @@
+{
+  "sourceCommit": "710343d9f8bf417600a785747795a31f7116666f",
+  "testSourceCommit": "ed1d9cd5a2b982ea7cbacb10589f9d1287cadd81",
+  "failed": 6,
+  "failures": [
+    {
+      "test": "flowAutoRoutes",
+      "data": "perpendicular",
+      "detail": "Compared values are not the same\n   Actual   (curves)        : 0\n   Expected (curved ? 1 : 0): 1"
+    },
+    {
+      "test": "flowAutoRoutes",
+      "data": "offset",
+      "detail": "Compared values are not the same\n   Actual   (curves)        : 0\n   Expected (curved ? 1 : 0): 1"
+    },
+    {
+      "test": "flowAutoRoutes",
+      "data": "offset-vertical",
+      "detail": "Compared values are not the same\n   Actual   (curves)        : 0\n   Expected (curved ? 1 : 0): 1"
+    },
+    {
+      "test": "flowAutoRoutes",
+      "data": "same-side",
+      "detail": "Compared values are not the same\n   Actual   (curves)        : 0\n   Expected (curved ? 1 : 0): 1"
+    },
+    {
+      "test": "flowAutoRoutes",
+      "data": "obstacle",
+      "detail": "'curves >= 2' returned FALSE. ()"
+    },
+    {
+      "test": "flowCurveFollowsDraggedNode",
+      "data": null,
+      "detail": "'hasCurve' returned FALSE. ()"
+    }
+  ]
+}
