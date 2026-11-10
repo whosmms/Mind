@@ -415,6 +415,213 @@ void TstUi::branchDraftPreviewAndCardsFromSources()
               });
 }
 
+void TstUi::draftSourceComparisonPreservesManualText()
+{
+    MainWindow window;
+    auto project = canvasProject(2, 2);
+    auto &tree = std::get<TreeSheet>(project.sheets.front());
+    const auto sheetId = tree.id;
+    const auto first = canvasId("branch-0");
+    const auto second = canvasId("branch-1");
+    const auto removed = canvasId("leaf-0-1");
+    tree.nodes[first].title = QStringLiteral("原主题标题");
+    tree.nodes[first].note = QStringLiteral("旧备注内容");
+    tree.nodes[second].note = QStringLiteral("保持原样的备注");
+    tree.nodes[removed].note = QStringLiteral("删除前的备注");
+    loadEditorFixture(window, project);
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    DraftProposal proposal;
+    proposal.title = QStringLiteral("阶段复盘稿");
+    proposal.sections = {
+        {QStringLiteral("结论"), QStringLiteral("已保存的手改结论"), {first}},
+        {QStringLiteral("另一个阶段"), QStringLiteral("未受影响的正文"), {second}},
+        {QStringLiteral("综合分析"), QStringLiteral("已整理的分析"), {second, first}},
+        {QStringLiteral("原例子"), QStringLiteral("已写好的例子"), {removed}},
+        {QStringLiteral("补充"), QStringLiteral("无来源的补充"), {}, "supplement"}};
+    QVERIFY(std::holds_alternative<ID>(
+        AiCommands(history, doc).saveDraft(proposal, sheetId, "summary", doc->sessionRevision())));
+    QVERIFY(std::holds_alternative<bool>(
+        history->applyEdit(QStringLiteral("修改原导图"),
+                           [&](Project &changed)
+                           {
+                               auto &sheet = std::get<TreeSheet>(changed.sheets.front());
+                               sheet.nodes[first].title = QStringLiteral("更新后的主题");
+                               sheet.nodes[first].note = QStringLiteral("最新备注内容");
+                               sheet.nodes[second].manualPosition = QPointF(80, 20);
+                               sheet.nodes[sheet.rootId].note = QStringLiteral("与稿件无关的修改");
+                               sheet.nodes.remove(removed);
+                           })));
+    const auto revision = doc->sessionRevision();
+    const auto before = ProjectJson::toJson(doc->project());
+    runEditor(window, "manageDrafts", "draftManager",
+              [&](QDialog *manager)
+              {
+                  auto *sections = manager->findChild<QListWidget *>("draftSections");
+                  auto *text = manager->findChild<QPlainTextEdit *>("draftText");
+                  auto *status = manager->findChild<QLabel *>("draftSourceStatus");
+                  auto *compare = manager->findChild<QPushButton *>("compareDraftSource");
+                  QVERIFY(sections && text && status && compare);
+                  const QString badge = QStringLiteral("来源变更");
+                  QVERIFY(status->text().contains(QStringLiteral("3 段来源有变更")));
+                  QVERIFY(sections->item(0)->text().startsWith(badge));
+                  QCOMPARE(sections->item(1)->text(), proposal.sections.at(1).heading);
+                  QVERIFY(sections->item(2)->text().startsWith(badge));
+                  QVERIFY(sections->item(3)->text().startsWith(badge));
+                  QCOMPARE(sections->item(4)->text(), proposal.sections.at(4).heading);
+                  sections->setCurrentRow(4);
+                  QVERIFY(!compare->isEnabled());
+                  sections->setCurrentRow(0);
+                  text->setPlainText(QStringLiteral("窗口中尚未保存的手改正文"));
+                  captureEfficiency(*manager, QStringLiteral("01-段落来源标记"),
+                                    "LINGYA_H054_CAPTURE_DIR");
+                  const auto checkFirstComparison = [&](QDialog *dialog, bool confirm)
+                  {
+                      auto *old = dialog->findChild<QPlainTextEdit *>("draftPreviousSource");
+                      auto *now = dialog->findChild<QPlainTextEdit *>("draftCurrentSource");
+                      auto *preview = dialog->findChild<QPlainTextEdit *>("draftComparisonText");
+                      QVERIFY(old && now && preview && old->isReadOnly() && now->isReadOnly());
+                      QVERIFY(old->toPlainText().contains(QStringLiteral("原主题标题")));
+                      QVERIFY(old->toPlainText().contains(QStringLiteral("旧备注内容")));
+                      QVERIFY(now->toPlainText().contains(QStringLiteral("更新后的主题")));
+                      QVERIFY(now->toPlainText().contains(QStringLiteral("最新备注内容")));
+                      const auto changes =
+                          dialog->findChild<QLabel *>("draftComparisonChanges")->text();
+                      QVERIFY(changes.contains(QStringLiteral("标题已修改")));
+                      QVERIFY(changes.contains(QStringLiteral("备注已修改")));
+                      QCOMPARE(preview->toPlainText(), text->toPlainText());
+                      dialog->findChild<QPushButton *>("insertDraftSourceNote")->click();
+                      QVERIFY(preview->toPlainText().startsWith(text->toPlainText()));
+                      QVERIFY(preview->toPlainText().endsWith(QStringLiteral("最新备注内容")));
+                      if (confirm)
+                          dialog->findChild<QPushButton *>("confirmDraftSourcesOnly")->click();
+                      else
+                          captureEfficiency(*dialog, QStringLiteral("02-原主题前后对照"),
+                                            "LINGYA_H054_CAPTURE_DIR");
+                  };
+                  answerChildDialog(*manager, "draftSourceComparison",
+                                    [&](QDialog *dialog) { checkFirstComparison(dialog, false); });
+                  compare->click();
+                  QCOMPARE(doc->sessionRevision(), revision);
+                  QCOMPARE(ProjectJson::toJson(doc->project()), before);
+                  QCOMPARE(text->toPlainText(), QStringLiteral("窗口中尚未保存的手改正文"));
+                  answerChildDialog(*manager, "draftSourceComparison",
+                                    [&](QDialog *dialog) { checkFirstComparison(dialog, true); });
+                  compare->click();
+                  QCOMPARE(doc->sessionRevision(), revision + 1);
+                  QCOMPARE(doc->project().drafts.front().sections.front().text,
+                           proposal.sections.front().text);
+                  QCOMPARE(text->toPlainText(), QStringLiteral("窗口中尚未保存的手改正文"));
+                  QCOMPARE(sections->item(0)->text(), proposal.sections.front().heading);
+                  QVERIFY(sections->item(2)->text().startsWith(badge));
+
+                  sections->setCurrentRow(2);
+                  answerChildDialog(
+                      *manager, "draftSourceComparison",
+                      [&](QDialog *dialog)
+                      {
+                          auto *topics = dialog->findChild<QComboBox *>("draftComparisonTopic");
+                          QCOMPARE(topics->count(), 2);
+                          QCOMPARE(topics->currentData().toString(), first);
+                          topics->setCurrentIndex(topics->findData(second));
+                          QVERIFY(dialog->findChild<QLabel *>("draftComparisonChanges")
+                                      ->text()
+                                      .contains(QStringLiteral("一致")));
+                          dialog->findChild<QLineEdit *>("draftComparisonHeading")
+                              ->setText(QStringLiteral("综合分析修订稿"));
+                          dialog->findChild<QPlainTextEdit *>("draftComparisonText")
+                              ->setPlainText(QStringLiteral("用户确认合并后的正文"));
+                          dialog->findChild<QPushButton *>("applyDraftSourceUpdate")->click();
+                      });
+                  compare->click();
+                  QCOMPARE(doc->sessionRevision(), revision + 2);
+                  QCOMPARE(text->toPlainText(), QStringLiteral("用户确认合并后的正文"));
+                  QCOMPARE(sections->item(2)->text(), QStringLiteral("综合分析修订稿"));
+                  QVERIFY(sections->item(3)->text().startsWith(badge));
+                  sections->setCurrentRow(0);
+                  QCOMPARE(text->toPlainText(), QStringLiteral("窗口中尚未保存的手改正文"));
+                  manager->findChild<QPushButton *>("saveDraftText")->click();
+                  QCOMPARE(doc->sessionRevision(), revision + 3);
+              });
+    QCOMPARE(doc->project().drafts.front().sections.front().text,
+             QStringLiteral("窗口中尚未保存的手改正文"));
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto path = directory.filePath(QStringLiteral("逐段核对稿件.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    reopened.show();
+    runEditor(
+        reopened, "manageDrafts", "draftManager",
+        [](QDialog *manager)
+        {
+            QVERIFY(manager->findChild<QLabel *>("draftSourceStatus")
+                        ->text()
+                        .contains(QStringLiteral("1 段来源有变更")));
+            manager->findChild<QListWidget *>("draftSections")->setCurrentRow(3);
+            answerChildDialog(
+                *manager, "draftSourceComparison",
+                [](QDialog *dialog)
+                {
+                    QVERIFY(dialog->findChild<QPlainTextEdit *>("draftPreviousSource")
+                                ->toPlainText()
+                                .contains(QStringLiteral("删除前的备注")));
+                    QVERIFY(dialog->findChild<QLabel *>("draftComparisonChanges")
+                                ->text()
+                                .contains(QStringLiteral("已删除")));
+                    QVERIFY(
+                        !dialog->findChild<QPushButton *>("insertDraftSourceNote")->isEnabled());
+                    captureEfficiency(*dialog, QStringLiteral("03-删除来源对照"),
+                                      "LINGYA_H054_CAPTURE_DIR");
+                });
+            manager->findChild<QPushButton *>("compareDraftSource")->click();
+        });
+}
+
+void TstUi::legacyDraftComparisonLeavesUnverifiedHistoryUnknown()
+{
+    MainWindow window;
+    auto project = canvasProject(1, 0);
+    auto &tree = std::get<TreeSheet>(project.sheets.front());
+    tree.nodes[tree.rootId].note = QStringLiteral("现在看到的备注");
+    TextDraft old;
+    old.id = canvasId("legacy-draft");
+    old.sourceSheetId = tree.id;
+    old.title = QStringLiteral("旧文字稿");
+    old.createdAt = QDateTime::currentDateTimeUtc();
+    old.sections = {{QStringLiteral("旧段落"), QStringLiteral("保留这段手写内容"), {tree.rootId}}};
+    project.drafts.append(old);
+    loadEditorFixture(window, project);
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    runEditor(
+        window, "manageDrafts", "draftManager",
+        [&](QDialog *manager)
+        {
+            auto *list = manager->findChild<QListWidget *>("draftSections");
+            QVERIFY(list->item(0)->text().startsWith(QStringLiteral("来源待核对")));
+            answerChildDialog(
+                *manager, "draftSourceComparison",
+                [](QDialog *dialog)
+                {
+                    QCOMPARE(
+                        dialog->findChild<QPlainTextEdit *>("draftPreviousSource")->toPlainText(),
+                        QStringLiteral("旧来源未记录"));
+                    QVERIFY(dialog->findChild<QPlainTextEdit *>("draftCurrentSource")
+                                ->toPlainText()
+                                .contains(QStringLiteral("现在看到的备注")));
+                    dialog->findChild<QPushButton *>("confirmDraftSourcesOnly")->click();
+                });
+            manager->findChild<QPushButton *>("compareDraftSource")->click();
+            QCOMPARE(list->item(0)->text(), old.sections.front().heading);
+            QCOMPARE(doc->project().drafts.front().sections.front().text,
+                     old.sections.front().text);
+            QVERIFY(doc->project().drafts.front().sections.front().sourceSnapshot);
+        });
+}
+
 void TstUi::outlinePastePreviewsAndCommitsOnce()
 {
     MainWindow window;

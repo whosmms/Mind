@@ -25,6 +25,7 @@
 #include "ai/SecretStore.h"
 #include "charts/GanttView.h"
 #include "charts/TaskTableModel.h"
+#include "commands/AiCommands.h"
 #include "commands/CommandService.h"
 #include "commands/FlowCommands.h"
 #include "commands/NodeCommands.h"
@@ -197,6 +198,8 @@ private slots:
     void branchReviewLimitsQueueAndTopicPicker();
     void compareReviewSourceKeepsProgressAndFindsTopic();
     void branchDraftPreviewAndCardsFromSources();
+    void draftSourceComparisonPreservesManualText();
+    void legacyDraftComparisonLeavesUnverifiedHistoryUnknown();
     void topRightAccountShowsPreview_data();
     void topRightAccountShowsPreview();
     void onlineIdentityKeepsLocalDocumentAndHistory();
@@ -6203,8 +6206,9 @@ void TstUi::aiDraftEditApplyAndManage()
             auto *dialog = window.findChild<QDialog *>("draftManager");
             QVERIFY(dialog);
             const auto close = qScopeGuard([dialog] { dialog->reject(); });
-            QVERIFY(
-                dialog->findChild<QLabel *>("draftInfo")->text().contains(QStringLiteral("一致")));
+            QVERIFY(dialog->findChild<QLabel *>("draftSourceStatus")
+                        ->text()
+                        .contains(QStringLiteral("一致")));
             dialog->findChild<QPlainTextEdit *>("draftText")
                 ->setPlainText(QStringLiteral("稿件管理中的新正文"));
             dialog->findChild<QPushButton *>("saveDraftText")->click();

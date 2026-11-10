@@ -157,10 +157,23 @@ struct PresentationRoute {
     QString title;
     QVector<PresentationStep> steps;
 };
+struct DraftSourceText
+{
+    QString title, note;
+
+    bool operator==(const DraftSourceText &other) const
+    {
+        return title == other.title && note == other.note;
+    }
+};
+using DraftSourceSnapshot = QMap<ID, DraftSourceText>;
+
 struct DraftSection {
     QString heading, text;
     QStringList sourceNodeIds;
     QString origin = "source";
+    // 未记录表示旧稿缺历史，空映射表示已记录的来源全部缺失。
+    std::optional<DraftSourceSnapshot> sourceSnapshot = std::nullopt;
 };
 struct TextDraft {
     ID id, sourceSheetId;
@@ -169,7 +182,7 @@ struct TextDraft {
     QString purpose = "summary";
     QVector<DraftSection> sections;
     QDateTime createdAt;
-    // 新稿记录来源内容指纹，旧工程无此字段时须提示核对，不能判为来源未变。
+    // 整表指纹用于核验旧稿能否补录，逐段对照使用各段的来源快照。
     std::optional<QString> sourceHash;
 };
 struct Project {

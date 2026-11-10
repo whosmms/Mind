@@ -287,6 +287,13 @@ QJsonObject writeDraft(const TextDraft& d) {
     j["sections"] = mapArray(d.sections, [](const DraftSection& s) {
         QJsonObject o{{"heading", s.heading}, {"text", s.text}, {"origin", s.origin}};
         o["sourceNodeIds"] = QJsonArray::fromStringList(s.sourceNodeIds);
+        if (s.sourceSnapshot)
+        {
+            QJsonObject snapshot;
+            for (auto it = s.sourceSnapshot->cbegin(); it != s.sourceSnapshot->cend(); ++it)
+                snapshot.insert(it.key(), QJsonObject{{"title", it->title}, {"note", it->note}});
+            o["sourceSnapshot"] = snapshot;
+        }
         return o;
     });
     return j;
@@ -821,12 +828,29 @@ TextDraft readDraft(const QJsonObject& o, const QString& path, QStringList* es) 
     for (const QJsonValue& e : r.array("sections")) {
         const QString sp = path + ".sections[" + QString::number(i++) + "]";
         Reader sr(e.toObject(), sp, es);
-        sr.unknownKeys({"heading", "text", "sourceNodeIds", "origin"});
+        sr.unknownKeys({"heading", "text", "sourceNodeIds", "origin", "sourceSnapshot"});
         DraftSection section;
         section.heading = sr.str("heading");
         section.text = sr.str("text");
         section.sourceNodeIds = sr.strList("sourceNodeIds");
         section.origin = sr.enumVal("origin", {"source", "supplement"});
+        if (sr.has("sourceSnapshot"))
+        {
+            const auto entries = sr.object("sourceSnapshot");
+            DraftSourceSnapshot snapshot;
+            for (auto it = entries.constBegin(); it != entries.constEnd(); ++it)
+            {
+                if (!section.sourceNodeIds.contains(it.key()) || !it.value().isObject())
+                {
+                    es->append(sp + ".sourceSnapshot：只接受本段引用主题的文字对象");
+                    continue;
+                }
+                Reader topic(it.value().toObject(), sp + ".sourceSnapshot." + it.key(), es);
+                topic.unknownKeys({"title", "note"});
+                snapshot.insert(it.key(), {topic.str("title"), topic.str("note")});
+            }
+            section.sourceSnapshot = std::move(snapshot);
+        }
         d.sections.push_back(section);
     }
     return d;

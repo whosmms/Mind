@@ -392,6 +392,23 @@ QVector<AppError> validate(const Project& project) {
                            QStringLiteral("文字稿来源指纹须为64位小写十六进制")};
         if (!sheetIds.contains(draft.sourceSheetId))
             es << AppError{"DRAFT_SHEET", "文稿“" + draft.title + "”的来源工作表不存在"};
+        for (const DraftSection &section : draft.sections)
+        {
+            if (!section.sourceSnapshot)
+                continue;
+            for (auto it = section.sourceSnapshot->cbegin(); it != section.sourceSnapshot->cend();
+                 ++it)
+            {
+                const int titleLength = codePointCount(it->title);
+                if (!section.sourceNodeIds.contains(it.key()) ||
+                    titleLength < Limits::kTitleMinChars || titleLength > Limits::kTitleMaxChars ||
+                    codePointCount(it->note) > Limits::kNoteMaxChars)
+                {
+                    es << AppError{"DRAFT_SOURCE_SNAPSHOT",
+                                   QStringLiteral("文稿段落的来源快照引用或文字长度无效")};
+                }
+            }
+        }
     }
 
     return es;    return es;
