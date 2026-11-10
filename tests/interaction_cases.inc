@@ -1166,6 +1166,8 @@ void TstUi::flowCurveFollowsDraggedNode()
     node.position = {330, 0};
     sheet.nodes.insert(target, node);
     loadEditorFixture(window, project);
+    // 离屏高缩放会缩小默认窗口，拖动测试使用固定逻辑画布尺寸。
+    window.resize(1280, 800);
     window.show();
     QTest::qWait(30);
     auto *view = window.findChild<QGraphicsView *>("topicPreview");
@@ -1185,10 +1187,16 @@ void TstUi::flowCurveFollowsDraggedNode()
 
     const auto before = ProjectJson::toJson(doc->project());
     const auto revision = doc->sessionRevision();
-    const QPoint from = view->mapFromScene(canvasNodes(view).value(target)->pos());
+    auto *targetItem = canvasNodes(view).value(target);
+    QVERIFY(targetItem);
+    const auto origin = targetItem->pos();
+    const QPoint from = view->mapFromScene(origin);
     const QPoint to = from + QPoint(-35, 125);
+    QVERIFY(view->viewport()->rect().contains(from));
+    QCOMPARE(view->itemAt(from), targetItem);
     QVERIFY(view->viewport()->rect().contains(to));
     mouseDrag(view->viewport(), from, to, Qt::NoModifier, false);
+    QVERIFY(canvasNodes(view).value(target)->pos() != origin);
     QCOMPARE(doc->sessionRevision(), revision);
     QCOMPARE(ProjectJson::toJson(doc->project()), before);
     QVERIFY(flowLine(view, edgeId));
