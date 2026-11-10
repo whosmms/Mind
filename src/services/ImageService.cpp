@@ -57,10 +57,16 @@ std::variant<QString, AppError> importFile(const QString &path)
                         QStringLiteral("图片格式无效或像素过大，请使用较小的PNG/JPEG图片")};
     if (size.width() > 1024 || size.height() > 1024)
         reader.setScaledSize(size.scaled(1024, 1024, Qt::KeepAspectRatio));
-    auto image = reader.read();
+    return importImage(reader.read());
+}
+std::variant<QString, AppError> importImage(QImage image)
+{
     if (image.isNull())
         return AppError{"INVALID_ARGUMENT",
                         QStringLiteral("无法读取图片，请使用有效的PNG、JPEG、BMP或GIF首帧")};
+    if (qint64(image.width()) * image.height() > 64000000)
+        return AppError{"LIMIT_EXCEEDED", QStringLiteral("图片像素过大，请先缩小或裁剪图片")};
+    image.setDevicePixelRatio(1);
     if (image.width() > 1024 || image.height() > 1024)
         image = image.scaled(1024, 1024, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     QByteArray png;

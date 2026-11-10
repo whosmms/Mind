@@ -7,6 +7,14 @@
 
 namespace lingya {
 
+bool ReviewService::isDue(const ReviewCard &card, const QDate &today)
+{
+    if (card.status == "new" || !card.lastReviewedAt || !card.lastReviewedAt->isValid())
+        return true;
+    const int interval = card.status == "mastered" ? 7 : 1;
+    return card.lastReviewedAt->toLocalTime().date().addDays(interval) <= today;
+}
+
 namespace {
 
 QString normalize(const QString& text) {

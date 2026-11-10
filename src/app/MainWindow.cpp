@@ -12,6 +12,7 @@
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QDropEvent>
@@ -316,6 +317,7 @@ MainWindow::MainWindow(QWidget *parent, OnlineAuthService *authService)
     m_view->setDragMode(QGraphicsView::ScrollHandDrag);
     m_view->setMouseTracking(true);
     m_view->viewport()->setMouseTracking(true);
+    m_view->viewport()->setAcceptDrops(true);
     m_view->installEventFilter(this);
     m_view->viewport()->installEventFilter(this);   // 双击画布节点重命名
     // 中央区两页：页0思维导图画布，页1甘特图（M3丙接入，见setGanttView）
@@ -326,6 +328,12 @@ MainWindow::MainWindow(QWidget *parent, OnlineAuthService *authService)
     m_ganttPage = ganttPlaceholder;
     m_centralStack->addWidget(m_ganttPage);
     setCentralWidget(m_centralStack);
+    connect(m_centralStack, &QStackedWidget::currentChanged, this,
+            [this](int page)
+            {
+                if (page != 0)
+                    exitBranchFocus();
+            });
 
     auto *outlineDock = new QDockWidget(QStringLiteral("主题大纲"), this);
     outlineDock->setObjectName(QStringLiteral("outlineDock"));
@@ -362,6 +370,20 @@ MainWindow::MainWindow(QWidget *parent, OnlineAuthService *authService)
             });
     connect(m_outline, &QTreeWidget::itemDoubleClicked, this,
             [this](QTreeWidgetItem *, int) { renameSelectedNode(); });
+    m_outline->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_outline, &QTreeWidget::customContextMenuRequested, this,
+            [this](const QPoint &position)
+            {
+                auto *row = m_outline->itemAt(position);
+                if (!row || !activeTreeSheet())
+                    return;
+                const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
+                selectNode(row->data(0, Qt::UserRole).toString());
+                QMenu menu(this);
+                menu.addAction(findChild<QAction *>("pasteOutline"));
+                menu.addAction(findChild<QAction *>("focusBranch"));
+                menu.exec(m_outline->viewport()->mapToGlobal(position));
+            });
     connect(m_tagFilter, &QComboBox::currentIndexChanged, this,
             [this](int) { applyOutlineTagFilter(); });
 
@@ -437,6 +459,8 @@ void MainWindow::buildMenus() {
         ->setObjectName(QStringLiteral("saveProject"));
     fileMenu->addAction(QStringLiteral("另存为(&A)..."), QKeySequence::SaveAs, this,
                         [this] { saveProject(true); });
+    fileMenu->addAction(QStringLiteral("本机版本历史…"), this, &MainWindow::showVersionHistory)
+        ->setObjectName("versionHistory");
     m_onlineAccountAction =
         fileMenu->addAction(QStringLiteral("联网账号…"), this, [this] { showOnlineAccount(); });
     m_onlineAccountAction->setObjectName("onlineAccount");
@@ -514,6 +538,10 @@ void MainWindow::buildMenus() {
     auto *zoomOut = viewMenu->addAction(QStringLiteral("缩小"), this,
                                         [this] { setCanvasZoom(m_view->transform().m11() / 1.2); });
     auto *fit = viewMenu->addAction(QStringLiteral("适应全部"), this, &MainWindow::fitCanvas);
+    viewMenu->addAction(QStringLiteral("专注此分支"), this, &MainWindow::focusBranch)
+        ->setObjectName("focusBranch");
+    viewMenu->addAction(QStringLiteral("退出分支专注"), this, &MainWindow::exitBranchFocus)
+        ->setObjectName("exitBranchFocusAction");
     auto *locate =
         viewMenu->addAction(QStringLiteral("定位所选主题"), this, &MainWindow::focusSelectedNode);
     locate->setObjectName(QStringLiteral("locateTopic"));
@@ -569,14 +597,17 @@ void MainWindow::fitCanvas()
 {
     if (m_scene->items().isEmpty())
         return;
-    m_view->fitInView(m_scene->itemsBoundingRect().adjusted(-24, -24, 24, 24), Qt::KeepAspectRatio);
+    const auto branch = focusedBranchBounds();
+    const auto bounds = branch.isEmpty() ? m_scene->itemsBoundingRect() : branch;
+    m_view->fitInView(bounds.adjusted(-24, -24, 24, 24), Qt::KeepAspectRatio);
     setCanvasZoom(m_view->transform().m11());
-    m_view->centerOn(m_scene->itemsBoundingRect().center());
+    m_view->centerOn(bounds.center());
 }
 
 void MainWindow::setGanttView(QGraphicsView* view) {
     // 同一指针重复调用或误传画布/空指针：无操作（评审指出重复调用会deleteLater后悬空）
     if (view == nullptr || view == m_ganttPage || view == m_view) return;
+    view->viewport()->setAcceptDrops(true);
     view->installEventFilter(this);
     view->viewport()->installEventFilter(this);
     if (auto *gantt = qobject_cast<GanttView *>(view))
@@ -723,6 +754,11 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
             m_cutNodeId.clear();
             m_cutToken.clear();
             syncCanvasSelection();
+            return true;
+        }
+        if (key->key() == Qt::Key_Escape && m_branchFocus)
+        {
+            exitBranchFocus();
             return true;
         }
         if (key->key() == Qt::Key_Tab && key->modifiers() == Qt::NoModifier)
@@ -1237,9 +1273,10 @@ bool MainWindow::saveProject(bool saveAs) {
         }
         else
         {
-            const QString fallback = m_filePath.isEmpty()
-                                         ? m_doc->project().title
-                                         : QFileInfo(m_filePath).fileName();
+            const QString fallback =
+                m_historyCopy          ? QStringLiteral("历史副本 - %1").arg(m_doc->project().title)
+                : m_filePath.isEmpty() ? m_doc->project().title
+                                       : QFileInfo(m_filePath).fileName();
             bool ok = false;
             name = QInputDialog::getText(this, QStringLiteral("保存到我的文件"),
                                          QStringLiteral("文件名称："), QLineEdit::Normal,
@@ -1261,6 +1298,13 @@ bool MainWindow::saveProjectTo(const QString& path) {
     if (path.isEmpty()) return false;
     QString target = path;
     if (!target.endsWith(".lingya", Qt::CaseInsensitive)) target += ".lingya";
+    const QFileInfo targetInfo(target);
+    if (m_historyCopy && (targetInfo.exists() || targetInfo.isSymLink() || targetInfo.isJunction()))
+    {
+        showNotice(this, QMessageBox::Information, QStringLiteral("另存历史副本"),
+                   QStringLiteral("这个文件名已存在，请为历史副本选择新的文件名。"));
+        return false;
+    }
     // 覆盖已加载文件时带外部修改检测（§11.3）；另存新路径无外部覆盖风险
     const auto result =
         (target == m_filePath && m_fileStamp.has_value())
@@ -1287,7 +1331,120 @@ bool MainWindow::saveProjectTo(const QString& path) {
     }
     SettingsService::addRecentFile(target);
     rebuildRecentMenu();
+    recordSavedVersion(target);
     return true;
+}
+
+void MainWindow::recordSavedVersion(const QString &path)
+{
+    m_historyCopy = false;
+    const auto result = FileService::recordVersion(path, m_doc->project());
+    if (const auto *error = std::get_if<AppError>(&result))
+        statusBar()->showMessage(
+            QStringLiteral("工程已保存。版本历史更新遇到问题：%1").arg(error->message), 8000);
+}
+
+void MainWindow::showVersionHistory()
+{
+    const auto path = m_filePath;
+    const auto projectId = m_doc->project().id;
+    if (path.isEmpty())
+    {
+        showNotice(this, QMessageBox::Information, QStringLiteral("本机版本历史"),
+                   QStringLiteral("请先保存工程。之后可以在这里查看每次保存的版本。"));
+        return;
+    }
+    const auto listed = FileService::listVersions(path, projectId);
+    if (const auto *error = std::get_if<AppError>(&listed))
+    {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("本机版本历史"), error->message);
+        return;
+    }
+    QDialog dialog(this);
+    dialog.setObjectName("versionHistoryDialog");
+    dialog.setWindowTitle(QStringLiteral("本机版本历史"));
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *hint = new QLabel(
+        QStringLiteral("保留最近十次内容有变化的保存。可以打开旧版为副本，并以新文件名保存。"),
+        &dialog);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+    auto *list = new QListWidget(&dialog);
+    list->setObjectName("savedVersions");
+    layout->addWidget(list, 1);
+    auto *preview = new QLabel(&dialog);
+    preview->setObjectName("savedVersionPreview");
+    preview->setTextFormat(Qt::PlainText);
+    preview->setWordWrap(true);
+    layout->addWidget(preview);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("关闭"));
+    auto *open = buttons->addButton(QStringLiteral("打开为副本"), QDialogButtonBox::AcceptRole);
+    open->setObjectName("openVersionCopy");
+    open->setEnabled(false);
+    layout->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    for (const auto &version : std::get<QVector<FileService::SavedVersion>>(listed))
+    {
+        const auto time =
+            version.savedAt.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz"));
+        auto *item = new QListWidgetItem(
+            version.legacyBackup ? QStringLiteral("%1 · 覆盖前备份").arg(time) : time, list);
+        item->setData(Qt::UserRole, version.id);
+    }
+    std::optional<Project> copy;
+    connect(list, &QListWidget::currentItemChanged, &dialog,
+            [&, path, projectId](QListWidgetItem *item)
+            {
+                copy.reset();
+                open->setEnabled(false);
+                if (!item)
+                {
+                    preview->setText(QStringLiteral("此工程还没有可查看的保存版本。"));
+                    return;
+                }
+                auto result =
+                    FileService::loadVersion(path, projectId, item->data(Qt::UserRole).toString());
+                if (const auto *error = std::get_if<AppError>(&result))
+                {
+                    preview->setText(error->message);
+                    return;
+                }
+                copy = std::move(std::get<Project>(result));
+                QString description = QStringLiteral("工程：%1\n工作表 %2 张 · 修订 %3")
+                                          .arg(copy->title.left(120))
+                                          .arg(copy->sheets.size())
+                                          .arg(copy->revision);
+                for (const auto &entry : copy->sheets)
+                {
+                    const auto &sheet = std::visit([](const auto &value) -> const SheetBase &
+                                                   { return value; }, entry);
+                    if (sheet.id != copy->activeSheetId)
+                        continue;
+                    description += QStringLiteral("\n工作表：%1").arg(sheet.name.left(80));
+                    if (const auto *tree = std::get_if<TreeSheet>(&entry))
+                        description += QStringLiteral(" · %1").arg(
+                            tree->nodes.value(tree->rootId).title.left(80));
+                    break;
+                }
+                preview->setText(description);
+                open->setEnabled(true);
+            });
+    if (list->count() > 0)
+        list->setCurrentRow(0);
+    else
+        preview->setText(QStringLiteral("此工程还没有可查看的保存版本。"));
+    dialog.resize(490, 380);
+    if (dialog.exec() != QDialog::Accepted || !copy || !confirmDiscard())
+        return;
+
+    copy->id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    m_filePath.clear();
+    m_fileStamp.reset();
+    loadNewDocument(std::move(*copy));
+    m_historyCopy = true;
+    statusBar()->showMessage(QStringLiteral("已打开历史副本。请用新文件名另存。"), 8000);
 }
 
 void MainWindow::renameSelectedNode()
@@ -1527,6 +1684,8 @@ bool MainWindow::confirmDiscard() {
 
 void MainWindow::loadNewDocument(Project project) {
     returnFromHome();
+    m_historyCopy = false;
+    m_branchFocus.reset();
     m_propertyNodeId.clear(); // 新会话不能沿用同ID主题的未提交属性草稿。
     m_annotationMembers.clear();
     m_cutNodeId.clear();
@@ -1772,7 +1931,7 @@ void MainWindow::syncCanvasSelection()
     m_tagsAction->setEnabled(valid);
     m_openLinkAction->setEnabled(valid && sheet->nodes.value(m_selectedNodeId).link.has_value());
     for (const auto &name :
-         {"copyTopic", "cutTopic", "pasteTopic", "editSheetStyle", "editRelations",
+         {"copyTopic", "cutTopic", "pasteTopic", "pasteOutline", "editSheetStyle", "editRelations",
           "editAnnotations", "editComments", "changeSheetKind", "renameTopic", "addChildTopic"})
         if (auto *action = findChild<QAction *>(QString::fromLatin1(name)))
             action->setEnabled(valid);
@@ -1820,6 +1979,9 @@ void MainWindow::rebuildCanvas() {
         return;
     }
     TreeSheet display = *sheet;
+    if (m_branchFocus && m_branchFocus->sheetId == display.id &&
+        display.nodes.contains(m_branchFocus->nodeId))
+        display.nodes[m_branchFocus->nodeId].collapsed = false;
     ID ancestor = m_selectedNodeId;
     while (display.nodes.contains(ancestor))
     {
@@ -1928,11 +2090,12 @@ void MainWindow::addFishboneEdges(const TreeSheet &display)
     QPen spinePen = pen;
     spinePen.setWidthF(qMax(2.0, display.defaultEdgeStyle.width * 2));
     spinePen.setStyle(Qt::SolidLine);
-    const auto addEdge = [this](const QPainterPath &path, const QPen &edgePen)
+    const auto addEdge = [this](const QPainterPath &path, const QPen &edgePen, const ID &parentId)
     {
         auto *edge = m_scene->addPath(path, edgePen);
         edge->setZValue(-1);
         edge->setAcceptedMouseButtons(Qt::NoButton);
+        edge->setData(kTreeEdgeParentRole, parentId);
     };
     const auto visibleChildren = [this, &display](const ID &parentId)
     {
@@ -1961,13 +2124,13 @@ void MainWindow::addFishboneEdges(const TreeSheet &display)
         const qreal attachX = qMin(maxAttachX, inner.x() + qAbs(inner.y() - spineY));
         QPainterPath bone(inner);
         bone.lineTo(attachX, spineY);
-        addEdge(bone, pen);
+        addEdge(bone, pen, display.rootId);
         tailX = qMin(tailX, rect.left() - 24);
         stack.append(categoryId);
     }
     QPainterPath spine(headLeft);
     spine.lineTo(tailX, spineY);
-    addEdge(spine, spinePen);
+    addEdge(spine, spinePen, display.rootId);
 
     while (!stack.isEmpty())
     {
@@ -2000,7 +2163,7 @@ void MainWindow::addFishboneEdges(const TreeSheet &display)
                 branch.lineTo(trunkX, start.y());
             branch.lineTo(trunkX, end.y());
             branch.lineTo(end);
-            addEdge(branch, pen);
+            addEdge(branch, pen, parentId);
             stack.append(childId);
         }
     }
@@ -2013,6 +2176,13 @@ void MainWindow::onDocumentChanged() {
     m_pendingRelation.clear();
     const QScopedValueRollback<bool> refreshing(m_refreshingViews, true);
     const bool sameSheet = m_outlineSheetId == m_doc->project().activeSheetId;
+    if (m_branchFocus)
+    {
+        const auto *tree = activeTreeSheet();
+        if (!tree || tree->id != m_branchFocus->sheetId ||
+            !tree->nodes.contains(m_branchFocus->nodeId))
+            m_branchFocus.reset();
+    }
     if (!sameSheet)
         m_multiSelection.clear();
     else if (const auto *tree = activeTreeSheet())
@@ -2183,6 +2353,14 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
     QString targetName = name.trimmed();
     if (!targetName.endsWith(QStringLiteral(".lingya"), Qt::CaseInsensitive))
         targetName += QStringLiteral(".lingya");
+    const QFileInfo targetInfo(
+        QDir(UserFileService::userDir(activeSessionRoot(), m_sessionUser)).filePath(targetName));
+    if (m_historyCopy && (targetInfo.exists() || targetInfo.isSymLink() || targetInfo.isJunction()))
+    {
+        showNotice(this, QMessageBox::Information, QStringLiteral("另存历史副本"),
+                   QStringLiteral("这个文件名已存在，请为历史副本选择新的文件名。"));
+        return false;
+    }
     if (!m_filePath.isEmpty() &&
         UserFileService::classify(activeSessionRoot(), m_sessionUser, m_filePath) ==
             UserFileService::Access::Own &&
@@ -2213,6 +2391,7 @@ bool MainWindow::saveProjectToOwned(const QString& name) {
     }
     SettingsService::addRecentFile(path);
     rebuildRecentMenu();
+    recordSavedVersion(path);
     return true;
 }
 
@@ -2307,6 +2486,9 @@ void MainWindow::buildEditorActions(QMenu *editMenu)
         ->addAction(QStringLiteral("粘贴为子主题"), QKeySequence::Paste, this,
                     &MainWindow::pasteSelection)
         ->setObjectName(QStringLiteral("pasteTopic"));
+    clipboard
+        ->addAction(QStringLiteral("粘贴大纲为子主题…"), this, &MainWindow::pasteOutlineAsChildren)
+        ->setObjectName(QStringLiteral("pasteOutline"));
     editMenu->addAction(QStringLiteral("工作表默认样式…"), this, [this] { editNodeStyle(true); })
         ->setObjectName(QStringLiteral("editSheetStyle"));
     editMenu->addAction(QStringLiteral("关系线…"), this, &MainWindow::editRelations)

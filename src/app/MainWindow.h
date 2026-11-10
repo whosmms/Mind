@@ -1,11 +1,12 @@
 #pragma once
 #include "domain/Domain.h"
+#include "services/ExportService.h"
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
-#include "services/ExportService.h"
 #include <QMainWindow>
 #include <QPointer>
 #include <QSet>
+#include <QTransform>
 #include <optional>
 
 // Qt类前向声明必须位于全局作用域，不能进入lingya命名空间
@@ -166,14 +167,22 @@ private:
     bool handleCanvasContextMenu(QObject *watched, QEvent *event);
     void cancelTreeDrag();
     void drawTreeLinks(const TreeSheet &display);
+    void focusBranch();
+    void exitBranchFocus();
+    QRectF focusedBranchBounds() const;
+    void applyBranchFocus(const TreeSheet &sheet);
     void resetTreeLayout();
     void quickAddNode(const ID &nodeId);
     void showTemplates(bool insertSheet);
+    void showVersionHistory();
+    void recordSavedVersion(const QString &path);
     void chooseNodeImage(const ID &nodeId);
     void insertCanvasImage(const QPointF &position);
     QVector<CanvasImage> activeImages() const;
     void drawCanvasImages();
     bool handleImageEvent(QObject *watched, QEvent *event);
+    void applyImportedImage(const std::variant<QString, AppError> &imported, const ID &nodeId,
+                            const QPointF &position);
     void buildOfflineActions(QMenu *viewMenu);
     void refreshOfflineViews();
     void addTaskBadges();
@@ -187,6 +196,7 @@ private:
     void deleteSheet();
     void copySelection(bool cut);
     void pasteSelection();
+    void pasteOutlineAsChildren();
     void moveSelection(const ID &nodeId, const ID &parentId, const ID &beforeId = ID{});
     void editRelations();
     void editAnnotations();
@@ -281,11 +291,22 @@ private:
     QString m_editorNote;
     QMap<ID, QStringList> m_annotationMembers;
     ID m_selectedNodeId;                       // 临时选择状态，不持久化、不进入撤销历史
+    struct BranchFocus
+    {
+        ID sheetId, nodeId, originalSelection;
+        QTransform transform;
+        QPointF center;
+        QRectF sceneRect;
+        QPoint scrollBars;
+    };
+    std::optional<BranchFocus> m_branchFocus;
+    static constexpr int kTreeEdgeParentRole = 0x21C8;
     QMap<ID, NodeItem *> m_nodeItems;          // 非拥有指针；图元由m_scene销毁
     QString m_canvasError;
     QStackedWidget* m_centralStack = nullptr;  // 页0思维导图画布 / 页1甘特图（M3）
     QWidget* m_ganttPage = nullptr;            // 甘特页当前内容（占位或丙的视图）
     QString m_filePath;             // 磁盘路径只存在本机会话（原设计§8）
+    bool m_historyCopy = false;     // 历史副本第一次保存需要新路径
     // 已加载文件的外部状态戳（§11.3外部修改检测）；新建未命名或另存新路径时为空
     std::optional<FileService::FileStamp> m_fileStamp;
     QMenu* m_recentMenu = nullptr;  // 文件菜单内“最近文件”子菜单（R04）

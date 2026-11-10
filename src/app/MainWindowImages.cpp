@@ -2,21 +2,29 @@
 #include "commands/FlowCommands.h"
 #include "commands/ImageCommands.h"
 #include "commands/NodeCommands.h"
+#include "document/Fragment.h"
 #include "document/ProjectDocument.h"
 #include "graphics/CanvasImageItem.h"
 #include "graphics/NodeItem.h"
 #include "services/ImageService.h"
 #include <QApplication>
+#include <QClipboard>
 #include <QContextMenuEvent>
+#include <QDragMoveEvent>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QMenu>
+#include <QMimeData>
 #include <QMouseEvent>
+#include <QPixmap>
 #include <QScopedValueRollback>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QUrl>
 namespace lingya
 {
 namespace
@@ -26,6 +34,25 @@ QString imagePath(QWidget *parent)
     return QFileDialog::getOpenFileName(
         parent, QStringLiteral("插入本地图片"), {},
         QStringLiteral("图片 (*.png *.jpg *.jpeg *.bmp *.gif);;所有文件 (*)"));
+}
+QString draggedImagePath(const QMimeData &mime)
+{
+    if (!mime.hasUrls())
+        return {};
+    const auto urls = mime.urls();
+    if (urls.size() != 1 || !urls.front().isLocalFile() || !urls.front().host().isEmpty())
+        return {};
+    const auto path = urls.front().toLocalFile();
+    const auto extension = QFileInfo(path).suffix().toLower();
+    static const QStringList supported{"png", "jpg", "jpeg", "bmp", "gif"};
+    return supported.contains(extension) ? path : QString();
+}
+
+QImage mimeImage(const QMimeData &mime)
+{
+    const auto data = mime.imageData();
+    const auto image = qvariant_cast<QImage>(data);
+    return image.isNull() ? qvariant_cast<QPixmap>(data).toImage() : image;
 }
 } // namespace
 QVector<CanvasImage> MainWindow::activeImages() const
@@ -47,34 +74,35 @@ void MainWindow::drawCanvasImages()
 void MainWindow::chooseNodeImage(const ID &id)
 {
     const auto path = imagePath(this);
-    if (path.isEmpty())
-        return;
-    const auto imported = ImageService::importFile(path);
-    if (const auto *error = std::get_if<AppError>(&imported))
-    {
-        statusBar()->showMessage(error->message, 8000);
-        return;
-    }
-    const auto result =
-        ImageCommands(m_commands, m_doc)
-            .setNodeImage(m_doc->project().activeSheetId, id, std::get<QString>(imported));
-    if (const auto *error = std::get_if<AppError>(&result))
-        statusBar()->showMessage(error->message, 8000);
+    if (!path.isEmpty())
+        applyImportedImage(ImageService::importFile(path), id, {});
 }
 void MainWindow::insertCanvasImage(const QPointF &position)
 {
     const auto path = imagePath(this);
-    if (path.isEmpty())
-        return;
-    const auto imported = ImageService::importFile(path);
+    if (!path.isEmpty())
+        applyImportedImage(ImageService::importFile(path), {}, position);
+}
+void MainWindow::applyImportedImage(const std::variant<QString, AppError> &imported,
+                                    const ID &nodeId, const QPointF &position)
+{
     if (const auto *error = std::get_if<AppError>(&imported))
     {
         statusBar()->showMessage(error->message, 8000);
         return;
     }
-    const auto result =
-        ImageCommands(m_commands, m_doc)
-            .add(m_doc->project().activeSheetId, std::get<QString>(imported), position);
+    const auto sheetId = m_doc->project().activeSheetId;
+    const auto &encoded = std::get<QString>(imported);
+    const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
+    ImageCommands images(m_commands, m_doc);
+    if (!nodeId.isEmpty())
+    {
+        const auto result = images.setNodeImage(sheetId, nodeId, encoded);
+        if (const auto *error = std::get_if<AppError>(&result))
+            statusBar()->showMessage(error->message, 8000);
+        return;
+    }
+    const auto result = images.add(sheetId, encoded, position);
     if (const auto *error = std::get_if<AppError>(&result))
         statusBar()->showMessage(error->message, 8000);
     else
@@ -171,6 +199,53 @@ bool MainWindow::handleImageEvent(QObject *watched, QEvent *event)
     auto *view = watched == m_view || watched == m_view->viewport() ? m_view : gantt;
     if (!view || (watched != view && watched != view->viewport()))
         return false;
+    const auto type = event->type();
+    if (type == QEvent::ShortcutOverride || type == QEvent::KeyPress)
+    {
+        auto *key = static_cast<QKeyEvent *>(event);
+        if (key->matches(QKeySequence::Paste))
+        {
+            const auto *mime = QApplication::clipboard()->mimeData();
+            if (mime && mime->hasImage() && !mime->hasFormat(Fragment::kMimeType) &&
+                !mime->hasFormat("application/x-lingya-cut-token"))
+            {
+                key->accept();
+                if (type == QEvent::KeyPress)
+                    applyImportedImage(ImageService::importImage(mimeImage(*mime)), {},
+                                       view->mapToScene(view->viewport()->rect().center()));
+                return true;
+            }
+        }
+    }
+    if (watched == view->viewport() &&
+        (type == QEvent::DragEnter || type == QEvent::DragMove || type == QEvent::Drop))
+    {
+        auto *drop = static_cast<QDropEvent *>(event);
+        const auto &mime = *drop->mimeData();
+        const auto path = draggedImagePath(mime);
+        if (!(drop->possibleActions() & Qt::CopyAction) || (path.isEmpty() && !mime.hasImage()))
+        {
+            drop->ignore();
+            return true;
+        }
+        drop->setDropAction(Qt::CopyAction);
+        drop->accept();
+        if (type == QEvent::Drop)
+        {
+            const auto pixel = drop->position().toPoint();
+            ID nodeId;
+            for (auto *item = view->itemAt(pixel); item; item = item->parentItem())
+                if (auto *node = dynamic_cast<NodeItem *>(item))
+                {
+                    nodeId = node->nodeId();
+                    break;
+                }
+            applyImportedImage(path.isEmpty() ? ImageService::importImage(mimeImage(mime))
+                                              : ImageService::importFile(path),
+                               nodeId, view->mapToScene(pixel));
+        }
+        return true;
+    }
     const auto restore = [this, view]
     {
         for (auto *item : view->scene()->items())
@@ -224,7 +299,6 @@ bool MainWindow::handleImageEvent(QObject *watched, QEvent *event)
         menu.exec(context->globalPos());
         return true;
     }
-    const auto type = event->type();
     if (type != QEvent::MouseButtonPress && type != QEvent::MouseMove &&
         type != QEvent::MouseButtonRelease)
         return false;

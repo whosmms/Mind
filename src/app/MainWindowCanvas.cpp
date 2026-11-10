@@ -4,18 +4,34 @@
 #include "commands/ImageCommands.h"
 #include "commands/NodeCommands.h"
 #include "commands/TaskCommands.h"
+#include "document/Fragment.h"
 #include "document/ProjectDocument.h"
+#include "domain/TitleRules.h"
 #include "graphics/NodeItem.h"
 #include <QApplication>
+#include <QClipboard>
 #include <QContextMenuEvent>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QHash>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMenu>
+#include <QMimeData>
 #include <QMouseEvent>
+#include <QPlainTextEdit>
+#include <QPushButton>
+#include <QRegularExpression>
 #include <QScopedValueRollback>
+#include <QScrollBar>
 #include <QStatusBar>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
+#include <QVBoxLayout>
+#include <algorithm>
 #include <cmath>
 
 namespace lingya
@@ -31,18 +47,268 @@ NodeItem *owner(QGraphicsItem *hit)
 }
 QSet<ID> branchIds(const TreeSheet &sheet, const ID &id)
 {
+    QMultiHash<ID, ID> children;
+    for (const auto &node : sheet.nodes)
+        if (node.parentId)
+            children.insert(*node.parentId, node.id);
     QSet<ID> ids{id};
     QVector<ID> pending{id};
     for (int at = 0; at < pending.size(); ++at)
-        for (const auto &node : sheet.nodes)
-            if (node.parentId == pending[at] && !ids.contains(node.id))
+    {
+        const auto range = children.equal_range(pending.at(at));
+        for (auto it = range.first; it != range.second; ++it)
+            if (!ids.contains(it.value()))
             {
-                ids.insert(node.id);
-                pending.append(node.id);
+                ids.insert(it.value());
+                pending.append(it.value());
             }
+    }
     return ids;
 }
+
+std::variant<Fragment, QString> outlineFragment(const QString &text, QTreeWidget *preview)
+{
+    preview->clear();
+    if (text.size() > Limits::kMaxFileBytes)
+        return QStringLiteral("大纲文本过长，请分批添加。");
+
+    struct Line
+    {
+        int indent;
+        ID id;
+        QTreeWidgetItem *item;
+    };
+    static const QRegularExpression marker(QStringLiteral(R"(^(?:[-+*]|[0-9]+[.)])[ \t]+)"));
+    QVector<Line> ancestors;
+    QHash<ID, int> siblingCounts;
+    Fragment fragment;
+    const auto lines = QStringView(text).split(u'\n');
+    for (qsizetype index = 0; index < lines.size(); ++index)
+    {
+        const auto line = lines.at(index);
+        auto title = line.trimmed().toString();
+        if (title.isEmpty())
+            continue;
+        const auto bullet = marker.match(title);
+        if (bullet.hasMatch())
+            title.remove(0, bullet.capturedLength());
+        if (TitleRules::exceedsTitleLimit(title))
+            return QStringLiteral("第 %1 行的主题超过 %2 个字符。")
+                .arg(index + 1)
+                .arg(Limits::kTitleMaxChars);
+        if (fragment.nodes.size() >= Limits::kMaxNodes)
+            return QStringLiteral("一次最多导入 %1 个主题。").arg(Limits::kMaxNodes);
+
+        int indent = 0;
+        for (const auto character : line)
+        {
+            if (character == u' ')
+                ++indent;
+            else if (character == u'\t')
+                indent += 4 - indent % 4;
+            else
+                break;
+        }
+        while (!ancestors.isEmpty() && ancestors.back().indent >= indent)
+            ancestors.removeLast();
+
+        TreeNode node;
+        node.id = QString::number(index);
+        node.title = title;
+        auto *row = new QTreeWidgetItem;
+        if (ancestors.isEmpty())
+        {
+            fragment.rootIds.append(node.id);
+            preview->addTopLevelItem(row);
+        }
+        else
+        {
+            node.parentId = ancestors.back().id;
+            ancestors.back().item->addChild(row);
+        }
+        node.order = siblingCounts[node.parentId.value_or(ID{})]++;
+        row->setText(0, title);
+        row->setToolTip(0, title);
+        ancestors.append({indent, node.id, row});
+        fragment.nodes.insert(node.id, node);
+    }
+    preview->expandAll();
+    return fragment;
+}
 } // namespace
+
+void MainWindow::pasteOutlineAsChildren()
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree || !tree->nodes.contains(m_selectedNodeId))
+        return;
+    const auto sheetId = tree->id;
+    const auto parentId = m_selectedNodeId;
+    QDialog dialog(this);
+    dialog.setObjectName("pasteOutlineDialog");
+    dialog.setWindowTitle(QStringLiteral("粘贴大纲为子主题"));
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *hint = new QLabel(
+        QStringLiteral("将主题加入「%1」。每行一个主题，缩进表示子层级，也可粘贴 Markdown 列表。")
+            .arg(tree->nodes.value(parentId).title),
+        &dialog);
+    hint->setTextFormat(Qt::PlainText);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+    auto *input = new QPlainTextEdit(&dialog);
+    input->setObjectName("outlinePasteText");
+    input->setPlaceholderText(QStringLiteral("阶段一\n    准备材料\n    核对清单\n阶段二"));
+    if (const auto *mime = QApplication::clipboard()->mimeData(); mime && mime->hasText())
+        input->setPlainText(mime->text());
+    layout->addWidget(input, 1);
+    auto *preview = new QTreeWidget(&dialog);
+    preview->setObjectName("outlinePastePreview");
+    preview->setHeaderLabel(QStringLiteral("导入预览"));
+    layout->addWidget(preview, 1);
+    auto *status = new QLabel(&dialog);
+    status->setWordWrap(true);
+    layout->addWidget(status);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    auto *add = buttons->addButton(QStringLiteral("加入导图"), QDialogButtonBox::AcceptRole);
+    add->setObjectName("applyOutlinePaste");
+    layout->addWidget(buttons);
+    Fragment fragment;
+    const auto refresh = [&]
+    {
+        auto result = outlineFragment(input->toPlainText(), preview);
+        if (const auto *error = std::get_if<QString>(&result))
+        {
+            preview->clear();
+            add->setEnabled(false);
+            status->setText(*error);
+            return;
+        }
+        fragment = std::move(std::get<Fragment>(result));
+        add->setEnabled(!fragment.isEmpty());
+        status->setText(
+            fragment.isEmpty()
+                ? QStringLiteral("请粘贴或输入大纲。")
+                : QStringLiteral("共 %1 个主题。可一次撤回。").arg(fragment.nodes.size()));
+    };
+    connect(input, &QPlainTextEdit::textChanged, &dialog, refresh);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog,
+            [&]
+            {
+                const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
+                const auto result =
+                    NodeCommands(m_commands, m_doc).pasteFragment(sheetId, parentId, fragment);
+                if (const auto *error = std::get_if<AppError>(&result))
+                {
+                    status->setText(error->message);
+                    return;
+                }
+                selectNewNode(std::get<ID>(result));
+                dialog.accept();
+            });
+    refresh();
+    dialog.resize(580, 540);
+    dialog.exec();
+}
+
+void MainWindow::focusBranch()
+{
+    const auto *tree = activeTreeSheet();
+    if (!tree || !tree->nodes.contains(m_selectedNodeId))
+        return;
+    if (!m_branchFocus)
+        m_branchFocus = BranchFocus{
+            tree->id,
+            m_selectedNodeId,
+            m_selectedNodeId,
+            m_view->transform(),
+            m_view->mapToScene(m_view->viewport()->rect().center()),
+            m_scene->sceneRect(),
+            {m_view->horizontalScrollBar()->value(), m_view->verticalScrollBar()->value()}};
+    else
+        m_branchFocus->nodeId = m_selectedNodeId;
+    const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
+    rebuildCanvas();
+    fitCanvas();
+    statusBar()->showMessage(QStringLiteral("正在专注分支。按 Esc 返回原视口。"), 5000);
+}
+
+void MainWindow::exitBranchFocus()
+{
+    if (!m_branchFocus)
+        return;
+    const auto focus = *m_branchFocus;
+    m_branchFocus.reset();
+    const auto *tree = activeTreeSheet();
+    if (!tree || tree->id != focus.sheetId)
+    {
+        updateEditorChrome();
+        return;
+    }
+    const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
+    if (tree->nodes.contains(focus.originalSelection))
+        selectNode(focus.originalSelection);
+    rebuildCanvas();
+    m_view->setTransform(focus.transform);
+    const auto bounds =
+        focus.sceneRect.united(m_scene->itemsBoundingRect().adjusted(-80, -80, 80, 80));
+    m_scene->setSceneRect(bounds);
+    if (bounds == focus.sceneRect)
+    {
+        m_view->horizontalScrollBar()->setValue(focus.scrollBars.x());
+        m_view->verticalScrollBar()->setValue(focus.scrollBars.y());
+    }
+    else
+        m_view->centerOn(focus.center);
+    updateEditorChrome();
+}
+
+QRectF MainWindow::focusedBranchBounds() const
+{
+    const auto *tree = activeTreeSheet();
+    if (!m_branchFocus || !tree || tree->id != m_branchFocus->sheetId)
+        return {};
+    QRectF bounds;
+    for (const auto &id : branchIds(*tree, m_branchFocus->nodeId))
+        if (const auto *node = m_nodeItems.value(id))
+            bounds = bounds.united(node->sceneBoundingRect());
+    return bounds;
+}
+
+void MainWindow::applyBranchFocus(const TreeSheet &sheet)
+{
+    const bool focused = m_branchFocus && sheet.id == m_branchFocus->sheetId;
+    const auto branch = focused ? branchIds(sheet, m_branchFocus->nodeId) : QSet<ID>{};
+    QSet<ID> decorations;
+    if (focused)
+    {
+        for (const auto &relation : sheet.relations)
+            if (branch.contains(relation.sourceId) && branch.contains(relation.targetId))
+                decorations.insert(relation.id);
+        for (const auto &annotation : sheet.annotations)
+            if (std::all_of(annotation.memberIds.cbegin(), annotation.memberIds.cend(),
+                            [&branch](const ID &id) { return branch.contains(id); }))
+                decorations.insert(annotation.id);
+    }
+    for (auto *item : m_scene->items())
+    {
+        if (item->parentItem())
+            continue;
+        const auto *node = dynamic_cast<NodeItem *>(item);
+        const bool inBranch = node ? branch.contains(node->nodeId())
+                                   : branch.contains(item->data(kTreeEdgeParentRole).toString()) ||
+                                         decorations.contains(item->data(1).toString());
+        item->setOpacity(!focused || inBranch ? 1.0 : 0.25);
+    }
+    auto muted = m_outline->palette().color(QPalette::Text);
+    muted.setAlphaF(0.45);
+    for (QTreeWidgetItemIterator it(m_outline); *it; ++it)
+        (*it)->setForeground(0, focused && !branch.contains((*it)->data(0, Qt::UserRole).toString())
+                                    ? QBrush(muted)
+                                    : QBrush());
+}
+
 void MainWindow::drawTreeLinks(const TreeSheet &display)
 {
     QList<QGraphicsItem *> old;
@@ -88,9 +354,11 @@ void MainWindow::drawTreeLinks(const TreeSheet &display)
         auto *edge = m_scene->addPath(path, edgePen);
         edge->setZValue(-1);
         edge->setAcceptedMouseButtons(Qt::NoButton);
+        edge->setData(kTreeEdgeParentRole, *parentId);
     }
     addDecorations(display);
     drawCanvasImages();
+    applyBranchFocus(display);
 }
 void MainWindow::cancelTreeDrag()
 {
@@ -380,6 +648,10 @@ bool MainWindow::handleCanvasContextMenu(QObject *watched, QEvent *event)
             menu.addAction(m_tagsAction);
             if (auto *paste = findChild<QAction *>("pasteTopic"))
                 menu.addAction(paste);
+            if (auto *outline = findChild<QAction *>("pasteOutline"))
+                menu.addAction(outline);
+            if (auto *focus = findChild<QAction *>("focusBranch"))
+                menu.addAction(focus);
             if (auto *action = findChild<QAction *>("linkSelectedTask"))
                 menu.addAction(action);
             if (auto *action = findChild<QAction *>("addReviewCard"))

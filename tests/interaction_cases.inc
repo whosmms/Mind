@@ -103,6 +103,32 @@ const QGraphicsPathItem *flowLine(QGraphicsView *view, const ID &id)
                 return line;
     return nullptr;
 }
+void captureEfficiency(QWidget &widget, const QString &name)
+{
+    const auto directory = qEnvironmentVariable("LINGYA_H052_CAPTURE_DIR");
+    if (directory.isEmpty())
+        return;
+    QVERIFY(QDir().mkpath(directory));
+    QApplication::processEvents();
+    QVERIFY(widget.grab().save(QDir(directory).filePath(name + ".png")));
+}
+NodeItem *visibleTopic(QGraphicsView *view, const ID &id)
+{
+    for (auto *item : view->scene()->items())
+        if (auto *node = dynamic_cast<NodeItem *>(item); node && node->nodeId() == id)
+            return node;
+    return nullptr;
+}
+bool dropImage(QGraphicsView *view, const QMimeData &mime, const QPoint &position)
+{
+    QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(view->viewport(), &enter);
+    if (!enter.isAccepted())
+        return false;
+    QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(view->viewport(), &drop);
+    return drop.isAccepted() && drop.dropAction() == Qt::CopyAction;
+}
 QGraphicsItem *flowHandle(QGraphicsView *view, const QString &kind)
 {
     for (auto *item : view->scene()->items())
@@ -111,6 +137,340 @@ QGraphicsItem *flowHandle(QGraphicsView *view, const QString &kind)
     return nullptr;
 }
 } // namespace
+void TstUi::outlinePastePreviewsAndCommitsOnce()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(1, 0));
+    window.show();
+    const ID target = canvasId("branch-0");
+    chooseTopic(window, target);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    const auto before = ProjectJson::toJson(doc->project());
+    const auto revision = doc->sessionRevision();
+    auto *clipboard = QApplication::clipboard();
+    const auto clearClipboard = qScopeGuard([clipboard] { clipboard->clear(); });
+    clipboard->setText(QStringLiteral("- 准备材料\r\n\t1. 汇总来源\r\n\t2) 确认时间\r\n"
+                                      "\t    - 发送通知\r\n\r\n+ 汇报结果"));
+    runEditor(window, "pasteOutline", "pasteOutlineDialog",
+              [&](QDialog *dialog)
+              {
+                  auto *input = dialog->findChild<QPlainTextEdit *>("outlinePasteText");
+                  auto *preview = dialog->findChild<QTreeWidget *>("outlinePastePreview");
+                  auto *add = dialog->findChild<QPushButton *>("applyOutlinePaste");
+                  QVERIFY(input && preview && add);
+                  QCOMPARE(preview->topLevelItemCount(), 2);
+                  auto *first = preview->topLevelItem(0);
+                  QCOMPARE(first->text(0), QStringLiteral("准备材料"));
+                  QCOMPARE(first->childCount(), 2);
+                  QCOMPARE(first->child(0)->text(0), QStringLiteral("汇总来源"));
+                  QCOMPARE(first->child(1)->child(0)->text(0), QStringLiteral("发送通知"));
+                  QCOMPARE(preview->topLevelItem(1)->text(0), QStringLiteral("汇报结果"));
+                  captureEfficiency(*dialog, QStringLiteral("01-大纲预览"));
+                  input->setPlainText(QString(2001, u'字'));
+                  QVERIFY(!add->isEnabled());
+                  QCOMPARE(preview->topLevelItemCount(), 0);
+                  input->setPlainText(QStringLiteral("第一行\n  第二行"));
+                  QVERIFY(add->isEnabled());
+                  QCOMPARE(preview->topLevelItem(0)->child(0)->text(0), QStringLiteral("第二行"));
+              });
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!history->canUndo());
+
+    runEditor(window, "pasteOutline", "pasteOutlineDialog", [](QDialog *dialog)
+              { dialog->findChild<QPushButton *>("applyOutlinePaste")->click(); });
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    const auto tree = std::get<TreeSheet>(doc->project().sheets.first());
+    QCOMPARE(tree.nodes.size(), 7);
+    QMap<QString, TreeNode> byTitle;
+    for (const auto &node : tree.nodes)
+        byTitle.insert(node.title, node);
+    const auto first = byTitle.value(QStringLiteral("准备材料"));
+    const auto second = byTitle.value(QStringLiteral("汇报结果"));
+    const auto time = byTitle.value(QStringLiteral("确认时间"));
+    QCOMPARE(first.parentId.value_or(ID{}), target);
+    QCOMPARE(second.parentId.value_or(ID{}), target);
+    QCOMPARE(first.order, 0);
+    QCOMPARE(second.order, 1);
+    QCOMPARE(time.parentId.value_or(ID{}), first.id);
+    QCOMPARE(byTitle.value(QStringLiteral("发送通知")).parentId.value_or(ID{}), time.id);
+    history->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), before);
+    QVERIFY(!history->canUndo());
+    history->redo();
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), 7);
+}
+
+void TstUi::dropAndPasteImages_data()
+{
+    QTest::addColumn<QString>("kind");
+    for (const auto *kind : {"mindmap", "fishbone", "flowchart", "gantt"})
+        QTest::newRow(kind) << QString::fromLatin1(kind);
+}
+
+void TstUi::dropAndPasteImages()
+{
+    QFETCH(QString, kind);
+    MainWindow window;
+    auto project = ProjectFactory::createMindmap(QStringLiteral("导入图片"));
+    const auto sheet = ProjectFactory::createSheet(kind, QStringLiteral("导入图片"));
+    QVERIFY(std::holds_alternative<Sheet>(sheet));
+    project.sheets = {std::get<Sheet>(sheet)};
+    project.activeSheetId = std::visit([](const auto &s) { return s.id; }, project.sheets.front());
+    loadEditorFixture(window, project);
+    window.resize(1350, 820);
+    window.show();
+    QTest::qWait(35);
+    auto *view = kind == "gantt" ? static_cast<QGraphicsView *>(window.findChild<GanttView *>())
+                                 : window.findChild<QGraphicsView *>("topicPreview");
+    QVERIFY(view);
+    QVERIFY(view->viewport()->acceptDrops());
+    if (kind != "gantt")
+        window.findChild<QAction *>("fitTopic")->trigger();
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    const auto initial = ProjectJson::toJson(doc->project());
+    QTemporaryDir files;
+    QVERIFY(files.isValid());
+    const auto path = files.filePath(QStringLiteral("参考 图.png"));
+    QImage raster(360, 180, QImage::Format_ARGB32);
+    raster.fill(QColor("#C8E4D3"));
+    {
+        QPainter painter(&raster);
+        painter.setPen(QColor("#205746"));
+        painter.setFont(QFont(QStringLiteral("Microsoft YaHei"), 18));
+        painter.drawText(raster.rect(), Qt::AlignCenter, QStringLiteral("参考示意图"));
+    }
+    QVERIFY(raster.save(path));
+    QMimeData imageFile;
+    imageFile.setUrls({QUrl::fromLocalFile(path)});
+    if (kind != "gantt")
+    {
+        const auto id = kind == "flowchart"
+                            ? std::get<FlowSheet>(project.sheets.front()).nodes.firstKey()
+                            : std::get<TreeSheet>(project.sheets.front()).rootId;
+        auto *node = visibleTopic(view, id);
+        QVERIFY(node);
+        QVERIFY(dropImage(view, imageFile, view->mapFromScene(node->scenePos())));
+        const auto nodeImage =
+            kind == "flowchart"
+                ? std::get<FlowSheet>(doc->project().sheets.front()).nodes.value(id).imagePng
+                : std::get<TreeSheet>(doc->project().sheets.front()).nodes.value(id).imagePng;
+        QCOMPARE(ImageService::decode(nodeImage).size(), raster.size());
+        history->undo();
+        QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    }
+    const auto blank = view->viewport()->rect().bottomRight() - QPoint(100, 110);
+    QMimeData remote;
+    remote.setUrls({QUrl(QStringLiteral("https://example.invalid/不导入.png"))});
+    QVERIFY(!dropImage(view, remote, blank));
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    const auto expected = view->mapToScene(blank);
+    QVERIFY(dropImage(view, imageFile, blank));
+    const auto images = [&]
+    { return std::visit([](const auto &s) { return s.images; }, doc->project().sheets.front()); };
+    QCOMPARE(images().size(), 1);
+    QCOMPARE(images().front().position, expected);
+    QCOMPARE(ImageService::decode(images().front().imagePng).size(), raster.size());
+    history->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+
+    auto *clipboard = QApplication::clipboard();
+    const auto clearClipboard = qScopeGuard([clipboard] { clipboard->clear(); });
+    raster.setDevicePixelRatio(2);
+    clipboard->setImage(raster);
+    view->setFocus();
+    const auto center = view->mapToScene(view->viewport()->rect().center());
+    QTest::keyClick(view, Qt::Key_V, Qt::ControlModifier);
+    QCOMPARE(images().size(), 1);
+    QCOMPARE(images().front().position, center);
+    const auto decoded = ImageService::decode(images().front().imagePng);
+    QCOMPARE(decoded.size(), raster.size());
+    QCOMPARE(decoded.devicePixelRatio(), 1.0);
+    if (kind == "mindmap")
+        captureEfficiency(window, QStringLiteral("02-画布粘贴截图"));
+
+    const auto stored = files.filePath(QStringLiteral("嵌入图片.lingya"));
+    QVERIFY(window.saveProjectTo(stored));
+    const auto reopened = FileService::load(stored);
+    QVERIFY(std::holds_alternative<Project>(reopened));
+    QCOMPARE(std::visit([](const auto &s) { return s.images.front().imagePng; },
+                        std::get<Project>(reopened).sheets.front()),
+             images().front().imagePng);
+    history->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+}
+
+void TstUi::focusBranchKeepsViewAndFolding()
+{
+    MainWindow window;
+    auto project = canvasProject(2, 2);
+    const auto branch = canvasId("branch-0");
+    const auto neighbour = canvasId("branch-1");
+    const auto child = canvasId("leaf-0-0");
+    std::get<TreeSheet>(project.sheets.front()).nodes[branch].collapsed = true;
+    loadEditorFixture(window, project);
+    window.resize(1350, 820);
+    window.show();
+    QTest::qWait(35);
+    chooseTopic(window, branch);
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    auto *exit = window.findChild<QPushButton *>("exitBranchFocus");
+    QVERIFY(view && exit);
+    QVERIFY(!exit->isVisible());
+    QVERIFY(!visibleTopic(view, child));
+    view->setTransform(QTransform::fromScale(0.75, 0.75));
+    QApplication::processEvents();
+    view->centerOn(45, -32);
+    const auto originalTransform = view->transform();
+    const auto originalCenter = view->mapToScene(view->viewport()->rect().center());
+    const auto revision = doc->sessionRevision();
+    const auto initial = ProjectJson::toJson(doc->project());
+    auto *target = visibleTopic(view, branch);
+    QVERIFY(target);
+    contextAction(window, view, view->mapFromScene(target->scenePos()),
+                  QStringLiteral("focusBranch"));
+    QVERIFY(exit->isVisible());
+    QVERIFY(visibleTopic(view, child));
+    QCOMPARE(visibleTopic(view, child)->opacity(), 1.0);
+    QCOMPARE(visibleTopic(view, neighbour)->opacity(), 0.25);
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!history->canUndo());
+    captureEfficiency(window, QStringLiteral("03-分支专注"));
+
+    target = visibleTopic(view, branch);
+    contextAction(window, view, view->mapFromScene(target->scenePos()),
+                  QStringLiteral("quickAddNode"));
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    QVERIFY(history->canUndo());
+    QTest::keyClick(view, Qt::Key_Escape);
+    QApplication::processEvents();
+    QVERIFY(!exit->isVisible());
+    QVERIFY(!visibleTopic(view, child));
+    QCOMPARE(visibleTopic(view, neighbour)->opacity(), 1.0);
+    QCOMPARE(view->transform(), originalTransform);
+    const auto restoredCenter = view->mapToScene(view->viewport()->rect().center());
+    const auto centerDelta = QLineF(originalCenter, restoredCenter).length();
+    QVERIFY2(centerDelta <= 2, qPrintable(QStringLiteral("画布中心偏移 %1").arg(centerDelta)));
+    QCOMPARE(doc->sessionRevision(), revision + 1);
+    const auto tree = std::get<TreeSheet>(doc->project().sheets.front());
+    QVERIFY(tree.nodes.value(branch).collapsed);
+    QCOMPARE(tree.nodes.size(), 8);
+    history->undo();
+    QCOMPARE(ProjectJson::toJson(doc->project()), initial);
+}
+
+void TstUi::dueReviewStartsOnlyAvailableCards()
+{
+    MainWindow window;
+    auto project = canvasProject(1, 0);
+    const auto tree = std::get<TreeSheet>(project.sheets.front());
+    const auto day = QDate::currentDate();
+    const auto card = [&](const QString &title, const QString &status, int daysAgo,
+                          const QString &mode = QStringLiteral("custom"))
+    {
+        ReviewCard result;
+        result.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        result.sheetId = tree.id;
+        result.nodeId = tree.rootId;
+        result.front = title;
+        result.back = QStringLiteral("示例答案");
+        result.status = status;
+        result.mode = mode;
+        result.lastReviewedAt = QDateTime(day.addDays(-daysAgo), QTime(9, 0)).toUTC();
+        return result;
+    };
+    project.cards = {card(QStringLiteral("新卡片"), "new", 0),
+                     card(QStringLiteral("昨日报到"), "review", 1),
+                     card(QStringLiteral("今天刚复习"), "review", 0),
+                     card(QStringLiteral("上周已掌握"), "mastered", 7),
+                     card(QStringLiteral("六天前掌握"), "mastered", 6),
+                     card(QStringLiteral("来源需处理"), "new", 0, "linked")};
+    loadEditorFixture(window, project);
+    window.show();
+    runEditor(window, "showReviewCards", "reviewCardsDialog",
+              [](QDialog *dialog)
+              {
+                  auto *today = dialog->findChild<QPushButton *>("reviewDueToday");
+                  auto *filter = dialog->findChild<QComboBox *>("reviewStatusFilter");
+                  auto *list = dialog->findChild<QListWidget *>("reviewCards");
+                  auto *progress = dialog->findChild<QProgressBar *>("reviewProgress");
+                  QVERIFY(today && filter && list && progress);
+                  QCOMPARE(today->text(), QStringLiteral("今日待复习（3）"));
+                  QCOMPARE(list->count(), 6);
+                  QTest::mouseClick(today, Qt::LeftButton);
+                  QCOMPARE(filter->currentData().toString(), QStringLiteral("due"));
+                  QCOMPARE(list->count(), 4);
+                  QCOMPARE(progress->maximum(), 3);
+                  QCOMPARE(dialog->findChild<QLabel *>("reviewFront")->text(),
+                           QStringLiteral("新卡片"));
+                  captureEfficiency(*dialog, QStringLiteral("04-今日待复习"));
+                  dialog->findChild<QPushButton *>("reviewReveal")->click();
+                  dialog->findChild<QPushButton *>("reviewReviewed")->click();
+                  QCOMPARE(today->text(), QStringLiteral("今日待复习（2）"));
+                  QCOMPARE(progress->value(), 1);
+                  QCOMPARE(dialog->findChild<QLabel *>("reviewFront")->text(),
+                           QStringLiteral("昨日报到"));
+              });
+}
+
+void TstUi::historyCopyNeverOverwritesExistingFiles()
+{
+    MainWindow window;
+    loadEditorFixture(window, canvasProject(1, 0));
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto id = doc->project().id;
+    QTemporaryDir files;
+    QVERIFY(files.isValid());
+    const auto original = files.filePath(QStringLiteral("课程工程.lingya"));
+    const auto clone = files.filePath(QStringLiteral("课程工程 - 历史副本.lingya"));
+    QVERIFY(window.renameRootTo(QStringLiteral("第一版内容")));
+    QVERIFY(window.saveProjectTo(original));
+    QVERIFY(window.renameRootTo(QStringLiteral("第二版内容")));
+    QVERIFY(window.saveProjectTo(original));
+    const auto latest = ProjectJson::toJson(doc->project());
+    runEditor(window, "versionHistory", "versionHistoryDialog",
+              [](QDialog *dialog)
+              {
+                  auto *list = dialog->findChild<QListWidget *>("savedVersions");
+                  auto *open = dialog->findChild<QPushButton *>("openVersionCopy");
+                  QVERIFY(list && open);
+                  QCOMPARE(list->count(), 2);
+                  list->setCurrentRow(1);
+                  QVERIFY(open->isEnabled());
+                  QVERIFY(dialog->findChild<QLabel *>("savedVersionPreview")
+                              ->text()
+                              .contains(QStringLiteral("第一版内容")));
+                  captureEfficiency(*dialog, QStringLiteral("05-本机版本历史"));
+                  QTest::mouseClick(open, Qt::LeftButton);
+              });
+    QVERIFY(doc->project().id != id);
+    const auto &oldTree = std::get<TreeSheet>(doc->project().sheets.front());
+    QCOMPARE(oldTree.nodes.value(oldTree.rootId).title, QStringLiteral("第一版内容"));
+    bool warned = false;
+    QTimer::singleShot(0, &window,
+                       [&]
+                       {
+                           if (auto *box =
+                                   qobject_cast<QMessageBox *>(QApplication::activeModalWidget()))
+                           {
+                               warned = box->text().contains(QStringLiteral("文件名已存在"));
+                               box->accept();
+                           }
+                       });
+    QVERIFY(!window.saveProjectTo(original));
+    QVERIFY(warned);
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(FileService::load(original))), latest);
+    QVERIFY(window.saveProjectTo(clone));
+    QCOMPARE(std::get<Project>(FileService::load(clone)).id, doc->project().id);
+    QCOMPARE(ProjectJson::toJson(std::get<Project>(FileService::load(original))), latest);
+}
+
 void TstUi::freeTreeMouseAndPlus()
 {
     MainWindow window;

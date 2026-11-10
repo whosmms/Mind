@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPushButton>
 #include <QResizeEvent>
 #include <QScopedValueRollback>
 #include <QScrollArea>
@@ -615,6 +616,12 @@ void MainWindow::buildEditorChrome()
     scale->setObjectName("canvasZoomValue");
     scale->setMinimumWidth(66);
     zoomLayout->addWidget(scale);
+    auto *exitFocus = new QPushButton(QStringLiteral("退出专注"), statusBar());
+    exitFocus->setObjectName("exitBranchFocus");
+    exitFocus->setToolTip(QStringLiteral("退出分支专注（Esc）并返回原来的视口"));
+    exitFocus->hide();
+    statusBar()->addPermanentWidget(exitFocus);
+    connect(exitFocus, &QPushButton::clicked, this, &MainWindow::exitBranchFocus);
     statusBar()->addPermanentWidget(zoom);
     connect(slider, &QSlider::valueChanged, this,
             [this](int value)
@@ -648,6 +655,11 @@ void MainWindow::updateEditorChrome()
     auto *tabs = findChild<QTabWidget *>("ribbonTabs");
     if (!tabs || m_chromeUpdating)
         return;
+    const bool focused = m_branchFocus && !m_homeVisible && m_centralStack->currentIndex() == 0;
+    if (auto *exitFocus = findChild<QPushButton *>("exitBranchFocus"))
+        exitFocus->setVisible(focused);
+    if (auto *action = findChild<QAction *>("exitBranchFocusAction"))
+        action->setEnabled(focused);
     if (m_homeVisible)
     {
         for (const auto &entry : m_homeActionStates)
@@ -659,6 +671,8 @@ void MainWindow::updateEditorChrome()
     const QScopedValueRollback<bool> updating(m_chromeUpdating, true);
     const bool gantt = m_centralStack->currentIndex() == 1;
     const TreeSheet *tree = activeTreeSheet();
+    if (auto *action = findChild<QAction *>("focusBranch"))
+        action->setEnabled(!gantt && tree && tree->nodes.contains(m_selectedNodeId));
     if (auto *action = findChild<QAction *>("managePresentation"))
         action->setEnabled(tree != nullptr && !gantt);
     const FlowSheet *flow = activeFlowSheet();

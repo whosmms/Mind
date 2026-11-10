@@ -56,6 +56,8 @@
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileDialog>
@@ -79,6 +81,7 @@
 #include <QMimeData>
 #include <QPlainTextEdit>
 #include <QProcess>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QScopeGuard>
 #include <QScrollArea>
@@ -185,6 +188,12 @@ private slots:
     void embeddedImagesAcrossViews();
     void templateGalleryAndAiTutorial();
     void quickMouseRelationsGroupsAndImagePicker();
+    void outlinePastePreviewsAndCommitsOnce();
+    void dropAndPasteImages_data();
+    void dropAndPasteImages();
+    void focusBranchKeepsViewAndFolding();
+    void dueReviewStartsOnlyAvailableCards();
+    void historyCopyNeverOverwritesExistingFiles();
     void topRightAccountShowsPreview_data();
     void topRightAccountShowsPreview();
     void onlineIdentityKeepsLocalDocumentAndHistory();

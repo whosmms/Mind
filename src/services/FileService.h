@@ -41,6 +41,21 @@ std::variant<qint64, AppError> save(const QString& path, const Project& project,
 // 坏文件不覆盖当前工作，由调用方保持原工程不变（R04）。
 std::variant<Project, AppError> load(const QString& path);
 
+struct SavedVersion
+{
+    QString id;
+    QDateTime savedAt;
+    bool legacyBackup = false;
+};
+
+// 在正式保存成功后记录本机副本，最多保留最近十次不同内容的保存。
+// 记录失败不改变已经保存的工程，也不影响恢复快照。
+std::variant<bool, AppError> recordVersion(const QString &path, const Project &project);
+std::variant<QVector<SavedVersion>, AppError> listVersions(const QString &path,
+                                                           const ID &projectId);
+std::variant<Project, AppError> loadVersion(const QString &path, const ID &projectId,
+                                            const QString &versionId);
+
 }  // namespace FileService
 
 }  // namespace lingya

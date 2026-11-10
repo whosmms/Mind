@@ -720,6 +720,14 @@ void MainWindow::manageReviewCards(ID cardId)
     filter->addItem(QStringLiteral("新卡片"), "new");
     filter->addItem(QStringLiteral("已复习"), "review");
     filter->addItem(QStringLiteral("已掌握"), "mastered");
+    const int dueIndex = filter->count();
+    filter->addItem(QStringLiteral("今日待复习"), "due");
+    auto *today = new QPushButton(&dialog);
+    today->setObjectName("reviewDueToday");
+    today->setToolTip(QStringLiteral("新卡片当天可练，已复习隔一天，已掌握隔七天"));
+    auto *filterRow = new QHBoxLayout;
+    filterRow->addWidget(filter, 1);
+    filterRow->addWidget(today);
     auto *list = new QListWidget(&dialog);
     list->setObjectName("reviewCards");
     list->setMaximumHeight(140);
@@ -732,7 +740,7 @@ void MainWindow::manageReviewCards(ID cardId)
     error->setObjectName("reviewError");
     error->setWordWrap(true);
     layout->addWidget(notice);
-    layout->addWidget(filter);
+    layout->addLayout(filterRow);
     layout->addWidget(list);
     auto *reviewScroll = new QScrollArea(&dialog);
     reviewScroll->setObjectName("reviewScroll");
@@ -762,17 +770,27 @@ void MainWindow::manageReviewCards(ID cardId)
     auto *remove = button(QStringLiteral("移除卡片"), "removeReviewCard");
     layout->addWidget(buttons);
     bool preserveSession = false;
+    const auto matches = [filter, dueIndex](const ReviewCard &card, const QDate &date)
+    {
+        if (filter->currentIndex() == dueIndex)
+            return ReviewService::isDue(card, date);
+        const auto status = filter->currentData().toString();
+        return status.isEmpty() || card.status == status;
+    };
     const auto reload = [&, this]
     {
         const ID selected =
             list->currentItem() ? list->currentItem()->data(Qt::UserRole).toString() : cardId;
         list->clear();
+        const auto date = QDate::currentDate();
+        int dueCount = 0;
         for (const auto &card : m_doc->project().cards)
         {
-            if (!filter->currentData().toString().isEmpty() &&
-                card.status != filter->currentData().toString())
-                continue;
             const QString state = ReviewService::detectSourceState(card, m_doc->project());
+            if ((card.mode == "custom" || state == "ok") && ReviewService::isDue(card, date))
+                ++dueCount;
+            if (!matches(card, date))
+                continue;
             auto *item = new QListWidgetItem(
                 QStringLiteral("%1 · %2 · %3")
                     .arg(card.front,
@@ -790,20 +808,24 @@ void MainWindow::manageReviewCards(ID cardId)
         }
         if (!list->currentItem() && list->count())
             list->setCurrentRow(0);
+        today->setText(QStringLiteral("今日待复习（%1）").arg(dueCount));
     };
     const auto begin = [&, this]
     {
         QVector<ReviewCard> cards;
+        const auto date = QDate::currentDate();
         for (const auto &card : m_doc->project().cards)
-            if ((filter->currentData().toString().isEmpty() ||
-                 filter->currentData().toString() == card.status) &&
+            if (matches(card, date) &&
                 (card.mode == "custom" ||
                  ReviewService::detectSourceState(card, m_doc->project()) == "ok"))
                 cards.append(card);
         page->setCards(cards);
         error->setText(
             cards.isEmpty()
-                ? QStringLiteral("没有可复习的卡片；来源变化的卡片需先处理，空答案不能直接建卡。")
+                ? (filter->currentIndex() == dueIndex
+                       ? QStringLiteral("今天没有可复习的到期卡片。来源变化的卡片需先处理。")
+                       : QStringLiteral(
+                             "没有可复习的卡片。来源变化的卡片需先处理，空答案不能直接建卡。"))
                 : QString());
     };
     connect(filter, &QComboBox::currentIndexChanged, &dialog,
@@ -820,6 +842,12 @@ void MainWindow::manageReviewCards(ID cardId)
                     page->setCards({});
             });
     connect(start, &QPushButton::clicked, &dialog, begin);
+    connect(today, &QPushButton::clicked, &dialog,
+            [&]
+            {
+                filter->setCurrentIndex(dueIndex);
+                begin();
+            });
     connect(pick, &QPushButton::clicked, &dialog,
             [&]
             {
