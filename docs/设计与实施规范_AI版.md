@@ -363,7 +363,7 @@ JSON保持既有字段名称和schemaVersion=1。QMap序列化为ID键对象，Q
 
 日期用QDate并以yyyy-MM-dd写入；时间戳用QDateTime转UTC后按ISODateWithMs写入。标题、标签等长度按Unicode码点计数，UTF-8字节数只用于文件/响应上限，不能混用。读取字符串要先检查isString，数字要先检查isDouble并验证有限、整数及范围；不能用toString/toInt的默认值掩盖缺失或错误类型。数值revision限定在JSON安全整数范围内。读取日期须isValid并将格式化结果与输入比对。每个已定义对象拒绝未知字段；升级需要明确迁移。
 
-枚举：themeId为mint/lavender/projection；shape为roundRect/rect/ellipse/diamond/parallelogram；side为left/right/auto；role为start/end/process/decision/io；arrow为none/end/both；注释kind为boundary/summary。卡片status为new/review/mastered，mode为linked/custom，sourceState为ok/changed/missing；稿件purpose为summary/explanation/speech，origin为source/supplement。
+枚举中 `shape` 支持 `roundRect`、`rect`、`ellipse`、`diamond`、`parallelogram`、`capsule`、`hexagon` 和 `cutRect`。`themeId` 为 `mint/lavender/projection`，`side` 为 `left/right/auto`，`role` 为 `start/end/process/decision/io`，`arrow` 为 `none/end/both`，注释 `kind` 为 `boundary/summary`。卡片 `status` 为 `new/review/mastered`，`mode` 为 `linked/custom`，`sourceState` 为 `ok/changed/missing`。稿件 `purpose` 为 `summary/explanation/speech`，`origin` 为 `source/supplement`。
 
 序列化必须覆盖所有类型，不能只保存节点标题。先验证JSON字段，再建立临时Project，最后验证引用和业务规则，全部成功才替换当前工程。没有图元坐标的树重新布局；流程图手动position按文件恢复。
 
@@ -429,6 +429,8 @@ JSON保持既有字段名称和schemaVersion=1。QMap序列化为ID键对象，Q
 ### 6.3 流程图
 
 独立图模型，支持多个起止、判断分支、回路、独立节点。基础形状：起止用胶囊、处理用矩形、判断用菱形、输入输出用平行四边形。用户拖动连接端口建立有向边；双击边输入“是”“否”等标签。重复的完全相同连接需要提示，允许不同端口表达不同含义。
+
+流程节点可选择胶囊形、六边形或切角矩形作为局部边框。选择「随节点类型」使用标准形状。旧工程里的基础形状覆盖字段仍按原有角色渲染规则解释。导图和鱼骨图可将这三种形状用于节点或工作表默认样式。
 
 自由拖动是默认，网格吸附可开关。自动布局用C++实现确定性分层算法：用Tarjan求强连通分量，将分量压缩为无环图，用拓扑顺序及最长路径确定层级，按ID稳定排序并用相邻层重心排序减少交叉；分量内部采用环形排布，按包围盒隔开，再通过矩形端口和折线通道连接，回边走外侧通道。结果写入一次可撤销命令；手动位置不在每次改字时全部重排。检查助手对无出口处理节点、缺少分支标签的判断节点给建议；流程中的合法回路不能当成错误。
 

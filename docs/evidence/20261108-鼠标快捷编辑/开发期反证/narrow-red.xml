@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstCanvas">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0463"/>
+  </TestFunction>
+  <TestFunction name="imageImportAndStrictRoundTrip">
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/tst_canvas.cpp" line="270">
+      <Description><![CDATA['std::holds_alternative<ID>(inserted)' returned FALSE. ()]]></Description>
+    </Incident>
+    <Duration msecs="29.4974"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0146"/>
+  </TestFunction>
+  <Duration msecs="31.2268"/>
+</TestCase>

@@ -1,0 +1,27 @@
+{
+  "sourceCommit": "1dcd0f5512af9bcc161f6fdbf591a9aec73020a3",
+  "runtimeFiles": 18,
+  "candidate": "D:/mind/候选版本/流程自动走线_20261110_1dcd0f5",
+  "programSha256": "CB2D15EA2F9A36FCEAF8F38B4739575F2E2C943F619C5E1906E7C89939F67324",
+  "nativeStartup": {
+    "sourceCommit": "1dcd0f5512af9bcc161f6fdbf591a9aec73020a3",
+    "aliveMilliseconds": 8000,
+    "packageModules": [
+      "imageformats/qgif.dll",
+      "imageformats/qico.dll",
+      "imageformats/qjpeg.dll",
+      "libgcc_s_seh-1.dll",
+      "libstdc++-6.dll",
+      "libwinpthread-1.dll",
+      "lingya.exe",
+      "platforms/qwindows.dll",
+      "Qt6Core.dll",
+      "Qt6Gui.dll",
+      "Qt6Network.dll",
+      "Qt6Widgets.dll",
+      "styles/qmodernwindowsstyle.dll"
+    ],
+    "stderrBytes": 0,
+    "stoppedOnlyOwnProcess": true
+  }
+}

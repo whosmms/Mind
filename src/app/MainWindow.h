@@ -1,11 +1,12 @@
 #pragma once
 #include "domain/Domain.h"
+#include "services/ExportService.h"
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
-#include "services/ExportService.h"
 #include <QMainWindow>
 #include <QPointer>
 #include <QSet>
+#include <QTransform>
 #include <optional>
 
 // Qt类前向声明必须位于全局作用域，不能进入lingya命名空间
@@ -120,6 +121,8 @@ private:
     void showPreferences();
     void applyUserShortcuts();
     void manageDrafts();
+    void openDraftManager(const ID &draftId);
+    void createDraftFromBranch(const ID &rootId);
     void managePresentation();
     void playPresentation(const PresentationRoute &route);
     void exportCurrentSheet();
@@ -135,6 +138,9 @@ private:
     void buildInlineStyle(QVBoxLayout *layout);
     void buildInlineIcons(QVBoxLayout *layout);
     void buildInlineNotes(QVBoxLayout *layout);
+    const BaseNode *selectedCanvasNode() const;
+    const Task *selectedPropertyTask() const;
+    bool hasCurrentInlineProperties() const;
     void updateInlineProperties();
     void applyInlineStyle(bool reset = false);
     void applyInlineIcon(const QString &id);
@@ -154,6 +160,7 @@ private:
     const FlowSheet *activeFlowSheet() const;
     void rebuildFlowCanvas(const FlowSheet &sheet);
     void drawFlowEdges(const FlowSheet &sheet);
+    void cancelFlowGesture();
     void editFlowNode(bool create);
     void editFlowEdge(const ID &edgeId = ID{}, const ID &sourceId = ID{},
                       const QString &sourcePort = QString(), const ID &targetId = ID{},
@@ -161,12 +168,42 @@ private:
     void deleteFlowSelection();
     void layoutFlow();
     bool handleFlowEvent(QObject *watched, QEvent *event);
+    bool handleTreeCanvasEvent(QObject *watched, QEvent *event);
+    bool handleCanvasContextMenu(QObject *watched, QEvent *event);
+    void cancelTreeDrag();
+    void drawTreeLinks(const TreeSheet &display);
+    void focusBranch();
+    static QSet<ID> branchIds(const TreeSheet &sheet, const ID &rootId);
+    void addBranchLearningActions(QMenu &menu, const ID &rootId);
+    void exitBranchFocus();
+    QRectF focusedBranchBounds() const;
+    void applyBranchFocus(const TreeSheet &sheet);
+    void resetTreeLayout();
+    void quickAddNode(const ID &nodeId);
+    void showTemplates(bool insertSheet);
+    void showVersionHistory();
+    void recordSavedVersion(const QString &path);
+    void chooseNodeImage(const ID &nodeId);
+    void insertCanvasImage(const QPointF &position);
+    QVector<CanvasImage> activeImages() const;
+    void drawCanvasImages();
+    bool handleImageEvent(QObject *watched, QEvent *event);
+    void applyImportedImage(const std::variant<QString, AppError> &imported, const ID &nodeId,
+                            const QPointF &position);
     void buildOfflineActions(QMenu *viewMenu);
     void refreshOfflineViews();
     void addTaskBadges();
     void selectTask(ID taskId, bool locateSource = false);
     void editTask(ID taskId);
-    void manageReviewCards(ID cardId = ID{});
+    struct ReviewScope
+    {
+        ID sheetId;
+        QSet<ID> topics;
+        QString label;
+    };
+    void manageReviewCards(ID cardId = {}, std::optional<ReviewScope> scope = std::nullopt);
+    std::variant<QVector<ID>, AppError> addReviewTopics(QWidget *parent,
+                                                        const std::optional<ReviewScope> &scope);
     void locateIssue(ID sheetId, ID targetId);
     void rebuildSheets();
     void createSheet();
@@ -174,6 +211,7 @@ private:
     void deleteSheet();
     void copySelection(bool cut);
     void pasteSelection();
+    void pasteOutlineAsChildren();
     void moveSelection(const ID &nodeId, const ID &parentId, const ID &beforeId = ID{});
     void editRelations();
     void editAnnotations();
@@ -204,7 +242,7 @@ private:
     void onDocumentChanged();
     void updateStatusLine();        // 状态栏统一拼装：文档状态+恢复快照备注
     void showLoginDialog();
-    void showOnlineAccount();
+    void showOnlineAccount(bool serviceSettings = false);
     QString activeSessionRoot() const;
     void showOwnedFilesDialog();
     void updateSessionActions();    // 登录/退出登录/我的文件菜单项的可用性
@@ -222,9 +260,24 @@ private:
     QSet<ID> m_unfilteredCollapsed;
     bool m_filterWasActive = false;
     ID m_dragNodeId;
+    QMap<ID, QPointF> m_treeDragOrigins;
+    QPointF m_treePressScene;
+    bool m_treeStructuralDrag = false;
+    bool m_keepCanvasView = false;
+    QSet<ID> m_multiSelection;
+    ID m_pendingRelation;
+    ID m_selectedImageId, m_dragImageId;
+    QPointF m_imageDragOrigin, m_imagePress;
+    QSizeF m_imageSizeOrigin;
+    bool m_imageResize = false, m_imageMoved = false;
     ID m_flowDragNodeId, m_flowPortNodeId, m_selectedFlowEdge;
     QString m_flowPort;
     QPointF m_flowDragOrigin;
+    ID m_flowPendingNodeId, m_flowDragEdgeId;
+    QString m_flowPendingPort, m_flowDragHandle;
+    QPointF m_flowPointer;
+    bool m_flowDragMoved = false;
+    qint64 m_flowGestureRevision = -1;
     QTableView *m_taskTable = nullptr;
     TaskTableModel *m_taskModel = nullptr;
     IssuePanel *m_issuePanel = nullptr;
@@ -243,6 +296,7 @@ private:
     QList<QPair<QPointer<QAction>, bool>> m_homeActionStates;
     ID m_propertySheetId, m_propertyNodeId;
     qint64 m_propertyRevision = -1;
+    bool m_updatingInline = false;
     BaseNode m_propertyInitial;
     NodeStyleOverride m_propertyStyle;
     QPoint m_dragStart;
@@ -252,11 +306,22 @@ private:
     QString m_editorNote;
     QMap<ID, QStringList> m_annotationMembers;
     ID m_selectedNodeId;                       // 临时选择状态，不持久化、不进入撤销历史
+    struct BranchFocus
+    {
+        ID sheetId, nodeId, originalSelection;
+        QTransform transform;
+        QPointF center;
+        QRectF sceneRect;
+        QPoint scrollBars;
+    };
+    std::optional<BranchFocus> m_branchFocus;
+    static constexpr int kTreeEdgeParentRole = 0x21C8;
     QMap<ID, NodeItem *> m_nodeItems;          // 非拥有指针；图元由m_scene销毁
     QString m_canvasError;
     QStackedWidget* m_centralStack = nullptr;  // 页0思维导图画布 / 页1甘特图（M3）
     QWidget* m_ganttPage = nullptr;            // 甘特页当前内容（占位或丙的视图）
     QString m_filePath;             // 磁盘路径只存在本机会话（原设计§8）
+    bool m_historyCopy = false;     // 历史副本第一次保存需要新路径
     // 已加载文件的外部状态戳（§11.3外部修改检测）；新建未命名或另存新路径时为空
     std::optional<FileService::FileStamp> m_fileStamp;
     QMenu* m_recentMenu = nullptr;  // 文件菜单内“最近文件”子菜单（R04）

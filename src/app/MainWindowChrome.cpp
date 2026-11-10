@@ -1,5 +1,6 @@
 #include "app/MainWindow.h"
 
+#include "app/StyleChoices.h"
 #include "charts/GanttView.h"
 #include "document/ProjectDocument.h"
 #include "graphics/NodeItem.h"
@@ -13,6 +14,7 @@
 #include <QMenuBar>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPushButton>
 #include <QResizeEvent>
 #include <QScopedValueRollback>
 #include <QScrollArea>
@@ -25,6 +27,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <algorithm>
 #include <cmath>
 
 namespace lingya
@@ -59,7 +62,8 @@ enum class Glyph
     Task,
     Review,
     Check,
-    Flow
+    Flow,
+    Account
 };
 
 // 用Qt画笔生成多倍率图标，不依赖QtSvg、字体图标或外部图标引擎。
@@ -80,6 +84,15 @@ QIcon chromeIcon(Glyph glyph)
             { p.drawLine(QPointF(x1, y1), QPointF(x2, y2)); };
             switch (glyph)
             {
+                case Glyph::Account:
+                {
+                    p.drawEllipse(QRectF(8.5, 3, 7, 7));
+                    QPainterPath shoulders;
+                    shoulders.moveTo(4.5, 20);
+                    shoulders.cubicTo(4.5, 10.5, 19.5, 10.5, 19.5, 20);
+                    p.drawPath(shoulders);
+                    break;
+                }
                 case Glyph::Leaf:
                 {
                     QPainterPath leaf;
@@ -333,6 +346,23 @@ void installDockTitle(QDockWidget *dock)
 
 void MainWindow::buildEditorChrome()
 {
+    auto *account = new QToolButton(menuBar());
+    account->setObjectName("accountCornerButton");
+    m_onlineAccountAction->setIcon(chromeIcon(Glyph::Account));
+    account->setDefaultAction(m_onlineAccountAction);
+    account->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    account->setIconSize(QSize(18, 18));
+    account->setFocusPolicy(Qt::StrongFocus);
+    account->setCursor(Qt::PointingHandCursor);
+    const auto updateAccountLabel = [account, action = m_onlineAccountAction]
+    {
+        account->setText(action->iconText());
+        account->setAccessibleName(action->iconText());
+    };
+    connect(m_onlineAccountAction, &QAction::changed, account, updateAccountLabel);
+    updateAccountLabel();
+    menuBar()->setCornerWidget(account, Qt::TopRightCorner);
+
     auto *toolbar = findChild<QToolBar *>("editorToolbar");
     toolbar->clear();
     toolbar->setFloatable(false);
@@ -344,12 +374,17 @@ void MainWindow::buildEditorChrome()
     row->setSpacing(12);
     auto *brand = new QWidget(shell);
     auto *brandLayout = new QVBoxLayout(brand);
-    brandLayout->setContentsMargins(8, 8, 8, 8);
+    brandLayout->setContentsMargins(8, 0, 8, 0);
+    brandLayout->setSpacing(4);
+    brandLayout->setAlignment(Qt::AlignCenter);
     auto *mark = new QLabel(brand);
+    mark->setObjectName("brandMark");
+    mark->setFixedHeight(36);
     mark->setPixmap(chromeIcon(Glyph::Leaf).pixmap(32, 32));
     mark->setAlignment(Qt::AlignCenter);
     auto *name = new QLabel(QStringLiteral("灵芽思维"), brand);
     name->setObjectName("brandName");
+    name->setFixedHeight(26);
     name->setAlignment(Qt::AlignCenter);
     brandLayout->addWidget(mark);
     brandLayout->addWidget(name);
@@ -416,6 +451,8 @@ void MainWindow::buildEditorChrome()
     group(start, QStringLiteral("历史"),
           {{"undoEdit", QStringLiteral("后退"), Glyph::Undo},
            {"redoEdit", QStringLiteral("前进"), Glyph::Redo}});
+    group(start, QStringLiteral("结构"),
+          {{"showTemplateGallery", QStringLiteral("模板"), Glyph::Frame}});
     group(start, QStringLiteral("查找"), {{"showSearch", QStringLiteral("搜索"), Glyph::Locate}});
     auto *insert = page(QStringLiteral("插入"));
     group(insert, QStringLiteral("主题信息"),
@@ -426,6 +463,9 @@ void MainWindow::buildEditorChrome()
           {{"editRelations", QStringLiteral("关系线"), Glyph::Link},
            {"editAnnotations", QStringLiteral("外框概要"), Glyph::Frame},
            {"editComments", QStringLiteral("批注"), Glyph::Note}});
+    group(insert, QStringLiteral("图片"),
+          {{"insertCanvasImage", QStringLiteral("画布图片"), Glyph::File},
+           {"insertNodeImageAction", QStringLiteral("节点图片"), Glyph::File}});
     group(insert, QStringLiteral("任务与复习"),
           {{"linkSelectedTask", QStringLiteral("设为任务"), Glyph::Task},
            {"addReviewCard", QStringLiteral("复习卡片"), Glyph::Review}});
@@ -492,15 +532,24 @@ void MainWindow::buildEditorChrome()
     buildInlineIcons(icons);
     auto *content = propertyPage(QStringLiteral("备注"));
     buildInlineNotes(content);
-    section(content, QStringLiteral("其他属性"), "nodeContentSummary",
-            {{"editFlowNode", QStringLiteral("流程节点"), Glyph::Flow}});
+    section(content, QStringLiteral("其他属性"), "nodeContentSummary", {});
     section(content, QStringLiteral("标签与批注"), "nodeTagsSummary",
             {{"editNodeTags", QStringLiteral("编辑标签"), Glyph::Tag},
              {"editComments", QStringLiteral("查看批注"), Glyph::Note}});
     auto *tasks = propertyPage(QStringLiteral("任务"));
+    auto *editPropertyTask = new QAction(QStringLiteral("编辑属性栏任务…"), this);
+    editPropertyTask->setObjectName("editPropertyTask");
+    connect(editPropertyTask, &QAction::triggered, this,
+            [this]
+            {
+                if (const auto *task = selectedPropertyTask())
+                {
+                    editTask(task->id);
+                }
+            });
     section(tasks, QStringLiteral("所选任务"), "nodeTaskSummary",
             {{"linkSelectedTask", QStringLiteral("设为任务"), Glyph::Task},
-             {"editTaskProperties", QStringLiteral("编辑任务"), Glyph::Edit}});
+             {"editPropertyTask", QStringLiteral("编辑任务"), Glyph::Edit}});
     propertyDock->setWidget(property);
     addDockWidget(Qt::RightDockWidgetArea, propertyDock);
     auto *toggleProperty = propertyDock->toggleViewAction();
@@ -578,6 +627,12 @@ void MainWindow::buildEditorChrome()
     scale->setObjectName("canvasZoomValue");
     scale->setMinimumWidth(66);
     zoomLayout->addWidget(scale);
+    auto *exitFocus = new QPushButton(QStringLiteral("退出专注"), statusBar());
+    exitFocus->setObjectName("exitBranchFocus");
+    exitFocus->setToolTip(QStringLiteral("退出分支专注（Esc）并返回原来的视口"));
+    exitFocus->hide();
+    statusBar()->addPermanentWidget(exitFocus);
+    connect(exitFocus, &QPushButton::clicked, this, &MainWindow::exitBranchFocus);
     statusBar()->addPermanentWidget(zoom);
     connect(slider, &QSlider::valueChanged, this,
             [this](int value)
@@ -606,11 +661,36 @@ void MainWindow::buildEditorChrome()
     resizeEditorChrome();
 }
 
+const Task *MainWindow::selectedPropertyTask() const
+{
+    if (m_homeVisible)
+    {
+        return nullptr;
+    }
+    const bool gantt = m_centralStack->currentIndex() == 1;
+    const auto *tree = gantt ? nullptr : activeTreeSheet();
+    for (const auto &task : m_doc->project().tasks)
+    {
+        if (gantt ? task.id == m_selectedTaskId
+                  : tree && task.source && task.source->sheetId == tree->id &&
+                        task.source->nodeId == m_selectedNodeId)
+        {
+            return &task;
+        }
+    }
+    return nullptr;
+}
+
 void MainWindow::updateEditorChrome()
 {
     auto *tabs = findChild<QTabWidget *>("ribbonTabs");
     if (!tabs || m_chromeUpdating)
         return;
+    const bool focused = m_branchFocus && !m_homeVisible && m_centralStack->currentIndex() == 0;
+    if (auto *exitFocus = findChild<QPushButton *>("exitBranchFocus"))
+        exitFocus->setVisible(focused);
+    if (auto *action = findChild<QAction *>("exitBranchFocusAction"))
+        action->setEnabled(focused);
     if (m_homeVisible)
     {
         for (const auto &entry : m_homeActionStates)
@@ -622,6 +702,8 @@ void MainWindow::updateEditorChrome()
     const QScopedValueRollback<bool> updating(m_chromeUpdating, true);
     const bool gantt = m_centralStack->currentIndex() == 1;
     const TreeSheet *tree = activeTreeSheet();
+    if (auto *action = findChild<QAction *>("focusBranch"))
+        action->setEnabled(!gantt && tree && tree->nodes.contains(m_selectedNodeId));
     if (auto *action = findChild<QAction *>("managePresentation"))
         action->setEnabled(tree != nullptr && !gantt);
     const FlowSheet *flow = activeFlowSheet();
@@ -636,8 +718,22 @@ void MainWindow::updateEditorChrome()
     if (modeChanged)
     {
         tabs->setCurrentIndex(gantt ? 4 : flow ? 3 : 0);
-        if (auto *property = findChild<QTabWidget *>("propertyTabs"))
-            property->setCurrentIndex(gantt ? 3 : flow ? 2 : 0);
+    }
+    if (auto *property = findChild<QTabWidget *>("propertyTabs"))
+    {
+        for (int index : {0, 1, 2})
+        {
+            property->setTabVisible(index, !gantt);
+        }
+        property->setTabVisible(3, gantt || !flow);
+        if (modeChanged)
+        {
+            property->setCurrentIndex(gantt ? 3 : 0);
+        }
+        if (auto *link = property->findChild<QToolButton *>("chrome_linkSelectedTask"))
+        {
+            link->setVisible(!gantt && tree != nullptr);
+        }
     }
     const auto text = [this](const char *name, const QString &value)
     {
@@ -648,26 +744,25 @@ void MainWindow::updateEditorChrome()
     for (const char *name : {"fitTopic", "locateTopic", "zoomIn", "zoomOut"})
         if (auto *action = findChild<QAction *>(name))
             action->setEnabled(!gantt);
-    const BaseNode *node = nullptr;
-    if (tree && tree->nodes.contains(m_selectedNodeId))
-        node = &tree->nodes.constFind(m_selectedNodeId).value();
-    else if (flow && flow->nodes.contains(m_selectedNodeId))
-        node = &flow->nodes.constFind(m_selectedNodeId).value();
-    const Task *task = nullptr;
-    for (const auto &candidate : m_doc->project().tasks)
-        if (candidate.id == m_selectedTaskId)
+    const auto *node = selectedCanvasNode();
+    const auto *task = selectedPropertyTask();
+    for (auto *action : {m_propertiesAction, m_styleAction, m_tagsAction})
+    {
+        action->setEnabled(node != nullptr);
+    }
+    m_openLinkAction->setEnabled(node && node->link.has_value());
+    const auto enable = [this](const char *name, bool enabled)
+    {
+        if (auto *action = findChild<QAction *>(name))
         {
-            task = &candidate;
-            break;
+            action->setEnabled(enabled);
         }
-    if (!task && !gantt && node)
-        for (const auto &candidate : m_doc->project().tasks)
-            if (candidate.source && candidate.source->sheetId == m_doc->project().activeSheetId &&
-                candidate.source->nodeId == node->id)
-            {
-                task = &candidate;
-                break;
-            }
+    };
+    enable("editComments", node != nullptr);
+    enable("editFlowNode", node && flow);
+    enable("editSheetStyle", !gantt && (tree || flow));
+    enable("linkSelectedTask", node && tree);
+    enable("addReviewCard", node && tree);
     const auto preview = [](const QString &value)
     { return value.size() > 140 ? value.left(140) + QStringLiteral("…") : value; };
     text("propertySelection", gantt  ? task ? preview(task->title) : QStringLiteral("选择一个任务")
@@ -683,7 +778,8 @@ void MainWindow::updateEditorChrome()
                                                       : resolved.fontFamily)
                  .arg(resolved.fontSize)
                  .arg(resolved.bold ? QStringLiteral(" · 加粗") : QString())
-                 .arg(resolved.fill, resolved.color));
+                 .arg(StyleChoices::colorName(resolved.fill),
+                      StyleChoices::colorName(resolved.color)));
         text("nodeContentSummary",
              preview(node->note.isEmpty() ? QStringLiteral("尚无备注") : node->note) +
                  QStringLiteral("\n") + preview(node->link.value_or(QStringLiteral("尚无链接"))));
@@ -697,8 +793,9 @@ void MainWindow::updateEditorChrome()
         text("nodeContentSummary", QStringLiteral("选中主题后查看图标、备注与链接"));
         text("nodeTagsSummary", QStringLiteral("选中主题后查看标签与批注"));
     }
-    text("sheetStyleSummary", tree ? QStringLiteral("局部样式优先，未覆盖字段使用本表默认值")
-                                   : QStringLiteral("当前工作表类型由专用工具编辑"));
+    text("sheetStyleSummary",
+         flow ? QStringLiteral("未覆盖的颜色和字体使用本表默认值，形状默认随节点类型")
+              : QStringLiteral("局部样式优先，未覆盖字段使用本表默认值"));
     text("nodeTaskSummary",
          task ? QStringLiteral("%1\n%2 · %3%")
                     .arg(preview(task->title), task->startDate && task->endDate
@@ -707,9 +804,19 @@ void MainWindow::updateEditorChrome()
                                                          task->endDate->toString("yyyy-MM-dd")
                                                    : QStringLiteral("未排期"))
                     .arg(task->progress)
-              : QStringLiteral("将主题设为任务，或在任务表中选择已有任务"));
-    if (auto *edit = findChild<QAction *>("editTaskProperties"))
+         : gantt ? QStringLiteral("从任务表或甘特图选择一个任务")
+         : node  ? QStringLiteral("当前主题可设为任务")
+                 : QStringLiteral("选中导图或鱼骨主题后可设为任务"));
+    if (auto *edit = findChild<QAction *>("editPropertyTask"))
+    {
         edit->setEnabled(task != nullptr);
+    }
+    if (auto *edit = findChild<QAction *>("editTaskProperties"))
+    {
+        const auto &tasks = m_doc->project().tasks;
+        edit->setEnabled(std::any_of(tasks.cbegin(), tasks.cend(), [this](const Task &value)
+                                     { return value.id == m_selectedTaskId; }));
+    }
     updateInlineProperties();
     auto *slider = findChild<QSlider *>("canvasZoomSlider");
     if (slider)

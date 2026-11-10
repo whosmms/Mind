@@ -40,7 +40,7 @@ struct AnnotationUpdate {
 // 所有写入统一经CommandService::applyEdit（候选副本→ProjectValidator校验→单次快照入栈），
 // 失败不改变工程、dirty与撤销历史。
 // 改名统一使用TaskCommands::renameNode，本类不重复提供，避免两套行为。
-// 本批命令作用于树图（mindmap/fishbone）；流程图节点与连线另见后续批次。
+// 节点元数据与局部样式也适用于流程节点；树结构、关系线和分组仍只处理树图。
 class NodeCommands {
 public:
     NodeCommands(CommandService* commands, const ProjectDocument* document);
@@ -52,8 +52,13 @@ public:
 
     // 在父节点子主题末尾新增；root可作为父节点。成功返回新节点ID。
     // 标题先统一规范化；空白转为“未命名主题”；超过Limits::kTitleMaxChars返回LIMIT_EXCEEDED。
-    std::variant<ID, AppError> addChild(const ID& sheetId, const ID& parentId,
-                                        const QString& title);
+    std::variant<ID, AppError> addChild(const ID &sheetId, const ID &parentId, const QString &title,
+                                        const std::optional<QPointF> &position = std::nullopt);
+
+    // 位置写入只影响画面；批量一次提交，空集合/相同坐标不入历史。
+    std::variant<bool, AppError> setPositions(const ID &sheetId,
+                                              const QMap<ID, QPointF> &positions);
+    std::variant<bool, AppError> resetPositions(const ID &sheetId);
 
     // 在参照节点之后新增同级主题（D-M1-03：先按(order,ID)规范化形成兄弟序列，
     // 再在参照之后插入，最后写回连续order）。参照不能是根节点（根无同级）。
@@ -96,13 +101,13 @@ public:
                                                 const NodeMetaUpdate& update);
 
     // 整值替换节点局部样式override：空override=清除，回退工作表默认样式；可撤销。
-    // 预检（基础码）：颜色#RRGGBB、shape五枚举、字号12至32、边宽正数；与当前相同则短路。
+    // 预检（基础码）：颜色#RRGGBB、支持的形状、字号12至32、边宽正数；与当前相同则短路。
     std::variant<bool, AppError> setStyle(const ID& sheetId, const ID& nodeId,
                                           const NodeStyleOverride& style);
 
     // 工作表默认样式（R05 全局样式）：整值替换defaultNodeStyle/defaultEdgeStyle，
     // 未做局部覆盖的节点/连线随之变化；局部override优先级不变。与当前相同则短路。
-    // 预检：颜色#RRGGBB、字号12至32、shape五枚举、边宽0.1至20且有限。
+    // 预检：颜色#RRGGBB、字号12至32、支持的形状、边宽0.1至20且有限。
     std::variant<bool, AppError> setSheetStyle(const ID& sheetId, const NodeStyle& nodeStyle,
                                                const EdgeStyle& edgeStyle);
 

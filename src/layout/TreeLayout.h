@@ -15,7 +15,7 @@ namespace lingya
 // R10规则：子树按每深度轮廓紧凑排布（H(n)=max(高, ΣH(子)+24×(子数−1))的精确化）；
 // 双侧模式已明确side的分支先固定，auto分支按树顺序依次放入累计子树高度较小的一侧
 // （相等放右侧）；左右各自子树块按累计高度居中于根轴；collapsed子树隐藏不参与；
-// layout="right"时全部右侧（fishbone按双侧处理）；根固定在原点(0,0)。
+// right/left/down/up为单向展开；自动布局根固定在原点(0,0)。
 namespace TreeLayout
 {
 
@@ -43,6 +43,11 @@ struct NodePosition
 // 根不存在或存在无法从根到达的节点（孤儿/环，防御性检查——正常工程已被ProjectValidator拒绝）。
 std::variant<QVector<NodePosition>, AppError> layout(const TreeSheet &sheet,
                                                      const QVector<NodeSize> &sizes);
+
+// 自动布局结果按父在子前排列；未固定后代继承最近固定祖先的位移。
+// 此独立叠加步骤允许根的手动坐标，不改变layout()的根原点契约。
+QVector<NodePosition> withManualPositions(const TreeSheet &sheet,
+                                          const QVector<NodePosition> &automatic);
 
 } // namespace TreeLayout
 

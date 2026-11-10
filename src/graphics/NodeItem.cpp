@@ -1,7 +1,14 @@
 #include "graphics/NodeItem.h"
+#include "domain/NodeShapes.h"
+#include "services/ImageService.h"
 #include <QColor>
+#include <QCursor>
 #include <QFontMetricsF>
+#include <QGraphicsEllipseItem>
+#include <QGraphicsSceneHoverEvent>
+#include <QGraphicsSimpleTextItem>
 #include <QPainter>
+#include <QPolygonF>
 #include <cmath>
 
 namespace lingya
@@ -28,8 +35,9 @@ QIcon NodeItem::iconForId(const QString &id)
 }
 
 NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *parent,
-                   const QString &iconId, const NodeStyle &style)
-    : QGraphicsItem(parent), m_title(title), m_font(font), m_icon(iconForId(iconId)), m_style(style)
+                   const QString &iconId, const NodeStyle &style, const QString &imagePng)
+    : QGraphicsItem(parent), m_title(title), m_font(font), m_icon(iconForId(iconId)),
+      m_image(ImageService::decode(imagePng)), m_style(style)
 {
     if (m_style.fill.isEmpty())
         m_style.fill = QStringLiteral("#FFFFFF");
@@ -42,17 +50,31 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
     // 粗体墨迹边界可能宽于字距；向上取整并留一个逻辑像素，避免短标题的尾字意外换行。
     const qreal titleWidth =
         std::ceil(qMax(fm.horizontalAdvance(m_title), fm.boundingRect(m_title).width())) + 1;
-    const qreal width = qBound(kWidthMin, titleWidth + kNodePadding * 2 + iconSpace, kWidthMax);
+    const qreal width =
+        qMax(qBound(kWidthMin, titleWidth + kNodePadding * 2 + iconSpace, kWidthMax),
+             m_image.isNull() ? 0 : qMin(220, m_image.width()) + kNodePadding * 2);
     const int flags = Qt::AlignCenter | Qt::TextWrapAnywhere;
     const QRectF text =
         fm.boundingRect(QRectF(0, 0, width - kNodePadding * 2 - iconSpace, 100000), flags, m_title);
+    const qreal textHeight =
+        qMax(qMax(fm.height(), text.height()), m_icon.isNull() ? 0 : kIconSize);
+    QSize picture = m_image.size();
+    if (!m_image.isNull() && (picture.width() > width - kNodePadding * 2 || picture.height() > 140))
+        picture = picture.scaled(int(width - kNodePadding * 2), 140, Qt::KeepAspectRatio);
+    if (!m_image.isNull())
+        picture = QSize(qMax(1, picture.width()), qMax(1, picture.height()));
     const qreal height =
-        qMax(qMax(fm.height(), text.height()), m_icon.isNull() ? 0 : kIconSize) + kNodePadding * 2;
+        textHeight + kNodePadding * 2 + (m_image.isNull() ? 0 : picture.height() + 8);
     m_rect = QRectF(-width / 2, -height / 2, width, height);
-    m_textRect =
-        m_rect.adjusted(kNodePadding + iconSpace, kNodePadding, -kNodePadding, -kNodePadding);
-    m_iconRect = QRectF(-width / 2 + kNodePadding, -kIconSize / 2, kIconSize, kIconSize);
+    m_textRect = QRectF(-width / 2 + kNodePadding + iconSpace, -height / 2 + kNodePadding,
+                        width - kNodePadding * 2 - iconSpace, textHeight);
+    m_iconRect = QRectF(-width / 2 + kNodePadding, m_textRect.center().y() - kIconSize / 2,
+                        kIconSize, kIconSize);
+    if (!m_image.isNull())
+        m_imageRect = QRectF(-picture.width() / 2.0, m_textRect.bottom() + 8, picture.width(),
+                             picture.height());
     // 扩大斜角形状的外轮廓，完整内容矩形保持居中，避免长标题和图标被切入。
+    const qreal slant = qMin(24.0, height / 3);
     if (m_style.shape == QStringLiteral("ellipse"))
         m_rect = QRectF(-width / std::sqrt(2.0), -height / std::sqrt(2.0), width * std::sqrt(2.0),
                         height * std::sqrt(2.0));
@@ -60,6 +82,8 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
         m_rect = QRectF(-width, -height, width * 2, height * 2);
     else if (m_style.shape == QStringLiteral("parallelogram"))
         m_rect.adjust(-24, 0, 24, 0);
+    else if (m_style.shape == QLatin1StringView(NodeShapes::kHexagon))
+        m_rect.adjust(-slant, 0, slant, 0);
     if (m_style.shape == QStringLiteral("ellipse"))
         m_shape.addEllipse(m_rect);
     else if (m_style.shape == QStringLiteral("diamond"))
@@ -80,8 +104,33 @@ NodeItem::NodeItem(const QString &title, const QFont &font, QGraphicsItem *paren
     }
     else if (m_style.shape == QStringLiteral("rect"))
         m_shape.addRect(m_rect);
-    else if (m_style.shape == QStringLiteral("capsule"))
-        m_shape.addRoundedRect(m_rect, height / 2, height / 2);
+    else if (m_style.shape == QLatin1StringView(NodeShapes::kCapsule))
+    {
+        const qreal radius = qMin(height / 2, 2 * kNodePadding);
+        m_shape.addRoundedRect(m_rect, radius, radius);
+    }
+    else if (m_style.shape == QLatin1StringView(NodeShapes::kHexagon))
+    {
+        const QPointF inset(slant, 0);
+        QPolygonF vertices;
+        vertices << m_rect.topLeft() + inset << m_rect.topRight() - inset
+                 << QPointF(m_rect.right(), 0) << m_rect.bottomRight() - inset
+                 << m_rect.bottomLeft() + inset << QPointF(m_rect.left(), 0);
+        m_shape.addPolygon(vertices);
+        m_shape.closeSubpath();
+    }
+    else if (m_style.shape == QLatin1StringView(NodeShapes::kCutRectangle))
+    {
+        const qreal cut = qMin(14.0, height / 4);
+        const QPointF horizontal(cut, 0), vertical(0, cut);
+        QPolygonF vertices;
+        vertices << m_rect.topLeft() + horizontal << m_rect.topRight() - horizontal
+                 << m_rect.topRight() + vertical << m_rect.bottomRight() - vertical
+                 << m_rect.bottomRight() - horizontal << m_rect.bottomLeft() + horizontal
+                 << m_rect.bottomLeft() - vertical << m_rect.topLeft() + vertical;
+        m_shape.addPolygon(vertices);
+        m_shape.closeSubpath();
+    }
     else
         m_shape.addRoundedRect(m_rect, kNodeRadius, kNodeRadius);
     setFlag(QGraphicsItem::ItemIsSelectable);
@@ -188,9 +237,52 @@ void NodeItem::paintContent(QPainter *painter, bool selected, bool cutPending) c
     painter->drawPath(m_shape);
     if (!m_icon.isNull())
         m_icon.paint(painter, m_iconRect.toRect());
+    if (!m_image.isNull())
+        painter->drawImage(m_imageRect, m_image);
     painter->setPen(QColor(m_style.color));
     painter->setFont(m_font);
     painter->drawText(m_textRect, Qt::AlignCenter | Qt::TextWrapAnywhere, m_title);
+}
+
+void NodeItem::enableAddHandle()
+{
+    if (m_addHandle)
+        return;
+    setAcceptHoverEvents(true);
+    auto *circle = new QGraphicsEllipseItem(QRectF(m_rect.right() + 9, -10, 20, 20), this);
+    circle->setPen(QPen(QColor("#247A62"), 1));
+    circle->setBrush(QColor("#F0F8F4"));
+    circle->setData(0x21C5, true);
+    circle->setZValue(8);
+    circle->setToolTip(QStringLiteral("点击添加并连接新节点"));
+    circle->setCursor(Qt::PointingHandCursor);
+    auto *plus = new QGraphicsSimpleTextItem(QStringLiteral("+"), circle);
+    QFont font;
+    font.setPixelSize(17);
+    plus->setFont(font);
+    plus->setBrush(QColor("#247A62"));
+    plus->setPos(circle->rect().center() - plus->boundingRect().center());
+    plus->setData(0x21C5, true);
+    m_addHandle = circle;
+    circle->setVisible(isSelected() || m_hovered);
+}
+QVariant NodeItem::itemChange(GraphicsItemChange change, const QVariant &value)
+{
+    if (change == ItemSelectedHasChanged && m_addHandle)
+        m_addHandle->setVisible(value.toBool() || m_hovered);
+    return QGraphicsItem::itemChange(change, value);
+}
+void NodeItem::hoverEnterEvent(QGraphicsSceneHoverEvent *)
+{
+    m_hovered = true;
+    if (m_addHandle)
+        m_addHandle->show();
+}
+void NodeItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
+{
+    m_hovered = false;
+    if (m_addHandle)
+        m_addHandle->setVisible(isSelected());
 }
 
 } // namespace lingya

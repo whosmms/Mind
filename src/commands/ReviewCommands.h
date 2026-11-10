@@ -23,8 +23,17 @@ public:
     std::variant<bool, AppError> gradeCard(const ID& cardId, ReviewMark mark);
 
     // 由节点新建卡片：正面=节点标题，背面=备注或直属子节点标题，status="new"、mode="linked"。
-    // 节点无可提取内容（标题与背面皆空）返回NO_CONTENT；同一节点已有卡片返回CARD_EXISTS。
+    // 节点缺失或无答案时返回NO_CONTENT；同一节点已有卡片返回CARD_EXISTS。
     std::variant<ID, AppError> addCard(const ID& sheetId, const ID& nodeId);
+
+    struct Source
+    {
+        ID sheetId;
+        ID nodeId;
+    };
+
+    // 依选择顺序返回新卡片ID。任一来源不合法时整批不写入，空选择不入历史。
+    std::variant<QVector<ID>, AppError> addCards(const QVector<Source> &sources);
 
     // 删除卡片；不存在返回NOT_FOUND
     std::variant<bool, AppError> removeCard(const ID& cardId);

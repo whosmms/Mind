@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstUi">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="3.7273"/>
+  </TestFunction>
+  <TestFunction name="flowAutoRoutes">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[horizontal]]></DataTag>
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[horizontal]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[horizontal]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 13
+   Expected (turns + 2)          : 2]]></Description>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[horizontal-reverse]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[horizontal-reverse]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 13
+   Expected (turns + 2)          : 2]]></Description>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[short-gap]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[short-gap]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 5
+   Expected (turns + 2)          : 2]]></Description>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[vertical]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[vertical]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 4
+   Expected (turns + 2)          : 2]]></Description>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[vertical-reverse]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[vertical-reverse]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 9
+   Expected (turns + 2)          : 2]]></Description>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[perpendicular]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[perpendicular]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 7
+   Expected (turns + 2)          : 3]]></Description>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[offset]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[offset]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 7
+   Expected (turns + 2)          : 4]]></Description>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[same-side]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[same-side]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 9
+   Expected (turns + 2)          : 4]]></Description>
+    </Incident>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[obstacle]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="268">
+      <DataTag><![CDATA[obstacle]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (path.elementCount()): 19
+   Expected (turns + 2)          : 6]]></Description>
+    </Incident>
+    <Duration msecs="1058.98"/>
+  </TestFunction>
+  <TestFunction name="flowAutoRouteAndReconnect">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="326">
+      <Description><![CDATA[Compared values are not the same
+   Actual   (doc->sessionRevision()): 4
+   Expected (rev)                   : 3]]></Description>
+    </Incident>
+    <Duration msecs="93.5046"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0099"/>
+  </TestFunction>
+  <Duration msecs="1158.24"/>
+</TestCase>

@@ -2,6 +2,7 @@
 #include "commands/CommandService.h"
 #include "document/ProjectDocument.h"
 #include "domain/Limits.h"
+#include "domain/NodeShapes.h"
 #include "domain/TitleRules.h"
 
 #include <QDateTime>
@@ -81,7 +82,7 @@ int totalNodeCount(const Project& project) {
     return count;
 }
 
-// 局部样式预检：与ProjectJson读写规则一致（颜色#RRGGBB、shape五枚举、字号范围、边宽正数）
+// 局部样式预检与ProjectJson读写规则一致。
 std::optional<AppError> validateOverride(const NodeStyleOverride& style) {
     const auto validColor = [](const std::optional<QString>& color) {
         return !color.has_value() || isHexColor(*color);
@@ -89,10 +90,8 @@ std::optional<AppError> validateOverride(const NodeStyleOverride& style) {
     if (!validColor(style.fill) || !validColor(style.color) || !validColor(style.borderColor)) {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("颜色必须为#RRGGBB格式")};
     }
-    if (style.shape.has_value() && *style.shape != QStringLiteral("roundRect") &&
-        *style.shape != QStringLiteral("rect") && *style.shape != QStringLiteral("ellipse") &&
-        *style.shape != QStringLiteral("diamond") &&
-        *style.shape != QStringLiteral("parallelogram")) {
+    if (style.shape.has_value() && !NodeShapes::isSupported(*style.shape))
+    {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("节点形状不在支持列表内")};
     }
     if (style.fontSize.has_value() &&
@@ -161,6 +160,40 @@ std::variant<ID, AppError> FlowCommands::addNode(const ID& sheetId, const QStrin
         return *error;
     }
     return nodeId;
+}
+
+std::variant<ID, AppError> FlowCommands::addSuccessor(const ID &sheetId, const ID &sourceId,
+                                                      const QPointF &position)
+{
+    const auto *sheet = findFlow(m_document->project(), sheetId);
+    if (!sheet || !sheet->nodes.contains(sourceId))
+        return AppError{"NOT_FOUND", QStringLiteral("源流程节点不存在")};
+    if (totalNodeCount(m_document->project()) >= Limits::kMaxNodes)
+        return AppError{"LIMIT_EXCEEDED", QStringLiteral("工程节点已达上限")};
+    const ID id = QUuid::createUuid().toString(QUuid::WithoutBraces),
+             edgeId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    const auto result = m_commands->applyEdit(QStringLiteral("新增并连接流程节点"),
+                                              [sheetId, sourceId, position, id, edgeId](Project &p)
+                                              {
+                                                  auto *target = findFlow(p, sheetId);
+                                                  FlowNode node;
+                                                  node.id = id;
+                                                  node.title = QStringLiteral("处理");
+                                                  node.position = position;
+                                                  node.contentRevision = 1;
+                                                  target->nodes.insert(id, node);
+                                                  FlowEdge edge;
+                                                  edge.id = edgeId;
+                                                  edge.sourceId = sourceId;
+                                                  edge.targetId = id;
+                                                  edge.sourcePort = "right";
+                                                  edge.targetPort = "left";
+                                                  edge.style = target->defaultEdgeStyle;
+                                                  target->edges.append(edge);
+                                              });
+    if (const auto *error = std::get_if<AppError>(&result))
+        return *error;
+    return id;
 }
 
 std::variant<bool, AppError> FlowCommands::updateNode(const ID& sheetId, const ID& nodeId,
@@ -375,6 +408,17 @@ std::variant<bool, AppError> FlowCommands::updateEdge(const ID& sheetId, const I
     }
 
     FlowEdge next = *current;
+    if (patch.sourceId)
+        next.sourceId = *patch.sourceId;
+    if (patch.targetId)
+        next.targetId = *patch.targetId;
+    if (!flow->nodes.contains(next.sourceId) || !flow->nodes.contains(next.targetId))
+        return AppError{"NOT_FOUND", QStringLiteral("连线端点不存在")};
+    if (patch.resetBend)
+        next.bendPoint.reset();
+    else if (patch.bendPoint)
+        next.bendPoint = patch.bendPoint;
+
     if (patch.label.has_value()) {
         const QString label = patch.label->trimmed();
         if (TitleRules::codePointCount(label) > Limits::kTitleMaxChars) {
@@ -407,8 +451,11 @@ std::variant<bool, AppError> FlowCommands::updateEdge(const ID& sheetId, const I
         next.targetPort = port;
     }
 
-    if (next.label == current->label && next.arrow == current->arrow &&
-        next.sourcePort == current->sourcePort && next.targetPort == current->targetPort) {
+    if (next.sourceId == current->sourceId && next.targetId == current->targetId &&
+        next.bendPoint == current->bendPoint && next.label == current->label &&
+        next.arrow == current->arrow && next.sourcePort == current->sourcePort &&
+        next.targetPort == current->targetPort)
+    {
         return true;   // 无操作短路
     }
     // 改端口后若与既有连线完全相同，同样拒绝（保持“完全相同的连接只允许一条”）
@@ -494,13 +541,18 @@ std::variant<bool, AppError> FlowCommands::applyLayout(const ID& sheetId,
             break;
         }
     }
-    if (!changed) return true;   // 位置未变则不入历史
+    for (const auto &edge : flow->edges)
+        changed |= edge.bendPoint.has_value();
+    if (!changed)
+        return true; // 位置与曲线均未变则不入历史
 
     const auto applied = m_commands->applyEdit(
         QStringLiteral("自动布局流程图"),
         [sheetId, positions = result.positions](Project& project) {
             FlowSheet* target = findFlow(project, sheetId);
             if (target == nullptr) return;
+            for (auto &edge : target->edges)
+                edge.bendPoint.reset();
             for (const FlowLayout::NodePosition& position : positions) {
                 const auto it = target->nodes.find(position.id);
                 if (it == target->nodes.end()) continue;

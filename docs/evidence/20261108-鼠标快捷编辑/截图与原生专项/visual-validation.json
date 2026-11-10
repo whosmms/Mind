@@ -1,0 +1,38 @@
+[
+  {
+    "sourceCommit": "6d95db47eec25f2f82081119754aacfa8be542e9",
+    "mode": "offscreen",
+    "exitCode": 0,
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "screenshots": 13
+  },
+  {
+    "sourceCommit": "6d95db47eec25f2f82081119754aacfa8be542e9",
+    "mode": "windows-1",
+    "exitCode": 0,
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "screenshots": 0
+  },
+  {
+    "sourceCommit": "6d95db47eec25f2f82081119754aacfa8be542e9",
+    "mode": "windows-1.5",
+    "exitCode": 0,
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "screenshots": 0
+  },
+  {
+    "sourceCommit": "6d95db47eec25f2f82081119754aacfa8be542e9",
+    "mode": "windows-2",
+    "exitCode": 0,
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "screenshots": 0
+  }
+]

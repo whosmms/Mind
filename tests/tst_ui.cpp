@@ -1,5 +1,15 @@
 #include "AuthTestTransport.h"
+#include "commands/ImageCommands.h"
+#include "graphics/CanvasImageItem.h"
+#include "services/ImageService.h"
 #include "services/OnlineAuthService.h"
+#include "services/TemplateLibrary.h"
+#include <QBuffer>
+#include <QContextMenuEvent>
+#include <QPainter>
+#include <QPainterPathStroker>
+#include <QTextBrowser>
+#include <QWheelEvent>
 #include <QtTest>
 
 // 崩溃链路用例用 _exit 绕过析构（模拟进程被杀）：POSIX 下由 unistd.h 声明，
@@ -16,6 +26,7 @@
 #include "ai/SecretStore.h"
 #include "charts/GanttView.h"
 #include "charts/TaskTableModel.h"
+#include "commands/AiCommands.h"
 #include "commands/CommandService.h"
 #include "commands/FlowCommands.h"
 #include "commands/NodeCommands.h"
@@ -47,6 +58,8 @@
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileDialog>
@@ -65,34 +78,39 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPlainTextEdit>
 #include <QProcess>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QScopeGuard>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSettings>
 #include <QSlider>
-#include <QStyleOptionSpinBox>
-#include <QToolTip>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QStyleOptionSpinBox>
+#include <QStyleOptionViewItem>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
+#include <QToolTip>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QUrl>
 #include <QUuid>
 
+#include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstdlib>
-#include <algorithm>
 
 #include "app/MainWindow.h"
 #include "app/RecoveryDialog.h"
@@ -164,6 +182,35 @@ class TstUi : public QObject {
 
 private slots:
     void initTestCase();
+    void freeTreeMouseAndPlus();
+    void flowAutoRoutes_data();
+    void flowAutoRoutes();
+    void flowCurveFollowsDraggedNode();
+    void flowAutoRouteAndReconnect();
+    void flowInlinePropertiesEditAndRoundTrip();
+    void flowPropertyActionsAndEdgeSelection();
+    void propertyTabsFollowNodeAndTaskSelection();
+    void namedBorderShapesPersistAcrossDiagrams_data();
+    void namedBorderShapesPersistAcrossDiagrams();
+    void namedColorsAndCustomPicker();
+    void instantStyleWheelAndBrand();
+    void embeddedImagesAcrossViews_data();
+    void embeddedImagesAcrossViews();
+    void templateGalleryAndAiTutorial();
+    void quickMouseRelationsGroupsAndImagePicker();
+    void outlinePastePreviewsAndCommitsOnce();
+    void dropAndPasteImages_data();
+    void dropAndPasteImages();
+    void focusBranchKeepsViewAndFolding();
+    void dueReviewStartsOnlyAvailableCards();
+    void historyCopyNeverOverwritesExistingFiles();
+    void branchReviewLimitsQueueAndTopicPicker();
+    void compareReviewSourceKeepsProgressAndFindsTopic();
+    void branchDraftPreviewAndCardsFromSources();
+    void draftSourceComparisonPreservesManualText();
+    void legacyDraftComparisonLeavesUnverifiedHistoryUnknown();
+    void topRightAccountShowsPreview_data();
+    void topRightAccountShowsPreview();
     void onlineIdentityKeepsLocalDocumentAndHistory();
     void inlineStyleKeepsUneditedValues_data();
     void inlineStyleKeepsUneditedValues();
@@ -203,6 +250,8 @@ private slots:
     void ganttSheetFilterKeepsProjectAndHistory();
     void ganttClickKeepsPageDuringDrag();
     void offlineReviewGradesAndSourceChanges();
+    void offlineReviewPicksTopics_data();
+    void offlineReviewPicksTopics();
     void offlineCheckLocatesAndRefreshes();
     void editorClipboardRejectsStaleAndInvalid();
     void editorCanvasDragKeepsIdsAndRepairsFrames();
@@ -330,6 +379,14 @@ private:
                                  dialog->reject();
                          });
       window.findChild<QAction *>(QString::fromLatin1(action))->trigger();
+  }
+  static void chooseStyleColor(QWidget *widget, const char *name, const QString &color)
+  {
+      auto *box = widget->findChild<QComboBox *>(name);
+      QVERIFY(box);
+      const int index = box->findData(color);
+      QVERIFY(index >= 0);
+      box->setCurrentIndex(index);
   }
   static void answerNodeTags(MainWindow &window, std::function<void(QDialog *)> answer)
   {
@@ -2129,7 +2186,12 @@ void TstUi::treeCanvasHundredNodesRoundTrip()
     auto *view = window.findChild<QGraphicsView *>(QStringLiteral("topicPreview"));
     const auto before = canvasNodes(view);
     QCOMPARE(before.size(), 100);
-    QCOMPARE(view->scene()->items().size(), 199);
+    int contentItems = 0;
+    for (auto *item : view->scene()->items())
+        if (!item->parentItem())
+            ++contentItems;
+    // 100个主题和99条树线；快捷加号及其文字属于主题子图元，不混入内容计数。
+    QCOMPARE(contentItems, 199);
     const auto values = before.values();
     QMap<ID, QPointF> positions;
     QMap<ID, QRectF> bounds;
@@ -2479,6 +2541,121 @@ void TstUi::unsavedPromptButtonsAreChineseAndCancelKeepsContent()
     QVERIFY(window.findChild<ProjectDocument *>()->isModified());
 }
 
+void TstUi::topRightAccountShowsPreview_data()
+{
+    QTest::addColumn<int>("width");
+    QTest::newRow("wide") << 1536;
+    QTest::newRow("narrow-with-local-account") << 800;
+}
+
+void TstUi::topRightAccountShowsPreview()
+{
+    QFETCH(int, width);
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    MainWindow::setSessionRootForTest(root.path());
+    const auto restoreRoot =
+        qScopeGuard([this] { MainWindow::setSessionRootForTest(m_sessionDir.path()); });
+    auth_test::Network network;
+    auto *auth = new OnlineAuthService(root.path(), nullptr, &network,
+                                       std::make_unique<SessionSecretStore>());
+    MainWindow window(nullptr, auth);
+    window.setStyleSheet(AppearanceService::styleSheet("mint"));
+    const bool local = width == 800;
+    if (local)
+    {
+        QVERIFY(std::holds_alternative<bool>(SessionService::createAccount(
+            root.path(), QStringLiteral("本机测试账号"), QStringLiteral("test123"))));
+        QVERIFY(window.loginSession(QStringLiteral("本机测试账号"), QStringLiteral("test123")));
+    }
+    QVERIFY(window.renameRootTo(QStringLiteral("编辑内容保留在本机")));
+    auto *document = window.findChild<ProjectDocument *>();
+    QVERIFY(document);
+    const auto revision = document->sessionRevision();
+    const auto projectId = window.currentProjectId();
+    window.resize(width, 820);
+    window.showHomePage();
+    window.show();
+    const auto captures = qEnvironmentVariable("LINGYA_ACCOUNT_CORNER_CAPTURE_DIR");
+    if (!captures.isEmpty())
+        QVERIFY(QDir().mkpath(captures));
+    auto *menu = window.menuBar();
+    auto *corner = qobject_cast<QToolButton *>(menu->cornerWidget(Qt::TopRightCorner));
+    QVERIFY(corner && !corner->icon().isNull());
+    for (bool home : {true, false})
+    {
+        if (!home)
+            window.findChild<QPushButton *>("homeContinue")->click();
+        QCoreApplication::processEvents();
+        QCOMPARE(window.findChild<QWidget *>("homePage")->isVisible(), home);
+        QVERIFY(corner->isVisible() && corner->isEnabled());
+        QCOMPARE(corner->text(), QStringLiteral("登录"));
+        QCOMPARE(corner->accessibleName(), corner->text());
+        QVERIFY(menu->rect().contains(corner->geometry()));
+        QVERIFY(menu->width() - corner->geometry().right() < 32);
+        for (auto *action : menu->actions())
+            QVERIFY(!corner->geometry().intersects(menu->actionGeometry(action)));
+        if (!captures.isEmpty() && home)
+            QVERIFY(window.grab().save(captures + QStringLiteral("/首页右上角-%1.png").arg(width)));
+
+        bool opened = false;
+        QTimer::singleShot(
+            0, &window,
+            [&]
+            {
+                auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+                QVERIFY(dialog);
+                const auto close = qScopeGuard([dialog] { dialog->reject(); });
+                QCOMPARE(dialog->objectName(), QStringLiteral("onlineAccountDialog"));
+                auto *tabs = dialog->findChild<QTabWidget *>("onlineAuthTabs");
+                auto *status = dialog->findChild<QLabel *>("onlineAuthStatus");
+                QVERIFY(tabs && status && status->isVisible());
+                QVERIFY(status->text().contains(QStringLiteral("账号服务待接入")));
+                QVERIFY(!dialog->findChild<QLineEdit *>("onlineProjectUrl"));
+                QCOMPARE(tabs->currentIndex(), 0);
+                QCOMPARE(tabs->count(), 3);
+                auto *email = dialog->findChild<QLineEdit *>("onlineLoginEmail");
+                QVERIFY(email && email->isReadOnly());
+                QTest::keyClicks(email, "test@example.com");
+                QVERIFY(email->text().isEmpty());
+                const QStringList pages{QStringLiteral("登录"), QStringLiteral("注册"),
+                                        QStringLiteral("找回密码")};
+                const QStringList submits{"onlineLogin", "onlineConfirm", "onlineReset"};
+                for (int i = 0; i < pages.size(); ++i)
+                {
+                    QTest::mouseClick(tabs->tabBar(), Qt::LeftButton, Qt::NoModifier,
+                                      tabs->tabBar()->tabRect(i).center());
+                    QCOMPARE(tabs->currentIndex(), i);
+                    QCOMPARE(tabs->tabText(i), pages.at(i));
+                    auto *scroll = qobject_cast<QScrollArea *>(tabs->currentWidget());
+                    auto *submit = dialog->findChild<QPushButton *>(submits.at(i));
+                    QVERIFY(scroll && submit && !submit->isEnabled());
+                    QCoreApplication::processEvents();
+                    if (dialog->height() < 540 || dialog->width() < 480)
+                        scroll->ensureWidgetVisible(submit);
+                    const QRect actionBounds(submit->mapTo(scroll->viewport(), QPoint()),
+                                             submit->size());
+                    QVERIFY(scroll->viewport()->rect().contains(actionBounds));
+                    if (!captures.isEmpty() && home && width == 1536)
+                    {
+                        QCoreApplication::processEvents();
+                        QVERIFY(dialog->grab().save(captures + QLatin1Char('/') + pages.at(i) +
+                                                    QStringLiteral("预览.png")));
+                    }
+                }
+                opened = true;
+            });
+        QTest::mouseClick(corner, Qt::LeftButton);
+        QVERIFY(opened);
+    }
+    QCOMPARE(network.sent.size(), 0);
+    QVERIFY(!auth->loggedIn());
+    QCOMPARE(window.isLoggedIn(), local);
+    QCOMPARE(document->sessionRevision(), revision);
+    QCOMPARE(window.currentProjectId(), projectId);
+    QCOMPARE(window.currentRootTitle(), QStringLiteral("编辑内容保留在本机"));
+}
+
 void TstUi::onlineIdentityKeepsLocalDocumentAndHistory()
 {
     QTemporaryDir root;
@@ -2501,9 +2678,13 @@ void TstUi::onlineIdentityKeepsLocalDocumentAndHistory()
     const auto projectId = window.currentProjectId();
     auto *undo = window.findChild<QAction *>("undoEdit");
     QVERIFY(undo && undo->isEnabled());
+    auto *corner = window.findChild<QToolButton *>("accountCornerButton");
+    QVERIFY(corner);
+    QCOMPARE(corner->text(), QStringLiteral("登录"));
     network.replies << auth_test::good();
     auth->login("reader@example.com", "fake-password-123", false);
     QTRY_VERIFY(window.isLoggedIn());
+    QCOMPARE(corner->text(), QStringLiteral("我的账号"));
     QCOMPARE(window.sessionUserName(), QString("reader@example.com"));
     QCOMPARE(document->sessionRevision(), revision);
     QCOMPARE(window.currentProjectId(), projectId);
@@ -2518,6 +2699,7 @@ void TstUi::onlineIdentityKeepsLocalDocumentAndHistory()
     window.logoutSession();
     QTRY_VERIFY(!auth->busy());
     QVERIFY(!window.isLoggedIn());
+    QCOMPARE(corner->text(), QStringLiteral("登录"));
     QCOMPARE(document->sessionRevision(), revision);
     QCOMPARE(window.currentRootTitle(), QStringLiteral("只保存在本机的内容"));
     QVERIFY(QFile::exists(saved));
@@ -3001,12 +3183,9 @@ void TstUi::nodeStyleEditUndoAndRoundTrip()
         window,
         [](QDialog *dialog)
         {
-            dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"))
-                ->setText(QStringLiteral("#E7F0FF"));
-            dialog->findChild<QLineEdit *>(QStringLiteral("styleColor"))
-                ->setText(QStringLiteral("#102040"));
-            dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderColor"))
-                ->setText(QStringLiteral("#406080"));
+            chooseStyleColor(dialog, "styleFill", QStringLiteral("#E7F0FF"));
+            chooseStyleColor(dialog, "styleColor", QStringLiteral("#102040"));
+            chooseStyleColor(dialog, "styleBorderColor", QStringLiteral("#406080"));
             dialog->findChild<QLineEdit *>(QStringLiteral("styleFontFamily"))
                 ->setText(QStringLiteral("Microsoft YaHei"));
             dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderWidth"))
@@ -3093,18 +3272,15 @@ void TstUi::nodeStyleCancelInvalidResetAndNoOp()
         window,
         [](QDialog *dialog)
         {
-            auto *fill = dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"));
+            auto *fill = dialog->findChild<QComboBox *>(QStringLiteral("styleFill"));
             auto *width = dialog->findChild<QLineEdit *>(QStringLiteral("styleBorderWidth"));
             auto *buttons = dialog->findChild<QDialogButtonBox *>();
-            fill->setText(QStringLiteral("red"));
+            QVERIFY(fill && !fill->isEditable());
+            width->setText(QStringLiteral("21"));
             buttons->button(QDialogButtonBox::Ok)->click();
             QVERIFY(dialog->isVisible());
             QVERIFY(
                 !dialog->findChild<QLabel *>(QStringLiteral("nodeStyleError"))->text().isEmpty());
-            fill->clear();
-            width->setText(QStringLiteral("21"));
-            buttons->button(QDialogButtonBox::Ok)->click();
-            QVERIFY(dialog->isVisible());
             dialog->findChild<QPushButton *>(QStringLiteral("resetNodeStyle"))->click();
             buttons->button(QDialogButtonBox::Cancel)->click();
         });
@@ -3173,8 +3349,7 @@ void TstUi::nodeStyleUneditedFontOverride()
         window,
         [](QDialog *dialog)
         {
-            dialog->findChild<QLineEdit *>(QStringLiteral("styleFill"))
-                ->setText(QStringLiteral("#E7F0FF"));
+            chooseStyleColor(dialog, "styleFill", QStringLiteral("#E7F0FF"));
             dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
         });
     edit->trigger();
@@ -3940,14 +4115,14 @@ void TstUi::editorCanvasDragKeepsIdsAndRepairsFrames()
     const QPoint start = view->mapFromScene(items.value(a)->pos()),
                  end = view->mapFromScene(items.value(c)->pos());
     const qint64 beforeDrag = window.findChild<ProjectDocument *>()->sessionRevision();
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::AltModifier, start);
     QEvent leave(QEvent::Leave);
     QApplication::sendEvent(view->viewport(), &leave);
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::AltModifier, end);
     QCOMPARE(window.findChild<ProjectDocument *>()->sessionRevision(), beforeDrag);
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::AltModifier, start);
     QTest::mouseMove(view->viewport(), end);
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::AltModifier, end);
     auto *doc = window.findChild<ProjectDocument *>();
     QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(a).parentId.value(), c);
     QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).annotations.isEmpty());
@@ -3974,7 +4149,7 @@ void TstUi::editorGlobalStylePrecedenceAndRoundTrip()
     runEditor(window, "editSheetStyle", "sheetStyleDialog",
               [](QDialog *dialog)
               {
-                  dialog->findChild<QLineEdit *>("styleFill")->setText("wrong");
+                  dialog->findChild<QLineEdit *>("styleBorderWidth")->setText("0.05");
                   dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
                   QVERIFY(dialog->isVisible());
                   QVERIFY(!dialog->findChild<QLabel *>("nodeStyleError")->text().isEmpty());
@@ -3983,8 +4158,10 @@ void TstUi::editorGlobalStylePrecedenceAndRoundTrip()
     runEditor(window, "editSheetStyle", "sheetStyleDialog",
               [](QDialog *dialog)
               {
-                  dialog->findChild<QLineEdit *>("styleFill")->setText("#E7F0FF");
-                  dialog->findChild<QLineEdit *>("sheetEdgeColor")->setText("#406080");
+                  chooseStyleColor(dialog, "styleFill", QStringLiteral("#E7F0FF"));
+                  chooseStyleColor(dialog, "sheetEdgeColor", QStringLiteral("#406080"));
+                  auto *shape = dialog->findChild<QComboBox *>("styleShape");
+                  shape->setCurrentIndex(shape->findData(QStringLiteral("cutRect")));
                   dialog->findChild<QCheckBox *>("sheetEdgeDashed")->setChecked(true);
                   dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
               });
@@ -3993,6 +4170,8 @@ void TstUi::editorGlobalStylePrecedenceAndRoundTrip()
              QStringLiteral("#FFF0D0"));
     QCOMPARE(canvasNodes(view).value(canvasId("branch-1"))->nodeStyle().fill,
              QStringLiteral("#E7F0FF"));
+    QCOMPARE(canvasNodes(view).value(canvasId("branch-1"))->nodeStyle().shape,
+             QStringLiteral("cutRect"));
     QVERIFY(std::get<TreeSheet>(doc->project().sheets.first()).defaultEdgeStyle.dashed);
     commands->undo();
     QVERIFY(!commands->canUndo());
@@ -4025,7 +4204,7 @@ void TstUi::editorRelationsAndCommentsRoundTrip()
             QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).relations.size(), 1);
             auto *list = dialog->findChild<QListWidget *>("records");
             list->itemClicked(list->item(0));
-            dialog->findChild<QLineEdit *>("relationColor")->setText("#406080");
+            chooseStyleColor(dialog, "relationColor", QStringLiteral("#406080"));
             auto *arrow = dialog->findChild<QComboBox *>("relationArrow");
             arrow->setCurrentIndex(arrow->findData("both"));
             dialog->findChild<QPushButton *>("applyRecord")->click();
@@ -4190,12 +4369,12 @@ void TstUi::editorAnnotationEditDeleteAndThemeColor()
             list->itemClicked(list->item(0));
             dialog->findChild<QLineEdit *>("annotationText")
                 ->setText(QStringLiteral("修改后的外框"));
-            dialog->findChild<QLineEdit *>("annotationColor")->setText("#406080");
+            chooseStyleColor(dialog, "annotationColor", QStringLiteral("#406080"));
             dialog->findChild<QPushButton *>("applyRecord")->click();
             QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).annotations.first().text,
                      QStringLiteral("修改后的外框"));
             list->itemClicked(list->item(0));
-            dialog->findChild<QLineEdit *>("annotationColor")->clear();
+            dialog->findChild<QComboBox *>("annotationColor")->setCurrentIndex(0);
             dialog->findChild<QPushButton *>("applyRecord")->click();
             const auto &tree = std::get<TreeSheet>(doc->project().sheets.first());
             // 留空=跟随主题色：界面写空串而不是把当前主题色冻进批注（§44；渲染回退到 defaultEdgeStyle.color）
@@ -4563,31 +4742,13 @@ void TstUi::flowPortsCreateEdgeAndCancel()
     const QPoint b = view->mapFromScene(
         items.value(second)->mapToScene(QPointF(0, items.value(second)->nodeRect().top())));
     const qint64 revision = doc->sessionRevision();
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
-    QTimer::singleShot(0, &window,
-                       [&]
-                       {
-                           auto *dialog = window.findChild<QDialog *>("flowEdgeDialog");
-                           QVERIFY(dialog);
-                           dialog->reject();
-                       });
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
+    QTest::keyClick(view, Qt::Key_Escape);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
+    QTest::keyClick(view, Qt::Key_Escape);
     QCOMPARE(doc->sessionRevision(), revision);
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
-    QTimer::singleShot(
-        0, &window,
-        [&]
-        {
-            auto *dialog = window.findChild<QDialog *>("flowEdgeDialog");
-            QVERIFY(dialog);
-            QCOMPARE(dialog->findChild<QComboBox *>("flowSource")->currentData().toString(), first);
-            QCOMPARE(dialog->findChild<QComboBox *>("flowTarget")->currentData().toString(),
-                     second);
-            dialog->findChild<QLineEdit *>("flowEdgeLabel")->setText(QStringLiteral("继续"));
-            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
-            dialog->reject();
-        });
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, a);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, b);
     QCOMPARE(doc->sessionRevision(), revision + 1);
     const auto &edge = std::get<FlowSheet>(doc->project().sheets.first()).edges.first();
     QCOMPARE(edge.sourcePort, QStringLiteral("bottom"));
@@ -4810,6 +4971,180 @@ void TstUi::offlineReviewGradesAndSourceChanges()
     QVERIFY(reopened.openFile(path));
     QCOMPARE(reopened.findChild<ProjectDocument *>()->project().cards.first().status,
              QStringLiteral("mastered"));
+}
+
+void TstUi::offlineReviewPicksTopics_data()
+{
+    QTest::addColumn<bool>("reviewing");
+    QTest::newRow("keep-current-card") << true;
+    QTest::newRow("start-new-cards") << false;
+}
+
+void TstUi::offlineReviewPicksTopics()
+{
+    QFETCH(bool, reviewing);
+    MainWindow window;
+    Project project = canvasProject(2, 1);
+    auto &tree = std::get<TreeSheet>(project.sheets.first());
+    tree.name = QStringLiteral("课程提纲");
+    const ID sheetId = tree.id, rootId = tree.rootId;
+    const ID duplicate = canvasId("branch-0"), target = canvasId("branch-1"),
+             empty = canvasId("leaf-1-0");
+    auto previous = ReviewService::createCard(project, sheetId, duplicate);
+    QVERIFY(previous);
+    previous->status = QStringLiteral("mastered");
+    project.cards.append(*previous);
+    auto extra = ProjectFactory::createFishbone(QStringLiteral("错题分析"));
+    auto &fishbone = std::get<TreeSheet>(extra.sheets.first());
+    fishbone.name = QStringLiteral("错题分析");
+    const ID fishRoot = fishbone.rootId, fishId = fishbone.id;
+    fishbone.nodes[fishRoot].note = QStringLiteral("先找到问题根因");
+    project.sheets.append(extra.sheets.first());
+    project.sheets.append(
+        ProjectFactory::createFlowchart(QStringLiteral("流程示例")).sheets.first());
+    loadEditorFixture(window, project);
+    window.show();
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    const auto revision = doc->sessionRevision();
+
+    runEditor(
+        window, "showReviewCards", "reviewCardsDialog",
+        [&](QDialog *review)
+        {
+            auto *page = review->findChild<ReviewPage *>();
+            auto *filter = review->findChild<QComboBox *>("reviewStatusFilter");
+            auto *pick = review->findChild<QPushButton *>("pickReviewTopics");
+            auto *cards = review->findChild<QListWidget *>("reviewCards");
+            QVERIFY(page && filter && pick && cards);
+            auto *answer = page->findChild<QLabel *>("reviewBack");
+            QVERIFY(answer);
+            if (reviewing)
+            {
+                QCOMPARE(page->totalCount(), 1);
+                QTest::mouseClick(page->findChild<QPushButton *>("reviewReveal"), Qt::LeftButton);
+                QVERIFY(answer->isVisible());
+            }
+            else
+            {
+                filter->setCurrentIndex(filter->findData(QStringLiteral("mastered")));
+                QVERIFY(page->isFinished());
+            }
+
+            const auto selectTopics = [&](bool confirm)
+            {
+                QTimer::singleShot(
+                    0, review,
+                    [&, confirm]
+                    {
+                        auto *chooser = review->findChild<QDialog *>("pickReviewTopicsDialog");
+                        QVERIFY(chooser && chooser->isVisible());
+                        const auto close = qScopeGuard(
+                            [chooser]
+                            {
+                                if (chooser->isVisible())
+                                    chooser->reject();
+                            });
+                        auto *topics = chooser->findChild<QTreeWidget *>("reviewTopicTree");
+                        auto *add = chooser->findChild<QPushButton *>("confirmReviewTopics");
+                        auto *selected = chooser->findChild<QLabel *>("reviewTopicSelectionCount");
+                        QVERIFY(topics && selected && add && !add->isEnabled());
+                        QCOMPARE(selected->text(), QStringLiteral("已选 0 个主题"));
+                        QCOMPARE(topics->topLevelItemCount(), 2);
+                        auto *outline = topics->topLevelItem(0);
+                        QCOMPARE(outline->text(0), QStringLiteral("课程提纲"));
+                        QVERIFY(outline->isExpanded());
+                        auto *root = outline->child(0);
+                        QVERIFY(root && root->isExpanded());
+                        QCOMPARE(root->data(0, Qt::UserRole).toString(), rootId);
+                        auto *existingRow = root->child(0);
+                        auto *targetRow = root->child(1);
+                        QCOMPARE(existingRow->data(0, Qt::UserRole).toString(), duplicate);
+                        QCOMPARE(existingRow->text(1), QStringLiteral("已加入"));
+                        QVERIFY(!(existingRow->flags() & Qt::ItemIsUserCheckable));
+                        QCOMPARE(targetRow->data(0, Qt::UserRole).toString(), target);
+                        auto *emptyRow = targetRow->child(0);
+                        QCOMPARE(emptyRow->data(0, Qt::UserRole).toString(), empty);
+                        QCOMPARE(emptyRow->text(1), QStringLiteral("缺少答案"));
+                        QVERIFY(!(emptyRow->flags() & Qt::ItemIsUserCheckable));
+                        auto *otherSheet = topics->topLevelItem(1);
+                        QCOMPARE(otherSheet->text(0), QStringLiteral("错题分析"));
+                        otherSheet->setExpanded(true);
+
+                        const auto clickCheckBox = [topics](QTreeWidgetItem *row)
+                        {
+                            topics->scrollToItem(row);
+                            QStyleOptionViewItem option;
+                            option.initFrom(topics->viewport());
+                            option.rect = topics->visualItemRect(row);
+                            option.features = QStyleOptionViewItem::HasCheckIndicator;
+                            option.checkState = row->checkState(0);
+                            const QRect indicator = topics->style()->subElementRect(
+                                QStyle::SE_ItemViewItemCheckIndicator, &option, topics->viewport());
+                            QVERIFY(topics->viewport()->rect().contains(indicator.center()));
+                            QTest::mouseClick(topics->viewport(), Qt::LeftButton, Qt::NoModifier,
+                                              indicator.center());
+                            QCOMPARE(row->checkState(0), Qt::Checked);
+                        };
+                        clickCheckBox(targetRow);
+                        clickCheckBox(otherSheet->child(0));
+                        QVERIFY(add->isEnabled());
+                        QCOMPARE(selected->text(), QStringLiteral("已选 2 个主题"));
+                        const auto capture = qEnvironmentVariable("LINGYA_REVIEW_TOPIC_CAPTURE");
+                        if (confirm && reviewing && !capture.isEmpty())
+                            QVERIFY(chooser->grab().save(capture));
+                        if (confirm)
+                            QTest::mouseClick(add, Qt::LeftButton);
+                        else
+                            QTest::mouseClick(chooser->findChild<QDialogButtonBox *>()->button(
+                                                  QDialogButtonBox::Cancel),
+                                              Qt::LeftButton);
+                    });
+                QTest::mouseClick(pick, Qt::LeftButton);
+            };
+
+            selectTopics(false);
+            QCOMPARE(doc->sessionRevision(), revision);
+            QCOMPARE(doc->project().cards.size(), 1);
+            selectTopics(true);
+            QCOMPARE(doc->sessionRevision(), revision + 1);
+            QCOMPARE(doc->project().cards.size(), 3);
+            QCOMPARE(doc->project().activeSheetId, sheetId);
+            const auto &added = doc->project().cards;
+            QCOMPARE(added.at(1).nodeId, target);
+            QCOMPARE(added.at(1).back, QStringLiteral("任务2-1"));
+            QCOMPARE(added.at(2).nodeId, fishRoot);
+            QCOMPARE(added.at(2).sheetId, fishId);
+            QCOMPARE(added.at(2).back, QStringLiteral("先找到问题根因"));
+            if (reviewing)
+            {
+                QCOMPARE(cards->count(), 3);
+                QCOMPARE(page->totalCount(), 1);
+                QVERIFY(answer->isVisible());
+                QTest::mouseClick(review->findChild<QPushButton *>("startReview"), Qt::LeftButton);
+                QCOMPARE(page->totalCount(), 3);
+            }
+            else
+            {
+                QCOMPARE(filter->currentData().toString(), QStringLiteral("new"));
+                QCOMPARE(cards->count(), 2);
+                QCOMPARE(page->totalCount(), 2);
+                QVERIFY(!answer->isVisible());
+            }
+        });
+
+    history->undo();
+    QCOMPARE(doc->project().cards.size(), 1);
+    QVERIFY(!history->canUndo());
+    history->redo();
+    QCOMPARE(doc->project().cards.size(), 3);
+    QTemporaryDir files;
+    const auto path = files.filePath(QStringLiteral("批量复习.lingya"));
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    QCOMPARE(ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()),
+             ProjectJson::toJson(doc->project()));
 }
 
 void TstUi::offlineCheckLocatesAndRefreshes()
@@ -5452,12 +5787,11 @@ void TstUi::inlineStyleKeepsUneditedValues()
     auto *commands = window.findChild<CommandService *>();
     const auto initial = ProjectJson::toJson(doc->project());
     QSignalSpy changed(doc, &ProjectDocument::changed);
-    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QMetaObject::invokeMethod(window.findChild<QLineEdit *>("inlineFontFamily"), "editingFinished");
     QCOMPARE(changed.count(), 0);
     QVERIFY(!commands->canUndo());
     auto *size = window.findChild<QComboBox *>("inlineFontSize");
     size->setCurrentIndex(size->findData(20));
-    window.findChild<QPushButton *>("applyInlineStyle")->click();
     QCOMPARE(changed.count(), 1);
     const auto styled = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;
     QCOMPARE(styled.fontFamily.value(), family);
@@ -5467,13 +5801,11 @@ void TstUi::inlineStyleKeepsUneditedValues()
     QCOMPARE(ProjectJson::toJson(doc->project()), initial);
     changed.clear();
     auto *fill = window.findChild<QComboBox *>("inlineFill");
-    fill->setEditText(QStringLiteral("不是颜色"));
-    window.findChild<QPushButton *>("applyInlineStyle")->click();
+    QVERIFY(fill && !fill->isEditable());
+    QCOMPARE(fill->currentText(), QStringLiteral("继承工作表"));
+    fill->setCurrentIndex(0);
     QCOMPARE(changed.count(), 0);
     QCOMPARE(ProjectJson::toJson(doc->project()), initial);
-    QVERIFY(!window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
-    fill->setCurrentIndex(0);
-    window.findChild<QPushButton *>("applyInlineStyle")->click();
     QVERIFY(window.findChild<QLabel *>("inlineStyleError")->text().isEmpty());
     window.findChild<QPushButton *>("resetInlineStyle")->click();
     const auto reset = std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root).style;
@@ -5885,8 +6217,9 @@ void TstUi::aiDraftEditApplyAndManage()
             auto *dialog = window.findChild<QDialog *>("draftManager");
             QVERIFY(dialog);
             const auto close = qScopeGuard([dialog] { dialog->reject(); });
-            QVERIFY(
-                dialog->findChild<QLabel *>("draftInfo")->text().contains(QStringLiteral("一致")));
+            QVERIFY(dialog->findChild<QLabel *>("draftSourceStatus")
+                        ->text()
+                        .contains(QStringLiteral("一致")));
             dialog->findChild<QPlainTextEdit *>("draftText")
                 ->setPlainText(QStringLiteral("稿件管理中的新正文"));
             dialog->findChild<QPushButton *>("saveDraftText")->click();
@@ -6198,6 +6531,8 @@ void TstUi::visualControlsStayInsideBounds()
     }
     window.findChild<ProjectDocument *>()->setClean();
 }
+
+#include "interaction_cases.inc"
 
 QTEST_MAIN(TstUi)
 #include "tst_ui.moc"

@@ -144,6 +144,10 @@ HomePage::HomePage(QWidget *parent) : QWidget(parent)
     auto *heading = new QLabel(QStringLiteral("从模板开始"), main);
     heading->setProperty("sectionTitle", true);
     content->addWidget(heading);
+    auto *gallery = new QPushButton(QStringLiteral("浏览24种结构与场景模板…"), main);
+    gallery->setObjectName("homeTemplateLibrary");
+    content->addWidget(gallery, 0, Qt::AlignLeft);
+    connect(gallery, &QPushButton::clicked, this, &HomePage::templateGalleryRequested);
     auto *cards = new QWidget(main);
     m_cardLayout = new QGridLayout(cards);
     m_cardLayout->setContentsMargins(0, 0, 0, 0);

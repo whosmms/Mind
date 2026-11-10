@@ -51,6 +51,7 @@ class TstAiCompletion : public QObject
     void responseHonorsRequestedLimitsAndSources();
     void draftEditingKeepsProvenance();
     void persistentSourceHashAndLegacyFiles();
+    void reconcileDraftSourcesChangesOnlyTheSelectedSection();
     void modelConfigurationAppliesOnlyToFutureRequests();
 };
 void TstAiCompletion::mapMaterialIdsAndRequirements()
@@ -223,6 +224,8 @@ void TstAiCompletion::draftEditingKeepsProvenance()
 void TstAiCompletion::persistentSourceHashAndLegacyFiles()
 {
     auto project = ProjectFactory::createMindmap(QStringLiteral("稳定来源"));
+    auto &original = std::get<TreeSheet>(project.sheets.first());
+    original.nodes[original.rootId].note = QStringLiteral("原主题备注");
     ProjectDocument doc;
     doc.replaceProject(project);
     CommandService commands(&doc);
@@ -238,7 +241,10 @@ void TstAiCompletion::persistentSourceHashAndLegacyFiles()
             .saveDraft(proposal, tree.id, "summary", doc.sessionRevision(), options)));
     const auto saved = doc.project();
     const auto hash = saved.drafts.first().sourceHash;
+    const auto snapshot = saved.drafts.first().sections.first().sourceSnapshot;
     QVERIFY(hash.has_value());
+    QVERIFY(snapshot.has_value());
+    QCOMPARE(snapshot->value(tree.rootId).note, QStringLiteral("原主题备注"));
     QCOMPARE(*hash, AiMaterial::treeHash(tree));
     QTemporaryDir dir;
     const auto path = dir.filePath(QStringLiteral("带来源指纹.lingya"));
@@ -247,6 +253,7 @@ void TstAiCompletion::persistentSourceHashAndLegacyFiles()
     QVERIFY(std::holds_alternative<Project>(loaded));
     auto reopened = std::get<Project>(loaded);
     QCOMPARE(reopened.drafts.first().sourceHash, hash);
+    QVERIFY(reopened.drafts.first().sections.first().sourceSnapshot == snapshot);
     auto &currentTree = std::get<TreeSheet>(reopened.sheets.first());
     currentTree.viewport.zoom = 1.5;
     currentTree.nodes[currentTree.rootId].collapsed = true;
@@ -256,6 +263,35 @@ void TstAiCompletion::persistentSourceHashAndLegacyFiles()
     auto json = ProjectJson::toJson(saved);
     auto drafts = json["drafts"].toArray();
     auto legacy = drafts[0].toObject();
+    auto sections = legacy["sections"].toArray();
+    auto section = sections[0].toObject();
+    QVERIFY(section.value("sourceSnapshot").isObject());
+    section["sourceSnapshot"] =
+        QJsonObject{{QStringLiteral("无关主题"), QJsonObject{{"title", "不应出现"}, {"note", ""}}}};
+    sections[0] = section;
+    legacy["sections"] = sections;
+    drafts[0] = legacy;
+    json["drafts"] = drafts;
+    QVERIFY(std::holds_alternative<AppError>(ProjectJson::fromObject(json)));
+
+    section.remove("sourceSnapshot");
+    sections[0] = section;
+    legacy["sections"] = sections;
+    drafts[0] = legacy;
+    json["drafts"] = drafts;
+    const auto legacyWithHash = ProjectJson::fromObject(json);
+    QVERIFY(std::holds_alternative<Project>(legacyWithHash));
+    auto legacyProject = std::get<Project>(legacyWithHash);
+    QVERIFY(!legacyProject.drafts.first().sections.first().sourceSnapshot);
+    ProjectDocument verifiedLegacy;
+    verifiedLegacy.replaceProject(legacyProject);
+    QVERIFY(verifiedLegacy.project().drafts.first().sections.first().sourceSnapshot == snapshot);
+    QCOMPARE(verifiedLegacy.project().drafts.first().sections.first().text, QStringLiteral("正文"));
+    auto &changed = std::get<TreeSheet>(legacyProject.sheets.first());
+    changed.nodes[changed.rootId].note = QStringLiteral("打开前已改过的备注");
+    verifiedLegacy.replaceProject(legacyProject);
+    QVERIFY(!verifiedLegacy.project().drafts.first().sections.first().sourceSnapshot);
+
     legacy.remove("sourceHash");
     drafts[0] = legacy;
     json["drafts"] = drafts;
@@ -270,6 +306,70 @@ void TstAiCompletion::persistentSourceHashAndLegacyFiles()
     drafts[0] = legacy;
     json["drafts"] = drafts;
     QVERIFY(std::holds_alternative<AppError>(ProjectJson::fromObject(json)));
+}
+
+void TstAiCompletion::reconcileDraftSourcesChangesOnlyTheSelectedSection()
+{
+    ProjectDocument doc;
+    doc.replaceProject(ProjectFactory::createMindmap(QStringLiteral("原主题")));
+    CommandService commands(&doc);
+    const auto tree = std::get<TreeSheet>(doc.project().sheets.first());
+    DraftProposal proposal;
+    proposal.title = QStringLiteral("已手改文字稿");
+    proposal.sections = {{QStringLiteral("甲段"), QStringLiteral("甲段手改正文"), {tree.rootId}},
+                         {QStringLiteral("乙段"), QStringLiteral("乙段手改正文"), {tree.rootId}}};
+    const auto created =
+        AiCommands(&commands, &doc).saveDraft(proposal, tree.id, "summary", doc.sessionRevision());
+    QVERIFY(std::holds_alternative<ID>(created));
+    const auto draftId = std::get<ID>(created);
+    const auto oldRevision = doc.sessionRevision();
+    const auto original = doc.project().drafts.front().sections.at(0);
+    QVERIFY(original.sourceSnapshot);
+    const auto editedSource =
+        commands.applyEdit(QStringLiteral("修改来源主题"),
+                           [&](Project &project)
+                           {
+                               auto &nodes = std::get<TreeSheet>(project.sheets.front()).nodes;
+                               nodes[tree.rootId].title = QStringLiteral("新主题");
+                               nodes[tree.rootId].note = QStringLiteral("新备注");
+                           });
+    QVERIFY(std::holds_alternative<bool>(editedSource));
+    DraftCommands drafts(&commands, &doc);
+    const auto stale = drafts.reconcileSources(draftId, 0, oldRevision, std::nullopt);
+    QVERIFY(std::holds_alternative<AppError>(stale));
+    QCOMPARE(std::get<AppError>(stale).code, QString("STALE_SOURCE"));
+    QVERIFY(doc.project().drafts.front().sections.at(0).sourceSnapshot == original.sourceSnapshot);
+
+    const auto revision = doc.sessionRevision();
+    QVERIFY(
+        std::holds_alternative<bool>(drafts.reconcileSources(draftId, 0, revision, std::nullopt)));
+    const auto kept = doc.project().drafts.front().sections.at(0);
+    QCOMPARE(kept.text, original.text);
+    QCOMPARE(kept.heading, original.heading);
+    QVERIFY(kept.sourceSnapshot);
+    QCOMPARE(kept.sourceSnapshot->value(tree.rootId).note, QStringLiteral("新备注"));
+    QVERIFY(doc.project().drafts.front().sections.at(1).sourceSnapshot == original.sourceSnapshot);
+    QCOMPARE(doc.sessionRevision(), revision + 1);
+    QVERIFY(std::holds_alternative<bool>(
+        drafts.reconcileSources(draftId, 0, revision + 1, std::nullopt)));
+    QCOMPARE(doc.sessionRevision(), revision + 1);
+
+    const QPair<QString, QString> invalid{QStringLiteral("乙段"), QString()};
+    QVERIFY(std::holds_alternative<AppError>(
+        drafts.reconcileSources(draftId, 1, revision + 1, invalid)));
+    QCOMPARE(doc.sessionRevision(), revision + 1);
+    const QPair<QString, QString> update{QStringLiteral("乙段新标题"),
+                                         QStringLiteral("合并后的正文")};
+    QVERIFY(
+        std::holds_alternative<bool>(drafts.reconcileSources(draftId, 1, revision + 1, update)));
+    QCOMPARE(doc.project().drafts.front().sections.at(1).text, update.second);
+    QVERIFY(doc.project().drafts.front().sections.at(1).sourceSnapshot == kept.sourceSnapshot);
+    commands.undo();
+    QCOMPARE(doc.project().drafts.front().sections.at(1).text, proposal.sections.at(1).text);
+    QVERIFY(doc.project().drafts.front().sections.at(1).sourceSnapshot == original.sourceSnapshot);
+    commands.redo();
+    QCOMPARE(doc.project().drafts.front().sections.at(1).heading, update.first);
+    QCOMPARE(doc.project().drafts.front().sections.at(0).text, original.text);
 }
 
 void TstAiCompletion::modelConfigurationAppliesOnlyToFutureRequests()

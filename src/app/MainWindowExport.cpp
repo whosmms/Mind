@@ -28,6 +28,25 @@ namespace lingya
 void MainWindow::buildCompletionActions()
 {
     auto *menu = menuBar()->addMenu(QStringLiteral("创作与输出"));
+    menu->addAction(QStringLiteral("结构与模板…"), this, [this] { showTemplates(!m_homeVisible); })
+        ->setObjectName("showTemplateGallery");
+    menu->addAction(QStringLiteral("插入画布图片…"), this,
+                    [this]
+                    {
+                        auto *view = m_centralStack->currentIndex() == 1
+                                         ? qobject_cast<QGraphicsView *>(m_ganttPage)
+                                         : m_view;
+                        if (view)
+                            insertCanvasImage(view->mapToScene(view->viewport()->rect().center()));
+                    })
+        ->setObjectName("insertCanvasImage");
+    menu->addAction(QStringLiteral("插入节点图片…"), this,
+                    [this]
+                    {
+                        if (m_nodeItems.contains(m_selectedNodeId))
+                            chooseNodeImage(m_selectedNodeId);
+                    })
+        ->setObjectName("insertNodeImageAction");
     auto *search =
         menu->addAction(QStringLiteral("搜索主题与任务…"), this, &MainWindow::showSearch);
     search->setObjectName("showSearch");
@@ -60,6 +79,12 @@ ExportService::Snapshot MainWindow::captureCanvas() const
     // 共用图元绘制，记录独立QPicture，不切换选择、不触发文档/场景信号。
     for (auto *item : view->scene()->items(Qt::AscendingOrder))
     {
+        bool handle = false;
+        for (auto *ancestor = item; ancestor; ancestor = ancestor->parentItem())
+            handle |= ancestor->data(0x21C3).isValid() || ancestor->data(0x21C4).isValid() ||
+                      ancestor->data(0x21C5).isValid() || ancestor->data(0x21C7).isValid();
+        if (handle)
+            continue;
         if (!item->isVisible() || item->data(0x21C0).isValid() ||
             item->data(GanttView::kPreviewDataRole).isValid() || item->effectiveOpacity() == 0)
             continue;

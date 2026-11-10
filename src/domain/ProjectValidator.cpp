@@ -1,11 +1,14 @@
 #include "domain/ProjectValidator.h"
 #include "domain/Limits.h"
+#include "services/ImageService.h"
 #include <QHash>
 #include <QQueue>
 #include <QRegularExpression>
 #include <QSet>
 #include <algorithm>
+#include <cmath>
 #include <functional>
+#include <type_traits>
 
 namespace lingya {
 
@@ -56,6 +59,10 @@ void checkTree(const TreeSheet& sheet, QVector<AppError>& es) {
                                where + "：节点“" + n.title + "”的父级不存在"};
             }
         }
+        if (n.manualPosition &&
+            (!std::isfinite(n.manualPosition->x()) || !std::isfinite(n.manualPosition->y()) ||
+             std::abs(n.manualPosition->x()) > 100000 || std::abs(n.manualPosition->y()) > 100000))
+            es << AppError{"INVALID_ARGUMENT", where + "：手动位置必须为有限坐标且在±100000内"};
         if (n.order < 0)
             es << AppError{"TREE_ORDER", where + "：节点“" + n.title + "”的order为负数"};
         const int len = codePointCount(n.title);
@@ -176,6 +183,11 @@ void checkFlow(const FlowSheet& sheet, QVector<AppError>& es) {
     for (const FlowEdge& edge : sheet.edges)
         if (!sheet.nodes.contains(edge.sourceId) || !sheet.nodes.contains(edge.targetId))
             es << AppError{"FLOW_EDGE_ENDPOINT", where + "：流程连线端点缺失"};
+    for (const auto &edge : sheet.edges)
+        if (edge.bendPoint &&
+            (!std::isfinite(edge.bendPoint->x()) || !std::isfinite(edge.bendPoint->y()) ||
+             std::abs(edge.bendPoint->x()) > 100000 || std::abs(edge.bendPoint->y()) > 100000))
+            es << AppError{"INVALID_ARGUMENT", where + "：曲线位置必须为有限坐标且在±100000内"};
     for (const Comment& c : sheet.comments)
         if (!sheet.nodes.contains(c.nodeId))
             es << AppError{"COMMENT_NODE", where + "：批注指向不存在的节点"};
@@ -213,16 +225,53 @@ QVector<AppError> validate(const Project& project) {
     claim(project.id, "工程");
 
     // 第一遍：登记全部ID，检查各工作表内部规则
+    qint64 imageBytes = 0, imagePixels = 0;
     QSet<QString> sheetIds;
     QHash<QString, const TreeSheet*> treeSheets;
     for (const Sheet& sheet : project.sheets) {
+        std::visit(
+            [&](const auto &value)
+            {
+                const auto consume = [&](const QString &png)
+                {
+                    if (png.isEmpty())
+                        return;
+                    const auto image = ImageService::decode(png);
+                    if (image.isNull())
+                        es << AppError{"INVALID_PROJECT",
+                                       QStringLiteral("嵌入图片无效或超过尺寸限制")};
+                    imageBytes += png.size();
+                    imagePixels += qint64(image.width()) * image.height();
+                };
+                for (const auto &image : value.images)
+                {
+                    claim(image.id, "画布图片");
+                    consume(image.imagePng);
+                    if (image.imagePng.isEmpty() || !std::isfinite(image.position.x()) ||
+                        !std::isfinite(image.position.y()) ||
+                        std::abs(image.position.x()) > 100000 ||
+                        std::abs(image.position.y()) > 100000 ||
+                        !std::isfinite(image.size.width()) || !std::isfinite(image.size.height()) ||
+                        image.size.width() < 1 || image.size.height() < 1 ||
+                        image.size.width() > 2000 || image.size.height() > 2000)
+                        es << AppError{"INVALID_ARGUMENT",
+                                       QStringLiteral("画布图片位置或尺寸无效")};
+                }
+                if constexpr (!std::is_same_v<std::decay_t<decltype(value)>, GanttSheet>)
+                    for (const auto &node : value.nodes)
+                        consume(node.imagePng);
+            },
+            sheet);
+
         if (const TreeSheet* tree = std::get_if<TreeSheet>(&sheet)) {
             claim(tree->id, "工作表");
             sheetIds.insert(tree->id);
             treeSheets.insert(tree->id, tree);
-            // kind与layout配对（规则2）：mindmap只用bilateral/right，fishbone只用fishbone
+            // 导图支持双向及四个方向；鱼骨仍使用独立布局。
             const bool layoutOk =
-                (tree->kind == "mindmap" && (tree->layout == "bilateral" || tree->layout == "right")) ||
+                (tree->kind == "mindmap" &&
+                 (tree->layout == "bilateral" || tree->layout == "right" ||
+                  tree->layout == "left" || tree->layout == "down" || tree->layout == "up")) ||
                 (tree->kind == "fishbone" && tree->layout == "fishbone");
             if (!layoutOk)
                 es << AppError{"LAYOUT_KIND",
@@ -246,6 +295,9 @@ QVector<AppError> validate(const Project& project) {
             sheetIds.insert(gantt->id);
         }
     }
+    if (imageBytes > 6 * 1024 * 1024 || imagePixels > 16 * 1024 * 1024)
+        es << AppError{"LIMIT_EXCEEDED",
+                       QStringLiteral("工程图片总量过大，请移除部分图片或缩小原图")};
     if (!sheetIds.contains(project.activeSheetId))
         es << AppError{"MISSING_SHEET", "活动工作表不存在"};
 
@@ -340,6 +392,23 @@ QVector<AppError> validate(const Project& project) {
                            QStringLiteral("文字稿来源指纹须为64位小写十六进制")};
         if (!sheetIds.contains(draft.sourceSheetId))
             es << AppError{"DRAFT_SHEET", "文稿“" + draft.title + "”的来源工作表不存在"};
+        for (const DraftSection &section : draft.sections)
+        {
+            if (!section.sourceSnapshot)
+                continue;
+            for (auto it = section.sourceSnapshot->cbegin(); it != section.sourceSnapshot->cend();
+                 ++it)
+            {
+                const int titleLength = codePointCount(it->title);
+                if (!section.sourceNodeIds.contains(it.key()) ||
+                    titleLength < Limits::kTitleMinChars || titleLength > Limits::kTitleMaxChars ||
+                    codePointCount(it->note) > Limits::kNoteMaxChars)
+                {
+                    es << AppError{"DRAFT_SOURCE_SNAPSHOT",
+                                   QStringLiteral("文稿段落的来源快照引用或文字长度无效")};
+                }
+            }
+        }
     }
 
     return es;    return es;

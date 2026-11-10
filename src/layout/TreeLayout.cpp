@@ -31,6 +31,33 @@ struct Item
 std::variant<QVector<NodePosition>, AppError> layout(const TreeSheet &sheet,
                                                      const QVector<NodeSize> &sizes)
 {
+    if (sheet.layout == "left" || sheet.layout == "down" || sheet.layout == "up")
+    {
+        TreeSheet base = sheet;
+        base.layout = "right";
+        auto measured = sizes;
+        const bool vertical = sheet.layout == "down" || sheet.layout == "up";
+        if (vertical)
+            for (auto &size : measured)
+                std::swap(size.width, size.height);
+        auto result = layout(base, measured);
+        if (const auto *error = std::get_if<AppError>(&result))
+            return *error;
+        auto positions = std::get<QVector<NodePosition>>(result);
+        for (auto &point : positions)
+        {
+            if (vertical)
+            {
+                const auto x = point.x;
+                point.x = point.y;
+                point.y = sheet.layout == "down" ? x : -x;
+            }
+            else
+                point.x = -point.x;
+        }
+        return positions;
+    }
+
     // 尺寸表：索引化并校验（非正值INVALID_ARGUMENT；缺尺寸按节点查表时NOT_FOUND）
     QHash<ID, NodeSize> sizeById;
     sizeById.reserve(sizes.size());
@@ -427,6 +454,24 @@ std::variant<QVector<NodePosition>, AppError> layout(const TreeSheet &sheet,
     };
     appendSide(rightChildren);
     appendSide(leftChildren);
+    return result;
+}
+
+QVector<NodePosition> withManualPositions(const TreeSheet &sheet,
+                                          const QVector<NodePosition> &automatic)
+{
+    auto result = automatic;
+    QMap<ID, QPointF> offsets;
+    for (auto &item : result)
+    {
+        const auto node = sheet.nodes.value(item.id);
+        const QPointF base(item.x, item.y);
+        const auto inherited = node.parentId ? offsets.value(*node.parentId) : QPointF();
+        const auto actual = node.manualPosition.value_or(base + inherited);
+        offsets[item.id] = actual - base;
+        item.x = actual.x();
+        item.y = actual.y();
+    }
     return result;
 }
 

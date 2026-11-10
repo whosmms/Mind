@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstUi">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.6238"/>
+  </TestFunction>
+  <TestFunction name="flowAutoRoutes">
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[short-gap]]></DataTag>
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <DataTag><![CDATA[short-gap]]></DataTag>
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/.worktrees/gantt&#x002D;review/tests/interaction_cases.inc" line="275">
+      <DataTag><![CDATA[short-gap]]></DataTag>
+      <Description><![CDATA[Compared values are not the same
+   Actual   (edge.targetId): "3719dde0-c9e1-4c0f-97da-ea32f1907fc0"
+   Expected (target)       : "dae71caa-6df5-5cae-9b05-377a6a08ed40"]]></Description>
+    </Incident>
+    <Duration msecs="121.702"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0104"/>
+  </TestFunction>
+  <Duration msecs="124.634"/>
+</TestCase>

@@ -1,0 +1,12 @@
+[
+  {
+    "path": "D:\\mind\\.worktrees\\gantt-review\\build\\h048-first\\narrow-size-probe.exe",
+    "reason": "本轮临时探针程序；源和结果已归档，可重建",
+    "bytes": 81309
+  },
+  {
+    "path": "D:\\mind\\候选版本\\鼠标交互版_20261108_6d95db4\\安装器临时目录",
+    "reason": "本轮已用完的空安装器临时目录",
+    "bytes": 0
+  }
+]
