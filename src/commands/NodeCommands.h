@@ -40,7 +40,7 @@ struct AnnotationUpdate {
 // 所有写入统一经CommandService::applyEdit（候选副本→ProjectValidator校验→单次快照入栈），
 // 失败不改变工程、dirty与撤销历史。
 // 改名统一使用TaskCommands::renameNode，本类不重复提供，避免两套行为。
-// 本批命令作用于树图（mindmap/fishbone）；流程图节点与连线另见后续批次。
+// 节点元数据与局部样式也适用于流程节点；树结构、关系线和分组仍只处理树图。
 class NodeCommands {
 public:
     NodeCommands(CommandService* commands, const ProjectDocument* document);

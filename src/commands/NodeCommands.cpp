@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <type_traits>
 
 namespace lingya {
 
@@ -114,7 +115,7 @@ QVector<ID> siblingSequence(const TreeSheet& tree, const ID& parentId) {
     return sequence;
 }
 
-// 工作表基类查找（setSheetStyle对四类工作表通用；其余命令只处理树图）
+// 工作表默认样式对四类工作表通用。
 const SheetBase* findSheetBase(const Project& project, const ID& sheetId) {
     for (const Sheet& sheet : project.sheets) {
         const SheetBase* base = std::visit(
@@ -131,6 +132,37 @@ SheetBase* findSheetBase(Project& project, const ID& sheetId) {
         if (base->id == sheetId) return base;
     }
     return nullptr;
+}
+
+template <typename ProjectType>
+auto findBaseNode(ProjectType &project, const ID &sheetId, const ID &nodeId)
+{
+    using Node = std::conditional_t<std::is_const_v<ProjectType>, const BaseNode, BaseNode>;
+    for (auto &sheet : project.sheets)
+    {
+        auto *node = std::visit(
+            [&](auto &value) -> Node *
+            {
+                if constexpr (!std::is_same_v<std::decay_t<decltype(value)>, GanttSheet>)
+                {
+                    if (value.id == sheetId)
+                    {
+                        const auto it = value.nodes.find(nodeId);
+                        if (it != value.nodes.end())
+                        {
+                            return &it.value();
+                        }
+                    }
+                }
+                return nullptr;
+            },
+            sheet);
+        if (node)
+        {
+            return node;
+        }
+    }
+    return static_cast<Node *>(nullptr);
 }
 
 bool sameNodeStyle(const NodeStyle& a, const NodeStyle& b) {
@@ -532,13 +564,10 @@ std::variant<bool, AppError> NodeCommands::updateNodeMeta(const ID& sheetId, con
     if (sheetId.isEmpty() || nodeId.isEmpty()) {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("工作表ID与节点ID不能为空")};
     }
-    const TreeSheet* tree = findTree(m_document->project(), sheetId);
-    if (tree == nullptr) {
-        return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在：%1").arg(sheetId)};
-    }
-    const auto node = tree->nodes.constFind(nodeId);
-    if (node == tree->nodes.constEnd()) {
-        return AppError{"NOT_FOUND", QStringLiteral("节点不存在：%1").arg(nodeId)};
+    const auto *node = findBaseNode(m_document->project(), sheetId, nodeId);
+    if (!node)
+    {
+        return AppError{"NOT_FOUND", QStringLiteral("工作表或节点不存在：%1").arg(nodeId)};
     }
 
     // 字段级预检（D-M1-04：命令层基础码；标签数量/长度与校验器规则一致）
@@ -579,18 +608,33 @@ std::variant<bool, AppError> NodeCommands::updateNodeMeta(const ID& sheetId, con
         (!update.tags.has_value() || tags == node->tags);
     if (unchanged) return true;
 
-    const auto result = m_commands->applyEdit(
-        QStringLiteral("更新节点信息"), [sheetId, nodeId, update, tags](Project& project) {
-            TreeSheet* target = findTree(project, sheetId);
-            if (target == nullptr) return;
-            const auto it = target->nodes.find(nodeId);
-            if (it == target->nodes.end()) return;
-            if (update.note.has_value()) it->note = *update.note;
-            if (update.iconId.has_value()) it->iconId = optionalFromText(*update.iconId);
-            if (update.link.has_value()) it->link = optionalFromText(*update.link);
-            if (update.tags.has_value()) it->tags = tags;
-            ++it->contentRevision;
-        });
+    const auto result =
+        m_commands->applyEdit(QStringLiteral("更新节点信息"),
+                              [sheetId, nodeId, update, tags](Project &project)
+                              {
+                                  auto *target = findBaseNode(project, sheetId, nodeId);
+                                  if (!target)
+                                  {
+                                      return;
+                                  }
+                                  if (update.note.has_value())
+                                  {
+                                      target->note = *update.note;
+                                  }
+                                  if (update.iconId.has_value())
+                                  {
+                                      target->iconId = optionalFromText(*update.iconId);
+                                  }
+                                  if (update.link.has_value())
+                                  {
+                                      target->link = optionalFromText(*update.link);
+                                  }
+                                  if (update.tags.has_value())
+                                  {
+                                      target->tags = tags;
+                                  }
+                                  ++target->contentRevision;
+                              });
     if (const auto* error = std::get_if<AppError>(&result)) {
         return *error;
     }
@@ -602,13 +646,10 @@ std::variant<bool, AppError> NodeCommands::setStyle(const ID& sheetId, const ID&
     if (sheetId.isEmpty() || nodeId.isEmpty()) {
         return AppError{"INVALID_ARGUMENT", QStringLiteral("工作表ID与节点ID不能为空")};
     }
-    const TreeSheet* tree = findTree(m_document->project(), sheetId);
-    if (tree == nullptr) {
-        return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在：%1").arg(sheetId)};
-    }
-    const auto node = tree->nodes.constFind(nodeId);
-    if (node == tree->nodes.constEnd()) {
-        return AppError{"NOT_FOUND", QStringLiteral("节点不存在：%1").arg(nodeId)};
+    const auto *node = findBaseNode(m_document->project(), sheetId, nodeId);
+    if (!node)
+    {
+        return AppError{"NOT_FOUND", QStringLiteral("工作表或节点不存在：%1").arg(nodeId)};
     }
 
     // 预检与ProjectJson读写规则一致（颜色#RRGGBB、shape五枚举、字号范围、边宽正数）
@@ -638,15 +679,16 @@ std::variant<bool, AppError> NodeCommands::setStyle(const ID& sheetId, const ID&
 
     if (sameOverride(style, node->style)) return true;   // 无操作短路（D-M1-02）
 
-    const auto result = m_commands->applyEdit(
-        QStringLiteral("设置节点样式"), [sheetId, nodeId, style](Project& project) {
-            TreeSheet* target = findTree(project, sheetId);
-            if (target == nullptr) return;
-            const auto it = target->nodes.find(nodeId);
-            if (it == target->nodes.end()) return;
-            it->style = style;
-            ++it->contentRevision;
-        });
+    const auto result =
+        m_commands->applyEdit(QStringLiteral("设置节点样式"),
+                              [sheetId, nodeId, style](Project &project)
+                              {
+                                  if (auto *target = findBaseNode(project, sheetId, nodeId))
+                                  {
+                                      target->style = style;
+                                      ++target->contentRevision;
+                                  }
+                              });
     if (const auto* error = std::get_if<AppError>(&result)) {
         return *error;
     }

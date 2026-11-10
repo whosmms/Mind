@@ -375,7 +375,7 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
         [this]
         {
             const auto *tree = activeTreeSheet();
-            if (!tree || !tree->nodes.contains(m_selectedNodeId))
+            if (!tree || !selectedCanvasNode())
                 return;
             for (const auto &task : m_doc->project().tasks)
                 if (task.source && task.source->sheetId == tree->id &&
@@ -402,7 +402,7 @@ void MainWindow::buildOfflineActions(QMenu *viewMenu)
         [this]
         {
             const auto *tree = activeTreeSheet();
-            if (!tree || !tree->nodes.contains(m_selectedNodeId))
+            if (!tree || !selectedCanvasNode())
                 return;
             const auto result =
                 ReviewCommands(m_commands, m_doc).addCard(tree->id, m_selectedNodeId);
@@ -512,11 +512,6 @@ void MainWindow::refreshOfflineViews()
         m_issuePanel->setIssues(currentIssues(m_doc->project()));
         m_checksDirty = false;
     }
-    const auto *tree = activeTreeSheet();
-    const bool node = tree && tree->nodes.contains(m_selectedNodeId);
-    for (const auto &name : {"linkSelectedTask", "addReviewCard"})
-        if (auto *action = findChild<QAction *>(name))
-            action->setEnabled(node);
 }
 
 void MainWindow::addTaskBadges()

@@ -186,6 +186,9 @@ private slots:
     void flowAutoRoutes();
     void flowCurveFollowsDraggedNode();
     void flowAutoRouteAndReconnect();
+    void flowInlinePropertiesEditAndRoundTrip();
+    void flowPropertyActionsAndEdgeSelection();
+    void propertyTabsFollowNodeAndTaskSelection();
     void instantStyleWheelAndBrand();
     void embeddedImagesAcrossViews_data();
     void embeddedImagesAcrossViews();

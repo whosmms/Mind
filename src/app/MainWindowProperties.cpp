@@ -4,6 +4,7 @@
 #include "document/ProjectDocument.h"
 #include "graphics/NodeItem.h"
 #include <QAbstractItemView>
+#include <QAction>
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
@@ -116,6 +117,7 @@ void MainWindow::buildInlineStyle(QVBoxLayout *layout)
     auto *column = new QVBoxLayout(box);
     column->setContentsMargins(0, 0, 0, 8);
     auto *form = new QFormLayout;
+    form->setObjectName("inlineStyleForm");
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     auto *shape = new QComboBox(box);
     shape->setObjectName("inlineShape");
@@ -127,6 +129,11 @@ void MainWindow::buildInlineStyle(QVBoxLayout *layout)
     for (int i = 0; i < codes.size(); ++i)
         shape->addItem(names.at(i), codes.at(i));
     form->addRow(QStringLiteral("形状"), shape);
+    auto *flowType = new QToolButton(box);
+    flowType->setObjectName("inlineFlowType");
+    flowType->setDefaultAction(findChild<QAction *>("editFlowNode"));
+    flowType->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    form->addRow(QStringLiteral("节点类型"), flowType);
     const auto color = [box, form](const char *name, const QString &label)
     {
         auto *combo = new QComboBox(box);
@@ -275,33 +282,68 @@ void MainWindow::buildInlineNotes(QVBoxLayout *layout)
     column->addWidget(apply);
 }
 
+const BaseNode *MainWindow::selectedCanvasNode() const
+{
+    if (m_homeVisible || m_centralStack->currentIndex() != 0 || m_selectedNodeId.isEmpty())
+    {
+        return nullptr;
+    }
+    const auto selected = [this](const auto *sheet) -> const BaseNode *
+    {
+        if (!sheet)
+        {
+            return nullptr;
+        }
+        const auto node = sheet->nodes.constFind(m_selectedNodeId);
+        return node == sheet->nodes.constEnd() ? nullptr : &node.value();
+    };
+    if (const auto *tree = activeTreeSheet())
+    {
+        return selected(tree);
+    }
+    return selected(activeFlowSheet());
+}
+
+bool MainWindow::hasCurrentInlineProperties() const
+{
+    return selectedCanvasNode() && m_propertySheetId == m_doc->project().activeSheetId &&
+           m_propertyNodeId == m_selectedNodeId && m_propertyRevision == m_doc->sessionRevision();
+}
+
 void MainWindow::updateInlineProperties()
 {
-    const auto *tree = activeTreeSheet();
-    const bool valid = tree && tree->nodes.contains(m_selectedNodeId) && !m_homeVisible &&
-                       m_centralStack->currentIndex() == 0;
+    const auto *node = selectedCanvasNode();
+    const QScopedValueRollback<bool> updating(m_updatingInline, true);
     for (const char *name : {"inlineStyleControls", "inlineIconControls", "inlineNoteControls"})
         if (auto *box = findChild<QWidget *>(name))
-            box->setEnabled(valid);
-    if (!valid || !findChild<QComboBox *>("inlineShape"))
+            box->setEnabled(node != nullptr);
+    auto *form = findChild<QFormLayout *>("inlineStyleForm");
+    if (!form)
+    {
         return;
-    if (m_propertySheetId == tree->id && m_propertyNodeId == m_selectedNodeId &&
-        m_propertyRevision == m_doc->sessionRevision())
+    }
+    const bool flow = activeFlowSheet() != nullptr;
+    auto *shape = findChild<QComboBox *>("inlineShape");
+    form->setRowVisible(shape, !flow);
+    form->setRowVisible(findChild<QToolButton *>("inlineFlowType"), flow);
+    const ID sheetId = m_doc->project().activeSheetId;
+    const bool sameNode = m_propertySheetId == sheetId && m_propertyNodeId == m_selectedNodeId;
+    if (!node || (sameNode && m_propertyRevision == m_doc->sessionRevision()))
+    {
         return;
-    const QScopedValueRollback<bool> updating(m_updatingInline, true);
-    const BaseNode incoming = tree->nodes.value(m_selectedNodeId);
-    const bool sameNode = m_propertySheetId == tree->id && m_propertyNodeId == m_selectedNodeId;
+    }
+    const BaseNode &incoming = *node;
     const bool keepStyle = sameNode && sameStyle(incoming.style, m_propertyInitial.style);
     const bool keepNotes = sameNode && incoming.note == m_propertyInitial.note &&
                            incoming.link == m_propertyInitial.link;
-    m_propertySheetId = tree->id;
+    m_propertySheetId = sheetId;
     m_propertyNodeId = m_selectedNodeId;
     m_propertyRevision = m_doc->sessionRevision();
     m_propertyInitial = incoming;
     m_propertyStyle = m_propertyInitial.style;
     if (!keepStyle)
     {
-        selectOptional(findChild<QComboBox *>("inlineShape"), m_propertyStyle.shape);
+        selectOptional(shape, m_propertyStyle.shape);
         selectOptional(findChild<QComboBox *>("inlineFill"), m_propertyStyle.fill);
         selectOptional(findChild<QComboBox *>("inlineTextColor"), m_propertyStyle.color);
         selectOptional(findChild<QComboBox *>("inlineBorderColor"), m_propertyStyle.borderColor);
@@ -346,8 +388,7 @@ void MainWindow::updateInlineProperties()
 
 void MainWindow::applyInlineStyle(bool reset)
 {
-    if (m_homeVisible || m_propertySheetId != m_doc->project().activeSheetId ||
-        m_propertyRevision != m_doc->sessionRevision() || m_propertyNodeId != m_selectedNodeId)
+    if (!hasCurrentInlineProperties())
     {
         updateInlineProperties();
         return;
@@ -377,6 +418,11 @@ void MainWindow::applyInlineStyle(bool reset)
             style.borderWidth =
                 width->value() == 0 ? std::nullopt : std::optional<double>(width->value());
     }
+    if (activeFlowSheet())
+    {
+        // 流程节点由类型决定形状，保留旧文件的形状覆盖字段。
+        style.shape = m_propertyStyle.shape;
+    }
     const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
     const auto result =
         NodeCommands(m_commands, m_doc).setStyle(m_propertySheetId, m_propertyNodeId, style);
@@ -388,14 +434,14 @@ void MainWindow::applyInlineStyle(bool reset)
 
 void MainWindow::applyInlineIcon(const QString &id)
 {
-    if (m_homeVisible || m_propertySheetId != m_doc->project().activeSheetId ||
-        m_propertyRevision != m_doc->sessionRevision() || m_propertyNodeId != m_selectedNodeId)
+    if (!hasCurrentInlineProperties())
     {
         updateInlineProperties();
         return;
     }
     NodeMetaUpdate update;
     update.iconId = id;
+    const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
     const auto result =
         NodeCommands(m_commands, m_doc).updateNodeMeta(m_propertySheetId, m_propertyNodeId, update);
     if (const auto *error = std::get_if<AppError>(&result))
@@ -406,8 +452,7 @@ void MainWindow::applyInlineIcon(const QString &id)
 
 void MainWindow::applyInlineNotes()
 {
-    if (m_homeVisible || m_propertySheetId != m_doc->project().activeSheetId ||
-        m_propertyRevision != m_doc->sessionRevision() || m_propertyNodeId != m_selectedNodeId)
+    if (!hasCurrentInlineProperties())
     {
         updateInlineProperties();
         return;
@@ -419,6 +464,7 @@ void MainWindow::applyInlineNotes()
         update.note = note;
     if (link != m_propertyInitial.link.value_or(QString()))
         update.link = link;
+    const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
     const auto result =
         NodeCommands(m_commands, m_doc).updateNodeMeta(m_propertySheetId, m_propertyNodeId, update);
     if (const auto *error = std::get_if<AppError>(&result))

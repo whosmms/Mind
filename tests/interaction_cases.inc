@@ -1311,6 +1311,245 @@ void TstUi::flowAutoRouteAndReconnect()
     QCOMPARE(reopenedLine->path(), flowLine(view, edgeId)->path());
     captureInteraction(window, "端点重连");
 }
+
+void TstUi::flowInlinePropertiesEditAndRoundTrip()
+{
+    MainWindow window;
+    auto project = ProjectFactory::createFlowchart(QStringLiteral("流程节点属性"));
+    auto &flow = std::get<FlowSheet>(project.sheets.first());
+    const ID nodeId = flow.nodes.firstKey();
+    flow.nodes[nodeId].role = "decision";
+    flow.nodes[nodeId].style.shape = QStringLiteral("rect");
+    loadEditorFixture(window, project);
+    window.resize(1536, 960);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *commands = window.findChild<CommandService *>();
+    auto *tabs = window.findChild<QTabWidget *>("propertyTabs");
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    const auto selected = [&]
+    { return std::get<FlowSheet>(doc->project().sheets.first()).nodes.value(nodeId); };
+    auto *fill = window.findChild<QComboBox *>("inlineFill");
+    QVERIFY(fill && fill->isEnabled());
+    QVERIFY(!tabs->isTabVisible(3));
+    QCOMPARE(tabs->currentIndex(), 0);
+    QVERIFY(window.findChild<QComboBox *>("inlineShape")->isHidden());
+    QVERIFY(window.findChild<QToolButton *>("inlineFlowType")->isEnabled());
+    const auto beforeStyle = doc->sessionRevision();
+    fill->setCurrentIndex(fill->findData("#FFF0D0"));
+    QCOMPARE(doc->sessionRevision(), beforeStyle + 1);
+    QCOMPARE(selected().style.fill.value(), QString("#FFF0D0"));
+    QCOMPARE(selected().style.shape.value(), QString("rect"));
+    QCOMPARE(canvasNodes(view).value(nodeId)->nodeStyle().shape, QString("diamond"));
+    QCOMPARE(canvasNodes(view).value(nodeId)->nodeStyle().fill, QString("#FFF0D0"));
+    captureEfficiency(*window.findChild<QDockWidget *>("propertyDock"), "01-流程节点样式",
+                      "LINGYA_H056_CAPTURE_DIR");
+
+    tabs->setCurrentIndex(2);
+    auto *note = window.findChild<QPlainTextEdit *>("inlineNote");
+    auto *link = window.findChild<QLineEdit *>("inlineLink");
+    auto *apply = window.findChild<QPushButton *>("applyInlineNotes");
+    QVERIFY(note->isEnabled() && link->isEnabled() && apply->isEnabled());
+    const auto text = QStringLiteral("  先检查输入\n再执行下一步  ");
+    note->setPlainText(text);
+    tabs->setCurrentIndex(1);
+    auto *icon = window.findChild<QToolButton *>("inlineIcon_idea");
+    QVERIFY(icon->isVisible() && icon->isEnabled());
+    QTest::mouseClick(icon, Qt::LeftButton);
+    QVERIFY(selected().iconId);
+    QCOMPARE(selected().iconId.value(), QString("idea"));
+    QVERIFY(selected().note.isEmpty());
+    tabs->setCurrentIndex(2);
+    QCOMPARE(note->toPlainText(), text);
+    const auto beforeNotes = doc->sessionRevision();
+    link->setText(QStringLiteral("file:///C:/private.txt"));
+    QTest::mouseClick(apply, Qt::LeftButton);
+    QCOMPARE(doc->sessionRevision(), beforeNotes);
+    QVERIFY(!window.findChild<QLabel *>("inlineNoteError")->text().isEmpty());
+    const auto url = QStringLiteral("https://example.com/flow");
+    link->setText(url);
+    QTest::mouseClick(apply, Qt::LeftButton);
+    QCOMPARE(doc->sessionRevision(), beforeNotes + 1);
+    QCOMPARE(selected().note, text);
+    QCOMPARE(selected().link.value(), url);
+    QVERIFY(window.findChild<QAction *>("openNodeLink")->isEnabled());
+    QVERIFY(window.findChild<QAction *>("editNodeProperties")->isEnabled());
+    captureEfficiency(*window.findChild<QDockWidget *>("propertyDock"), "02-流程节点备注链接",
+                      "LINGYA_H056_CAPTURE_DIR");
+    commands->undo();
+    QVERIFY(selected().note.isEmpty());
+    QVERIFY(!selected().link);
+    commands->redo();
+    QCOMPARE(selected().note, text);
+    QCOMPARE(selected().link.value(), url);
+    runEditor(window, "editFlowNode", "flowNodeDialog",
+              [](QDialog *dialog)
+              {
+                  auto *role = dialog->findChild<QComboBox *>("flowRole");
+                  role->setCurrentIndex(role->findData("io"));
+                  dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+              });
+    QCOMPARE(selected().role, QString("io"));
+    QCOMPARE(selected().note, text);
+    QTemporaryDir files;
+    const auto path = files.filePath("流程节点属性.lingya");
+    QVERIFY(window.saveProjectTo(path));
+    MainWindow reopened;
+    QVERIFY(reopened.openFile(path));
+    QCOMPARE(ProjectJson::toJson(reopened.findChild<ProjectDocument *>()->project()),
+             ProjectJson::toJson(doc->project()));
+}
+
+void TstUi::flowPropertyActionsAndEdgeSelection()
+{
+    MainWindow window;
+    auto project = ProjectFactory::createFlowchart(QStringLiteral("流程工作表属性"));
+    auto &flow = std::get<FlowSheet>(project.sheets.first());
+    const ID source = flow.nodes.firstKey(), target = canvasId("property-edge-target");
+    flow.nodes[source].tags = {QStringLiteral("待清理")};
+    FlowNode second;
+    second.id = target;
+    second.title = QStringLiteral("后续步骤");
+    second.position = {330, 0};
+    flow.nodes.insert(target, second);
+    FlowEdge edge;
+    edge.id = canvasId("property-edge");
+    edge.sourceId = source;
+    edge.sourcePort = "right";
+    edge.targetId = target;
+    edge.targetPort = "left";
+    edge.style = flow.defaultEdgeStyle;
+    flow.edges.append(edge);
+    loadEditorFixture(window, project);
+    window.resize(1536, 960);
+    window.show();
+    QTest::qWait(30);
+    chooseTopic(window, source);
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto current = [&]() -> const FlowSheet &
+    { return std::get<FlowSheet>(doc->project().sheets.first()); };
+    auto *tagAction = window.findChild<QAction *>("editNodeTags");
+    auto *commentAction = window.findChild<QAction *>("editComments");
+    auto *defaultStyle = window.findChild<QAction *>("editSheetStyle");
+    QVERIFY(tagAction->isEnabled() && commentAction->isEnabled() && defaultStyle->isEnabled());
+    runEditor(window, "editNodeTags", "nodeTagsDialog",
+              [](QDialog *dialog)
+              {
+                  dialog->findChild<QPushButton *>("clearNodeTags")->click();
+                  dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+              });
+    QVERIFY(current().nodes.value(source).tags.isEmpty());
+    runEditor(window, "editComments", "commentsDialog",
+              [](QDialog *dialog)
+              {
+                  auto *body = dialog->findChild<QPlainTextEdit *>("commentBody");
+                  auto *records = dialog->findChild<QListWidget *>("records");
+                  body->setPlainText(QStringLiteral("检查流程节点"));
+                  dialog->findChild<QPushButton *>("applyRecord")->click();
+                  QCOMPARE(records->count(), 1);
+                  QTest::mouseClick(records->viewport(), Qt::LeftButton, Qt::NoModifier,
+                                    records->visualItemRect(records->item(0)).center());
+                  dialog->findChild<QPushButton *>("removeRecord")->click();
+              });
+    QCOMPARE(current().comments.size(), 1);
+    QCOMPARE(current().comments.first().nodeId, source);
+    QVERIFY(current().comments.first().resolved);
+
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    window.findChild<QAction *>("fitTopic")->trigger();
+    const auto *line = flowLine(view, edge.id);
+    QVERIFY(line);
+    const QPoint center = view->mapFromScene(line->path().pointAtPercent(0.5));
+    QVERIFY(view->viewport()->rect().contains(center));
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, center);
+    auto *fill = window.findChild<QComboBox *>("inlineFill");
+    QVERIFY(!fill->isEnabled());
+    QVERIFY(!tagAction->isEnabled() && !commentAction->isEnabled());
+    QVERIFY(defaultStyle->isEnabled());
+    runEditor(window, "editSheetStyle", "sheetStyleDialog",
+              [](QDialog *dialog)
+              {
+                  dialog->findChild<QLineEdit *>("styleFill")->setText("#DDF2E7");
+                  dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+              });
+    QCOMPARE(current().defaultNodeStyle.fill, QString("#DDF2E7"));
+    QVERIFY(!fill->isEnabled());
+    QVERIFY(flowHandle(view, "target"));
+    chooseTopic(window, target);
+    QVERIFY(fill->isEnabled());
+    QCOMPARE(canvasNodes(view).value(target)->nodeStyle().fill, QString("#DDF2E7"));
+    doc->setClean();
+}
+
+void TstUi::propertyTabsFollowNodeAndTaskSelection()
+{
+    MainWindow window;
+    auto project = canvasProject(2, 0);
+    const auto &tree = std::get<TreeSheet>(project.sheets.first());
+    const ID treeId = tree.id, root = tree.rootId;
+    const auto makeSheet = [](const QString &kind)
+    { return std::get<Sheet>(ProjectFactory::createSheet(kind, kind)); };
+    const auto fish = makeSheet("fishbone"), flow = makeSheet("flowchart"),
+               gantt = makeSheet("gantt");
+    const ID fishId = std::get<TreeSheet>(fish).id, flowId = std::get<FlowSheet>(flow).id,
+             ganttId = std::get<GanttSheet>(gantt).id;
+    project.sheets << fish << flow << gantt;
+    Task task;
+    task.id = canvasId("other-node-task");
+    task.title = QStringLiteral("根主题的任务");
+    task.source = TaskSource{treeId, root};
+    project.tasks.append(task);
+    loadEditorFixture(window, project);
+    window.resize(1536, 960);
+    window.show();
+    QTest::qWait(30);
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto revision = doc->sessionRevision();
+    auto *selector = window.findChild<QComboBox *>("sheetSelector");
+    auto *tabs = window.findChild<QTabWidget *>("propertyTabs");
+    auto *summary = window.findChild<QLabel *>("nodeTaskSummary");
+    auto *fill = window.findChild<QComboBox *>("inlineFill");
+    auto *shape = window.findChild<QComboBox *>("inlineShape");
+    auto *globalTask = window.findChild<QAction *>("editTaskProperties");
+    chooseTopic(window, root);
+    auto *taskTable = window.findChild<QTableView *>("taskTable");
+    taskTable->setCurrentIndex(taskTable->model()->index(0, 0));
+    QVERIFY(globalTask->isEnabled());
+    tabs->setCurrentIndex(3);
+    QVERIFY(summary->text().contains(task.title));
+    chooseTopic(window, canvasId("branch-0"));
+    QVERIFY(!summary->text().contains(task.title));
+    auto *propertyTask = window.findChild<QAction *>("editPropertyTask");
+    QVERIFY(propertyTask && !propertyTask->isEnabled());
+    QVERIFY(globalTask->isEnabled());
+
+    const auto switchTo = [selector](const ID &id)
+    { selector->setCurrentIndex(selector->findData(id)); };
+    switchTo(flowId);
+    QVERIFY(fill->isEnabled() && shape->isHidden());
+    QVERIFY(!tabs->isTabVisible(3));
+    switchTo(ganttId);
+    QCOMPARE(tabs->currentIndex(), 3);
+    for (int index : {0, 1, 2})
+        QVERIFY(!tabs->isTabVisible(index));
+    QVERIFY(!fill->isEnabled());
+    QVERIFY(!window.findChild<QAction *>("linkSelectedTask")->isEnabled());
+    QVERIFY(propertyTask->isEnabled() && summary->text().contains(task.title));
+    runEditor(window, "editPropertyTask", "taskDialog", [&](QDialog *dialog)
+              { QCOMPARE(dialog->findChild<QLineEdit *>("taskTitle")->text(), task.title); });
+    switchTo(fishId);
+    QVERIFY(fill->isEnabled() && !shape->isHidden());
+    for (int index : {0, 1, 2, 3})
+        QVERIFY(tabs->isTabVisible(index));
+    QVERIFY(!propertyTask->isEnabled());
+    switchTo(treeId);
+    QVERIFY(fill->isEnabled() && !shape->isHidden());
+    QCOMPARE(doc->sessionRevision(), revision);
+    QVERIFY(!window.findChild<CommandService *>()->canUndo());
+    doc->setClean();
+}
+
 void TstUi::instantStyleWheelAndBrand()
 {
     MainWindow window;

@@ -69,6 +69,7 @@
 #include "charts/GanttView.h"
 #include "charts/TaskTableModel.h"
 #include "commands/CommandService.h"
+#include "commands/FlowCommands.h"
 #include "commands/NodeCommands.h"
 #include "commands/SheetCommands.h"
 #include "commands/TaskCommands.h"
@@ -798,12 +799,13 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
 
 void MainWindow::editSelectedNodeProperties()
 {
-    const TreeSheet *sheet = activeTreeSheet();
-    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+    const auto *selected = selectedCanvasNode();
+    if (!selected)
+    {
         return;
-    const ID sheetId = sheet->id;
-    const ID nodeId = m_selectedNodeId;
-    const TreeNode node = sheet->nodes.value(nodeId);
+    }
+    const ID sheetId = m_doc->project().activeSheetId, nodeId = m_selectedNodeId;
+    const BaseNode node = *selected;
     QDialog dialog(this);
     dialog.setObjectName(QStringLiteral("nodePropertiesDialog"));
     dialog.setWindowTitle(QStringLiteral("主题属性"));
@@ -871,12 +873,13 @@ void MainWindow::editSelectedNodeProperties()
 
 void MainWindow::editSelectedNodeTags()
 {
-    const TreeSheet *sheet = activeTreeSheet();
-    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+    const auto *node = selectedCanvasNode();
+    if (!node)
+    {
         return;
-    const ID sheetId = sheet->id;
-    const ID nodeId = m_selectedNodeId;
-    const QStringList original = sheet->nodes.value(nodeId).tags;
+    }
+    const ID sheetId = m_doc->project().activeSheetId, nodeId = m_selectedNodeId;
+    const QStringList original = node->tags;
     QDialog dialog(this);
     dialog.setObjectName(QStringLiteral("nodeTagsDialog"));
     dialog.setWindowTitle(QStringLiteral("主题标签"));
@@ -985,12 +988,20 @@ void MainWindow::editSelectedNodeStyle()
 
 void MainWindow::editNodeStyle(bool global)
 {
-    const TreeSheet *sheet = activeTreeSheet();
-    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+    const auto *flow = activeFlowSheet();
+    const SheetBase *sheet = activeTreeSheet();
+    if (flow)
+    {
+        sheet = flow;
+    }
+    const auto *node = selectedCanvasNode();
+    if (!sheet || m_homeVisible || m_centralStack->currentIndex() != 0 || (!global && !node))
+    {
         return;
+    }
     const ID sheetId = sheet->id;
     const ID nodeId = m_selectedNodeId;
-    NodeStyleOverride original = sheet->nodes.value(nodeId).style;
+    NodeStyleOverride original = node ? node->style : NodeStyleOverride{};
     const NodeStyle defaults = sheet->defaultNodeStyle;
     const EdgeStyle edgeDefaults = sheet->defaultEdgeStyle;
     if (global)
@@ -1070,6 +1081,10 @@ void MainWindow::editNodeStyle(bool global)
     if (original.shape)
         shape->setCurrentIndex(shape->findData(*original.shape));
     form->addRow(QStringLiteral("节点形状"), shape);
+    if (flow)
+    {
+        form->setRowVisible(shape, false);
+    }
     auto *width =
         textField(QStringLiteral("styleBorderWidth"), QStringLiteral("边框宽度（0.1～20）"),
                   original.borderWidth
@@ -1093,20 +1108,25 @@ void MainWindow::editNodeStyle(bool global)
     auto *edgeDashed = new QCheckBox(QStringLiteral("默认连线使用虚线"), &dialog);
     edgeDashed->setObjectName(QStringLiteral("sheetEdgeDashed"));
     edgeDashed->setChecked(edgeDefaults.dashed);
-    if (global)
+    if (global && !flow)
     {
         form->addRow(QStringLiteral("连线颜色（#RRGGBB）"), edgeColor);
         form->addRow(QStringLiteral("连线宽度"), edgeWidth);
         form->addRow(edgeDashed);
-        // 默认样式无上级可继承，移除继承项。
-        for (auto *combo : {size, bold, shape})
-            combo->removeItem(0);
     }
     else
     {
         edgeColor->hide();
         edgeWidth->hide();
         edgeDashed->hide();
+    }
+    if (global)
+    {
+        // 默认样式无上级可继承，移除继承项。
+        for (auto *combo : {size, bold, shape})
+        {
+            combo->removeItem(0);
+        }
     }
     auto *reset = new QPushButton(QStringLiteral("恢复为工作表样式"), &dialog);
     reset->setObjectName(QStringLiteral("resetNodeStyle"));
@@ -1154,8 +1174,14 @@ void MainWindow::editNodeStyle(bool global)
                     style.fontSize = size->currentData().toInt();
                 if (global || bold->currentIndex() > 0)
                     style.bold = bold->currentData().toBool();
-                if (global || shape->currentIndex() > 0)
+                if (flow)
+                {
+                    style.shape = original.shape;
+                }
+                else if (global || shape->currentIndex() > 0)
+                {
                     style.shape = shape->currentData().toString();
+                }
                 if (!width->text().trimmed().isEmpty())
                 {
                     bool ok = false;
@@ -1179,10 +1205,14 @@ void MainWindow::editNodeStyle(bool global)
                     next.bold = style.bold.value_or(defaults.bold);
                     next.shape = style.shape.value_or(defaults.shape);
                     next.borderWidth = style.borderWidth.value_or(defaults.borderWidth);
-                    EdgeStyle edge{edgeColor->text().trimmed(),
-                                   edgeWidth->value() == initialEdgeWidth ? edgeDefaults.width
-                                                                          : edgeWidth->value(),
-                                   edgeDashed->isChecked()};
+                    EdgeStyle edge = edgeDefaults;
+                    if (!flow)
+                    {
+                        edge = {edgeColor->text().trimmed(),
+                                edgeWidth->value() == initialEdgeWidth ? edgeDefaults.width
+                                                                       : edgeWidth->value(),
+                                edgeDashed->isChecked()};
+                    }
                     result = NodeCommands(m_commands, m_doc).setSheetStyle(sheetId, next, edge);
                 }
                 else
@@ -1201,13 +1231,12 @@ void MainWindow::editNodeStyle(bool global)
 
 void MainWindow::openSelectedNodeLink()
 {
-    const TreeSheet *sheet = activeTreeSheet();
-    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
+    const auto *node = selectedCanvasNode();
+    if (!node || !node->link)
+    {
         return;
-    const auto link = sheet->nodes.value(m_selectedNodeId).link;
-    if (!link.has_value())
-        return;
-    const QUrl url(*link);
+    }
+    const QUrl url(*node->link);
     if (!url.isValid() ||
         (url.scheme() != QStringLiteral("http") && url.scheme() != QStringLiteral("https")))
         return;
@@ -1738,7 +1767,15 @@ void MainWindow::rebuildOutline()
         {
             m_outline->setDragDropMode(QAbstractItemView::NoDragDrop);
             if (!flow->nodes.contains(m_selectedNodeId))
-                m_selectedNodeId = flow->nodes.isEmpty() ? ID{} : flow->nodes.firstKey();
+            {
+                const bool edgeSelected = m_displaySheetId == flow->id &&
+                                          !m_selectedFlowEdge.isEmpty() &&
+                                          std::any_of(flow->edges.cbegin(), flow->edges.cend(),
+                                                      [this](const FlowEdge &edge)
+                                                      { return edge.id == m_selectedFlowEdge; });
+                m_selectedNodeId =
+                    flow->nodes.isEmpty() || edgeSelected ? ID{} : flow->nodes.firstKey();
+            }
             for (const auto &node : flow->nodes)
             {
                 auto *item = new QTreeWidgetItem(m_outline);
@@ -1929,13 +1966,8 @@ void MainWindow::syncCanvasSelection()
                 selectTask(task.id);
                 break;
             }
-    m_propertiesAction->setEnabled(valid);
-    m_styleAction->setEnabled(valid);
-    m_tagsAction->setEnabled(valid);
-    m_openLinkAction->setEnabled(valid && sheet->nodes.value(m_selectedNodeId).link.has_value());
-    for (const auto &name :
-         {"copyTopic", "cutTopic", "pasteTopic", "pasteOutline", "editSheetStyle", "editRelations",
-          "editAnnotations", "editComments", "changeSheetKind", "renameTopic", "addChildTopic"})
+    for (const auto &name : {"copyTopic", "cutTopic", "pasteTopic", "pasteOutline", "editRelations",
+                             "editAnnotations", "changeSheetKind", "renameTopic", "addChildTopic"})
         if (auto *action = findChild<QAction *>(QString::fromLatin1(name)))
             action->setEnabled(valid);
     const auto *flow = activeFlowSheet();
@@ -1943,8 +1975,6 @@ void MainWindow::syncCanvasSelection()
     for (const auto &name : {"addFlowNode", "editFlowEdges", "layoutFlow", "flowSnap"})
         if (auto *action = findChild<QAction *>(QString::fromLatin1(name)))
             action->setEnabled(flow != nullptr);
-    if (auto *action = findChild<QAction *>("editFlowNode"))
-        action->setEnabled(flowNode);
     if (flow)
     {
         m_deleteAction->setEnabled(flowNode || !m_selectedFlowEdge.isEmpty());
@@ -3135,10 +3165,24 @@ void MainWindow::editAnnotations()
 
 void MainWindow::editComments()
 {
-    const auto *tree = activeTreeSheet();
-    if (!tree || !tree->nodes.contains(m_selectedNodeId))
+    if (!selectedCanvasNode())
+    {
         return;
-    const ID sheetId = tree->id, nodeId = m_selectedNodeId;
+    }
+    const bool flow = activeFlowSheet() != nullptr;
+    const ID sheetId = m_doc->project().activeSheetId, nodeId = m_selectedNodeId;
+    const auto comments = [this, sheetId]() -> QVector<Comment>
+    {
+        if (const auto *sheet = activeTreeSheet(); sheet && sheet->id == sheetId)
+        {
+            return sheet->comments;
+        }
+        if (const auto *sheet = activeFlowSheet(); sheet && sheet->id == sheetId)
+        {
+            return sheet->comments;
+        }
+        return {};
+    };
     EditorForm ui(this, "commentsDialog", QStringLiteral("主题批注"));
     auto *author = new QLineEdit(
         m_sessionUser.isEmpty() ? QStringLiteral("匿名") : sessionUserName(), &ui.dialog);
@@ -3154,7 +3198,7 @@ void MainWindow::editComments()
     const auto refresh = [&]
     {
         ui.list->clear();
-        for (const auto &comment : activeTreeSheet()->comments)
+        for (const auto &comment : comments())
             if (comment.nodeId == nodeId)
             {
                 auto *item = new QListWidgetItem(
@@ -3185,7 +3229,7 @@ void MainWindow::editComments()
             [&](QListWidgetItem *item)
             {
                 selected = item->data(Qt::UserRole).toString();
-                for (const auto &comment : activeTreeSheet()->comments)
+                for (const auto &comment : comments())
                     if (comment.id == selected)
                     {
                         author->setText(comment.author);
@@ -3201,8 +3245,10 @@ void MainWindow::editComments()
             [&]
             {
                 const auto result =
-                    NodeCommands(m_commands, m_doc)
-                        .addComment(sheetId, nodeId, author->text(), body->toPlainText());
+                    flow ? FlowCommands(m_commands, m_doc)
+                               .addComment(sheetId, nodeId, author->text(), body->toPlainText())
+                         : NodeCommands(m_commands, m_doc)
+                               .addComment(sheetId, nodeId, author->text(), body->toPlainText());
                 if (const auto *error = std::get_if<AppError>(&result))
                     ui.error->setText(error->message);
                 else
@@ -3211,19 +3257,21 @@ void MainWindow::editComments()
                     fresh();
                 }
             });
-    connect(ui.remove, &QPushButton::clicked, &ui.dialog,
-            [&]
+    connect(
+        ui.remove, &QPushButton::clicked, &ui.dialog,
+        [&]
+        {
+            const auto result =
+                flow ? FlowCommands(m_commands, m_doc).resolveComment(sheetId, selected, !resolved)
+                     : NodeCommands(m_commands, m_doc).resolveComment(sheetId, selected, !resolved);
+            if (const auto *error = std::get_if<AppError>(&result))
+                ui.error->setText(error->message);
+            else
             {
-                const auto result =
-                    NodeCommands(m_commands, m_doc).resolveComment(sheetId, selected, !resolved);
-                if (const auto *error = std::get_if<AppError>(&result))
-                    ui.error->setText(error->message);
-                else
-                {
-                    refresh();
-                    fresh();
-                }
-            });
+                refresh();
+                fresh();
+            }
+        });
     refresh();
     ui.dialog.exec();
 }

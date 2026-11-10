@@ -138,6 +138,9 @@ private:
     void buildInlineStyle(QVBoxLayout *layout);
     void buildInlineIcons(QVBoxLayout *layout);
     void buildInlineNotes(QVBoxLayout *layout);
+    const BaseNode *selectedCanvasNode() const;
+    const Task *selectedPropertyTask() const;
+    bool hasCurrentInlineProperties() const;
     void updateInlineProperties();
     void applyInlineStyle(bool reset = false);
     void applyInlineIcon(const QString &id);

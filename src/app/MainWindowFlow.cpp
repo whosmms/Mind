@@ -676,7 +676,10 @@ void MainWindow::editFlowNode(bool create)
                     FlowNodePatch patch;
                     patch.title = title->toPlainText();
                     patch.role = role->currentData().toString();
-                    patch.note = note->toPlainText();
+                    if (const QString editedNote = note->toPlainText(); editedNote != node.note)
+                    {
+                        patch.note = editedNote;
+                    }
                     if (x->value() != displayed.x() || y->value() != displayed.y())
                         patch.position = QPointF(x->value(), y->value());
                     const auto result = commands.updateNode(sheetId, nodeId, patch);
