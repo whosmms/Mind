@@ -1324,6 +1324,14 @@ void TstUi::flowInlinePropertiesEditAndRoundTrip()
     window.resize(1536, 960);
     window.show();
     QTest::qWait(30);
+    auto *propertyDock = window.findChild<QDockWidget *>("propertyDock");
+    QVERIFY(propertyDock);
+    // 缩放后可用宽度变窄时，像用户一样通过属性开关打开侧栏。
+    if (propertyDock->isHidden())
+    {
+        window.findChild<QAction *>("toggleProperties")->trigger();
+    }
+    QTRY_VERIFY(propertyDock->isVisible());
     auto *doc = window.findChild<ProjectDocument *>();
     auto *commands = window.findChild<CommandService *>();
     auto *tabs = window.findChild<QTabWidget *>("propertyTabs");
@@ -1343,8 +1351,7 @@ void TstUi::flowInlinePropertiesEditAndRoundTrip()
     QCOMPARE(selected().style.shape.value(), QString("rect"));
     QCOMPARE(canvasNodes(view).value(nodeId)->nodeStyle().shape, QString("diamond"));
     QCOMPARE(canvasNodes(view).value(nodeId)->nodeStyle().fill, QString("#FFF0D0"));
-    captureEfficiency(*window.findChild<QDockWidget *>("propertyDock"), "01-流程节点样式",
-                      "LINGYA_H056_CAPTURE_DIR");
+    captureEfficiency(*propertyDock, "01-流程节点样式", "LINGYA_H056_CAPTURE_DIR");
 
     tabs->setCurrentIndex(2);
     auto *note = window.findChild<QPlainTextEdit *>("inlineNote");
@@ -1375,8 +1382,7 @@ void TstUi::flowInlinePropertiesEditAndRoundTrip()
     QCOMPARE(selected().link.value(), url);
     QVERIFY(window.findChild<QAction *>("openNodeLink")->isEnabled());
     QVERIFY(window.findChild<QAction *>("editNodeProperties")->isEnabled());
-    captureEfficiency(*window.findChild<QDockWidget *>("propertyDock"), "02-流程节点备注链接",
-                      "LINGYA_H056_CAPTURE_DIR");
+    captureEfficiency(*propertyDock, "02-流程节点备注链接", "LINGYA_H056_CAPTURE_DIR");
     commands->undo();
     QVERIFY(selected().note.isEmpty());
     QVERIFY(!selected().link);
