@@ -6,6 +6,7 @@
 #include <QGraphicsView>
 #include <QVector>
 
+class QFont;
 class QGraphicsItem;
 class QGraphicsRectItem;
 
@@ -33,6 +34,10 @@ public:
 
     // 与 TaskTableModel 行同步：任务在场景中的行号（不存在返回 -1）
     int rowForTask(const ID& taskId) const;
+
+    // 月界竖线的起点 y：按月份标签字体推导（标签下沿 + 1px），字号变了会自动跟随。
+    // 供测试锁定「线跟着字走」而非写死像素；外部无需调用。
+    static qreal monthLineTop(const QFont& monthFont);
 
 signals:
     // 拖拽结束后请求调用方提交新起止日期（经 TaskCommands::updateTask）；视图本身不修改 Project

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstGanttView">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.4316"/>
+  </TestFunction>
+  <TestFunction name="monthLineTopFollowsMonthFont">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+    <Incident type="fail" file="D:/mind/Mind/tests/tst_ganttview.cpp" line="686">
+      <Description><![CDATA['GanttView::monthLineTop(bigger) > lineTop + 1.0' returned FALSE. (字号变大时月界竖线起点没有下移（写死像素就会这样）)]]></Description>
+    </Incident>
+    <Duration msecs="4.9133"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0177"/>
+  </TestFunction>
+  <Duration msecs="9.5279"/>
+</TestCase>

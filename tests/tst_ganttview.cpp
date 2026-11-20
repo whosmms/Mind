@@ -49,6 +49,7 @@ private slots:
   void shortCrossMonthShowsSingleMonthLabel();
   void monthBoundaryLineDoesNotCrossLabel();
   void monthBoundaryLineVisibleInAxisBand();
+  void monthLineTopFollowsMonthFont();
   void longRangeShowsBothMonthLabels();
   void midMonthRangeShowsYearAndMonth();
   void longUnscheduledNamesRemainScrollable_data();
@@ -78,6 +79,42 @@ QGraphicsItem* barItemFor(GanttView& view, const ID& taskId) {
         }
     }
     return nullptr;
+}
+
+// 月份标签按几何位置识别：它在时间轴最上一行（y≈0）；日号在 kAxisHeight-16，
+// 未排期说明在任务区下方。不再用 "yyyy-MM" 的字符形状去猜（§52.3 遗留）。
+QVector<QGraphicsTextItem*> monthLabelItems(GanttView& view) {
+    QVector<QGraphicsTextItem*> labels;
+    for (QGraphicsItem* item : view.scene()->items()) {
+        if (item->type() != QGraphicsTextItem::Type) {
+            continue;
+        }
+        auto* text = static_cast<QGraphicsTextItem*>(item);
+        if (text->pos().y() < 8.0) {
+            labels.append(text);
+        }
+    }
+    return labels;
+}
+
+// 月界主线：主色竖线。日号分隔线是 borderColor，依赖连线不竖直，都不参与。
+QVector<QGraphicsLineItem*> monthLineItems(GanttView& view) {
+    QVector<QGraphicsLineItem*> lines;
+    for (QGraphicsItem* item : view.scene()->items()) {
+        if (item->type() != QGraphicsLineItem::Type) {
+            continue;
+        }
+        auto* line = static_cast<QGraphicsLineItem*>(item);
+        const QLineF segment = line->line();
+        if (!qFuzzyCompare(segment.x1() + 1.0, segment.x2() + 1.0)) {
+            continue;
+        }
+        if (line->pen().color() != QColor(0x24, 0x7A, 0x62)) {
+            continue;
+        }
+        lines.append(line);
+    }
+    return lines;
 }
 
 // 场景坐标 → 视口坐标（QTest 的鼠标事件按视口坐标投递）
@@ -520,20 +557,7 @@ void TstGanttView::shortCrossMonthShowsSingleMonthLabel()
     GanttView view;
     view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 31), QDate(2026, 11, 2))});
 
-    int monthLabels = 0;
-    for (QGraphicsItem *item : view.scene()->items())
-    {
-        if (item->type() != QGraphicsTextItem::Type)
-        {
-            continue;
-        }
-        const QString text = static_cast<QGraphicsTextItem *>(item)->toPlainText();
-        if (text.length() == 7 && text.count(QLatin1Char('-')) == 1)
-        {
-            ++monthLabels;
-        }
-    }
-    QCOMPARE(monthLabels, 1); // 第二个月份文字被避让，月界仍保留。
+    QCOMPARE(monthLabelItems(view).size(), 1); // 第二个月份文字被避让，月界仍保留。
     for (int pixelsPerDay : {24, 48})
     {
         view.setPixelsPerDay(pixelsPerDay);
@@ -570,20 +594,7 @@ void TstGanttView::longRangeShowsBothMonthLabels()
     view.setPixelsPerDay(60);
     view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 1), QDate(2026, 12, 1))});
 
-    int monthLabels = 0;
-    for (QGraphicsItem *item : view.scene()->items())
-    {
-        if (item->type() != QGraphicsTextItem::Type)
-        {
-            continue;
-        }
-        const QString text = static_cast<QGraphicsTextItem *>(item)->toPlainText();
-        if (text.length() == 7 && text.count(QLatin1Char('-')) == 1)
-        {
-            ++monthLabels;
-        }
-    }
-    QCOMPARE(monthLabels, 3); // 10、11、12 三个月界
+    QCOMPARE(monthLabelItems(view).size(), 3); // 10、11、12 三个月界
 }
 
 void TstGanttView::monthBoundaryLineDoesNotCrossLabel() {
@@ -591,20 +602,13 @@ void TstGanttView::monthBoundaryLineDoesNotCrossLabel() {
     GanttView view;
     view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 31), QDate(2026, 11, 2))});
 
-    QRectF labelRect;
-    for (QGraphicsItem* item : view.scene()->items()) {
-        if (item->type() != QGraphicsTextItem::Type) {
-            continue;
-        }
-        auto* text = static_cast<QGraphicsTextItem*>(item);
-        const QString content = text->toPlainText();
-        if (content.length() == 7 && content.count(QLatin1Char('-')) == 1) {
-            const qreal margin = text->document()->documentMargin();
-            labelRect = text->sceneBoundingRect().adjusted(margin, margin, -margin, -margin);
-            break;
-        }
-    }
-    QVERIFY2(labelRect.isValid(), "没有找到月份标签");
+    const auto labels = monthLabelItems(view);
+    QVERIFY2(!labels.isEmpty(), "没有找到月份标签");
+    auto* monthLabel = labels.first();
+    const qreal margin = monthLabel->document()->documentMargin();
+    const QRectF labelRect =
+        monthLabel->sceneBoundingRect().adjusted(margin, margin, -margin, -margin);
+    QVERIFY2(labelRect.isValid(), "月份标签矩形无效");
 
     for (QGraphicsItem* item : view.scene()->items()) {
         if (item->type() != QGraphicsLineItem::Type) {
@@ -651,6 +655,36 @@ void TstGanttView::monthBoundaryLineVisibleInAxisBand() {
     }
     QVERIFY2(monthLines >= 2, "至少应有 10-31 与 11-01 两条月界主线");
     QVERIFY2(monthLinesVisibleInAxisBand >= 1, "月界主线应在轴带内可见");
+}
+
+void TstGanttView::monthLineTopFollowsMonthFont()
+{
+    // §54 乙反证：起点写死 22 时，月份字号调到 12pt 就穿字。竖线起点必须由字体推导。
+    // 本用例锁死「线跟着字走」：线顶 == monthLineTop(标签字体)，字号变大时数值也变大。
+    GanttView view;
+    view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 10, 31), QDate(2026, 11, 2))});
+
+    const auto labels = monthLabelItems(view);
+    QVERIFY2(!labels.isEmpty(), "没有找到月份标签");
+    auto* label = labels.first();
+    const qreal margin = label->document()->documentMargin();
+    const QRectF textRect =
+        label->sceneBoundingRect().adjusted(margin, margin, -margin, -margin);
+
+    const auto lines = monthLineItems(view);
+    QVERIFY2(!lines.isEmpty(), "没有找到月界主线");
+    const QLineF segment = lines.first()->line();
+    const qreal lineTop = qMin(segment.y1(), segment.y2());
+
+    QVERIFY2(lineTop > textRect.bottom(), "月界竖线压到了月份标签文字");
+    QVERIFY2(lineTop <= textRect.bottom() + 8.0, "月界竖线离标签太远，轴带内会看着断开");
+    QVERIFY2(qAbs(lineTop - GanttView::monthLineTop(label->font())) < 0.5,
+             "月界竖线起点没有跟着月份标签字体走");
+
+    QFont bigger = label->font();
+    bigger.setPointSize(bigger.pointSize() + 4);
+    QVERIFY2(GanttView::monthLineTop(bigger) > lineTop + 1.0,
+             "字号变大时月界竖线起点没有下移（写死像素就会这样）");
 }
 
 QTEST_MAIN(TstGanttView)
