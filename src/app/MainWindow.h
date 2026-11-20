@@ -22,6 +22,8 @@ class QTimer;
 class QTreeWidget;
 class QComboBox;
 class QTableView;
+class QPlainTextEdit;
+class QRubberBand;
 class QResizeEvent;
 class QVBoxLayout;
 
@@ -51,6 +53,7 @@ class MainWindow : public QMainWindow {
 public:
     // 可注入认证服务用于隔离协议测试；注入后生命周期归窗口管理。
     explicit MainWindow(QWidget* parent = nullptr, OnlineAuthService* authService = nullptr);
+    ~MainWindow() override;
     // 首页仅切换会话视图；选择模板/文件时才复用未保存保护与加载流程。
     void showHomePage();
     // 自动测试可注入隔离服务；生产按凭据存储与既有工厂装配，不自动联网。
@@ -145,12 +148,30 @@ private:
     void applyInlineStyle(bool reset = false);
     void applyInlineIcon(const QString &id);
     void applyInlineNotes();
+    void rememberInlineNotes();
+    void queueInlineNotes();
+    bool commitInlineNotes(const QPair<ID, ID> &target);
+    bool commitAllInlineNotes();
     void rebuildRecentMenu();       // 重建“最近文件”子菜单（R04，数据来自SettingsService）
     void openRecentFile(const QString& path);
     void newProject();
     void openProject();
     bool saveProject(bool saveAs);
     void renameSelectedNode();
+    enum class TitleEditKind
+    {
+        Rename,
+        Child,
+        Sibling,
+        FlowSuccessor
+    };
+    void beginCanvasTitle(TitleEditKind kind, const ID &nodeId,
+                          const std::optional<QPointF> &position = std::nullopt);
+    bool finishCanvasTitle(bool accept, bool focusCanvas = false);
+    bool handleCanvasTitleEvent(QObject *watched, QEvent *event);
+    void placeCanvasTitleEditor();
+    bool navigateCanvas(int key);
+    bool handleCanvasGesture(QObject *watched, QEvent *event);
     void editSelectedNodeProperties();
     void editSelectedNodeTags();
     void editSelectedNodeStyle();
@@ -171,6 +192,7 @@ private:
     bool handleTreeCanvasEvent(QObject *watched, QEvent *event);
     bool handleCanvasContextMenu(QObject *watched, QEvent *event);
     void cancelTreeDrag();
+    QPointF alignTreeDrag(const QPointF &delta, bool preview);
     void drawTreeLinks(const TreeSheet &display);
     void focusBranch();
     static QSet<ID> branchIds(const TreeSheet &sheet, const ID &rootId);
@@ -230,7 +252,7 @@ private:
     const GanttSheet *ganttTaskFilter(bool includeLocationOverride = true) const;
     bool isTaskVisibleInGantt(const ID &taskId, bool includeLocationOverride = true) const;
     bool hasVisibleGanttTasks() const;
-    void setCanvasZoom(qreal zoom);
+    void setCanvasZoom(qreal zoom, const std::optional<QPoint> &anchor = std::nullopt);
     void fitCanvas();
     void selectNode(const ID &nodeId);
     void syncCanvasSelection();
@@ -288,6 +310,7 @@ private:
     bool m_chromeUpdating = false;
     bool m_compactChrome = false;
     bool m_restorePropertyDock = false;
+    bool m_restoreOutlineAfterGantt = false;
     HomePage *m_homePage = nullptr;
     QPointer<AiService> m_aiService;
     bool m_homeVisible = false;
@@ -299,6 +322,27 @@ private:
     bool m_updatingInline = false;
     BaseNode m_propertyInitial;
     NodeStyleOverride m_propertyStyle;
+    struct InlineNotesDraft
+    {
+        std::optional<QString> note, link;
+        QString error;
+    };
+    QMap<QPair<ID, ID>, InlineNotesDraft> m_inlineNotesDrafts;
+    QMetaObject::Connection m_notesFocusConnection;
+    struct CanvasTitleEdit
+    {
+        TitleEditKind kind;
+        ID projectId, sheetId, nodeId;
+        QString initial;
+        std::optional<QPointF> position;
+    };
+    std::optional<CanvasTitleEdit> m_canvasTitleEdit;
+    QPointer<QPlainTextEdit> m_canvasTitleEditor;
+    bool m_canvasTitlePreedit = false;
+    bool m_spaceHeld = false, m_spacePanned = false, m_boxSelecting = false;
+    Qt::MouseButton m_panButton = Qt::NoButton;
+    QPoint m_gestureStart, m_scrollStart;
+    QRubberBand *m_selectionBand = nullptr;
     QPoint m_dragStart;
     ID m_cutNodeId, m_cutSheetId, m_cutProjectId;
     qint64 m_cutRevision = -1;

@@ -324,6 +324,8 @@ void MainWindow::playPresentation(const PresentationRoute &route)
     auto *view = new QGraphicsView(m_scene, &player);
     view->setObjectName("presentationCanvas");
     view->setInteractive(false);
+    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     view->setRenderHint(QPainter::Antialiasing);
     column->addWidget(view, 1);
     auto *note = new QLabel(&player);

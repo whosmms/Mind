@@ -14,6 +14,8 @@ namespace SettingsService
 
 // 最近文件列表（新→旧），至多kMaxRecentFiles条；容忍空项并去重，路径规范化为绝对路径
 QVector<QString> recentFiles(const QSettings &settings);
+QStringList pinnedRecentFiles(const QSettings &settings);
+void setRecentFilePinned(QSettings &settings, const QString &path, bool pinned);
 
 // 成功打开/另存后记录：路径规范化为绝对路径，置顶、去重（Windows路径大小写不敏感）、
 // 超出kMaxRecentFiles时从末尾淘汰
@@ -24,6 +26,8 @@ void removeRecentFile(QSettings &settings, const QString &path);
 
 // 便捷重载：使用应用默认QSettings（main已登记组织与应用名）
 QVector<QString> recentFiles();
+QStringList pinnedRecentFiles();
+void setRecentFilePinned(const QString &path, bool pinned);
 void addRecentFile(const QString &path);
 void removeRecentFile(const QString &path);
 

@@ -109,7 +109,7 @@ void MainWindow::showPreferences()
         "## 快速开始\n\n从首页选择导图、鱼骨、流程或甘特模板，或打开本地工程。编辑完成后保存为 "
         "`.lingya`。\n\n"
         "## 编辑与查找\n\n默认 F2 改名，Tab 新增子主题，Enter 新增同级，Delete 删除，Ctrl+Z "
-        "后退（撤回编辑），Ctrl+Y前进（恢复编辑）。大纲与画布同步；Ctrl+F "
+        "撤销，Ctrl+Y 重做。大纲与画布同步；Ctrl+F "
         "搜索标题、备注和任务。快捷键可在本页修改。\n\n"
         "## 输出与讲解\n\n通过工具菜单导出 PNG、分页 PDF、Markdown 或 "
         "TXT；图片导出当前可见内容，大纲包含折叠主题。F5 "

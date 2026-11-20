@@ -3,6 +3,7 @@
 #include "app/StyleChoices.h"
 #include "layout/FishboneLayout.h"
 #include "layout/TreeLayout.h"
+#include "ui/TemplateGallery.h"
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
@@ -44,6 +45,7 @@
 #include <QScopedValueRollback>
 #include <QScreen>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSet>
 #include <QSignalBlocker>
 #include <QStackedWidget>
@@ -207,55 +209,6 @@ void showNotice(QWidget *parent, QMessageBox::Icon icon, const QString &title, c
     box.exec();
 }
 
-// 标准Qt多行输入框：预编辑期间不把Enter当成提交，Shift+Enter保留换行。
-class NodeTitleDialog final : public QInputDialog
-{
-  public:
-    NodeTitleDialog(const QString &caption, const QString &initial, QWidget *parent)
-        : QInputDialog(parent)
-    {
-        setWindowTitle(caption);
-        setLabelText(QStringLiteral("主题标题（Enter确认，Shift+Enter换行）："));
-        setOption(QInputDialog::UsePlainTextEditForTextInput);
-        setTextValue(initial);
-        setOkButtonText(QStringLiteral("确定"));
-        setCancelButtonText(QStringLiteral("取消"));
-        resize(440, 240);
-        m_editor = findChild<QPlainTextEdit *>();
-        if (m_editor != nullptr)
-        {
-            m_editor->installEventFilter(this);
-            m_editor->selectAll();
-        }
-    }
-
-  protected:
-    bool eventFilter(QObject *watched, QEvent *event) override
-    {
-        if (watched == m_editor && event->type() == QEvent::InputMethod)
-            m_preediting = !static_cast<QInputMethodEvent *>(event)->preeditString().isEmpty();
-        if (watched == m_editor && event->type() == QEvent::KeyPress)
-        {
-            const auto *key = static_cast<QKeyEvent *>(event);
-            if (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter)
-            {
-                if (m_preediting)
-                    return true;
-                if ((key->modifiers() & ~Qt::KeypadModifier) == Qt::NoModifier)
-                {
-                    accept();
-                    return true;
-                }
-            }
-        }
-        return QInputDialog::eventFilter(watched, event);
-    }
-
-  private:
-    QPlainTextEdit *m_editor = nullptr;
-    bool m_preediting = false;
-};
-
 // 单标签输入保留真实输入法候选确认，预编辑期间不把Enter当成添加。
 class TagNameDialog final : public QInputDialog
 {
@@ -296,6 +249,33 @@ QFont canvasFont() {
     font.setPixelSize(16);                           // 节点默认字号（规范§4.2）
     return font;
 }
+
+QString relativeSavedTime(const QDateTime &savedAt)
+{
+    const auto seconds = savedAt.secsTo(QDateTime::currentDateTime());
+    if (seconds >= 0 && seconds < 60)
+        return QStringLiteral("刚刚");
+    if (seconds >= 60 && seconds < 3600)
+        return QStringLiteral("%1 分钟前").arg(seconds / 60);
+    if (seconds >= 3600 && seconds < 86400)
+        return QStringLiteral("%1 小时前").arg(seconds / 3600);
+    if (seconds >= 86400 && seconds < 604800)
+        return QStringLiteral("%1 天前").arg(seconds / 86400);
+    return savedAt.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm"));
+}
+
+qsizetype topicCount(const Project &project)
+{
+    qsizetype count = 0;
+    for (const auto &sheet : project.sheets)
+    {
+        if (const auto *tree = std::get_if<TreeSheet>(&sheet))
+            count += tree->nodes.size();
+        else if (const auto *flow = std::get_if<FlowSheet>(&sheet))
+            count += flow->nodes.size();
+    }
+    return count;
+}
 }  // namespace
 
 QString MainWindow::s_recoveryRootForTest;
@@ -317,12 +297,16 @@ MainWindow::MainWindow(QWidget *parent, OnlineAuthService *authService)
     m_view = new QGraphicsView(m_scene, this);
     m_view->setObjectName(QStringLiteral("topicPreview"));
     m_view->setRenderHint(QPainter::Antialiasing);
-    m_view->setDragMode(QGraphicsView::ScrollHandDrag);
+    m_view->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     m_view->setMouseTracking(true);
     m_view->viewport()->setMouseTracking(true);
     m_view->viewport()->setAcceptDrops(true);
     m_view->installEventFilter(this);
     m_view->viewport()->installEventFilter(this);   // 双击画布节点重命名
+    for (auto *bar : {m_view->horizontalScrollBar(), m_view->verticalScrollBar()})
+    {
+        connect(bar, &QScrollBar::valueChanged, this, &MainWindow::placeCanvasTitleEditor);
+    }
     // 中央区两页：页0思维导图画布，页1甘特图（M3丙接入，见setGanttView）
     m_centralStack = new QStackedWidget(this);
     m_centralStack->addWidget(m_view);
@@ -451,6 +435,30 @@ MainWindow::MainWindow(QWidget *parent, OnlineAuthService *authService)
     QTimer::singleShot(0, this, &MainWindow::offerRecoverySnapshots);
 }
 
+MainWindow::~MainWindow()
+{
+    // 子控件销毁时仍会改变焦点和滚动范围，先解除依赖窗口状态的监听。
+    disconnect(m_notesFocusConnection);
+    for (auto *bar : {m_view->horizontalScrollBar(), m_view->verticalScrollBar()})
+    {
+        disconnect(bar, &QScrollBar::valueChanged, this, &MainWindow::placeCanvasTitleEditor);
+    }
+    m_view->removeEventFilter(this);
+    m_view->viewport()->removeEventFilter(this);
+    if (m_canvasTitleEditor)
+    {
+        m_canvasTitleEditor->removeEventFilter(this);
+    }
+    if (auto *note = findChild<QPlainTextEdit *>("inlineNote"))
+    {
+        disconnect(note, &QPlainTextEdit::textChanged, this, &MainWindow::rememberInlineNotes);
+    }
+    if (auto *link = findChild<QLineEdit *>("inlineLink"))
+    {
+        disconnect(link, &QLineEdit::textChanged, this, &MainWindow::rememberInlineNotes);
+    }
+}
+
 void MainWindow::buildMenus() {
     QMenu* fileMenu = menuBar()->addMenu(QStringLiteral("文件(&F)"));
     fileMenu->addAction(QStringLiteral("新建(&N)"), QKeySequence::New, this,
@@ -485,11 +493,17 @@ void MainWindow::buildMenus() {
     fileMenu->addAction(QStringLiteral("退出(&X)"), QKeySequence::Quit, this, &QWidget::close);
 
     QMenu* editMenu = menuBar()->addMenu(QStringLiteral("编辑(&E)"));
-    m_undoAction = editMenu->addAction(QStringLiteral("后退(&U)"), QKeySequence::Undo, this,
-                                       [this] { m_commands->undo(); });
+    m_undoAction = editMenu->addAction(QStringLiteral("撤销(&U)"), QKeySequence::Undo, this,
+                                       [this]
+                                       {
+                                           if (commitAllInlineNotes())
+                                           {
+                                               m_commands->undo();
+                                           }
+                                       });
     m_undoAction->setObjectName(QStringLiteral("undoEdit"));
-    m_redoAction = editMenu->addAction(QStringLiteral("前进(&R)"), this,
-                                       [this] { m_commands->redo(); });
+    m_redoAction =
+        editMenu->addAction(QStringLiteral("重做(&R)"), this, [this] { m_commands->redo(); });
     m_redoAction->setObjectName(QStringLiteral("redoEdit"));
     // 统一规范§14.1：Ctrl+Shift+Z为主，Ctrl+Y为别名（Windows平台QKeySequence::Redo即Ctrl+Y）
     m_redoAction->setShortcuts({QKeySequence::Redo, QKeySequence(QStringLiteral("Ctrl+Shift+Z"))});
@@ -592,10 +606,27 @@ void MainWindow::showGanttView(bool forTaskLocation)
             QStringLiteral("当前筛选无任务（工程共 %1 项）").arg(m_doc->project().tasks.size()));
 }
 
-void MainWindow::setCanvasZoom(qreal zoom)
+void MainWindow::setCanvasZoom(qreal zoom, const std::optional<QPoint> &anchor)
 {
     zoom = qBound(0.25, zoom, 2.0);
+    const auto anchorMode = m_view->transformationAnchor();
+    const QPoint pivot = anchor.value_or(m_view->viewport()->rect().center());
+    const QPointF scenePoint = m_view->mapToScene(pivot);
+    m_view->setTransformationAnchor(QGraphicsView::NoAnchor);
+    if (anchor)
+    {
+        const QSize viewport = m_view->viewport()->size();
+        const QPointF topLeft = scenePoint - QPointF(pivot) / zoom;
+        const QSizeF span = QSizeF(viewport) / zoom;
+        m_scene->setSceneRect(
+            m_scene->sceneRect().united(QRectF(topLeft, span).adjusted(-24, -24, 24, 24)));
+    }
     m_view->setTransform(QTransform::fromScale(zoom, zoom));
+    const QPoint delta = m_view->mapFromScene(scenePoint) - pivot;
+    m_view->horizontalScrollBar()->setValue(m_view->horizontalScrollBar()->value() + delta.x());
+    m_view->verticalScrollBar()->setValue(m_view->verticalScrollBar()->value() + delta.y());
+    m_view->setTransformationAnchor(anchorMode);
+    placeCanvasTitleEditor();
     updateEditorChrome();
 }
 
@@ -730,6 +761,8 @@ void MainWindow::writeRecoverySnapshot() {
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
+    if (handleCanvasTitleEvent(watched, event) || handleCanvasGesture(watched, event))
+        return true;
     if (handleImageEvent(watched, event) || handleCanvasContextMenu(watched, event))
         return true;
     if (auto *gantt = qobject_cast<GanttView *>(m_ganttPage);
@@ -748,9 +781,9 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     }
     if (handleFlowEvent(watched, event))
         return true;
-    if (handleCanvasContextMenu(watched, event) || handleTreeCanvasEvent(watched, event))
+    if (handleTreeCanvasEvent(watched, event))
         return true;
-    // 只处理大纲/画布，文本对话框和输入法预编辑不经过此入口。
+    // 标题编辑框优先处理文字、输入法及提交键。
     if ((watched == m_outline || watched == m_view || watched == m_view->viewport()) &&
         event->type() == QEvent::KeyPress)
     {
@@ -767,7 +800,12 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
             exitBranchFocus();
             return true;
         }
-        if (key->key() == Qt::Key_Tab && key->modifiers() == Qt::NoModifier)
+        if (watched != m_outline && key->modifiers() == Qt::NoModifier &&
+            navigateCanvas(key->key()))
+        {
+            return true;
+        }
+        if (key->key() == Qt::Key_Tab && key->modifiers() == Qt::NoModifier && activeTreeSheet())
         {
             addChildToSelection();
             return true;
@@ -791,10 +829,17 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     if (watched == m_view->viewport() && event->type() == QEvent::Wheel)
     {
         const auto *wheel = static_cast<QWheelEvent *>(event);
-        if (wheel->angleDelta().y() != 0)
-            setCanvasZoom(m_view->transform().m11() *
-                          (wheel->angleDelta().y() > 0 ? 1.2 : 1 / 1.2));
-        return true;
+        if (wheel->modifiers().testFlag(Qt::ControlModifier))
+        {
+            const qreal steps = wheel->pixelDelta().y() != 0 ? wheel->pixelDelta().y() / 120.0
+                                                             : wheel->angleDelta().y() / 120.0;
+            if (steps != 0)
+            {
+                setCanvasZoom(m_view->transform().m11() * std::pow(1.2, qBound(-10.0, steps, 10.0)),
+                              wheel->position().toPoint());
+            }
+            return true;
+        }
     }
     return QMainWindow::eventFilter(watched, event);
 }
@@ -1307,6 +1352,8 @@ bool MainWindow::openFile(const QString& path) {
 }
 
 bool MainWindow::saveProject(bool saveAs) {
+    if (!finishCanvasTitle(true) || !commitAllInlineNotes())
+        return false;
     // 登录态：只命名、不选路径，保存到当前用户专有文件夹（D-M2-02）
     if (!m_sessionUser.isEmpty()) {
         QString name;
@@ -1340,6 +1387,8 @@ bool MainWindow::saveProject(bool saveAs) {
 }
 
 bool MainWindow::saveProjectTo(const QString& path) {
+    if (!finishCanvasTitle(true) || !commitAllInlineNotes())
+        return false;
     if (path.isEmpty()) return false;
     QString target = path;
     if (!target.endsWith(".lingya", Qt::CaseInsensitive)) target += ".lingya";
@@ -1417,6 +1466,8 @@ void MainWindow::showVersionHistory()
     auto *list = new QListWidget(&dialog);
     list->setObjectName("savedVersions");
     layout->addWidget(list, 1);
+    auto *thumbnail = new QLabel(&dialog);
+    layout->addWidget(thumbnail, 0, Qt::AlignHCenter);
     auto *preview = new QLabel(&dialog);
     preview->setObjectName("savedVersionPreview");
     preview->setTextFormat(Qt::PlainText);
@@ -1432,18 +1483,21 @@ void MainWindow::showVersionHistory()
     connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     for (const auto &version : std::get<QVector<FileService::SavedVersion>>(listed))
     {
-        const auto time =
-            version.savedAt.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz"));
+        const auto time = relativeSavedTime(version.savedAt);
         auto *item = new QListWidgetItem(
             version.legacyBackup ? QStringLiteral("%1 · 覆盖前备份").arg(time) : time, list);
         item->setData(Qt::UserRole, version.id);
+        item->setToolTip(
+            version.savedAt.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
     }
     std::optional<Project> copy;
+    const auto currentTopics = topicCount(m_doc->project());
     connect(list, &QListWidget::currentItemChanged, &dialog,
             [&, path, projectId](QListWidgetItem *item)
             {
                 copy.reset();
                 open->setEnabled(false);
+                thumbnail->clear();
                 if (!item)
                 {
                     preview->setText(QStringLiteral("此工程还没有可查看的保存版本。"));
@@ -1457,10 +1511,18 @@ void MainWindow::showVersionHistory()
                     return;
                 }
                 copy = std::move(std::get<Project>(result));
+                thumbnail->setPixmap(TemplateGallery::preview(*copy).pixmap(200, 92));
+                const auto savedTopics = topicCount(*copy);
+                const auto difference = savedTopics - currentTopics;
                 QString description = QStringLiteral("工程：%1\n工作表 %2 张 · 修订 %3")
                                           .arg(copy->title.left(120))
                                           .arg(copy->sheets.size())
                                           .arg(copy->revision);
+                description += QStringLiteral("\n主题 %1 个").arg(savedTopics);
+                if (difference != 0)
+                    description += (difference > 0 ? QStringLiteral(" · 比当前多 %1 个")
+                                                   : QStringLiteral(" · 比当前少 %1 个"))
+                                       .arg(qAbs(difference));
                 for (const auto &entry : copy->sheets)
                 {
                     const auto &sheet = std::visit([](const auto &value) -> const SheetBase &
@@ -1494,47 +1556,15 @@ void MainWindow::showVersionHistory()
 
 void MainWindow::renameSelectedNode()
 {
-    if (activeFlowSheet())
-    {
-        editFlowNode(false);
-        return;
-    }
-    const TreeSheet* sheet = activeTreeSheet();
-    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
-        return;
-    // 稳定ID先复制，命令触发changed重建后不继续持有文档内部引用。
-    const ID sheetId = sheet->id;
-    const ID nodeId = m_selectedNodeId;
-    const QString oldTitle = sheet->nodes.value(nodeId).title;
-    NodeTitleDialog dialog(QStringLiteral("重命名主题"), oldTitle, this);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    const QString title = dialog.textValue();
-    TaskCommands tasks(m_commands, m_doc);
-    const auto result = tasks.renameNode(sheetId, nodeId, title);
-    if (const auto *error = std::get_if<AppError>(&result))
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法重命名"), error->message);
+    beginCanvasTitle(TitleEditKind::Rename, m_selectedNodeId);
 }
 
 void MainWindow::addChildToSelection()
 {
-    const TreeSheet *sheet = activeTreeSheet();
-    if (sheet == nullptr || !sheet->nodes.contains(m_selectedNodeId))
-        return;
-    const ID sheetId = sheet->id;
-    const ID parentId = m_selectedNodeId;
-    NodeTitleDialog dialog(QStringLiteral("新增子主题"), QStringLiteral("未命名主题"), this);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    const QString title = dialog.textValue();
-    NodeCommands nodes(m_commands, m_doc);
-    const auto result = nodes.addChild(sheetId, parentId, title);
-    if (const auto *error = std::get_if<AppError>(&result))
+    if (activeTreeSheet())
     {
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法新增"), error->message);
-        return;
+        quickAddNode(m_selectedNodeId);
     }
-    selectNewNode(std::get<ID>(result));
 }
 
 void MainWindow::addSiblingToSelection()
@@ -1544,19 +1574,7 @@ void MainWindow::addSiblingToSelection()
         return;
     if (m_selectedNodeId == sheet->rootId)
         return;
-    const ID sheetId = sheet->id;
-    const ID referenceId = m_selectedNodeId;
-    NodeTitleDialog dialog(QStringLiteral("新增同级主题"), QStringLiteral("未命名主题"), this);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    NodeCommands nodes(m_commands, m_doc);
-    const auto result = nodes.addSibling(sheetId, referenceId, dialog.textValue());
-    if (const auto *error = std::get_if<AppError>(&result))
-    {
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法新增同级主题"), error->message);
-        return;
-    }
-    selectNewNode(std::get<ID>(result));
+    beginCanvasTitle(TitleEditKind::Sibling, m_selectedNodeId);
 }
 
 void MainWindow::deleteSelection()
@@ -1706,11 +1724,18 @@ QString MainWindow::currentRootTitle() const {
 }
 
 bool MainWindow::confirmDiscard() {
-    if (!m_doc->isModified()) return true;
-    QMessageBox question(QMessageBox::Warning, QStringLiteral("未保存的修改"),
-                         QStringLiteral("当前工程已修改，是否保存？"),
-                         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this);
+    if (m_canvasTitlePreedit)
+        return false;
+    const bool readyToSave = finishCanvasTitle(true) && commitAllInlineNotes();
+    if (readyToSave && !m_doc->isModified())
+        return true;
+    QMessageBox question(
+        QMessageBox::Warning, QStringLiteral("未保存的修改"),
+        readyToSave ? QStringLiteral("当前工程已修改，是否保存？")
+                    : QStringLiteral("还有未通过校验的标题或备注。请取消并修正，或放弃修改。"),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this);
     question.button(QMessageBox::Save)->setText(QStringLiteral("保存"));
+    question.button(QMessageBox::Save)->setEnabled(readyToSave);
     question.button(QMessageBox::Discard)->setText(QStringLiteral("放弃修改"));
     question.button(QMessageBox::Cancel)->setText(QStringLiteral("取消"));
     question.setDefaultButton(QMessageBox::Cancel);
@@ -1728,6 +1753,8 @@ bool MainWindow::confirmDiscard() {
 }
 
 void MainWindow::loadNewDocument(Project project) {
+    finishCanvasTitle(false);
+    m_inlineNotesDrafts.clear();
     returnFromHome();
     m_historyCopy = false;
     m_branchFocus.reset();
@@ -1789,13 +1816,27 @@ void MainWindow::rebuildOutline()
                 m_selectedNodeId =
                     flow->nodes.isEmpty() || edgeSelected ? ID{} : flow->nodes.firstKey();
             }
+            QVector<const FlowNode *> ordered;
+            ordered.reserve(flow->nodes.size());
             for (const auto &node : flow->nodes)
+                ordered.append(&node);
+            // 按画布从上到下、从左到右阅读，同坐标再按 ID 保持稳定。
+            std::sort(ordered.begin(), ordered.end(),
+                      [](const FlowNode *a, const FlowNode *b)
+                      {
+                          if (a->position.y() != b->position.y())
+                              return a->position.y() < b->position.y();
+                          if (a->position.x() != b->position.x())
+                              return a->position.x() < b->position.x();
+                          return a->id < b->id;
+                      });
+            for (const auto *node : ordered)
             {
                 auto *item = new QTreeWidgetItem(m_outline);
-                item->setText(0, node.title);
-                item->setToolTip(0, node.title);
-                item->setData(0, Qt::UserRole, node.id);
-                if (node.id == m_selectedNodeId)
+                item->setText(0, node->title);
+                item->setToolTip(0, node->title);
+                item->setData(0, Qt::UserRole, node->id);
+                if (node->id == m_selectedNodeId)
                     m_outline->setCurrentItem(item);
             }
             return;
@@ -2385,6 +2426,8 @@ QString MainWindow::sessionUserName() const {
 }
 
 bool MainWindow::saveProjectToOwned(const QString& name) {
+    if (!finishCanvasTitle(true) || !commitAllInlineNotes())
+        return false;
     if (m_sessionUser.isEmpty()) {
         showNotice(this, QMessageBox::Warning, QStringLiteral("未登录"),
                    QStringLiteral("登录后才能保存到我的文件"));
@@ -2584,6 +2627,11 @@ void MainWindow::buildEditorActions(QMenu *editMenu)
                 const ID id = m_sheetSelector->itemData(index).toString();
                 if (id == m_doc->project().activeSheetId)
                     return;
+                if (!finishCanvasTitle(true))
+                {
+                    rebuildSheets();
+                    return;
+                }
                 // 切表是视图定位而非内容编辑：走ProjectDocument::setActiveSheet，不进撤销栈、
                 // 不递增sessionRevision（否则Ctrl+Z会撤掉"切表"、剪切令牌还会被切表弄失效，见BUG-023/D-M1-08）。
                 // setActiveSheet内部已notifyChanged，这里不要再补一次。
@@ -2736,14 +2784,13 @@ void MainWindow::copySelection(bool cut)
         return;
     if (cut && m_selectedNodeId == tree->rootId)
     {
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法剪切"),
-                   QStringLiteral("根主题不能剪切；可以复制整棵树，或通过工作表菜单删除整张表。"));
+        statusBar()->showMessage(QStringLiteral("根主题不能剪切。可以复制整棵树。"), 8000);
         return;
     }
     const auto result = NodeCommands(m_commands, m_doc).copyFragment(tree->id, {m_selectedNodeId});
     if (const auto *error = std::get_if<AppError>(&result))
     {
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法复制"), error->message);
+        statusBar()->showMessage(error->message, 8000);
         return;
     }
     const Fragment fragment = std::get<Fragment>(result);
@@ -2796,9 +2843,9 @@ void MainWindow::pasteSelection()
         if (token != m_cutToken || m_cutProjectId != m_doc->project().id ||
             m_cutRevision != m_doc->sessionRevision())
         {
-            showNotice(this, QMessageBox::Warning, QStringLiteral("剪切已失效"),
-                       QStringLiteral("源工程、修订或剪贴板已变化，请重新剪切；源节点没有删除。跨工"
-                                      "程传递请使用复制。"));
+            statusBar()->showMessage(
+                QStringLiteral("源工程、修订或剪贴板已变化，请重新剪切。跨工程传递请使用复制。"),
+                8000);
             return;
         }
         // applyEdit会发changed，先复制剪贴板字段，避免回调影响临时指针。
@@ -2816,9 +2863,11 @@ void MainWindow::pasteSelection()
         if (const auto *error = std::get_if<AppError>(&result))
         {
             const bool impact = error->code == QStringLiteral("CROSS_SHEET_IMPACT");
-            showNotice(this, impact ? QMessageBox::Information : QMessageBox::Warning,
-                       impact ? QStringLiteral("跨表移动的影响") : QStringLiteral("无法移动"),
-                       error->message);
+            if (impact)
+                showNotice(this, QMessageBox::Information, QStringLiteral("跨表移动的影响"),
+                           error->message);
+            else
+                statusBar()->showMessage(error->message, 8000);
             return;
         }
         m_cutNodeId.clear();
@@ -2835,8 +2884,8 @@ void MainWindow::pasteSelection()
     const QByteArray bytes = mime->data(Fragment::kMimeType);
     if (bytes.isEmpty() || bytes.size() > Limits::kMaxFileBytes)
     {
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法粘贴"),
-                   QStringLiteral("剪贴板中没有可用的灵芽子树，或片段超过10MiB。请先复制主题。"));
+        statusBar()->showMessage(
+            QStringLiteral("剪贴板中没有可用的子树，或片段过大。请先复制主题。"), 8000);
         return;
     }
     QJsonParseError parse;
@@ -2845,14 +2894,13 @@ void MainWindow::pasteSelection()
     if (parse.error != QJsonParseError::NoError || !json.isObject() ||
         std::holds_alternative<AppError>(parsed))
     {
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法粘贴"),
-                   QStringLiteral("剪贴板片段格式不合法，原工程未改变。"));
+        statusBar()->showMessage(QStringLiteral("无法粘贴。请重新复制主题。"), 8000);
         return;
     }
     const auto result = NodeCommands(m_commands, m_doc)
                             .pasteFragment(tree->id, m_selectedNodeId, std::get<Fragment>(parsed));
     if (const auto *error = std::get_if<AppError>(&result))
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法粘贴"), error->message);
+        statusBar()->showMessage(error->message, 8000);
     else
         selectNewNode(std::get<ID>(result));
 }
@@ -2865,7 +2913,7 @@ void MainWindow::moveSelection(const ID &nodeId, const ID &parentId, const ID &b
     const auto result =
         NodeCommands(m_commands, m_doc).moveSubtree(tree->id, nodeId, parentId, beforeId);
     if (const auto *error = std::get_if<AppError>(&result))
-        showNotice(this, QMessageBox::Warning, QStringLiteral("无法移动主题"), error->message);
+        statusBar()->showMessage(error->message, 8000);
     else
         selectNode(nodeId);
 }

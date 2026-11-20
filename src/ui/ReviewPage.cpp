@@ -1,4 +1,5 @@
 #include "ui/ReviewPage.h"
+#include "features/ReviewService.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -7,6 +8,7 @@
 #include <QResizeEvent>
 #include <QScopedValueRollback>
 #include <QScrollArea>
+#include <QShortcut>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -53,6 +55,7 @@ class ReviewTextScroll : public QScrollArea
 ReviewPage::ReviewPage(QWidget *parent) : QWidget(parent)
 {
     setObjectName(QStringLiteral("reviewPage"));
+    setFocusPolicy(Qt::StrongFocus);
 
     m_progressLabel = new QLabel(this);
     m_progressLabel->setObjectName(QStringLiteral("reviewProgressLabel"));
@@ -108,6 +111,18 @@ ReviewPage::ReviewPage(QWidget *parent) : QWidget(parent)
             [this] { onGrade(ReviewMark::Reviewed); });
     connect(m_masteredButton, &QPushButton::clicked, this,
             [this] { onGrade(ReviewMark::Mastered); });
+    const auto bind = [this](int key, QPushButton *button, const QString &hint)
+    {
+        auto *shortcut = new QShortcut(QKeySequence(key), this);
+        shortcut->setContext(Qt::WidgetWithChildrenShortcut);
+        shortcut->setAutoRepeat(false);
+        connect(shortcut, &QShortcut::activated, button, &QPushButton::click);
+        button->setToolTip(hint);
+    };
+    bind(Qt::Key_Space, m_revealButton, QStringLiteral("空格翻面"));
+    bind(Qt::Key_1, m_againButton, QStringLiteral("1 · 放到本轮队尾"));
+    bind(Qt::Key_2, m_reviewedButton, QStringLiteral("2 · 已复习"));
+    bind(Qt::Key_3, m_masteredButton, QStringLiteral("3 · 已掌握"));
 
     refresh();
 }
@@ -163,6 +178,8 @@ void ReviewPage::refresh()
     if (card == nullptr)
     {
         m_frontLabel->setText(QStringLiteral("复习完成"));
+        m_reviewedButton->setText(QStringLiteral("已复习"));
+        m_masteredButton->setText(QStringLiteral("已掌握"));
         m_backLabel->setText(QString());
         m_backLabel->setVisible(false);
         m_backScroll->hide();
@@ -175,6 +192,12 @@ void ReviewPage::refresh()
     }
 
     m_frontLabel->setText(card->front);
+    m_reviewedButton->setText(
+        QStringLiteral("已复习 · %1 天后")
+            .arg(ReviewService::nextIntervalDays(*card, ReviewMark::Reviewed)));
+    m_masteredButton->setText(
+        QStringLiteral("已掌握 · %1 天后")
+            .arg(ReviewService::nextIntervalDays(*card, ReviewMark::Mastered)));
     m_backLabel->setText(revealed ? card->back : QString());
     m_backLabel->setVisible(revealed);
     m_backScroll->setVisible(revealed);

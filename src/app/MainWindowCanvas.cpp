@@ -13,10 +13,13 @@
 #include <QContextMenuEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QFocusEvent>
+#include <QGraphicsLineItem>
 #include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QHash>
+#include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMenu>
@@ -25,9 +28,11 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QRubberBand>
 #include <QScopedValueRollback>
 #include <QScrollBar>
 #include <QStatusBar>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
@@ -46,6 +51,486 @@ NodeItem *owner(QGraphicsItem *hit)
     return nullptr;
 }
 } // namespace
+
+void MainWindow::beginCanvasTitle(TitleEditKind kind, const ID &nodeId,
+                                  const std::optional<QPointF> &position)
+{
+    if (!finishCanvasTitle(true))
+    {
+        return;
+    }
+    if (!m_nodeItems.contains(nodeId))
+    {
+        return;
+    }
+    const auto *tree = activeTreeSheet();
+    const auto *flow = activeFlowSheet();
+    if (!tree && (!flow || (kind != TitleEditKind::Rename && kind != TitleEditKind::FlowSuccessor)))
+    {
+        return;
+    }
+    const QString title = kind == TitleEditKind::Rename ? (tree ? tree->nodes.value(nodeId).title
+                                                                : flow->nodes.value(nodeId).title)
+                          : kind == TitleEditKind::FlowSuccessor ? QStringLiteral("处理")
+                                                                 : QStringLiteral("未命名主题");
+    const auto &project = m_doc->project();
+    m_canvasTitleEdit =
+        CanvasTitleEdit{kind, project.id, project.activeSheetId, nodeId, title, position};
+    auto *editor = new QPlainTextEdit(m_view->viewport());
+    m_canvasTitleEditor = editor;
+    editor->setObjectName("canvasTitleEditor");
+    editor->setAccessibleName(kind == TitleEditKind::Rename ? QStringLiteral("编辑主题标题")
+                                                            : QStringLiteral("新主题标题"));
+    editor->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    editor->setTabChangesFocus(false);
+    editor->setPlainText(title);
+    editor->installEventFilter(this);
+    placeCanvasTitleEditor();
+    editor->show();
+    editor->setFocus(Qt::OtherFocusReason);
+    editor->selectAll();
+    statusBar()->showMessage(QStringLiteral("按 Enter 确认，Shift+Enter 换行，Esc 取消"), 5000);
+}
+
+void MainWindow::placeCanvasTitleEditor()
+{
+    if (!m_canvasTitleEdit || !m_canvasTitleEditor)
+    {
+        return;
+    }
+    const auto &edit = *m_canvasTitleEdit;
+    const auto *node = m_nodeItems.value(edit.nodeId);
+    if (!node || edit.sheetId != m_doc->project().activeSheetId)
+    {
+        return;
+    }
+    const auto bounds = m_view->mapFromScene(node->sceneBoundingRect()).boundingRect();
+    const QRect viewport = m_view->viewport()->rect();
+    const int width = qMin(qBound(176, bounds.width(), 390), qMax(24, viewport.width() - 16));
+    const int height = qMin(qBound(68, bounds.height(), 180), qMax(24, viewport.height() - 16));
+    QPoint center = bounds.center();
+    if (edit.position)
+    {
+        center = m_view->mapFromScene(*edit.position);
+    }
+    else if (edit.kind == TitleEditKind::Child)
+    {
+        const auto *tree = activeTreeSheet();
+        if (tree && (tree->layout == "down" || tree->layout == "up"))
+        {
+            center.ry() +=
+                (bounds.height() / 2 + height / 2 + 20) * (tree->layout == "up" ? -1 : 1);
+        }
+        else
+        {
+            const bool left = tree && (tree->layout == "left" || tree->kind == "fishbone" ||
+                                       (tree->layout == "bilateral" && node->pos().x() < 0));
+            center.rx() += (bounds.width() / 2 + width / 2 + 20) * (left ? -1 : 1);
+        }
+    }
+    else if (edit.kind == TitleEditKind::Sibling)
+    {
+        center.ry() += bounds.height() / 2 + height / 2 + 16;
+    }
+    const int x = qBound(4, center.x() - width / 2, qMax(4, viewport.width() - width - 4));
+    const int y = qBound(4, center.y() - height / 2, qMax(4, viewport.height() - height - 4));
+    m_canvasTitleEditor->setGeometry(x, y, width, height);
+}
+
+bool MainWindow::finishCanvasTitle(bool accept, bool focusCanvas)
+{
+    if (!m_canvasTitleEdit || !m_canvasTitleEditor)
+    {
+        return true;
+    }
+    const auto edit = *m_canvasTitleEdit;
+    const QPointer<QPlainTextEdit> editor = m_canvasTitleEditor;
+    if (accept && m_canvasTitlePreedit)
+    {
+        return false;
+    }
+    m_canvasTitleEdit.reset();
+    m_canvasTitleEditor.clear();
+    m_canvasTitlePreedit = false;
+    ID created;
+    if (accept && edit.projectId == m_doc->project().id &&
+        edit.sheetId == m_doc->project().activeSheetId)
+    {
+        const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
+        const QString title = editor->toPlainText();
+        std::optional<AppError> error;
+        if (edit.kind == TitleEditKind::Rename)
+        {
+            std::variant<bool, AppError> result = true;
+            if (title != edit.initial && activeFlowSheet())
+            {
+                FlowNodePatch patch;
+                patch.title = title;
+                result =
+                    FlowCommands(m_commands, m_doc).updateNode(edit.sheetId, edit.nodeId, patch);
+            }
+            else if (title != edit.initial)
+            {
+                result =
+                    TaskCommands(m_commands, m_doc).renameNode(edit.sheetId, edit.nodeId, title);
+            }
+            if (const auto *failure = std::get_if<AppError>(&result))
+            {
+                error = *failure;
+            }
+        }
+        else
+        {
+            NodeCommands nodes(m_commands, m_doc);
+            const auto result =
+                edit.kind == TitleEditKind::FlowSuccessor
+                    ? FlowCommands(m_commands, m_doc)
+                          .addSuccessor(edit.sheetId, edit.nodeId, *edit.position, title)
+                : edit.kind == TitleEditKind::Child
+                    ? nodes.addChild(edit.sheetId, edit.nodeId, title, edit.position)
+                    : nodes.addSibling(edit.sheetId, edit.nodeId, title);
+            if (const auto *failure = std::get_if<AppError>(&result))
+            {
+                error = *failure;
+            }
+            else
+            {
+                created = std::get<ID>(result);
+            }
+        }
+        if (error)
+        {
+            m_canvasTitleEdit = edit;
+            m_canvasTitleEditor = editor;
+            statusBar()->showMessage(error->message, 8000);
+            if (focusCanvas)
+            {
+                editor->setFocus();
+            }
+            return false;
+        }
+    }
+    editor->hide();
+    editor->deleteLater();
+    if (!created.isEmpty() && (focusCanvas || m_selectedNodeId == edit.nodeId))
+    {
+        selectNewNode(created);
+    }
+    if (focusCanvas)
+    {
+        m_view->setFocus(Qt::OtherFocusReason);
+    }
+    return true;
+}
+
+bool MainWindow::handleCanvasTitleEvent(QObject *watched, QEvent *event)
+{
+    if (watched != m_canvasTitleEditor || !m_canvasTitleEdit)
+    {
+        return false;
+    }
+    if (event->type() == QEvent::InputMethod)
+    {
+        m_canvasTitlePreedit = !static_cast<QInputMethodEvent *>(event)->preeditString().isEmpty();
+    }
+    if (event->type() == QEvent::FocusOut)
+    {
+        const auto reason = static_cast<QFocusEvent *>(event)->reason();
+        if (reason != Qt::ActiveWindowFocusReason && reason != Qt::PopupFocusReason)
+        {
+            const QPointer<QPlainTextEdit> editor = m_canvasTitleEditor;
+            QTimer::singleShot(
+                0, this,
+                [this, editor]
+                {
+                    if (editor && editor == m_canvasTitleEditor && !editor->hasFocus())
+                    {
+                        const bool accept = m_canvasTitleEdit->kind == TitleEditKind::Rename ||
+                                            editor->toPlainText() != m_canvasTitleEdit->initial;
+                        finishCanvasTitle(accept);
+                    }
+                });
+        }
+    }
+    if (event->type() != QEvent::KeyPress && event->type() != QEvent::ShortcutOverride)
+    {
+        return false;
+    }
+    const auto *key = static_cast<QKeyEvent *>(event);
+    const auto modifiers = key->modifiers() & ~Qt::KeypadModifier;
+    const bool enter = key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter;
+    const bool editingKey = enter || key->key() == Qt::Key_Escape || key->key() == Qt::Key_Tab ||
+                            key->key() == Qt::Key_F2 || key->key() == Qt::Key_Delete ||
+                            key->matches(QKeySequence::Undo) || key->matches(QKeySequence::Redo) ||
+                            key->matches(QKeySequence::Copy) || key->matches(QKeySequence::Cut) ||
+                            key->matches(QKeySequence::Paste);
+    if (event->type() == QEvent::ShortcutOverride && editingKey)
+    {
+        event->accept();
+        return true;
+    }
+    if (event->type() == QEvent::KeyPress)
+    {
+        if (enter && (modifiers == Qt::NoModifier || m_canvasTitlePreedit))
+        {
+            finishCanvasTitle(true, true);
+            return true;
+        }
+        if (key->key() == Qt::Key_Escape)
+        {
+            if (!m_canvasTitlePreedit)
+            {
+                finishCanvasTitle(false, true);
+            }
+            return true;
+        }
+        return key->key() == Qt::Key_Tab || key->key() == Qt::Key_F2;
+    }
+    return false;
+}
+
+bool MainWindow::navigateCanvas(int key)
+{
+    const auto *sheet = activeTreeSheet();
+    if (!sheet || !sheet->nodes.contains(m_selectedNodeId))
+    {
+        return false;
+    }
+    const auto &current = sheet->nodes.constFind(m_selectedNodeId).value();
+    ID target;
+    if (key == Qt::Key_Left)
+    {
+        target = current.parentId.value_or(ID{});
+    }
+    else if (key == Qt::Key_Right || key == Qt::Key_Up || key == Qt::Key_Down)
+    {
+        const auto parent = key == Qt::Key_Right ? std::optional<ID>(current.id) : current.parentId;
+        QVector<QPair<int, ID>> siblings;
+        if (parent)
+        {
+            for (const auto &node : sheet->nodes)
+            {
+                if (node.parentId == parent)
+                {
+                    siblings.append({node.order, node.id});
+                }
+            }
+        }
+        std::sort(siblings.begin(), siblings.end());
+        if (key == Qt::Key_Right && !siblings.isEmpty())
+        {
+            target = siblings.first().second;
+        }
+        else if (key != Qt::Key_Right)
+        {
+            const auto currentIndex = siblings.indexOf({current.order, current.id});
+            const auto next = currentIndex + (key == Qt::Key_Up ? -1 : 1);
+            if (currentIndex >= 0 && next >= 0 && next < siblings.size())
+            {
+                target = siblings.at(next).second;
+            }
+        }
+    }
+    else
+    {
+        return false;
+    }
+    if (!target.isEmpty())
+    {
+        m_multiSelection.clear();
+        selectNode(target);
+    }
+    return true;
+}
+
+bool MainWindow::handleCanvasGesture(QObject *watched, QEvent *event)
+{
+    if (watched != m_view && watched != m_view->viewport())
+    {
+        return false;
+    }
+    const auto type = event->type();
+    if (type == QEvent::Resize)
+    {
+        placeCanvasTitleEditor();
+    }
+    if (type == QEvent::KeyPress || type == QEvent::KeyRelease || type == QEvent::ShortcutOverride)
+    {
+        auto *key = static_cast<QKeyEvent *>(event);
+        if (key->key() == Qt::Key_Space && key->modifiers() == Qt::NoModifier)
+        {
+            if (type == QEvent::ShortcutOverride)
+            {
+                event->accept();
+            }
+            else if (!key->isAutoRepeat())
+            {
+                if (type == QEvent::KeyPress)
+                {
+                    m_spaceHeld = true;
+                    m_spacePanned = false;
+                }
+                else if (m_spaceHeld)
+                {
+                    m_spaceHeld = false;
+                    if (!m_spacePanned)
+                    {
+                        renameSelectedNode();
+                    }
+                }
+            }
+            return true;
+        }
+        if (type == QEvent::KeyPress && key->key() == Qt::Key_Escape &&
+            (m_boxSelecting || m_panButton != Qt::NoButton))
+        {
+            m_boxSelecting = false;
+            if (m_selectionBand)
+            {
+                m_selectionBand->hide();
+            }
+            if (m_panButton != Qt::NoButton)
+            {
+                m_panButton = Qt::NoButton;
+                m_view->viewport()->unsetCursor();
+                m_view->horizontalScrollBar()->setValue(m_scrollStart.x());
+                m_view->verticalScrollBar()->setValue(m_scrollStart.y());
+            }
+            return true;
+        }
+    }
+    if (type == QEvent::FocusOut)
+    {
+        m_spaceHeld = false;
+    }
+    if (watched != m_view->viewport() ||
+        (type != QEvent::MouseButtonPress && type != QEvent::MouseMove &&
+         type != QEvent::MouseButtonRelease))
+    {
+        return false;
+    }
+    const auto *mouse = static_cast<QMouseEvent *>(event);
+    const QPoint at = mouse->position().toPoint();
+    auto *horizontal = m_view->horizontalScrollBar();
+    auto *vertical = m_view->verticalScrollBar();
+    if (type == QEvent::MouseButtonPress &&
+        (mouse->button() == Qt::MiddleButton || (m_spaceHeld && mouse->button() == Qt::LeftButton)))
+    {
+        m_boxSelecting = false;
+        if (m_selectionBand)
+        {
+            m_selectionBand->hide();
+        }
+        m_view->setFocus();
+        m_spacePanned = m_spaceHeld;
+        m_gestureStart = at;
+        m_scrollStart = {horizontal->value(), vertical->value()};
+        m_panButton = mouse->button();
+        m_view->viewport()->setCursor(Qt::ClosedHandCursor);
+        return true;
+    }
+    if (m_panButton != Qt::NoButton)
+    {
+        if (type == QEvent::MouseMove && mouse->buttons().testFlag(m_panButton))
+        {
+            const QPoint value = m_scrollStart + m_gestureStart - at;
+            horizontal->setValue(value.x());
+            vertical->setValue(value.y());
+        }
+        else if (type == QEvent::MouseMove || mouse->button() == m_panButton)
+        {
+            m_panButton = Qt::NoButton;
+            m_view->viewport()->unsetCursor();
+        }
+        return true;
+    }
+    if (type == QEvent::MouseButtonPress && mouse->button() == Qt::LeftButton && activeTreeSheet())
+    {
+        auto *hit = m_view->itemAt(at);
+        bool image = false;
+        for (auto *item = hit; item; item = item->parentItem())
+            image |= item->data(0x21C6).isValid();
+        if (!owner(hit) && !image)
+        {
+            m_view->setFocus();
+            m_pendingRelation.clear();
+            m_selectedImageId.clear();
+            m_boxSelecting = true;
+            m_gestureStart = at;
+            return true;
+        }
+    }
+    if (!m_boxSelecting)
+    {
+        return false;
+    }
+    const QRect box = QRect(m_gestureStart, at).normalized();
+    const bool moved = (at - m_gestureStart).manhattanLength() >= QApplication::startDragDistance();
+    if (type == QEvent::MouseMove && mouse->buttons().testFlag(Qt::LeftButton))
+    {
+        if (moved)
+        {
+            if (!m_selectionBand)
+            {
+                m_selectionBand = new QRubberBand(QRubberBand::Rectangle, m_view->viewport());
+            }
+            m_selectionBand->setGeometry(box);
+            m_selectionBand->show();
+        }
+        return true;
+    }
+    m_boxSelecting = false;
+    if (m_selectionBand)
+    {
+        m_selectionBand->hide();
+    }
+    if (type == QEvent::MouseButtonRelease && mouse->button() == Qt::LeftButton)
+    {
+        const bool add = mouse->modifiers().testFlag(Qt::ControlModifier);
+        if (!add)
+        {
+            m_multiSelection.clear();
+        }
+        else if (!m_selectedNodeId.isEmpty())
+        {
+            m_multiSelection.insert(m_selectedNodeId);
+        }
+        if (moved)
+        {
+            QPainterPath selection;
+            selection.addRect(m_view->mapToScene(box).boundingRect());
+            for (const auto *node : m_nodeItems)
+            {
+                if (node->mapToScene(node->shape()).intersects(selection))
+                {
+                    m_multiSelection.insert(node->nodeId());
+                }
+            }
+            if (!m_multiSelection.contains(m_selectedNodeId))
+            {
+                m_selectedNodeId.clear();
+                for (const auto *node : m_nodeItems)
+                {
+                    if (m_multiSelection.contains(node->nodeId()))
+                    {
+                        m_selectedNodeId = node->nodeId();
+                        break;
+                    }
+                }
+            }
+        }
+        if (!m_selectedNodeId.isEmpty())
+        {
+            const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
+            selectNode(m_selectedNodeId);
+        }
+        else
+        {
+            syncCanvasSelection();
+        }
+    }
+    return true;
+}
 
 QSet<ID> MainWindow::branchIds(const TreeSheet &sheet, const ID &id)
 {
@@ -399,6 +884,50 @@ void MainWindow::resetTreeLayout()
             statusBar()->showMessage(error->message, 8000);
     }
 }
+
+QPointF MainWindow::alignTreeDrag(const QPointF &offset, bool preview)
+{
+    const QPointF origin = m_treeDragOrigins.value(m_dragNodeId);
+    QPointF target = origin + offset;
+    const qreal tolerance = 7.0 / m_view->transform().m11();
+    qreal distanceX = tolerance;
+    qreal distanceY = tolerance;
+    for (auto it = m_nodeItems.cbegin(); it != m_nodeItems.cend(); ++it)
+    {
+        if (m_treeDragOrigins.contains(it.key()))
+            continue;
+        const QPointF candidate = it.value()->pos();
+        const QPointF gap = candidate - (origin + offset);
+        if (qAbs(gap.x()) < distanceX)
+        {
+            distanceX = qAbs(gap.x());
+            target.setX(candidate.x());
+        }
+        if (qAbs(gap.y()) < distanceY)
+        {
+            distanceY = qAbs(gap.y());
+            target.setY(candidate.y());
+        }
+    }
+    if (preview)
+    {
+        const QRectF visible = m_view->mapToScene(m_view->viewport()->rect()).boundingRect();
+        QPen pen(QColor("#247A62"), 1, Qt::DashLine);
+        pen.setCosmetic(true);
+        const auto guide = [&](const QLineF &axis)
+        {
+            auto *line = m_scene->addLine(axis, pen);
+            line->setZValue(8);
+            line->setAcceptedMouseButtons(Qt::NoButton);
+        };
+        if (distanceX < tolerance)
+            guide(QLineF(target.x(), visible.top(), target.x(), visible.bottom()));
+        if (distanceY < tolerance)
+            guide(QLineF(visible.left(), target.y(), visible.right(), target.y()));
+    }
+    return target - origin;
+}
+
 bool MainWindow::handleTreeCanvasEvent(QObject *watched, QEvent *event)
 {
     if (!activeTreeSheet())
@@ -520,16 +1049,19 @@ bool MainWindow::handleTreeCanvasEvent(QObject *watched, QEvent *event)
             return true;
         if (!m_treeStructuralDrag)
         {
-            const auto delta = position - m_treePressScene;
+            const auto raw = position - m_treePressScene;
+            const bool snap = !mouse->modifiers().testFlag(Qt::ShiftModifier);
+            const auto delta = snap ? alignTreeDrag(raw, false) : raw;
             for (auto it = m_treeDragOrigins.cbegin(); it != m_treeDragOrigins.cend(); ++it)
                 if (auto *item = m_nodeItems.value(it.key()))
                     item->setPos(it.value() + delta);
             drawTreeLinks(*sheet);
+            if (snap)
+                alignTreeDrag(raw, true);
         }
-        statusBar()->showMessage(
-            m_treeStructuralDrag
-                ? QStringLiteral("松开到另一个主题上改变父级，Esc取消")
-                : QStringLiteral("自由移动整支；松手保存位置，Esc取消，Alt拖动可改变父级"));
+        statusBar()->showMessage(m_treeStructuralDrag
+                                     ? QStringLiteral("松开到另一个主题上改变父级，Esc取消")
+                                     : QStringLiteral("自由移动整支 · Shift 暂停吸附 · Esc 取消"));
         return true;
     }
     if (type == QEvent::MouseButtonRelease && !m_dragNodeId.isEmpty())
@@ -539,7 +1071,10 @@ bool MainWindow::handleTreeCanvasEvent(QObject *watched, QEvent *event)
         const bool moved = (mouse->position().toPoint() - m_dragStart).manhattanLength() >=
                            QApplication::startDragDistance();
         const bool structural = m_treeStructuralDrag;
-        const auto delta = position - m_treePressScene;
+        const auto raw = position - m_treePressScene;
+        const auto delta = !structural && !mouse->modifiers().testFlag(Qt::ShiftModifier)
+                               ? alignTreeDrag(raw, false)
+                               : raw;
         // 先恢复只读预览，事务失败也保持原连接与位置。
         cancelTreeDrag();
         if (mouse->button() != Qt::LeftButton || !moved)
@@ -618,18 +1153,17 @@ bool MainWindow::handleCanvasContextMenu(QObject *watched, QEvent *event)
         if (const auto *tree = activeTreeSheet())
         {
             const ID sheetId = tree->id;
+            if (tree->kind == "mindmap")
+                menu.addAction(
+                        QStringLiteral("整理此分支"),
+                        [this, sheetId, nodeId, report]
+                        {
+                            report(NodeCommands(m_commands, m_doc).resetPositions(sheetId, nodeId));
+                        })
+                    ->setObjectName("organizeBranch");
             if (nodeId != tree->rootId)
-                menu.addAction(QStringLiteral("添加同级主题"),
-                               [this, nodeId, sheetId, report]
-                               {
-                                   const auto result =
-                                       NodeCommands(m_commands, m_doc)
-                                           .addSibling(sheetId, nodeId,
-                                                       QStringLiteral("未命名主题"));
-                                   report(result);
-                                   if (const auto *id = std::get_if<ID>(&result))
-                                       selectNewNode(*id);
-                               });
+                menu.addAction(QStringLiteral("添加同级主题"), [this, nodeId]
+                               { beginCanvasTitle(TitleEditKind::Sibling, nodeId); });
             menu.addAction(QStringLiteral("从此主题创建关系线"),
                            [this, nodeId]
                            {
@@ -707,22 +1241,14 @@ bool MainWindow::handleCanvasContextMenu(QObject *watched, QEvent *event)
     }
     else if (const auto *tree = activeTreeSheet())
     {
-        const ID sheetId = tree->id,
-                 parent = tree->nodes.contains(m_selectedNodeId) ? m_selectedNodeId : tree->rootId;
+        const ID parent = tree->nodes.contains(m_selectedNodeId) ? m_selectedNodeId : tree->rootId;
         const bool automatic = tree->kind == QStringLiteral("fishbone");
         const std::optional<QPointF> placed =
             automatic ? std::nullopt : std::optional<QPointF>(position);
         menu.addAction(automatic ? QStringLiteral("新建子主题（自动排布）")
                                  : QStringLiteral("在此新建子主题"),
-                       [this, sheetId, parent, placed, report]
-                       {
-                           const auto result =
-                               NodeCommands(m_commands, m_doc)
-                                   .addChild(sheetId, parent, QStringLiteral("未命名主题"), placed);
-                           report(result);
-                           if (const auto *id = std::get_if<ID>(&result))
-                               selectNewNode(*id);
-                       })
+                       [this, parent, placed]
+                       { beginCanvasTitle(TitleEditKind::Child, parent, placed); })
             ->setObjectName("createTopicHere");
         menu.addAction(QStringLiteral("恢复自动布局"), this, &MainWindow::resetTreeLayout)
             ->setObjectName("resetTreePositions");

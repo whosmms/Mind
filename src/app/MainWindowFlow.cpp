@@ -997,7 +997,7 @@ bool MainWindow::handleFlowEvent(QObject *watched, QEvent *event)
         if (!id.isEmpty())
         {
             selectNode(id);
-            editFlowNode(false);
+            renameSelectedNode();
             return true;
         }
         if (!edgeId.isEmpty())

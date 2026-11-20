@@ -163,12 +163,8 @@ void MainWindow::quickAddNode(const ID &id)
                     return;
                 }
             }
-        const auto result = NodeCommands(m_commands, m_doc)
-                                .addChild(tree->id, id, QStringLiteral("未命名主题"), position);
-        if (const auto *error = std::get_if<AppError>(&result))
-            statusBar()->showMessage(error->message, 8000);
-        else
-            selectNewNode(std::get<ID>(result));
+        beginCanvasTitle(TitleEditKind::Child, id, position);
+        return;
     }
     else if (const auto *flow = activeFlowSheet(); flow && flow->nodes.contains(id))
     {
@@ -183,11 +179,8 @@ void MainWindow::quickAddNode(const ID &id)
                 break;
             at.ry() += 110;
         }
-        const auto result = FlowCommands(m_commands, m_doc).addSuccessor(flow->id, id, at);
-        if (const auto *error = std::get_if<AppError>(&result))
-            statusBar()->showMessage(error->message, 8000);
-        else
-            selectNode(std::get<ID>(result));
+        beginCanvasTitle(TitleEditKind::FlowSuccessor, id, at);
+        return;
     }
     m_view->centerOn(center);
     if (auto *item = m_nodeItems.value(m_selectedNodeId))

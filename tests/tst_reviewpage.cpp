@@ -23,6 +23,7 @@ class TstReviewPage : public QObject
     void gradingEmitsCardIdAndMark();
     void finishesAfterAllGraded();
     void longChineseCardsRemainScrollable();
+    void practiceShortcutsMatchButtons();
 };
 
 namespace
@@ -139,6 +140,34 @@ void TstReviewPage::longChineseCardsRemainScrollable()
     QVERIFY(page.isFinished());
     QVERIFY(backScroll->isHidden());
     QTRY_COMPARE(frontScroll->verticalScrollBar()->maximum(), 0);
+}
+
+void TstReviewPage::practiceShortcutsMatchButtons()
+{
+    ReviewPage page;
+    auto card = makeCard(QStringLiteral("问题"), QStringLiteral("答案"));
+    card.status = QStringLiteral("review");
+    card.lastReviewedAt = QDateTime::currentDateTimeUtc();
+    card.reviewIntervalDays = 3;
+    page.setCards({card});
+    page.show();
+    page.activateWindow();
+    page.setFocus();
+    QTRY_VERIFY(page.hasFocus());
+    QSignalSpy graded(&page, &ReviewPage::cardGraded);
+    QTest::keyClick(&page, Qt::Key_3);
+    QCOMPARE(graded.count(), 0);
+    QTest::keyClick(&page, Qt::Key_Space);
+    QVERIFY(page.findChild<QLabel *>("reviewBack")->isVisible());
+    QCOMPARE(button(&page, "reviewMastered")->text(), QStringLiteral("已掌握 · 15 天后"));
+    QTest::keyClick(&page, Qt::Key_1);
+    QCOMPARE(graded.count(), 1);
+    QCOMPARE(graded.first().at(1).value<ReviewMark>(), ReviewMark::Again);
+    QVERIFY(!page.isFinished());
+    QTest::keyClick(&page, Qt::Key_Space);
+    QTest::keyClick(&page, Qt::Key_3);
+    QCOMPARE(graded.last().at(1).value<ReviewMark>(), ReviewMark::Mastered);
+    QVERIFY(page.isFinished());
 }
 
 QTEST_MAIN(TstReviewPage)

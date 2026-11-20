@@ -830,6 +830,7 @@ void TstUi::focusBranchKeepsViewAndFolding()
     target = visibleTopic(view, branch);
     contextAction(window, view, view->mapFromScene(target->scenePos()),
                   QStringLiteral("quickAddNode"));
+    answerCanvasTitle(window, QStringLiteral("专注时新增子主题"));
     QCOMPARE(doc->sessionRevision(), revision + 1);
     QVERIFY(history->canUndo());
     QTest::keyClick(view, Qt::Key_Escape);
@@ -885,7 +886,7 @@ void TstUi::dueReviewStartsOnlyAvailableCards()
                   auto *list = dialog->findChild<QListWidget *>("reviewCards");
                   auto *progress = dialog->findChild<QProgressBar *>("reviewProgress");
                   QVERIFY(today && filter && list && progress);
-                  QCOMPARE(today->text(), QStringLiteral("今日待复习（3）"));
+                  QCOMPARE(today->text(), QStringLiteral("练习今日到期（3）"));
                   QCOMPARE(list->count(), 6);
                   QTest::mouseClick(today, Qt::LeftButton);
                   QCOMPARE(filter->currentData().toString(), QStringLiteral("due"));
@@ -896,7 +897,7 @@ void TstUi::dueReviewStartsOnlyAvailableCards()
                   captureEfficiency(*dialog, QStringLiteral("04-今日待复习"));
                   dialog->findChild<QPushButton *>("reviewReveal")->click();
                   dialog->findChild<QPushButton *>("reviewReviewed")->click();
-                  QCOMPARE(today->text(), QStringLiteral("今日待复习（2）"));
+                  QCOMPARE(today->text(), QStringLiteral("练习今日到期（2）"));
                   QCOMPARE(progress->value(), 1);
                   QCOMPARE(dialog->findChild<QLabel *>("reviewFront")->text(),
                            QStringLiteral("昨日报到"));
@@ -956,6 +957,135 @@ void TstUi::historyCopyNeverOverwritesExistingFiles()
     QCOMPARE(ProjectJson::toJson(std::get<Project>(FileService::load(original))), latest);
 }
 
+void TstUi::canvasKeyboardAndGestures()
+{
+    MainWindow window;
+    auto project = canvasProject(2, 0);
+    auto &sheet = std::get<TreeSheet>(project.sheets.first());
+    sheet.layout = "right";
+    sheet.nodes[canvasId("branch-0")].style.bold = true;
+    const ID root = sheet.rootId, first = canvasId("branch-0"), second = canvasId("branch-1");
+    loadEditorFixture(window, project);
+    window.resize(1280, 800);
+    window.show();
+    QTest::qWait(30);
+    auto *view = window.findChild<QGraphicsView *>("topicPreview");
+    auto *outline = window.findChild<QTreeWidget *>("topicOutline");
+    auto *doc = window.findChild<ProjectDocument *>();
+    const auto selected = [outline]
+    { return outline->currentItem()->data(0, Qt::UserRole).toString(); };
+    const auto initial = doc->sessionRevision();
+    view->setFocus();
+    QCOMPARE(selected(), root);
+    QTest::keyClick(view, Qt::Key_Right);
+    QCOMPARE(selected(), first);
+    QTest::keyClick(view, Qt::Key_Down);
+    QCOMPARE(selected(), second);
+    QTest::keyClick(view, Qt::Key_Up);
+    QCOMPARE(selected(), first);
+    QTest::keyClick(view, Qt::Key_Left);
+    QCOMPARE(selected(), root);
+    QTest::keyClick(view, Qt::Key_Space);
+    auto *editor = window.findChild<QPlainTextEdit *>("canvasTitleEditor");
+    QVERIFY(editor && editor->isVisible());
+    QVERIFY(editor->textCursor().hasSelection());
+    captureEfficiency(window, QStringLiteral("01-画布原地编辑"), "LINGYA_H058_CAPTURE_DIR");
+    QTest::keyClick(editor, Qt::Key_Escape);
+    QTest::keyClick(view, Qt::Key_Tab);
+    QCOMPARE(doc->sessionRevision(), initial);
+    answerCanvasTitle(window, QStringLiteral("取消的子主题"), false);
+    QCOMPARE(doc->sessionRevision(), initial);
+
+    window.findChild<QAction *>("fitTopic")->trigger();
+    const QPoint pivot = view->viewport()->rect().center() + QPoint(80, 40);
+    const auto anchor = view->mapToScene(pivot);
+    const qreal zoom = view->transform().m11();
+    QWheelEvent wheel(pivot, view->viewport()->mapToGlobal(pivot), {}, {0, -30}, Qt::NoButton,
+                      Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QApplication::sendEvent(view->viewport(), &wheel);
+    QVERIFY(view->transform().m11() < zoom);
+    QVERIFY(view->transform().m11() > zoom / 1.1);
+    QVERIFY(QLineF(anchor, view->mapToScene(pivot)).length() < 3);
+    const qreal scaled = view->transform().m11();
+    QWheelEvent scroll(pivot, view->viewport()->mapToGlobal(pivot), {0, 17}, {}, Qt::NoButton,
+                       Qt::NoModifier, Qt::ScrollUpdate, false);
+    QApplication::sendEvent(view->viewport(), &scroll);
+    QCOMPARE(view->transform().m11(), scaled);
+
+    window.findChild<QAction *>("fitTopic")->trigger();
+    const auto *firstItem = canvasNodes(view).value(first);
+    QVERIFY(firstItem);
+    const auto bounds = view->mapFromScene(firstItem->sceneBoundingRect()).boundingRect();
+    const QPoint from = bounds.topLeft() - QPoint(7, 7);
+    const QPoint to = bounds.bottomRight() + QPoint(5, 5);
+    QVERIFY(view->viewport()->rect().contains(from));
+    mouseDrag(view->viewport(), from, to);
+    QVERIFY(canvasNodes(view).value(first)->isSelected());
+    QVERIFY(!canvasNodes(view).value(root)->isSelected());
+    QCOMPARE(doc->sessionRevision(), initial);
+    const auto span = bounds.united(
+        view->mapFromScene(canvasNodes(view).value(second)->sceneBoundingRect()).boundingRect());
+    mouseDrag(view->viewport(), span.topLeft() - QPoint(7, 7), span.bottomRight() + QPoint(5, 5));
+    QVERIFY(canvasNodes(view).value(first)->isSelected());
+    QVERIFY(canvasNodes(view).value(second)->isSelected());
+    QVERIFY(!canvasNodes(view).value(root)->isSelected());
+    auto *fill = window.findChild<QComboBox *>("inlineFill");
+    fill->setCurrentIndex(fill->findData(QStringLiteral("#FFF0D0")));
+    const auto &after = std::get<TreeSheet>(doc->project().sheets.first());
+    QCOMPARE(after.nodes.value(first).style.fill, std::optional<QString>("#FFF0D0"));
+    QCOMPARE(after.nodes.value(second).style.fill, std::optional<QString>("#FFF0D0"));
+    QVERIFY(after.nodes.value(first).style.bold.value_or(false));
+    QVERIFY(!after.nodes.value(second).style.bold.has_value());
+    QCOMPARE(doc->sessionRevision(), initial + 1);
+    captureEfficiency(window, QStringLiteral("02-框选批量样式"), "LINGYA_H058_CAPTURE_DIR");
+    window.findChild<CommandService *>()->undo();
+    QVERIFY(!std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(second).style.fill);
+    doc->setClean();
+}
+
+void TstUi::inlineNotesAutosaveKeepsInvalidDraft()
+{
+    MainWindow window;
+    auto project = canvasProject(2, 0);
+    const ID root = std::get<TreeSheet>(project.sheets.first()).rootId;
+    const ID other = canvasId("branch-0");
+    loadEditorFixture(window, project);
+    auto *doc = window.findChild<ProjectDocument *>();
+    auto *history = window.findChild<CommandService *>();
+    auto *note = window.findChild<QPlainTextEdit *>("inlineNote");
+    auto *link = window.findChild<QLineEdit *>("inlineLink");
+    const auto saved = [&]
+    { return std::get<TreeSheet>(doc->project().sheets.first()).nodes.value(root); };
+    const QString text = QStringLiteral("切换时一起保存");
+    const QString url = QStringLiteral("https://example.com/lesson");
+    const auto initial = doc->sessionRevision();
+    note->setPlainText(text);
+    link->setText(url);
+    chooseTopic(window, other);
+    QTRY_COMPARE(doc->sessionRevision(), initial + 1);
+    QCOMPARE(saved().note, text);
+    QCOMPARE(saved().link.value(), url);
+    QVERIFY(note->toPlainText().isEmpty());
+    history->undo();
+    QVERIFY(saved().note.isEmpty() && !saved().link);
+    chooseTopic(window, root);
+    const auto afterUndo = doc->sessionRevision();
+    note->setPlainText(text);
+    link->setText(QStringLiteral("file:///C:/仅作为测试"));
+    chooseTopic(window, other);
+    QCoreApplication::processEvents();
+    QCOMPARE(doc->sessionRevision(), afterUndo);
+    chooseTopic(window, root);
+    QCOMPARE(note->toPlainText(), text);
+    QVERIFY(!window.findChild<QLabel *>("inlineNoteError")->text().isEmpty());
+    link->setText(url);
+    QTemporaryDir files;
+    QVERIFY(window.saveProjectTo(files.filePath("备注自动保存.lingya")));
+    QCOMPARE(doc->sessionRevision(), afterUndo + 1);
+    QCOMPARE(saved().note, text);
+    QCOMPARE(saved().link.value(), url);
+}
+
 void TstUi::freeTreeMouseAndPlus()
 {
     MainWindow window;
@@ -999,6 +1129,8 @@ void TstUi::freeTreeMouseAndPlus()
     QVERIFY(plus);
     QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier,
                       view->mapFromScene(plus->sceneBoundingRect().center()));
+    QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), count);
+    answerCanvasTitle(window, QStringLiteral("新子主题"));
     QCOMPARE(std::get<TreeSheet>(doc->project().sheets.first()).nodes.size(), count + 1);
     const auto afterPlus = std::get<TreeSheet>(doc->project().sheets.first());
     for (const auto &candidate : afterPlus.nodes)
@@ -1006,7 +1138,7 @@ void TstUi::freeTreeMouseAndPlus()
             QFAIL("新增主题必须出现在画布中");
     ID created;
     for (const auto &candidate : afterPlus.nodes)
-        if (candidate.title == QStringLiteral("未命名主题"))
+        if (candidate.title == QStringLiteral("新子主题"))
             created = candidate.id;
     QVERIFY(!created.isEmpty());
     const auto newBounds = canvasNodes(view).value(created)->sceneBoundingRect();
@@ -1016,6 +1148,7 @@ void TstUi::freeTreeMouseAndPlus()
     const QPoint blank = view->viewport()->rect().bottomLeft() + QPoint(70, -50);
     const auto expected = view->mapToScene(blank);
     contextAction(window, view, blank, "createTopicHere");
+    answerCanvasTitle(window, QStringLiteral("指定位置"));
     const auto tree = std::get<TreeSheet>(doc->project().sheets.first());
     bool atClick = false;
     for (const auto &n : tree.nodes)
@@ -2048,6 +2181,7 @@ void TstUi::quickMouseRelationsGroupsAndImagePicker()
     const auto fish = std::get<TreeSheet>(doc->project().sheets.first());
     contextAction(window, view, view->viewport()->rect().topRight() + QPoint(-20, 20),
                   "createTopicHere");
+    answerCanvasTitle(window, QStringLiteral("新原因"));
     const auto after = std::get<TreeSheet>(doc->project().sheets.first());
     QCOMPARE(after.nodes.size(), fish.nodes.size() + 1);
     for (const auto &added : after.nodes)

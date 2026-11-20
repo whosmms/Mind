@@ -45,6 +45,7 @@
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QTabWidget>
 #include <QTableView>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
@@ -780,7 +781,16 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
     QDialog dialog(this);
     dialog.setObjectName("reviewCardsDialog");
     dialog.setWindowTitle(QStringLiteral("复习卡片（离线）"));
-    auto *layout = new QVBoxLayout(&dialog);
+    auto *outer = new QVBoxLayout(&dialog);
+    auto *tabs = new QTabWidget(&dialog);
+    tabs->setObjectName("reviewModeTabs");
+    auto *manage = new QWidget(tabs);
+    auto *practice = new QWidget(tabs);
+    tabs->addTab(manage, QStringLiteral("卡片管理"));
+    const int practiceIndex = tabs->addTab(practice, QStringLiteral("练习"));
+    auto *layout = new QVBoxLayout(manage);
+    auto *practiceLayout = new QVBoxLayout(practice);
+    outer->addWidget(tabs, 1);
     auto *filter = new QComboBox(&dialog);
     filter->setObjectName("reviewStatusFilter");
     filter->addItem(QStringLiteral("全部状态"), ID{});
@@ -788,18 +798,18 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
     filter->addItem(QStringLiteral("已复习"), "review");
     filter->addItem(QStringLiteral("已掌握"), "mastered");
     const int dueIndex = filter->count();
-    filter->addItem(QStringLiteral("今日待复习"), "due");
+    filter->addItem(QStringLiteral("到期卡片"), "due");
     if (scope)
         filter->setCurrentIndex(dueIndex);
     auto *today = new QPushButton(&dialog);
     today->setObjectName("reviewDueToday");
-    today->setToolTip(QStringLiteral("新卡片当天可练，已复习隔一天，已掌握隔七天"));
+    today->setToolTip(QStringLiteral("开始练习已经到期的卡片"));
     auto *filterRow = new QHBoxLayout;
     filterRow->addWidget(filter, 1);
     filterRow->addWidget(today);
     auto *list = new QListWidget(&dialog);
     list->setObjectName("reviewCards");
-    list->setMaximumHeight(100);
+    list->setMinimumHeight(112);
     auto *notice = new QLabel(QStringLiteral("来源变化需先更新或保留自定义；来源缺失可转独立卡片。"
                                              "每个操作立即写入，可在主窗口撤回。"),
                               &dialog);
@@ -819,7 +829,7 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
         layout->addWidget(range);
     }
     layout->addLayout(filterRow);
-    layout->addWidget(list);
+    layout->addWidget(list, 1);
     auto *sourceActions = new QHBoxLayout;
     sourceActions->addWidget(new QLabel(QStringLiteral("选中卡片"), &dialog));
     auto *compare = new QPushButton(QStringLiteral("对照来源…"), &dialog);
@@ -831,19 +841,18 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
     sourceActions->addWidget(locate);
     sourceActions->addStretch();
     layout->addLayout(sourceActions);
-    auto *reviewScroll = new QScrollArea(&dialog);
+    auto *reviewScroll = new QScrollArea(practice);
     reviewScroll->setObjectName("reviewScroll");
     reviewScroll->setWidgetResizable(true);
     reviewScroll->setWidget(page);
-    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
-    buttons->button(QDialogButtonBox::Close)->setText(QStringLiteral("关闭"));
+    auto *buttons = new QDialogButtonBox(manage);
     const auto button = [buttons](const QString &title, const char *name)
     {
         auto *item = buttons->addButton(title, QDialogButtonBox::ActionRole);
         item->setObjectName(name);
         return item;
     };
-    auto *start = new QPushButton(QStringLiteral("开始 / 重新开始"), &dialog);
+    auto *start = new QPushButton(QStringLiteral("练习当前筛选"), &dialog);
     start->setObjectName("startReview");
     auto *pick = new QPushButton(
         scope ? QStringLiteral("从此分支选取…") : QStringLiteral("从导图选取…"), &dialog);
@@ -852,13 +861,21 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
     reviewActions->addWidget(pick);
     reviewActions->addWidget(start, 1);
     layout->addLayout(reviewActions);
-    layout->addWidget(reviewScroll, 1);
-    layout->addWidget(error);
+    auto *keyboard =
+        new QLabel(QStringLiteral("空格翻面 · 1 重试 · 2 已复习 · 3 已掌握"), practice);
+    keyboard->setProperty("secondary", true);
+    practiceLayout->addWidget(keyboard);
+    practiceLayout->addWidget(reviewScroll, 1);
+    outer->addWidget(error);
     auto *refresh = button(QStringLiteral("更新卡片"), "refreshReviewCard");
     auto *custom = button(QStringLiteral("保留自定义"), "keepReviewCustom");
     auto *standalone = button(QStringLiteral("转独立卡片"), "standaloneReviewCard");
     auto *remove = button(QStringLiteral("移除卡片"), "removeReviewCard");
     layout->addWidget(buttons);
+    auto *close = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+    close->button(QDialogButtonBox::Close)->setText(QStringLiteral("关闭"));
+    outer->addWidget(close);
+    connect(close, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
     bool preserveSession = false;
     const auto inScope = [&scope](const ReviewCard &card)
     { return !scope || (card.sheetId == scope->sheetId && scope->topics.contains(card.nodeId)); };
@@ -902,7 +919,7 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
         }
         if (!list->currentItem() && list->count())
             list->setCurrentRow(0);
-        today->setText(QStringLiteral("今日待复习（%1）").arg(dueCount));
+        today->setText(QStringLiteral("练习今日到期（%1）").arg(dueCount));
     };
     const auto begin = [&, this]
     {
@@ -938,12 +955,33 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
                 if (!preserveSession)
                     page->setCards({});
             });
-    connect(start, &QPushButton::clicked, &dialog, begin);
+    const auto beginPractice = [&]
+    {
+        begin();
+        if (page->totalCount() > 0)
+        {
+            tabs->setCurrentIndex(practiceIndex);
+            page->setFocus();
+        }
+    };
+    connect(tabs, &QTabWidget::currentChanged, &dialog,
+            [&](int index)
+            {
+                if (index == practiceIndex)
+                {
+                    if (page->totalCount() == 0)
+                        begin();
+                    page->setFocus();
+                }
+                else
+                    error->clear();
+            });
+    connect(start, &QPushButton::clicked, &dialog, beginPractice);
     connect(today, &QPushButton::clicked, &dialog,
             [&]
             {
                 filter->setCurrentIndex(dueIndex);
-                begin();
+                beginPractice();
             });
     connect(pick, &QPushButton::clicked, &dialog,
             [&]
@@ -961,7 +999,7 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
                 if (page->isFinished())
                 {
                     filter->setCurrentIndex(filter->findData(QStringLiteral("new")));
-                    begin();
+                    beginPractice();
                 }
                 error->setText(QStringLiteral("已加入 %1 张卡片。").arg(count));
             });
@@ -1002,6 +1040,9 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
         const bool available = sourceAvailable(currentCard());
         compare->setEnabled(available);
         locate->setEnabled(available);
+        refresh->setEnabled(available);
+        for (auto *button : {custom, standalone, remove})
+            button->setEnabled(currentCard() != nullptr);
     };
     connect(list, &QListWidget::currentItemChanged, &dialog, updateSourceActions);
     const auto mutate = [&, this](const ID &id, int action)
@@ -1057,10 +1098,10 @@ void MainWindow::manageReviewCards(ID cardId, std::optional<ReviewScope> scope)
                     dialog.accept();
                 }
             });
-    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
     reload();
     updateSourceActions();
     begin();
+    error->clear();
     dialog.resize(800, qMin(650, screen()->availableGeometry().height() - 70));
     dialog.exec();
     if (sourceToLocate)

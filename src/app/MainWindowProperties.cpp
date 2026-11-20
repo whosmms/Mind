@@ -7,6 +7,7 @@
 #include "graphics/NodeItem.h"
 #include <QAbstractItemView>
 #include <QAction>
+#include <QApplication>
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QColor>
@@ -28,6 +29,8 @@
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QStackedWidget>
+#include <QStatusBar>
+#include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWheelEvent>
@@ -73,6 +76,7 @@ QIcon colorSwatch(const QColor &color)
 
 QColor chooseColor(QWidget *parent, const QColor &initial)
 {
+    static QList<QColor> recent;
     QDialog dialog(parent);
     dialog.setObjectName("customStyleColorDialog");
     dialog.setWindowTitle(QStringLiteral("自定义颜色"));
@@ -107,6 +111,28 @@ QColor chooseColor(QWidget *parent, const QColor &initial)
     {
         QObject::connect(slider, &QSlider::valueChanged, &dialog, preview);
     }
+    if (!recent.isEmpty())
+    {
+        auto *row = new QHBoxLayout;
+        row->setContentsMargins(0, 0, 0, 0);
+        for (const auto &value : recent)
+        {
+            auto *swatch = new QToolButton(&dialog);
+            swatch->setIcon(colorSwatch(value));
+            swatch->setToolTip(colorName(value.name()));
+            swatch->setAccessibleName(swatch->toolTip());
+            row->addWidget(swatch);
+            QObject::connect(swatch, &QToolButton::clicked, &dialog,
+                             [sliders, value]
+                             {
+                                 sliders[0]->setValue(value.red());
+                                 sliders[1]->setValue(value.green());
+                                 sliders[2]->setValue(value.blue());
+                             });
+        }
+        row->addStretch();
+        layout->addRow(QStringLiteral("最近使用"), row);
+    }
     preview();
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
     buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("选用颜色"));
@@ -114,7 +140,14 @@ QColor chooseColor(QWidget *parent, const QColor &initial)
     QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
     layout->addRow(buttons);
-    return dialog.exec() == QDialog::Accepted ? color() : QColor{};
+    if (dialog.exec() != QDialog::Accepted)
+        return QColor{};
+    const QColor chosen = color();
+    recent.removeAll(chosen);
+    recent.prepend(chosen);
+    if (recent.size() > 5)
+        recent.removeLast();
+    return chosen;
 }
 } // namespace
 
@@ -290,6 +323,31 @@ QLabel *errorLabel(QWidget *parent, const char *name)
     return label;
 }
 
+const BaseNode *noteTarget(const Project &project, const QPair<ID, ID> &target)
+{
+    for (const auto &sheet : project.sheets)
+    {
+        const auto node = [&target](const auto *data) -> const BaseNode *
+        {
+            if (!data || data->id != target.first)
+            {
+                return nullptr;
+            }
+            const auto it = data->nodes.constFind(target.second);
+            return it == data->nodes.constEnd() ? nullptr : &it.value();
+        };
+        if (const auto *tree = node(std::get_if<TreeSheet>(&sheet)))
+        {
+            return tree;
+        }
+        if (const auto *flow = node(std::get_if<FlowSheet>(&sheet)))
+        {
+            return flow;
+        }
+    }
+    return nullptr;
+}
+
 } // namespace
 
 void MainWindow::buildInlineStyle(QVBoxLayout *layout)
@@ -436,6 +494,18 @@ void MainWindow::buildInlineNotes(QVBoxLayout *layout)
     link->setPlaceholderText(QStringLiteral("https://…"));
     column->addWidget(link);
     column->addWidget(errorLabel(box, "inlineNoteError"));
+    connect(note, &QPlainTextEdit::textChanged, this, &MainWindow::rememberInlineNotes);
+    connect(link, &QLineEdit::textChanged, this, &MainWindow::rememberInlineNotes);
+    m_notesFocusConnection = connect(qApp, &QApplication::focusChanged, this,
+                                     [this, box](QWidget *previous, QWidget *current)
+                                     {
+                                         // 从备注切到链接仍是同一次编辑。弹出输入法或菜单时焦点可以暂时为空。
+                                         if (previous && current && box->isAncestorOf(previous) &&
+                                             !box->isAncestorOf(current))
+                                         {
+                                             queueInlineNotes();
+                                         }
+                                     });
     auto *apply = new QPushButton(QStringLiteral("应用备注与链接"), box);
     apply->setObjectName("applyInlineNotes");
     apply->setProperty("primary", true);
@@ -449,20 +519,8 @@ const BaseNode *MainWindow::selectedCanvasNode() const
     {
         return nullptr;
     }
-    const auto selected = [this](const auto *sheet) -> const BaseNode *
-    {
-        if (!sheet)
-        {
-            return nullptr;
-        }
-        const auto node = sheet->nodes.constFind(m_selectedNodeId);
-        return node == sheet->nodes.constEnd() ? nullptr : &node.value();
-    };
-    if (const auto *tree = activeTreeSheet())
-    {
-        return selected(tree);
-    }
-    return selected(activeFlowSheet());
+    const auto &project = m_doc->project();
+    return noteTarget(project, {project.activeSheetId, m_selectedNodeId});
 }
 
 bool MainWindow::hasCurrentInlineProperties() const
@@ -474,6 +532,12 @@ bool MainWindow::hasCurrentInlineProperties() const
 void MainWindow::updateInlineProperties()
 {
     const auto *node = selectedCanvasNode();
+    const ID sheetId = m_doc->project().activeSheetId;
+    const bool sameNode = m_propertySheetId == sheetId && m_propertyNodeId == m_selectedNodeId;
+    if (!sameNode || !node)
+    {
+        queueInlineNotes();
+    }
     const QScopedValueRollback<bool> updating(m_updatingInline, true);
     for (const char *name : {"inlineStyleControls", "inlineIconControls", "inlineNoteControls"})
         if (auto *box = findChild<QWidget *>(name))
@@ -494,8 +558,6 @@ void MainWindow::updateInlineProperties()
         StyleChoices::addShapes(shape, flow);
     }
     form->setRowVisible(findChild<QToolButton *>("inlineFlowType"), flow);
-    const ID sheetId = m_doc->project().activeSheetId;
-    const bool sameNode = m_propertySheetId == sheetId && m_propertyNodeId == m_selectedNodeId;
     if (!node ||
         (sameNode && m_propertyRevision == m_doc->sessionRevision() && !shapeOptionsChanged))
     {
@@ -544,9 +606,12 @@ void MainWindow::updateInlineProperties()
     }
     if (!keepNotes)
     {
-        findChild<QPlainTextEdit *>("inlineNote")->setPlainText(m_propertyInitial.note);
-        findChild<QLineEdit *>("inlineLink")->setText(m_propertyInitial.link.value_or(QString()));
-        findChild<QLabel *>("inlineNoteError")->clear();
+        const auto draft = m_inlineNotesDrafts.value({sheetId, m_selectedNodeId});
+        findChild<QPlainTextEdit *>("inlineNote")
+            ->setPlainText(draft.note.value_or(m_propertyInitial.note));
+        findChild<QLineEdit *>("inlineLink")
+            ->setText(draft.link.value_or(m_propertyInitial.link.value_or(QString())));
+        findChild<QLabel *>("inlineNoteError")->setText(draft.error);
     }
     const QString icon = m_propertyInitial.iconId.value_or(QString());
     auto *group = findChild<QButtonGroup *>("inlineIconGroup");
@@ -608,8 +673,32 @@ void MainWindow::applyInlineStyle(bool reset)
         style.shape = m_propertyStyle.shape;
     }
     const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
-    const auto result =
-        NodeCommands(m_commands, m_doc).setStyle(m_propertySheetId, m_propertyNodeId, style);
+    QMap<ID, NodeStyleOverride> styles{{m_propertyNodeId, style}};
+    if (const auto *tree = activeTreeSheet(); tree && m_multiSelection.size() > 1)
+    {
+        for (const auto &id : m_multiSelection)
+        {
+            auto node = tree->nodes.constFind(id);
+            if (node == tree->nodes.cend() || id == m_propertyNodeId)
+                continue;
+            auto other = node->style;
+            const auto copyChange = [&](auto field)
+            {
+                if (m_propertyStyle.*field != style.*field)
+                    other.*field = style.*field;
+            };
+            copyChange(&NodeStyleOverride::shape);
+            copyChange(&NodeStyleOverride::fill);
+            copyChange(&NodeStyleOverride::color);
+            copyChange(&NodeStyleOverride::borderColor);
+            copyChange(&NodeStyleOverride::fontFamily);
+            copyChange(&NodeStyleOverride::fontSize);
+            copyChange(&NodeStyleOverride::bold);
+            copyChange(&NodeStyleOverride::borderWidth);
+            styles.insert(id, reset ? NodeStyleOverride{} : other);
+        }
+    }
+    const auto result = NodeCommands(m_commands, m_doc).setStyles(m_propertySheetId, styles);
     if (const auto *error = std::get_if<AppError>(&result))
         findChild<QLabel *>("inlineStyleError")->setText(error->message);
     else
@@ -636,24 +725,97 @@ void MainWindow::applyInlineIcon(const QString &id)
 
 void MainWindow::applyInlineNotes()
 {
-    if (!hasCurrentInlineProperties())
+    if (hasCurrentInlineProperties())
     {
-        updateInlineProperties();
+        commitInlineNotes({m_propertySheetId, m_propertyNodeId});
+    }
+}
+
+void MainWindow::rememberInlineNotes()
+{
+    if (m_updatingInline || !hasCurrentInlineProperties())
+    {
         return;
     }
-    NodeMetaUpdate update;
+    InlineNotesDraft draft;
     const QString note = findChild<QPlainTextEdit *>("inlineNote")->toPlainText();
     const QString link = findChild<QLineEdit *>("inlineLink")->text();
     if (note != m_propertyInitial.note)
-        update.note = note;
+    {
+        draft.note = note;
+    }
     if (link != m_propertyInitial.link.value_or(QString()))
-        update.link = link;
+    {
+        draft.link = link;
+    }
+    const QPair<ID, ID> target{m_propertySheetId, m_propertyNodeId};
+    if (draft.note || draft.link)
+    {
+        m_inlineNotesDrafts.insert(target, draft);
+    }
+    else
+    {
+        m_inlineNotesDrafts.remove(target);
+    }
+    findChild<QLabel *>("inlineNoteError")->clear();
+}
+
+void MainWindow::queueInlineNotes()
+{
+    const QPair<ID, ID> target{m_propertySheetId, m_propertyNodeId};
+    if (!m_inlineNotesDrafts.contains(target) || !m_inlineNotesDrafts.value(target).error.isEmpty())
+    {
+        return;
+    }
+    const ID projectId = m_doc->project().id;
+    QTimer::singleShot(0, this,
+                       [this, projectId, target]
+                       {
+                           if (m_doc->project().id == projectId)
+                           {
+                               commitInlineNotes(target);
+                           }
+                       });
+}
+
+bool MainWindow::commitInlineNotes(const QPair<ID, ID> &target)
+{
+    auto draft = m_inlineNotesDrafts.take(target);
+    if ((!draft.note && !draft.link) || !noteTarget(m_doc->project(), target))
+    {
+        return true;
+    }
+    NodeMetaUpdate update;
+    update.note = draft.note;
+    update.link = draft.link;
     const QScopedValueRollback<bool> preserve(m_keepCanvasView, true);
     const auto result =
-        NodeCommands(m_commands, m_doc).updateNodeMeta(m_propertySheetId, m_propertyNodeId, update);
+        NodeCommands(m_commands, m_doc).updateNodeMeta(target.first, target.second, update);
     if (const auto *error = std::get_if<AppError>(&result))
-        findChild<QLabel *>("inlineNoteError")->setText(error->message);
-    else
-        findChild<QLabel *>("inlineNoteError")->clear();
+    {
+        draft.error = error->message;
+        m_inlineNotesDrafts.insert(target, draft);
+        if (target == QPair<ID, ID>(m_propertySheetId, m_propertyNodeId))
+        {
+            findChild<QLabel *>("inlineNoteError")->setText(error->message);
+        }
+        statusBar()->showMessage(QStringLiteral("备注和链接草稿已保留。%1").arg(error->message),
+                                 8000);
+        return false;
+    }
+    return true;
+}
+
+bool MainWindow::commitAllInlineNotes()
+{
+    bool saved = true;
+    for (const auto &target : m_inlineNotesDrafts.keys())
+    {
+        if (!commitInlineNotes(target))
+        {
+            saved = false;
+        }
+    }
+    return saved;
 }
 } // namespace lingya

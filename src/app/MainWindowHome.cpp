@@ -3,11 +3,15 @@
 #include "document/ProjectDocument.h"
 #include "domain/Limits.h"
 #include "domain/ProjectFactory.h"
+#include "services/FileService.h"
+#include "services/OnlineAuthService.h"
 #include "services/SettingsService.h"
 #include "services/TemplateLibrary.h"
+#include "services/UserFileService.h"
 #include "ui/HomePage.h"
 #include "ui/TemplateGallery.h"
 #include <QAction>
+#include <QDir>
 #include <QDockWidget>
 #include <QFileInfo>
 #include <QMenu>
@@ -16,7 +20,6 @@
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QToolBar>
-#include <QToolButton>
 
 namespace lingya
 {
@@ -47,21 +50,6 @@ void MainWindow::buildHomePage()
     rail->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     rail->setIconSize(QSize(24, 24));
     rail->addAction(home);
-    rail->addAction(findChild<QAction *>("toggleOutline"));
-    rail->addAction(findChild<QAction *>("showReviewCards"));
-    rail->addAction(findChild<QAction *>("checkProject"));
-    rail->addAction(findChild<QAction *>("showAiWorkspace"));
-    const QStringList labels{QStringLiteral("首页"), QStringLiteral("大纲"), QStringLiteral("复习"),
-                             QStringLiteral("检查"), QStringLiteral("AI创作")};
-    for (int index = 0; index < rail->actions().size(); ++index)
-    {
-        auto *action = rail->actions().at(index);
-        auto *button = qobject_cast<QToolButton *>(rail->widgetForAction(action));
-        const QString label = labels.at(index);
-        button->setText(label);
-        button->setAccessibleName(label);
-        connect(action, &QAction::changed, button, [button, label] { button->setText(label); });
-    }
     addToolBar(Qt::LeftToolBarArea, rail);
     connect(m_homePage, &HomePage::continueRequested, this, &MainWindow::returnFromHome);
     connect(m_homePage, &HomePage::preferencesRequested, this, &MainWindow::showPreferences);
@@ -76,13 +64,38 @@ void MainWindow::buildHomePage()
                 SettingsService::removeRecentFile(path);
                 rebuildRecentMenu();
             });
+    connect(m_homePage, &HomePage::recentPinRequested, this,
+            [this](const QString &path, bool pinned)
+            {
+                SettingsService::setRecentFilePinned(path, pinned);
+                rebuildRecentMenu();
+            });
 }
 
 void MainWindow::refreshHomePage()
 {
     if (!m_homePage)
         return;
-    m_homePage->setRecentFiles(SettingsService::recentFiles());
+    m_homePage->setRecentFiles(
+        SettingsService::recentFiles(), SettingsService::pinnedRecentFiles(),
+        [this](const QString &path)
+        {
+            // 首页只自动渲染公有工程。账号专有工程保留通用缩略图。
+            const QFileInfo file(path);
+            const auto canonical = file.canonicalFilePath();
+            const auto online = QDir(m_sessionRoot).absoluteFilePath("online/");
+            if (canonical.isEmpty() ||
+                UserFileService::classify(m_sessionRoot, {}, canonical) !=
+                    UserFileService::Access::Public ||
+                canonical.startsWith(online, Qt::CaseInsensitive) ||
+                (m_onlineAuth &&
+                 UserFileService::classify(m_onlineAuth->localFilesRoot(), {}, canonical) !=
+                     UserFileService::Access::Public))
+                return QIcon{};
+            const auto loaded = FileService::load(canonical);
+            const auto *project = std::get_if<Project>(&loaded);
+            return project ? TemplateGallery::preview(*project) : QIcon{};
+        });
     m_homePage->setCurrentTitle(m_filePath.isEmpty() ? m_doc->project().title
                                                      : QFileInfo(m_filePath).completeBaseName());
 }

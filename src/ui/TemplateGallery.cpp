@@ -15,21 +15,28 @@ namespace lingya
 {
 QIcon TemplateGallery::preview(const QString &id)
 {
+    const auto result = TemplateLibrary::create(id);
+    return std::holds_alternative<Project>(result) ? preview(std::get<Project>(result)) : QIcon{};
+}
+
+QIcon TemplateGallery::preview(const Project &p)
+{
     QPixmap pixmap(240, 112);
     pixmap.fill(Qt::transparent);
     QPainter painter(&pixmap);
     painter.setRenderHint(QPainter::Antialiasing);
-    const auto result = TemplateLibrary::create(id);
-    if (!std::holds_alternative<Project>(result))
-        return QIcon(pixmap);
-    const auto p = std::get<Project>(result);
+    if (p.sheets.isEmpty())
+        return QIcon{};
     QMap<ID, QPointF> points;
+    QMap<ID, QString> titles;
     QVector<QPair<ID, ID>> edges;
     QVector<QLineF> schematic;
     ID root;
     if (const auto *tree = std::get_if<TreeSheet>(&p.sheets.first()))
     {
         root = tree->rootId;
+        for (const auto &node : tree->nodes)
+            titles.insert(node.id, node.title.simplified());
         if (tree->kind == "fishbone")
         {
             QVector<FishboneLayout::NodeSize> sizes;
@@ -86,7 +93,10 @@ QIcon TemplateGallery::preview(const QString &id)
     else if (const auto *flow = std::get_if<FlowSheet>(&p.sheets.first()))
     {
         for (const auto &n : flow->nodes)
+        {
             points[n.id] = n.position;
+            titles.insert(n.id, n.title.simplified());
+        }
         for (const auto &e : flow->edges)
             if (e.sourcePort == "right" && e.targetPort == "right")
             {
@@ -104,11 +114,16 @@ QIcon TemplateGallery::preview(const QString &id)
         painter.setPen(QPen(QColor("#DDE6DF"), 1));
         for (int x = 20; x < 230; x += 35)
             painter.drawLine(x, 8, x, 102);
-        for (int i = 0; i < p.tasks.size(); ++i)
+        for (qsizetype i = 0; i < qMin<qsizetype>(p.tasks.size(), 4); ++i)
         {
             painter.setBrush(QColor(i % 2 ? "#DDF2E7" : "#247A62"));
             painter.setPen(Qt::NoPen);
-            painter.drawRoundedRect(QRectF(15 + i * 34, 12 + i * 18, 70, 12), 3, 3);
+            const auto y = 12 + i * 22;
+            painter.drawRoundedRect(QRectF(12 + i * 24, y, 60, 13), 3, 3);
+            painter.setPen(QColor("#243A34"));
+            painter.drawText(QRectF(78 + i * 24, y, 145 - i * 24, 14), Qt::AlignVCenter,
+                             painter.fontMetrics().elidedText(p.tasks.at(i).title, Qt::ElideRight,
+                                                              145 - i * 24));
         }
         return QIcon(pixmap);
     }
@@ -130,7 +145,18 @@ QIcon TemplateGallery::preview(const QString &id)
     {
         painter.setBrush(QColor(it.key() == root ? "#247A62" : "#DDF2E7"));
         painter.setPen(QPen(QColor("#247A62"), 1.0 / scale));
-        painter.drawRoundedRect(QRectF(it.value() - QPointF(40, 14), QSizeF(80, 28)), 6, 6);
+        const QRectF card(it.value() - QPointF(40, 14), QSizeF(80, 28));
+        painter.drawRoundedRect(card, 6, 6);
+        if (scale >= 0.26)
+        {
+            QFont font = painter.font();
+            font.setPixelSize(19);
+            painter.setFont(font);
+            painter.setPen(QColor(it.key() == root ? "#FFFFFF" : "#243A34"));
+            painter.drawText(
+                card, Qt::AlignCenter,
+                painter.fontMetrics().elidedText(titles.value(it.key()), Qt::ElideRight, 72));
+        }
     }
     return QIcon(pixmap);
 }
@@ -142,8 +168,8 @@ TemplateGallery::TemplateGallery(bool allowStructure, QWidget *parent) : QDialog
     auto *layout = new QVBoxLayout(this);
     if (allowStructure)
     {
-        auto *title = new QLabel(
-            QStringLiteral("当前导图结构：保持内容，重新排布；手动位置将清除，可后退撤回"), this);
+        auto *title =
+            new QLabel(QStringLiteral("当前导图结构：重新排布主题并清除手动位置，支持撤销"), this);
         title->setWordWrap(true);
         layout->addWidget(title);
         auto *row = new QHBoxLayout;

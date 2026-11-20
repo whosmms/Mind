@@ -271,10 +271,8 @@ QToolButton *actionButton(QAction *action, const QString &label, Glyph glyph, QW
     action->setIcon(chromeIcon(glyph));
     QString hint = action->text();
     hint.remove(QLatin1Char('&'));
-    if (action->objectName() == "undoEdit")
-        hint = QStringLiteral("后退：撤回上一步编辑");
-    else if (action->objectName() == "redoEdit")
-        hint = QStringLiteral("前进：恢复刚撤回的编辑");
+    if (action->objectName() == "undoEdit" || action->objectName() == "redoEdit")
+        hint = label;
     if (!action->shortcut().isEmpty())
         hint += QStringLiteral(" · ") + action->shortcut().toString(QKeySequence::NativeText);
     action->setToolTip(hint);
@@ -394,7 +392,47 @@ void MainWindow::buildEditorChrome()
     tabs->setDocumentMode(true);
     tabs->setMinimumWidth(0);
     row->addWidget(tabs, 1);
+    auto *more = new QToolButton(shell);
+    more->setObjectName("ribbonMore");
+    more->setText(QStringLiteral("更多"));
+    more->setAccessibleName(QStringLiteral("更多编辑命令"));
+    more->setPopupMode(QToolButton::InstantPopup);
+    auto *moreMenu = new QMenu(more);
+    more->setMenu(moreMenu);
+    row->addWidget(more, 0, Qt::AlignVCenter);
     toolbar->addWidget(shell);
+
+    // 保留各命令及其快捷键，菜单栏只占用一个“文件”入口。
+    QList<QMenu *> categories;
+    for (auto *action : menuBar()->actions())
+    {
+        auto *category = action->menu();
+        if (!category || findChild<QAction *>("newProject")->parent() == category)
+            continue;
+        categories.append(category);
+        menuBar()->removeAction(action);
+        for (auto *command : category->findChildren<QAction *>())
+        {
+            if (!command->shortcuts().isEmpty())
+                addAction(command);
+        }
+    }
+    connect(moreMenu, &QMenu::aboutToShow, this,
+            [tabs, moreMenu, categories]
+            {
+                moreMenu->clear();
+                if (tabs->property("iconOnly").toBool())
+                {
+                    auto *current = tabs->currentWidget();
+                    moreMenu->addSection(tabs->tabText(tabs->currentIndex()));
+                    for (auto *button : current->findChildren<QToolButton *>())
+                        if (auto *action = button->defaultAction())
+                            moreMenu->addAction(action);
+                    moreMenu->addSeparator();
+                }
+                for (auto *category : categories)
+                    moreMenu->addMenu(category);
+            });
 
     const auto page = [tabs](const QString &title)
     {
@@ -449,8 +487,8 @@ void MainWindow::buildEditorChrome()
            {"cutTopic", QStringLiteral("剪切"), Glyph::Cut},
            {"pasteTopic", QStringLiteral("粘贴"), Glyph::Paste}});
     group(start, QStringLiteral("历史"),
-          {{"undoEdit", QStringLiteral("后退"), Glyph::Undo},
-           {"redoEdit", QStringLiteral("前进"), Glyph::Redo}});
+          {{"undoEdit", QStringLiteral("撤销"), Glyph::Undo},
+           {"redoEdit", QStringLiteral("重做"), Glyph::Redo}});
     group(start, QStringLiteral("结构"),
           {{"showTemplateGallery", QStringLiteral("模板"), Glyph::Frame}});
     group(start, QStringLiteral("查找"), {{"showSearch", QStringLiteral("搜索"), Glyph::Locate}});
@@ -711,13 +749,25 @@ void MainWindow::updateEditorChrome()
                          : flow                             ? QStringLiteral("流程图")
                          : tree && tree->kind == "fishbone" ? QStringLiteral("鱼骨图")
                                                             : QStringLiteral("思维导图");
-    const bool modeChanged = tabs->property("mode").toString() != mode;
+    const QString previousMode = tabs->property("mode").toString();
+    const bool modeChanged = previousMode != mode;
     tabs->setProperty("mode", mode);
     tabs->setTabVisible(3, flow && !gantt);
     tabs->setTabVisible(4, gantt);
     if (modeChanged)
     {
         tabs->setCurrentIndex(gantt ? 4 : flow ? 3 : 0);
+        auto *outline = findChild<QDockWidget *>("outlineDock");
+        if (gantt)
+        {
+            m_restoreOutlineAfterGantt = !outline->isHidden();
+            outline->hide();
+        }
+        else if (previousMode == QStringLiteral("甘特图") && m_restoreOutlineAfterGantt)
+        {
+            outline->show();
+        }
+        outline->toggleViewAction()->setEnabled(!gantt);
     }
     if (auto *property = findChild<QTabWidget *>("propertyTabs"))
     {
@@ -765,9 +815,12 @@ void MainWindow::updateEditorChrome()
     enable("addReviewCard", node && tree);
     const auto preview = [](const QString &value)
     { return value.size() > 140 ? value.left(140) + QStringLiteral("…") : value; };
-    text("propertySelection", gantt  ? task ? preview(task->title) : QStringLiteral("选择一个任务")
-                               : node ? preview(node->title)
-                                     : QStringLiteral("选择一个主题"));
+    text("propertySelection",
+         gantt ? task ? preview(task->title) : QStringLiteral("选择一个任务")
+         : m_multiSelection.size() > 1
+             ? QStringLiteral("已选 %1 个主题 · 样式可批量修改").arg(m_multiSelection.size())
+         : node ? preview(node->title)
+                : QStringLiteral("选择一个主题"));
     if (node && !gantt)
     {
         const NodeStyle resolved = NodeItem::resolvedStyle(
@@ -860,8 +913,30 @@ void MainWindow::resizeEditorChrome()
             dock->show();
         }
     }
-    if (auto *zoom = findChild<QWidget *>("canvasZoomControls"))
-        zoom->setVisible(width() >= 1000);
+    auto *tabs = findChild<QTabWidget *>("ribbonTabs");
+    auto *zoom = findChild<QWidget *>("canvasZoomControls");
+    if (zoom)
+        zoom->show();
+    const bool iconOnly = width() < 1120;
+    if (zoom && tabs &&
+        (!tabs->property("iconOnly").isValid() || tabs->property("iconOnly").toBool() != iconOnly))
+    {
+        tabs->setProperty("iconOnly", iconOnly);
+        for (int i = 0; i < tabs->count(); ++i)
+        {
+            auto *page = qobject_cast<QScrollArea *>(tabs->widget(i));
+            page->setHorizontalScrollBarPolicy(iconOnly ? Qt::ScrollBarAlwaysOff
+                                                        : Qt::ScrollBarAsNeeded);
+            for (auto *button : page->findChildren<QToolButton *>())
+            {
+                button->setToolButtonStyle(iconOnly ? Qt::ToolButtonIconOnly
+                                                    : Qt::ToolButtonTextUnderIcon);
+            }
+        }
+        findChild<QSlider *>("canvasZoomSlider")->setFixedWidth(iconOnly ? 72 : 108);
+        zoom->findChild<QToolButton *>("chrome_fitTopic")
+            ->setToolButtonStyle(iconOnly ? Qt::ToolButtonIconOnly : Qt::ToolButtonTextBesideIcon);
+    }
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
