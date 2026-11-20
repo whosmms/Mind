@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>学习计划</title></head>
+  <body>
+    <outline text="第一章 &amp; 准备" _note="行一&#10;行二" htmlUrl="https://example.org/notes">
+      <outline text="&lt;b&gt;中文练习&lt;/b&gt;"/>
+    </outline>
+    <outline text="第二章" xmlUrl="https://example.org/feed.xml"/>
+  </body>
+</opml>

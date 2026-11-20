@@ -25,6 +25,7 @@ class QTableView;
 class QPlainTextEdit;
 class QRubberBand;
 class QResizeEvent;
+class QScreen;
 class QVBoxLayout;
 
 namespace lingya {
@@ -127,7 +128,7 @@ private:
     void openDraftManager(const ID &draftId);
     void createDraftFromBranch(const ID &rootId);
     void managePresentation();
-    void playPresentation(const PresentationRoute &route);
+    void playPresentation(const PresentationRoute &route, QScreen *audienceScreen);
     void exportCurrentSheet();
     ExportService::Snapshot captureCanvas() const;
     void buildMenus();
@@ -156,6 +157,8 @@ private:
     void openRecentFile(const QString& path);
     void newProject();
     void openProject();
+    void importMindMap();
+    bool importMindMapFile(const QString &path);
     bool saveProject(bool saveAs);
     void renameSelectedNode();
     enum class TitleEditKind
@@ -258,7 +261,7 @@ private:
     void syncCanvasSelection();
     void focusSelectedNode();
     bool confirmDiscard();          // 换工程/关闭时提供保存、放弃、取消（原设计§8）
-    void loadNewDocument(Project project);
+    void loadNewDocument(Project project, bool needsSave = false);
     void rebuildCanvas();
     void addFishboneEdges(const TreeSheet &display);
     void onDocumentChanged();

@@ -13,7 +13,18 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # Qt模块仅启用规范§5.1列出的集合；M5真实联网需要Network
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Widgets Network Test)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Widgets Network Svg Test)
+set(ZLIB_USE_STATIC_LIBS ON)
+if(MINGW AND NOT DEFINED ZLIB_ROOT AND NOT DEFINED ENV{ZLIB_ROOT})
+    # 冻结 MinGW 将 libz.a 放在编译器的目标目录，而非 Qt Kit 中。
+    get_filename_component(lingya_compiler_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -dumpmachine
+        OUTPUT_VARIABLE lingya_compiler_target OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(EXISTS "${lingya_compiler_bin}/../${lingya_compiler_target}/include/zlib.h")
+        set(ZLIB_ROOT "${lingya_compiler_bin}/../${lingya_compiler_target}")
+    endif()
+endif()
+find_package(ZLIB REQUIRED)
 
 # 核心库：领域、校验器、JSON序列化与文件服务（纯规则，无界面）
 add_library(lingya_core STATIC
@@ -21,6 +32,10 @@ add_library(lingya_core STATIC
     src/services/TemplateLibrary.cpp
     src/services/ImageService.h
     src/services/ImageService.cpp
+    src/services/MindMapImport.h
+    src/services/MindMapImport.cpp
+    src/services/XMindArchive.h
+    src/services/XMindArchive.cpp
     src/domain/Domain.h
     src/domain/Limits.h
     src/domain/TitleRules.h
@@ -60,7 +75,7 @@ add_library(lingya_core STATIC
     src/layout/FishboneLayout.cpp
 )
 target_include_directories(lingya_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(lingya_core PUBLIC Qt6::Core Qt6::Gui)
+target_link_libraries(lingya_core PUBLIC Qt6::Core Qt6::Gui PRIVATE ZLIB::ZLIB)
 if(MSVC)
     target_compile_options(lingya_core PUBLIC /utf-8)
 endif()
@@ -77,6 +92,8 @@ add_library(lingya_appcore STATIC
     src/commands/SnapshotCommand.cpp
     src/commands/TaskCommands.h
     src/commands/TaskCommands.cpp
+    src/commands/SearchReplaceCommands.h
+    src/commands/SearchReplaceCommands.cpp
     src/commands/NodeCommands.h
     src/commands/NodeCommands.cpp
     src/commands/FlowCommands.h
@@ -132,7 +149,8 @@ add_library(lingya_appcore STATIC
     src/ui/TemplateGallery.h
     src/ui/TemplateGallery.cpp
 )
-target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets Qt6::Network)
+target_link_libraries(lingya_appcore PUBLIC lingya_core Qt6::Core Qt6::Widgets Qt6::Network
+    PRIVATE Qt6::Svg)
 if(WIN32)
     # SecretStore 使用 Windows 凭据管理器（CredWriteW/CredReadW/CredDeleteW）
     target_link_libraries(lingya_appcore PUBLIC Advapi32)

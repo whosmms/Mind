@@ -917,6 +917,7 @@ QPointF MainWindow::alignTreeDrag(const QPointF &offset, bool preview)
         const auto guide = [&](const QLineF &axis)
         {
             auto *line = m_scene->addLine(axis, pen);
+            line->setData(0x21C0, true);
             line->setZValue(8);
             line->setAcceptedMouseButtons(Qt::NoButton);
         };

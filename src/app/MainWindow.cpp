@@ -83,6 +83,7 @@
 #include "graphics/NodeItem.h"
 #include "services/FileService.h"
 #include "services/LocalNameRules.h"
+#include "services/MindMapImport.h"
 #include "services/OnlineAuthService.h"
 #include "services/RecoveryService.h"
 #include "services/SessionService.h"
@@ -205,6 +206,7 @@ struct EditorForm
 void showNotice(QWidget *parent, QMessageBox::Icon icon, const QString &title, const QString &text)
 {
     QMessageBox box(icon, title, text, QMessageBox::Ok, parent);
+    box.setTextFormat(Qt::PlainText);
     box.button(QMessageBox::Ok)->setText(QStringLiteral("确定"));
     box.exec();
 }
@@ -467,6 +469,8 @@ void MainWindow::buildMenus() {
         ->addAction(QStringLiteral("打开(&O)..."), QKeySequence::Open, this,
                     &MainWindow::openProject)
         ->setObjectName(QStringLiteral("openProject"));
+    fileMenu->addAction(QStringLiteral("导入导图…"), this, &MainWindow::importMindMap)
+        ->setObjectName(QStringLiteral("importMindMap"));
     fileMenu
         ->addAction(QStringLiteral("保存(&S)"), QKeySequence::Save, this,
                     [this] { saveProject(false); })
@@ -1330,6 +1334,10 @@ bool MainWindow::openFile(const QString& path) {
                    QStringLiteral("不能打开其他用户的文件"));
         return false;
     }
+    if (MindMapImport::supports(path))
+    {
+        return importMindMapFile(path);
+    }
     const auto result = FileService::load(path);
     if (std::holds_alternative<AppError>(result)) {
         // 坏文件不覆盖当前工作（R04）：原工程保持不变
@@ -1348,6 +1356,46 @@ bool MainWindow::openFile(const QString& path) {
     }
     SettingsService::addRecentFile(path);
     rebuildRecentMenu();
+    return true;
+}
+
+void MainWindow::importMindMap()
+{
+    const auto path = QFileDialog::getOpenFileName(
+        this, QStringLiteral("导入导图"), {},
+        QStringLiteral("支持的导图 (*.xmind *.opml *.mm);;XMind 导图 (*.xmind);;"
+                       "OPML 大纲 (*.opml);;FreeMind 导图 (*.mm)"));
+    if (!path.isEmpty())
+    {
+        openFile(path);
+    }
+}
+
+bool MainWindow::importMindMapFile(const QString &path)
+{
+    auto imported = MindMapImport::load(path);
+    if (const auto *error = std::get_if<AppError>(&imported))
+    {
+        showNotice(this, QMessageBox::Warning, QStringLiteral("无法导入导图"), error->message);
+        return false;
+    }
+    if (!confirmDiscard())
+    {
+        return false;
+    }
+    auto result = std::get<MindMapImport::Result>(std::move(imported));
+    const auto count = result.project.sheets.size();
+    m_filePath.clear();
+    m_fileStamp.reset();
+    loadNewDocument(std::move(result.project), true);
+    QString message = QStringLiteral("已导入 %1 张工作表、%2 个主题，请保存为灵芽工程。")
+                          .arg(count)
+                          .arg(result.topics);
+    if (result.skippedImages)
+    {
+        message += QStringLiteral("有 %1 张图片无法导入。").arg(result.skippedImages);
+    }
+    statusBar()->showMessage(message, 14000);
     return true;
 }
 
@@ -1752,7 +1800,8 @@ bool MainWindow::confirmDiscard() {
     return false;   // 取消：不换工程、不清理快照
 }
 
-void MainWindow::loadNewDocument(Project project) {
+void MainWindow::loadNewDocument(Project project, bool needsSave)
+{
     finishCanvasTitle(false);
     m_inlineNotesDrafts.clear();
     returnFromHome();
@@ -1776,7 +1825,10 @@ void MainWindow::loadNewDocument(Project project) {
     m_recoveryNote.clear();   // 新建/打开不能沿用上一工程的快照时间或失败状态
     m_doc->replaceProject(std::move(project));
     m_commands->clearHistory();   // 打开新工程清空撤销历史（规范§5.1）
-    m_doc->setClean();            // 新建/打开后尚未编辑，应为干净状态（规范§8）
+    if (!needsSave)
+    {
+        m_doc->setClean(); // 已有工程和空白模板无需立即另存
+    }
     m_doc->notifyChanged();       // 状态变更完成后统一通知（D-M0-13）
 }
 

@@ -3,12 +3,14 @@
 #include "document/ProjectDocument.h"
 #include "features/PresentationController.h"
 #include "graphics/NodeItem.h"
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
@@ -27,6 +29,7 @@
 #include <QTreeWidgetItemIterator>
 #include <QUuid>
 #include <QVBoxLayout>
+#include <QWindow>
 #include <functional>
 
 namespace lingya
@@ -59,6 +62,46 @@ class PresentationPlayer : public QDialog
         return QDialog::eventFilter(watched, event);
     }
 };
+
+// 投影中只绘制独立画布快照，避免把编辑器的选框与交互控件带过去。
+class ProjectionPicture : public QGraphicsItem
+{
+  public:
+    explicit ProjectionPicture(ExportService::Snapshot snapshot) : m_snapshot(std::move(snapshot))
+    {
+    }
+
+    QRectF boundingRect() const override
+    {
+        return m_snapshot.bounds;
+    }
+
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override
+    {
+        painter->drawPicture(QPointF{}, m_snapshot.picture);
+    }
+
+  private:
+    ExportService::Snapshot m_snapshot;
+};
+
+QGraphicsView *presentationView(QGraphicsScene *scene, QWidget *parent, const char *name)
+{
+    auto *view = new QGraphicsView(scene, parent);
+    view->setObjectName(name);
+    view->setInteractive(false);
+    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    view->setRenderHint(QPainter::Antialiasing);
+    return view;
+}
+
+void placePresentationWindow(QWidget &window, QScreen *screen)
+{
+    window.winId();
+    window.windowHandle()->setScreen(screen);
+    window.setGeometry(screen->geometry());
+}
 } // namespace
 void MainWindow::managePresentation()
 {
@@ -110,7 +153,8 @@ void MainWindow::managePresentation()
     row->addWidget(down);
     row->addWidget(remove);
     column->addLayout(row);
-    column->addWidget(new QLabel(QStringLiteral("所选步骤的讲解备注（播放时默认隐藏）"), &dialog));
+    column->addWidget(
+        new QLabel(QStringLiteral("讲解备注（单屏播放默认隐藏，双屏仅演讲者可见）"), &dialog));
     auto *note = new QPlainTextEdit(&dialog);
     note->setObjectName("presentationSpeakerNote");
     note->setMaximumHeight(125);
@@ -119,6 +163,41 @@ void MainWindow::managePresentation()
     info->setWordWrap(true);
     info->setObjectName("presentationRouteInfo");
     column->addWidget(info);
+    auto *outputRow = new QHBoxLayout;
+    auto *output = new QComboBox(&dialog);
+    output->setObjectName("presentationOutput");
+    auto *outputLabel = new QLabel(QStringLiteral("播放方式"), &dialog);
+    outputLabel->setBuddy(output);
+    outputRow->addWidget(outputLabel);
+    outputRow->addWidget(output, 1);
+    column->addLayout(outputRow);
+    QList<QScreen *> outputs;
+    const auto chooseDisplays = [&]
+    {
+        auto *previous = outputs.value(output->currentIndex() - 1);
+        outputs.clear();
+        output->clear();
+        output->addItem(QStringLiteral("单屏讲解"));
+        const auto screens = QGuiApplication::screens();
+        for (qsizetype index = 0; index < screens.size(); ++index)
+        {
+            auto *display = screens[index];
+            if (display == dialog.screen())
+                continue;
+            outputs.append(display);
+            output->addItem(
+                QStringLiteral("双屏讲解 · 观众屏 %1（%2）").arg(index + 1).arg(display->name()));
+        }
+        output->setCurrentIndex(outputs.indexOf(previous) + 1);
+        output->setEnabled(!outputs.isEmpty());
+        output->setToolTip(
+            outputs.isEmpty() ? QStringLiteral("连接并扩展第二块屏幕后可选择观众屏。") : QString());
+    };
+    connect(qGuiApp, &QGuiApplication::screenAdded, &dialog, chooseDisplays);
+    connect(qGuiApp, &QGuiApplication::screenRemoved, &dialog, chooseDisplays);
+    dialog.winId();
+    connect(dialog.windowHandle(), &QWindow::screenChanged, &dialog, chooseDisplays);
+    chooseDisplays();
     auto *actions = new QHBoxLayout;
     auto *save = new QPushButton(QStringLiteral("保存路线"), &dialog),
          *erase = new QPushButton(QStringLiteral("删除路线"), &dialog),
@@ -256,26 +335,39 @@ void MainWindow::managePresentation()
                     info->setText(error->message);
                     return;
                 }
-                playPresentation(route);
+                playPresentation(route, outputs.value(output->currentIndex() - 1));
             });
     connect(close, &QPushButton::clicked, &dialog, &QDialog::reject);
     load();
     dialog.exec();
 }
 
-void MainWindow::playPresentation(const PresentationRoute &route)
+void MainWindow::playPresentation(const PresentationRoute &route, QScreen *audienceScreen)
 {
-    const auto *tree = activeTreeSheet();
-    if (!tree)
+    const auto *active = activeTreeSheet();
+    if (!active)
         return;
+    const TreeSheet tree = *active;
+    auto *presenterScreen = screen();
+    if (const auto *modal = QApplication::activeModalWidget())
+        presenterScreen = modal->screen();
+    const bool dual = audienceScreen != nullptr;
+    if (dual && (!presenterScreen || presenterScreen == audienceScreen ||
+                 !QGuiApplication::screens().contains(audienceScreen)))
+    {
+        statusBar()->showMessage(QStringLiteral("请重新选择独立的观众屏。"), 8000);
+        return;
+    }
     PresentationController controller;
-    const auto started = controller.start(*tree, route);
+    const auto started = controller.start(tree, route);
     if (const auto *error = std::get_if<AppError>(&started))
     {
         statusBar()->showMessage(error->message, 8000);
         return;
     }
     const auto selected = m_selectedNodeId;
+    const auto selectedImage = m_selectedImageId;
+    const auto multiSelection = m_multiSelection;
     const auto selectedTask = m_selectedTaskId;
     const auto transform = m_view->transform();
     const int h = m_view->horizontalScrollBar()->value(), v = m_view->verticalScrollBar()->value();
@@ -292,6 +384,8 @@ void MainWindow::playPresentation(const PresentationRoute &route)
         [&]
         {
             m_selectedNodeId = selected;
+            m_selectedImageId = selectedImage;
+            m_multiSelection = multiSelection;
             m_selectedTaskId = selectedTask;
             m_unfilteredCollapsed = unfiltered;
             m_filterWasActive = filterActive;
@@ -312,21 +406,32 @@ void MainWindow::playPresentation(const PresentationRoute &route)
             m_outline->horizontalScrollBar()->setValue(outlineH);
             m_outline->verticalScrollBar()->setValue(outlineV);
         });
+    bool interrupted = false;
+    QGraphicsScene projection;
+    QDialog audience(this, Qt::Window | Qt::FramelessWindowHint | Qt::WindowDoesNotAcceptFocus);
+    QGraphicsView *audienceView = nullptr;
+    if (dual)
+    {
+        audience.setObjectName("presentationAudience");
+        audience.setWindowTitle(QStringLiteral("观众屏 · 灵芽思维"));
+        audience.setAttribute(Qt::WA_ShowWithoutActivating);
+        auto *layout = new QVBoxLayout(&audience);
+        layout->setContentsMargins(0, 0, 0, 0);
+        audienceView = presentationView(&projection, &audience, "presentationAudienceCanvas");
+        audienceView->setFrameShape(QFrame::NoFrame);
+        audienceView->setBackgroundBrush(Qt::white);
+        layout->addWidget(audienceView);
+    }
     PresentationPlayer player(this);
     player.setObjectName("presentationPlayer");
-    player.setWindowTitle(route.title);
+    player.setWindowTitle(dual ? QStringLiteral("演讲者视图 · ") + route.title : route.title);
     player.setWindowFlag(Qt::Window);
     auto *column = new QVBoxLayout(&player);
     auto *header = new QLabel(route.title, &player);
     header->setTextFormat(Qt::PlainText);
     header->setObjectName("presentationHeading");
     column->addWidget(header);
-    auto *view = new QGraphicsView(m_scene, &player);
-    view->setObjectName("presentationCanvas");
-    view->setInteractive(false);
-    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    view->setRenderHint(QPainter::Antialiasing);
+    auto *view = presentationView(dual ? &projection : m_scene, &player, "presentationCanvas");
     column->addWidget(view, 1);
     auto *note = new QLabel(&player);
     note->setObjectName("presentationVisibleNote");
@@ -341,6 +446,15 @@ void MainWindow::playPresentation(const PresentationRoute &route)
     noteScroll->setWidget(note);
     noteScroll->hide();
     column->addWidget(noteScroll);
+    QLabel *following = nullptr;
+    if (dual)
+    {
+        following = new QLabel(&player);
+        following->setObjectName("presentationFollowing");
+        following->setTextFormat(Qt::PlainText);
+        following->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+        column->addWidget(following);
+    }
     auto *row = new QHBoxLayout;
     auto *previous = new QPushButton(QStringLiteral("← 上一步"), &player),
          *next = new QPushButton(QStringLiteral("下一步 →"), &player),
@@ -349,8 +463,11 @@ void MainWindow::playPresentation(const PresentationRoute &route)
     previous->setObjectName("presentationPrevious");
     next->setObjectName("presentationNext");
     pause->setObjectName("presentationPause");
-    auto *showNote = new QCheckBox(QStringLiteral("显示备注（观众可见）"), &player);
+    auto *showNote = new QCheckBox(
+        dual ? QStringLiteral("显示私有备注") : QStringLiteral("显示备注（观众可见）"), &player);
     showNote->setObjectName("presentationShowNote");
+    showNote->setChecked(dual);
+    noteScroll->setVisible(dual);
     auto *time = new QLabel(&player);
     time->setObjectName("presentationTime");
     row->addWidget(previous);
@@ -369,26 +486,40 @@ void MainWindow::playPresentation(const PresentationRoute &route)
         for (auto it = m_nodeItems.cbegin(); it != m_nodeItems.cend(); ++it)
         {
             ID id = it.key();
-            while (tree->nodes.contains(id))
+            while (tree.nodes.contains(id))
             {
                 if (id == step.nodeId)
                 {
                     bounds = bounds.united(it.value()->sceneBoundingRect());
                     break;
                 }
-                const auto parent = tree->nodes.value(id).parentId;
+                const auto parent = tree.nodes.value(id).parentId;
                 if (!parent)
                     break;
                 id = *parent;
             }
         }
-        view->fitInView(bounds.adjusted(-70, -70, 70, 70), Qt::KeepAspectRatio);
+        const auto focus = bounds.adjusted(-70, -70, 70, 70);
+        if (audienceView)
+        {
+            auto snapshot = captureCanvas();
+            projection.clear();
+            projection.setSceneRect(snapshot.bounds.united(focus));
+            projection.addItem(new ProjectionPicture(std::move(snapshot)));
+            audienceView->fitInView(focus, Qt::KeepAspectRatio);
+            const auto nextStep = controller.following();
+            following->setText(
+                nextStep
+                    ? QStringLiteral("下一步  ·  %1").arg(tree.nodes.value(nextStep->nodeId).title)
+                    : QStringLiteral("已到最后一步"));
+        }
+        view->fitInView(focus, Qt::KeepAspectRatio);
         header->setText(
             QStringLiteral("%1  ·  %2 / %3  ·  %4%5")
                 .arg(route.title)
                 .arg(controller.index() + 1)
                 .arg(controller.count())
-                .arg(tree->nodes.value(step.nodeId).title)
+                .arg(tree.nodes.value(step.nodeId).title)
                 .arg(controller.skipped()
                          ? QStringLiteral("（跳过%1个已删除步骤）").arg(controller.skipped())
                          : QString()));
@@ -450,10 +581,49 @@ void MainWindow::playPresentation(const PresentationRoute &route)
                                   .arg(seconds % 60, 2, 10, QChar('0')));
             });
     tick.start();
-    player.resize(screen()->geometry().size());
+    if (presenterScreen)
+        placePresentationWindow(player, presenterScreen);
+    if (dual)
+    {
+        placePresentationWindow(audience, audienceScreen);
+        const auto stop = [&]
+        {
+            interrupted = true;
+            audience.hide();
+            player.reject();
+        };
+        connect(qGuiApp, &QGuiApplication::screenRemoved, &player,
+                [&, stop](QScreen *removed)
+                {
+                    if (removed == presenterScreen || removed == audienceScreen)
+                        stop();
+                });
+        const auto keepSeparate = [&, stop]
+        {
+            if (player.windowHandle()->screen() != presenterScreen ||
+                audience.windowHandle()->screen() != audienceScreen)
+                stop();
+        };
+        connect(player.windowHandle(), &QWindow::screenChanged, &player, keepSeparate);
+        connect(audience.windowHandle(), &QWindow::screenChanged, &player, keepSeparate);
+        connect(&audience, &QDialog::rejected, &player, &QDialog::reject);
+        connect(&player, &QDialog::finished, &audience, &QWidget::hide);
+        keepSeparate();
+        if (!interrupted)
+            audience.showFullScreen();
+    }
+    if (interrupted)
+    {
+        statusBar()->showMessage(QStringLiteral("无法分配两块独立屏幕，已结束双屏讲解。"), 8000);
+        return;
+    }
     player.showFullScreen();
+    if (interrupted)
+        return;
     update();
     QTimer::singleShot(0, &player, update);
     player.exec();
+    if (interrupted)
+        statusBar()->showMessage(QStringLiteral("显示器已变化，已结束双屏讲解。"), 8000);
 }
 } // namespace lingya

@@ -88,7 +88,7 @@ foreach ($deployConfig in $deployConfigs) {
             }
         }
     }
-    foreach ($deployRequired in @("Qt6Core${deploySuffix}.dll", "Qt6Gui${deploySuffix}.dll", "Qt6Widgets${deploySuffix}.dll", "platforms\qwindows${deploySuffix}.dll")) {
+    foreach ($deployRequired in @("Qt6Core${deploySuffix}.dll", "Qt6Gui${deploySuffix}.dll", "Qt6Widgets${deploySuffix}.dll", "Qt6Svg${deploySuffix}.dll", "platforms\qwindows${deploySuffix}.dll")) {
         if (-not (Test-Path -LiteralPath (Join-Path $deployDirectory $deployRequired) -PathType Leaf)) {
             throw "部署后仍缺少必要文件：$deployRequired"
         }    }

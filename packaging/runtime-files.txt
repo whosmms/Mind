@@ -5,6 +5,7 @@ lingya.exe
 Qt6Core.dll
 Qt6Gui.dll
 Qt6Network.dll
+Qt6Svg.dll
 Qt6Widgets.dll
 generic/qtuiotouchplugin.dll
 imageformats/qgif.dll

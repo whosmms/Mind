@@ -16,11 +16,14 @@ struct Snapshot
     QRectF bounds;
 };
 std::variant<QSize, AppError> pngSize(const QRectF &bounds, qreal scale);
+std::variant<QSize, AppError> svgSize(const QRectF &bounds, qreal scale);
 std::variant<int, AppError> pdfPageCount(const QRectF &bounds, qreal scale = 1);
 std::variant<bool, AppError> writePng(const Snapshot &snapshot, const QString &path,
                                       qreal scale = 1);
 std::variant<int, AppError> writePdf(const Snapshot &snapshot, const QString &path,
                                      qreal scale = 1);
+std::variant<bool, AppError> writeSvg(const Snapshot &snapshot, const QString &path,
+                                      qreal scale = 1);
 std::variant<QString, AppError> outline(const Project &project, const ID &sheetId);
 std::variant<bool, AppError> writeText(const QString &text, const QString &path);
 } // namespace ExportService

@@ -242,3 +242,9 @@ DPI图片未展示系统设置百分比，三档数值依据甲对100%/125%/150%
 - 本机新准备Inno Setup6.7.4便携编译器，路径D:/mind/.tools/InnoSetup-6.7.4；官方安装器SHA256/signature见third-party与工具来源.json。以PORTABLE/CURRENTUSER/NOICONS方式准备，临时文件和工具目录均在D:/mind内，未注册系统关联或改Qt Kit。
 - 最新开发入口用WindowsPowerShell实测校验；显式UTF8读取中文JSON、.NET SHA256及有BOM脚本，避免依赖宿主PSModulePath中的Get-FileHash。开发打包/自动验证在本机既有开发终端执行，不将“另一台Windows”写成本机结果。
 - H044原生程序与安装器自动验证均使用D:/mind隔离资料根，运行库来源由逐项SHA256和进程模块核对；工具专项和QtTest套件计数分开。
+
+## H059 导入与导出的构建依赖（2026-11-20）
+
+沿用 Qt 6.8.3、MinGW 13.1.0、CMake 3.30.5 和 Ninja 1.12.1。开发环境需有 Qt 6.8.3 的 MinGW 64 位完整桌面 Kit，其中 `lib/cmake/Qt6Svg/Qt6SvgConfig.cmake` 及 `bin/Qt6Svg.dll` 供 SVG 导出构建和运行。旧裁剪 Kit 缺文件时，从 Qt 官方安装器修复同版本的桌面组件。开发候选随包部署已核对同版的 Qt6Svg.dll。
+
+XMind 导入使用 MinGW 目标目录自带的 zlib 1.2.13 静态库。本机 CMake 从编译器的目标三元组定位库目录，自定义工具链可用 `ZLIB_ROOT` 指向已核对的静态库前缀。来源和许可见 [第三方组件](third-party.md)。

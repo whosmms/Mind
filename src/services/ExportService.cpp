@@ -7,6 +7,7 @@
 #include <QPainter>
 #include <QPdfWriter>
 #include <QSaveFile>
+#include <QSvgGenerator>
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -50,6 +51,21 @@ std::variant<QSize, AppError> pngSize(const QRectF &r, qreal scale)
     if (w > kMaxPngPixels || h > kMaxPngPixels || w * h > kMaxPngPixels)
         return AppError{"LIMIT_EXCEEDED", QStringLiteral("PNG超过3200万像素，请降低缩放后重试")};
     return QSize(int(w), int(h));
+}
+std::variant<QSize, AppError> svgSize(const QRectF &r, qreal scale)
+{
+    if (!valid(r, scale))
+    {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("导出尺寸或缩放无效")};
+    }
+    constexpr int maxSide = 1000000;
+    const auto width = std::ceil(r.width() * scale);
+    const auto height = std::ceil(r.height() * scale);
+    if (width > maxSide || height > maxSide)
+    {
+        return AppError{"LIMIT_EXCEEDED", QStringLiteral("SVG 边长过大，请降低导出比例")};
+    }
+    return QSize(static_cast<int>(width), static_cast<int>(height));
 }
 std::variant<int, AppError> pdfPageCount(const QRectF &r, qreal scale)
 {
@@ -183,6 +199,45 @@ std::variant<QString, AppError> outline(const Project &project, const ID &sheetI
     }
     return AppError{"NOT_FOUND", QStringLiteral("工作表已不存在")};
 }
+
+std::variant<bool, AppError> writeSvg(const Snapshot &s, const QString &path, qreal scale)
+{
+    const auto measured = svgSize(s.bounds, scale);
+    if (const auto *error = std::get_if<AppError>(&measured))
+    {
+        return *error;
+    }
+    if (!extension(path, "svg"))
+    {
+        return AppError{"INVALID_ARGUMENT", QStringLiteral("SVG 路径必须以 .svg 结尾")};
+    }
+    QSaveFile file(path);
+    file.setDirectWriteFallback(false);
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        return failed();
+    }
+    const auto size = std::get<QSize>(measured);
+    QSvgGenerator generator(QSvgGenerator::SvgVersion::Svg11);
+    generator.setOutputDevice(&file);
+    generator.setSize(size);
+    generator.setResolution(96);
+    generator.setViewBox(QRect(QPoint(), size));
+    generator.setTitle(QStringLiteral("灵芽思维工作表"));
+    QPainter painter(&generator);
+    if (!painter.isActive())
+    {
+        return failed();
+    }
+    painter.fillRect(QRect(QPoint(), size), Qt::white);
+    paint(painter, s, scale, {});
+    if (!painter.end() || file.error() != QFileDevice::NoError || file.pos() <= 0 || !file.commit())
+    {
+        return failed();
+    }
+    return true;
+}
+
 std::variant<bool, AppError> writeText(const QString &text, const QString &path)
 {
     if (!extension(path, "md") && !extension(path, "txt"))

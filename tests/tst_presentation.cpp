@@ -39,6 +39,12 @@ void TstPresentation::defaultOrderAndMissingSteps()
     QVERIFY(std::holds_alternative<int>(controller.start(tree, route)));
     QCOMPARE(controller.skipped(), 1);
     QCOMPARE(controller.current().nodeId, tree.rootId);
+    QVERIFY(controller.following().has_value());
+    QCOMPARE(controller.following()->nodeId, QStringLiteral("a"));
+    QVERIFY(controller.next());
+    QCOMPARE(controller.following()->nodeId, QStringLiteral("b"));
+    QVERIFY(controller.next());
+    QVERIFY(!controller.following());
     route.steps = {{"missing", "deleted", {}}};
     QVERIFY(std::holds_alternative<AppError>(controller.start(tree, route)));
     QCOMPARE(controller.count(), 0);

@@ -86,6 +86,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QScopeGuard>
+#include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSettings>
@@ -266,6 +267,11 @@ private slots:
     void redoWithEditorFocus_data();
     void redoWithEditorFocus();
     void saveAsDialogRoundTripAndCancel();
+    void importExternalMapRoundTrip_data();
+    void importExternalMapRoundTrip();
+    void svgExportFromEditor();
+    void searchReplaceEditorWorkflow();
+    void presentationScreenSeparation();
     void undoRedoDisabledBeforeAnyEdit();
     void openFileRestoresContent();
     void openFileFailureKeepsProject();
@@ -6568,6 +6574,7 @@ void TstUi::visualControlsStayInsideBounds()
 }
 
 #include "interaction_cases.inc"
+#include "interop_cases.inc"
 
 QTEST_MAIN(TstUi)
 #include "tst_ui.moc"

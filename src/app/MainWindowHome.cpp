@@ -114,8 +114,9 @@ void MainWindow::showHomePage()
         {
             const QString name = action->objectName();
             if (name.isEmpty() || name == "showHomePage" || name == "newProject" ||
-                name == "openProject" || name == "saveProject" || name == "showPreferences" ||
-                name == "onlineAccount" || name == "onlineAccountSettings")
+                name == "openProject" || name == "importMindMap" || name == "saveProject" ||
+                name == "showPreferences" || name == "onlineAccount" ||
+                name == "onlineAccountSettings")
                 continue;
             m_homeActionStates.append({QPointer<QAction>(action), action->isEnabled()});
             action->setEnabled(false);

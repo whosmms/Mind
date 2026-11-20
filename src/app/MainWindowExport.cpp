@@ -47,10 +47,9 @@ void MainWindow::buildCompletionActions()
                             chooseNodeImage(m_selectedNodeId);
                     })
         ->setObjectName("insertNodeImageAction");
-    auto *search =
-        menu->addAction(QStringLiteral("搜索主题与任务…"), this, &MainWindow::showSearch);
+    auto *search = menu->addAction(QStringLiteral("查找和替换…"), this, &MainWindow::showSearch);
     search->setObjectName("showSearch");
-    search->setShortcut(QKeySequence::Find);
+    search->setShortcuts({QKeySequence::Find, QKeySequence(Qt::CTRL | Qt::Key_H)});
     menu->addAction(QStringLiteral("设置与帮助…"), this, &MainWindow::showPreferences)
         ->setObjectName("showPreferences");
     menu->addSeparator();
@@ -141,8 +140,11 @@ void MainWindow::exportCurrentSheet()
     auto *form = new QFormLayout;
     auto *format = new QComboBox(&dialog);
     format->setObjectName("exportFormat");
-    format->addItems({QStringLiteral("PNG 图片"), QStringLiteral("PDF 分页文档"),
-                      QStringLiteral("Markdown 大纲"), QStringLiteral("TXT 大纲")});
+    format->addItem(QStringLiteral("PNG 图片"), QStringLiteral("png"));
+    format->addItem(QStringLiteral("PDF 分页文档"), QStringLiteral("pdf"));
+    format->addItem(QStringLiteral("Markdown 大纲"), QStringLiteral("md"));
+    format->addItem(QStringLiteral("TXT 大纲"), QStringLiteral("txt"));
+    format->addItem(QStringLiteral("SVG 矢量图"), QStringLiteral("svg"));
     auto *scale = new QDoubleSpinBox(&dialog);
     scale->setObjectName("exportScale");
     scale->setRange(5, 400);
@@ -159,8 +161,9 @@ void MainWindow::exportCurrentSheet()
     const auto snapshot = captureCanvas();
     const auto update = [format, scale, info, &snapshot]
     {
-        scale->setEnabled(format->currentIndex() < 2);
-        if (format->currentIndex() == 0)
+        const auto suffix = format->currentData().toString();
+        scale->setEnabled(suffix == "png" || suffix == "pdf" || suffix == "svg");
+        if (suffix == "png")
         {
             const auto size = ExportService::pngSize(snapshot.bounds, scale->value() / 100);
             if (const auto *error = std::get_if<AppError>(&size))
@@ -172,7 +175,7 @@ void MainWindow::exportCurrentSheet()
                         .arg(std::get<QSize>(size).width())
                         .arg(std::get<QSize>(size).height()));
         }
-        else if (format->currentIndex() == 1)
+        else if (suffix == "pdf")
         {
             const auto count = ExportService::pdfPageCount(snapshot.bounds, scale->value() / 100);
             info->setText(
@@ -181,6 +184,22 @@ void MainWindow::exportCurrentSheet()
                     : QStringLiteral(
                           "A4横向，四边12毫米，按当前比例分页，共%1页；从左到右、从上到下。")
                           .arg(std::get<int>(count)));
+        }
+        else if (suffix == "svg")
+        {
+            const auto size = ExportService::svgSize(snapshot.bounds, scale->value() / 100);
+            if (const auto *error = std::get_if<AppError>(&size))
+            {
+                info->setText(error->message);
+            }
+            else
+            {
+                const auto bounds = std::get<QSize>(size);
+                info->setText(QStringLiteral("%1 × %2 的 SVG 画布，线条可无损缩放，"
+                                             "图片嵌入文件。折叠内容需先展开。")
+                                  .arg(bounds.width())
+                                  .arg(bounds.height()));
+            }
         }
         else
             info->setText(QStringLiteral(
@@ -198,8 +217,7 @@ void MainWindow::exportCurrentSheet()
     connect(buttons, &QDialogButtonBox::accepted, &dialog,
             [&, this]
             {
-                const QString suffix =
-                    QStringList{"png", "pdf", "md", "txt"}.at(format->currentIndex());
+                const QString suffix = format->currentData().toString();
                 const QString path = QFileDialog::getSaveFileName(
                     &dialog, QStringLiteral("导出工作表"), QStringLiteral("工作表.") + suffix,
                     QStringLiteral("导出文件 (*.%1)").arg(suffix));
@@ -217,17 +235,26 @@ void MainWindow::exportCurrentSheet()
                     return;
                 }
                 std::optional<AppError> error;
-                if (format->currentIndex() == 0)
+                if (suffix == "png")
                 {
                     const auto r = ExportService::writePng(snapshot, path, scale->value() / 100);
                     if (const auto *e = std::get_if<AppError>(&r))
                         error = *e;
                 }
-                else if (format->currentIndex() == 1)
+                else if (suffix == "pdf")
                 {
                     const auto r = ExportService::writePdf(snapshot, path, scale->value() / 100);
                     if (const auto *e = std::get_if<AppError>(&r))
                         error = *e;
+                }
+                else if (suffix == "svg")
+                {
+                    const auto result =
+                        ExportService::writeSvg(snapshot, path, scale->value() / 100);
+                    if (const auto *errorValue = std::get_if<AppError>(&result))
+                    {
+                        error = *errorValue;
+                    }
                 }
                 else
                 {

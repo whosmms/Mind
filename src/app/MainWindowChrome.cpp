@@ -530,7 +530,8 @@ void MainWindow::buildEditorChrome()
            {"redoEdit", QStringLiteral("重做"), Glyph::Redo}});
     group(start, QStringLiteral("结构"),
           {{"showTemplateGallery", QStringLiteral("模板"), Glyph::Frame}});
-    group(start, QStringLiteral("查找"), {{"showSearch", QStringLiteral("搜索"), Glyph::Locate}});
+    group(start, QStringLiteral("查找"),
+          {{"showSearch", QStringLiteral("查找替换"), Glyph::Locate}});
     auto *insert = page(QStringLiteral("插入"));
     group(insert, QStringLiteral("主题信息"),
           {{"editNodeProperties", QStringLiteral("属性"), Glyph::Note},

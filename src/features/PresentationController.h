@@ -32,6 +32,7 @@ class PresentationController
         return m_skipped;
     }
     PresentationStep current() const;
+    std::optional<PresentationStep> following() const;
 
   private:
     QVector<PresentationStep> m_steps;
