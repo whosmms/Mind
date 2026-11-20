@@ -1,0 +1,26 @@
+{
+  "dateUtc": "2026-11-20T10:12:52.4444641Z",
+  "computer": "LAPTOP-RPV0EDEV",
+  "sourceCommit": "04335e323a0f0d00943bdd94d205729a61681853",
+  "toolsRoot": "D:\\",
+  "versions": {
+    "qt": "6.8.3",
+    "gcc": "13.1.0",
+    "cmake": "cmake version 3.30.5",
+    "ninja": "1.12.1",
+    "clangFormat": "clang-format version 19.1.7"
+  },
+  "configurations": [
+    {
+      "name": "debug",
+      "build": "通过",
+      "tests": "通过"
+    },
+    {
+      "name": "release",
+      "build": "通过",
+      "tests": "通过"
+    }
+  ],
+  "success": true
+}
