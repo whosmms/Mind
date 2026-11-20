@@ -638,54 +638,53 @@ std::variant<bool, AppError> NodeCommands::updateNodeMeta(const ID& sheetId, con
 
 std::variant<bool, AppError> NodeCommands::setStyle(const ID& sheetId, const ID& nodeId,
                                                     const NodeStyleOverride& style) {
-    if (sheetId.isEmpty() || nodeId.isEmpty()) {
+    return setStyles(sheetId, {{nodeId, style}});
+}
+
+std::variant<bool, AppError> NodeCommands::setStyles(const ID &sheetId,
+                                                     const QMap<ID, NodeStyleOverride> &styles)
+{
+    if (sheetId.isEmpty() || styles.contains(ID{}))
         return AppError{"INVALID_ARGUMENT", QStringLiteral("工作表ID与节点ID不能为空")};
-    }
-    const auto *node = findBaseNode(m_document->project(), sheetId, nodeId);
-    if (!node)
-    {
-        return AppError{"NOT_FOUND", QStringLiteral("工作表或节点不存在：%1").arg(nodeId)};
-    }
 
     // 预检与ProjectJson读写规则一致（颜色、形状枚举、字号范围、边宽正数）。
     const auto validColor = [](const std::optional<QString>& color) {
         return !color.has_value() || isHexColor(*color);
     };
-    if (!validColor(style.fill) || !validColor(style.color) || !validColor(style.borderColor)) {
-        return AppError{"INVALID_ARGUMENT", QStringLiteral("颜色必须为#RRGGBB格式")};
-    }
-    if (style.shape.has_value() && !NodeShapes::isSupported(*style.shape))
+    QMap<ID, NodeStyleOverride> changed;
+    for (auto it = styles.cbegin(); it != styles.cend(); ++it)
     {
-        return AppError{"INVALID_ARGUMENT", QStringLiteral("节点形状不在支持列表内")};
-    }
-    if (style.fontSize.has_value() &&
-        (*style.fontSize < Limits::kFontSizeMin || *style.fontSize > Limits::kFontSizeMax)) {
-        return AppError{"LIMIT_EXCEEDED",
-                        QStringLiteral("字号必须在%1至%2之间")
-                            .arg(Limits::kFontSizeMin)
-                            .arg(Limits::kFontSizeMax)};
-    }
-    if (style.borderWidth.has_value() &&
-        (!std::isfinite(*style.borderWidth) || *style.borderWidth <= 0.0)) {
-        return AppError{"INVALID_ARGUMENT", QStringLiteral("边框宽度必须为正数")};
+        const auto *node = findBaseNode(m_document->project(), sheetId, it.key());
+        if (!node)
+            return AppError{"NOT_FOUND", QStringLiteral("工作表或节点不存在：%1").arg(it.key())};
+        const auto &style = it.value();
+        if (!validColor(style.fill) || !validColor(style.color) || !validColor(style.borderColor))
+            return AppError{"INVALID_ARGUMENT", QStringLiteral("请选择有效的颜色")};
+        if (style.shape && !NodeShapes::isSupported(*style.shape))
+            return AppError{"INVALID_ARGUMENT", QStringLiteral("节点形状不在支持列表内")};
+        if (style.fontSize &&
+            (*style.fontSize < Limits::kFontSizeMin || *style.fontSize > Limits::kFontSizeMax))
+            return AppError{"LIMIT_EXCEEDED", QStringLiteral("字号必须在%1至%2之间")
+                                                  .arg(Limits::kFontSizeMin)
+                                                  .arg(Limits::kFontSizeMax)};
+        if (style.borderWidth && (!std::isfinite(*style.borderWidth) || *style.borderWidth <= 0.0))
+            return AppError{"INVALID_ARGUMENT", QStringLiteral("边框宽度必须为正数")};
+        if (!sameOverride(style, node->style))
+            changed.insert(it.key(), style);
     }
 
-    if (sameOverride(style, node->style)) return true;   // 无操作短路（D-M1-02）
-
-    const auto result =
-        m_commands->applyEdit(QStringLiteral("设置节点样式"),
-                              [sheetId, nodeId, style](Project &project)
-                              {
-                                  if (auto *target = findBaseNode(project, sheetId, nodeId))
-                                  {
-                                      target->style = style;
-                                      ++target->contentRevision;
-                                  }
-                              });
-    if (const auto* error = std::get_if<AppError>(&result)) {
-        return *error;
-    }
-    return true;
+    if (changed.isEmpty())
+        return true;
+    return m_commands->applyEdit(QStringLiteral("设置节点样式"),
+                                 [sheetId, changed](Project &project)
+                                 {
+                                     for (auto it = changed.cbegin(); it != changed.cend(); ++it)
+                                     {
+                                         auto *node = findBaseNode(project, sheetId, it.key());
+                                         node->style = it.value();
+                                         ++node->contentRevision;
+                                     }
+                                 });
 }
 
 std::variant<bool, AppError> NodeCommands::moveSubtree(const ID& sheetId, const ID& nodeId,
@@ -1675,22 +1674,28 @@ std::variant<bool, AppError> NodeCommands::setPositions(const ID &sheetId,
                                          target->nodes[it.key()].manualPosition = it.value();
                                  });
 }
-std::variant<bool, AppError> NodeCommands::resetPositions(const ID &sheetId)
+std::variant<bool, AppError> NodeCommands::resetPositions(const ID &sheetId, const ID &branchRoot)
 {
     const auto *sheet = findTree(m_document->project(), sheetId);
     if (!sheet)
         return AppError{"NOT_FOUND", QStringLiteral("树图工作表不存在")};
-    bool changed = false;
-    for (const auto &n : sheet->nodes)
-        changed |= n.manualPosition.has_value();
-    if (!changed)
+    if (!branchRoot.isEmpty() && !sheet->nodes.contains(branchRoot))
+        return AppError{"NOT_FOUND", QStringLiteral("要整理的分支不存在")};
+    auto ids = branchRoot.isEmpty() ? QSet<ID>{} : subtreeIds(*sheet, branchRoot);
+    ids.remove(branchRoot);
+    QVector<ID> changed;
+    for (const auto &node : sheet->nodes)
+        if (node.manualPosition && (branchRoot.isEmpty() || ids.contains(node.id)))
+            changed.append(node.id);
+    if (changed.isEmpty())
         return true;
-    return m_commands->applyEdit(QStringLiteral("恢复自动布局"),
-                                 [sheetId](Project &project)
+    return m_commands->applyEdit(branchRoot.isEmpty() ? QStringLiteral("恢复自动布局")
+                                                      : QStringLiteral("整理分支布局"),
+                                 [sheetId, changed](Project &project)
                                  {
                                      auto *target = findTree(project, sheetId);
-                                     for (auto &node : target->nodes)
-                                         node.manualPosition.reset();
+                                     for (const auto &id : changed)
+                                         target->nodes[id].manualPosition.reset();
                                  });
 }
 

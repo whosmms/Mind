@@ -9,6 +9,8 @@ namespace lingya {
 // 文本长度按Unicode码点计数；UTF-8字节数只用于文件/响应上限（规范§4.2）。
 namespace Limits {
 
+constexpr int kReviewMaxIntervalDays = 30;
+
 // 文件与工程规模（规范§4.3.9）
 constexpr int kSchemaVersion = 1;
 constexpr int kMaxNodes = 1000;                              // 工程节点硬上限

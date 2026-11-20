@@ -147,6 +147,7 @@ struct ReviewCard {
     QString status = "new", mode = "linked";
     QString sourceHash, sourceState = "ok";
     std::optional<QDateTime> lastReviewedAt;
+    std::optional<int> reviewIntervalDays;
 };
 struct PresentationStep {
     ID id, nodeId;

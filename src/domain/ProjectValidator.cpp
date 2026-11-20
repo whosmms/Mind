@@ -372,6 +372,11 @@ QVector<AppError> validate(const Project& project) {
         claim(card.id, "复习卡片");
         if (!sheetIds.contains(card.sheetId))
             es << AppError{"CARD_SHEET", "复习卡片“" + card.front + "”指向的工作表不存在"};
+        if (card.reviewIntervalDays &&
+            (*card.reviewIntervalDays < 1 ||
+             *card.reviewIntervalDays > Limits::kReviewMaxIntervalDays || card.status == "new" ||
+             !card.lastReviewedAt || !card.lastReviewedAt->isValid()))
+            es << AppError{"CARD_INTERVAL", QStringLiteral("复习间隔须为有效复习日期后的 1–30 天")};
     }
 
     // 讲解路线：基于树图建立（§7.2）；步骤节点缺失由运行时重校验提示跳过

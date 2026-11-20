@@ -321,6 +321,7 @@ struct ReviewCard {
     QString status = "new", mode = "linked";
     QString sourceHash, sourceState = "ok";
     std::optional<QDateTime> lastReviewedAt;
+    std::optional<int> reviewIntervalDays;
 };
 struct PresentationStep {
     ID id, nodeId;
@@ -450,7 +451,7 @@ JSON保持既有字段名称和schemaVersion=1。QMap序列化为ID键对象，Q
 
 ### 7.1 X01 复习卡片
 
-入口：选中节点右键“加入复习”，或在复习页选工作表批量建立。正面默认节点标题；背面优先备注，否则取直属子节点标题并逐条排列。没有可提取内容时要求填写答案，不生成空卡。初始状态new，展示背面后允许标记review/mastered，按状态筛选，不宣称具有未经实现的间隔重复算法。
+入口为主题右键和复习页选题。正面默认节点标题，背面优先备注，否则取直属子节点标题并逐条排列。没有可提取内容时要求填写答案。初始状态为 new，展示背面后可以自评为 review 或 mastered。复习间隔以本地日期计，首次正向自评为 1 天，之后在 1、3、7、15、30 天档位上递增。已复习前移一档，已掌握前移两档，最高 30 天。再次练习仅回到队尾。旧卡没有间隔字段时仍按原复习状态的 1 天或 7 天计算到期，之后自评启用新档位。间隔字段有值时须有有效的最近复习时间。
 
 sourceHash使用标题、备注、用于答案的子内容规范化后计算。源内容变化不静默覆盖用户卡片，标为changed并提供“更新卡片”和“保留自定义”；选择保留后mode改custom。源节点删除保留卡片快照并标missing，提供移除或转独立卡片；独立卡片仍保留原ID作来源记录，不可再跳转。重开时重新计算状态。
 

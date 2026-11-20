@@ -58,7 +58,10 @@ public:
     // 位置写入只影响画面；批量一次提交，空集合/相同坐标不入历史。
     std::variant<bool, AppError> setPositions(const ID &sheetId,
                                               const QMap<ID, QPointF> &positions);
-    std::variant<bool, AppError> resetPositions(const ID &sheetId);
+    // 指定分支时保留该主题位置，仅恢复后代的自动布局。
+    std::variant<bool, AppError> resetPositions(const ID &sheetId, const ID &branchRoot = {});
+    std::variant<bool, AppError> setStyles(const ID &sheetId,
+                                           const QMap<ID, NodeStyleOverride> &styles);
 
     // 在参照节点之后新增同级主题（D-M1-03：先按(order,ID)规范化形成兄弟序列，
     // 再在参照之后插入，最后写回连续order）。参照不能是根节点（根无同级）。

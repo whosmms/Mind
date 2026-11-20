@@ -51,6 +51,7 @@ private slots:
     void gradeAgainChangesNothingAndSkipsHistory();
     void gradeUnknownCardReturnsNotFound();
     void gradeIsSingleUndoStep();
+    void spacedSchedulePersistsAndRestores();
     // 卡片增删
     void addCardExtractsFrontAndBack();
     void addCardRejectsDuplicateNode();
@@ -89,6 +90,47 @@ void TstReviewCommands::gradeMasteredWritesStatusAndTimestamp() {
     // 时间按UTC记录（避免跨时区出现“未来时间”或时区漂移）
     QCOMPARE(card.lastReviewedAt->timeSpec(), Qt::UTC);
     QVERIFY(card.lastReviewedAt->secsTo(QDateTime::currentDateTimeUtc()) <= 5);
+}
+
+void TstReviewCommands::spacedSchedulePersistsAndRestores()
+{
+    Project project = ProjectFactory::createMindmap(QStringLiteral("间隔复习"));
+    const ID root = treeOf(project).rootId;
+    addRawNode(project, root, 0, QStringLiteral("答案"));
+    ProjectDocument document;
+    document.replaceProject(project);
+    CommandService history(&document);
+    ReviewCommands review(&history, &document);
+    const auto created = review.addCard(document.project().activeSheetId, root);
+    QVERIFY(std::holds_alternative<ID>(created));
+    const ID id = std::get<ID>(created);
+    for (int days : {1, 3, 7, 15, 30})
+    {
+        QVERIFY(std::holds_alternative<bool>(review.gradeCard(id, ReviewMark::Reviewed)));
+        const auto &card = document.project().cards.first();
+        QCOMPARE(card.reviewIntervalDays, std::optional<int>(days));
+        const QDate lastDate = card.lastReviewedAt->toLocalTime().date();
+        QVERIFY(!ReviewService::isDue(card, lastDate.addDays(days - 1)));
+        QVERIFY(ReviewService::isDue(card, lastDate.addDays(days)));
+    }
+    const auto saved = ProjectJson::toJson(document.project());
+    const auto loaded = ProjectJson::fromObject(saved);
+    QVERIFY(std::holds_alternative<Project>(loaded));
+    const auto &scheduled = std::get<Project>(loaded).cards.first();
+    QCOMPARE(scheduled.reviewIntervalDays, std::optional<int>(30));
+    QCOMPARE(ReviewService::nextIntervalDays(scheduled, ReviewMark::Mastered), 30);
+    history.undo();
+    QCOMPARE(document.project().cards.first().reviewIntervalDays, std::optional<int>(15));
+    history.redo();
+    QVERIFY(std::holds_alternative<bool>(review.refreshFromSource(id)));
+    QCOMPARE(document.project().cards.first().reviewIntervalDays, scheduled.reviewIntervalDays);
+    auto old = scheduled;
+    old.status = QStringLiteral("mastered");
+    old.reviewIntervalDays.reset();
+    const auto date = old.lastReviewedAt->toLocalTime().date();
+    QVERIFY(!ReviewService::isDue(old, date.addDays(6)));
+    QVERIFY(ReviewService::isDue(old, date.addDays(7)));
+    QCOMPARE(ReviewService::nextIntervalDays(old, ReviewMark::Mastered), 30);
 }
 
 void TstReviewCommands::gradeReviewedWritesReviewStatus() {

@@ -6,12 +6,15 @@
 
 namespace lingya {
 
+enum class ReviewMark;
+
 // 复习卡片服务（X01，AI规范§7.1）：由节点提取正反面、计算来源哈希、检测来源变化。
 // 纯逻辑（QtCore），不依赖界面。
 class ReviewService {
 public:
-  // 以本地日历日计，新卡立即可练，已复习隔一天，已掌握隔七天。
+  // 以本地日历日计。旧卡沿用已有到期日，自评后开始保存实际间隔。
   static bool isDue(const ReviewCard &card, const QDate &today);
+  static int nextIntervalDays(const ReviewCard &card, ReviewMark mark);
 
   // 由节点生成新卡片：正面=节点标题，背面=备注或直属子节点标题；
   // 无可提取内容时返回 nullopt（不生成空卡）。

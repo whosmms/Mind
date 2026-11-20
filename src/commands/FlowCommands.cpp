@@ -163,34 +163,38 @@ std::variant<ID, AppError> FlowCommands::addNode(const ID& sheetId, const QStrin
 }
 
 std::variant<ID, AppError> FlowCommands::addSuccessor(const ID &sheetId, const ID &sourceId,
-                                                      const QPointF &position)
+                                                      const QPointF &position, const QString &title)
 {
     const auto *sheet = findFlow(m_document->project(), sheetId);
     if (!sheet || !sheet->nodes.contains(sourceId))
         return AppError{"NOT_FOUND", QStringLiteral("源流程节点不存在")};
     if (totalNodeCount(m_document->project()) >= Limits::kMaxNodes)
         return AppError{"LIMIT_EXCEEDED", QStringLiteral("工程节点已达上限")};
+    const auto normalized = TitleRules::normalize(title);
+    if (TitleRules::codePointCount(normalized) > Limits::kTitleMaxChars)
+        return AppError{"LIMIT_EXCEEDED", QStringLiteral("节点标题过长，请缩短后重试")};
     const ID id = QUuid::createUuid().toString(QUuid::WithoutBraces),
              edgeId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    const auto result = m_commands->applyEdit(QStringLiteral("新增并连接流程节点"),
-                                              [sheetId, sourceId, position, id, edgeId](Project &p)
-                                              {
-                                                  auto *target = findFlow(p, sheetId);
-                                                  FlowNode node;
-                                                  node.id = id;
-                                                  node.title = QStringLiteral("处理");
-                                                  node.position = position;
-                                                  node.contentRevision = 1;
-                                                  target->nodes.insert(id, node);
-                                                  FlowEdge edge;
-                                                  edge.id = edgeId;
-                                                  edge.sourceId = sourceId;
-                                                  edge.targetId = id;
-                                                  edge.sourcePort = "right";
-                                                  edge.targetPort = "left";
-                                                  edge.style = target->defaultEdgeStyle;
-                                                  target->edges.append(edge);
-                                              });
+    const auto result =
+        m_commands->applyEdit(QStringLiteral("新增并连接流程节点"),
+                              [sheetId, sourceId, position, normalized, id, edgeId](Project &p)
+                              {
+                                  auto *target = findFlow(p, sheetId);
+                                  FlowNode node;
+                                  node.id = id;
+                                  node.title = normalized;
+                                  node.position = position;
+                                  node.contentRevision = 1;
+                                  target->nodes.insert(id, node);
+                                  FlowEdge edge;
+                                  edge.id = edgeId;
+                                  edge.sourceId = sourceId;
+                                  edge.targetId = id;
+                                  edge.sourcePort = "right";
+                                  edge.targetPort = "left";
+                                  edge.style = target->defaultEdgeStyle;
+                                  target->edges.append(edge);
+                              });
     if (const auto *error = std::get_if<AppError>(&result))
         return *error;
     return id;

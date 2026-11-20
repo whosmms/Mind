@@ -47,7 +47,8 @@ public:
 
     // 新增处理节点并连接源节点，一次命令可整体撤回。
     std::variant<ID, AppError> addSuccessor(const ID &sheetId, const ID &sourceId,
-                                            const QPointF &position);
+                                            const QPointF &position,
+                                            const QString &title = QStringLiteral("处理"));
 
     // 按补丁更新节点：标题/备注/类型/位置/标签/局部样式；contentRevision+1；可撤销。
     // 与当前值完全相同时短路，不入历史（D-M1-02显式例外）。

@@ -31,7 +31,9 @@ ReviewCommands::ReviewCommands(CommandService* commands, const ProjectDocument* 
 }
 
 std::variant<bool, AppError> ReviewCommands::gradeCard(const ID& cardId, ReviewMark mark) {
-    if (findCard(m_document->project(), cardId) == nullptr) {
+    const auto *existing = findCard(m_document->project(), cardId);
+    if (!existing)
+    {
         return notFound(cardId);
     }
     // Again：只回到队尾，不写status也不写时间；不入历史，避免自评撤销栈被空操作塞满
@@ -40,15 +42,21 @@ std::variant<bool, AppError> ReviewCommands::gradeCard(const ID& cardId, ReviewM
         return true;
     }
     const QDateTime reviewedAt = QDateTime::currentDateTimeUtc();
-    return m_commands->applyEdit(QStringLiteral("复习自评"), [cardId, status, reviewedAt](Project& project) {
-        for (ReviewCard& card : project.cards) {
-            if (card.id == cardId) {
-                card.status = status;
-                card.lastReviewedAt = reviewedAt;
-                return;
-            }
-        }
-    });
+    const int interval = ReviewService::nextIntervalDays(*existing, mark);
+    return m_commands->applyEdit(QStringLiteral("复习自评"),
+                                 [cardId, status, reviewedAt, interval](Project &project)
+                                 {
+                                     for (ReviewCard &card : project.cards)
+                                     {
+                                         if (card.id == cardId)
+                                         {
+                                             card.status = status;
+                                             card.lastReviewedAt = reviewedAt;
+                                             card.reviewIntervalDays = interval;
+                                             return;
+                                         }
+                                     }
+                                 });
 }
 
 std::variant<ID, AppError> ReviewCommands::addCard(const ID& sheetId, const ID& nodeId) {

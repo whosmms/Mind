@@ -265,6 +265,8 @@ QJsonObject writeCard(const ReviewCard& c) {
                   {"sourceHash", c.sourceHash},
                   {"sourceState", c.sourceState}};
     j["lastReviewedAt"] = optDateTimeJson(c.lastReviewedAt);
+    if (c.reviewIntervalDays)
+        j["reviewIntervalDays"] = *c.reviewIntervalDays;
     return j;
 }
 
@@ -771,7 +773,7 @@ Task readTask(const QJsonObject& o, const QString& path, QStringList* es) {
 ReviewCard readCard(const QJsonObject& o, const QString& path, QStringList* es) {
     Reader r(o, path, es);
     r.unknownKeys({"id", "sheetId", "nodeId", "front", "back", "status", "mode", "sourceHash",
-                   "sourceState", "lastReviewedAt"});
+                   "sourceState", "lastReviewedAt", "reviewIntervalDays"});
     ReviewCard c;
     c.id = r.uuid("id");
     c.sheetId = r.uuid("sheetId");
@@ -785,6 +787,8 @@ ReviewCard readCard(const QJsonObject& o, const QString& path, QStringList* es) 
     c.lastReviewedAt = r.has("lastReviewedAt") && !r.val("lastReviewedAt").isNull()
                             ? std::optional<QDateTime>(r.dateTime("lastReviewedAt"))
                             : std::nullopt;
+    if (r.has("reviewIntervalDays"))
+        c.reviewIntervalDays = r.int32("reviewIntervalDays", 1, Limits::kReviewMaxIntervalDays);
     return c;
 }
 
