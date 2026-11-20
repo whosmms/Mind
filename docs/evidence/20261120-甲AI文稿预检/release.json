@@ -1,0 +1,184 @@
+{
+  "sourceCommit": "ef7513a7f4d4b636513b95b4e34dffb5feea900d",
+  "configuration": "release",
+  "suites": 29,
+  "passed": 598.0,
+  "failed": 0.0,
+  "skipped": 0.0,
+  "tests": [
+    {
+      "name": "tst_domain",
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_projectjson",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_check",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_review",
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_fileservice",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_recovery",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_layout",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_session",
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_search",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_commands",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_tasks",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_nodecommands",
+      "passed": 69,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_aicommands",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_flow",
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_charts",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_ai",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_secret",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_ganttview",
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_ui",
+      "passed": 123,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_reviewpage",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_checkassistant",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_promptlibrary",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_reviewcommands",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_deepseekclient",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_aipanel",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_presentation",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_export",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_aicompletion",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "tst_appearance",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    }
+  ]
+}
