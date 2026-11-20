@@ -18,12 +18,14 @@
 #include <QResizeEvent>
 #include <QScopedValueRollback>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTabBar>
 #include <QTabWidget>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -299,6 +301,40 @@ struct ToolSpec
     Glyph icon;
 };
 
+void fitRibbonGroups(QTabWidget *tabs)
+{
+    auto *page = qobject_cast<QScrollArea *>(tabs->currentWidget());
+    if (!page)
+    {
+        return;
+    }
+    auto *layout = qobject_cast<QHBoxLayout *>(page->widget()->layout());
+    const bool iconOnly = tabs->property("iconOnly").toBool();
+    int remaining = page->viewport()->width() - layout->contentsMargins().left() -
+                    layout->contentsMargins().right();
+    for (int i = 0; i < layout->count(); ++i)
+    {
+        auto *group = layout->itemAt(i)->widget();
+        if (!group)
+        {
+            continue;
+        }
+        const int width = group->sizeHint().width() + layout->spacing();
+        // 文件命令已有独立入口，窄窗先为主题编辑和历史留空间。
+        const bool visible =
+            !iconOnly || (!group->property("ribbonFiles").toBool() && width <= remaining);
+        group->setVisible(visible);
+        if (visible)
+        {
+            remaining -= width;
+        }
+    }
+    if (iconOnly)
+    {
+        page->horizontalScrollBar()->setValue(0);
+    }
+}
+
 void installDockTitle(QDockWidget *dock)
 {
     auto *title = new QWidget(dock);
@@ -392,6 +428,8 @@ void MainWindow::buildEditorChrome()
     tabs->setDocumentMode(true);
     tabs->setMinimumWidth(0);
     row->addWidget(tabs, 1);
+    connect(tabs, &QTabWidget::currentChanged, tabs,
+            [tabs] { QTimer::singleShot(0, tabs, [tabs] { fitRibbonGroups(tabs); }); });
     auto *more = new QToolButton(shell);
     more->setObjectName("ribbonMore");
     more->setText(QStringLiteral("更多"));
@@ -455,6 +493,7 @@ void MainWindow::buildEditorChrome()
     {
         auto *box = new QFrame;
         box->setProperty("ribbonGroup", true);
+        box->setProperty("ribbonFiles", title == QStringLiteral("文件"));
         auto *column = new QVBoxLayout(box);
         column->setContentsMargins(8, 2, 8, 0);
         column->setSpacing(0);
@@ -936,6 +975,10 @@ void MainWindow::resizeEditorChrome()
         findChild<QSlider *>("canvasZoomSlider")->setFixedWidth(iconOnly ? 72 : 108);
         zoom->findChild<QToolButton *>("chrome_fitTopic")
             ->setToolButtonStyle(iconOnly ? Qt::ToolButtonIconOnly : Qt::ToolButtonTextBesideIcon);
+    }
+    if (tabs)
+    {
+        QTimer::singleShot(0, tabs, [tabs] { fitRibbonGroups(tabs); });
     }
 }
 

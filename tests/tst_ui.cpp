@@ -5724,6 +5724,8 @@ void TstUi::desktopChromeModesAndResponsiveLayout()
     QVERIFY(property->isHidden());
     QVERIFY(window.findChild<QWidget *>("canvasZoomControls")->isVisible());
     QVERIFY(window.findChild<QToolButton *>("ribbonMore")->isVisible());
+    QVERIFY(window.findChild<QToolButton *>("chrome_undoEdit")->isVisible());
+    QVERIFY(window.findChild<QToolButton *>("chrome_showSearch")->isVisible());
     QVERIFY(view->width() >= 400);
     window.findChild<QAction *>("fitTopic")->trigger();
     save(QStringLiteral("03-主编辑器-800"));
@@ -6458,6 +6460,17 @@ void TstUi::visualControlsStayInsideBounds()
         QTest::qWait(20);
         auto *scroll = qobject_cast<QScrollArea *>(tabs->widget(index));
         QVERIFY(scroll);
+        if (width == 800)
+        {
+            for (auto *tool : scroll->findChildren<QToolButton *>())
+            {
+                if (tool->isVisible())
+                {
+                    const QRect bounds(tool->mapTo(scroll->viewport(), QPoint()), tool->size());
+                    QVERIFY2(scroll->viewport()->rect().contains(bounds), qPrintable(tool->text()));
+                }
+            }
+        }
         for (auto *label : scroll->findChildren<QLabel *>())
         {
             if (!label->isVisible())
