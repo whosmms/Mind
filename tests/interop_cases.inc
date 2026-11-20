@@ -258,7 +258,9 @@ void TstUi::presentationScreenSeparation()
                     QCOMPARE(view->verticalScrollBarPolicy(), Qt::ScrollBarAlwaysOff);
                     const auto note = player->findChild<QLabel *>("presentationVisibleNote");
                     const auto next = player->findChild<QLabel *>("presentationFollowing");
+                    const auto timer = player->findChild<QLabel *>("presentationTime");
                     QVERIFY(note && next);
+                    QVERIFY(timer && !timer->text().isEmpty());
                     QCOMPARE(note->text(), route.steps[0].speakerNote);
                     QVERIFY(note->isVisible());
                     QCOMPARE(next->text(), QStringLiteral("下一步  ·  %1")

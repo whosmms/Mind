@@ -468,8 +468,9 @@ void MainWindow::playPresentation(const PresentationRoute &route, QScreen *audie
     showNote->setObjectName("presentationShowNote");
     showNote->setChecked(dual);
     noteScroll->setVisible(dual);
-    auto *time = new QLabel(&player);
+    auto *time = new QLabel(QStringLiteral("00:00"), &player);
     time->setObjectName("presentationTime");
+    time->setAccessibleName(QStringLiteral("讲解用时"));
     row->addWidget(previous);
     row->addWidget(next);
     row->addWidget(pause);

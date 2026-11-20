@@ -129,7 +129,8 @@ SearchReplaceCommands::preview(const QString &input, const QString &replacement,
             return *error;
     }
 
-    // 先处理任务中的命中；关联主题已经改名时沿用其标题，避免重复替换同一处。
+    // 先收集任务中的命中；关联主题已经改名时沿用其标题，避免重复替换同一处。
+    QHash<ID, QString> taskMatches;
     for (const auto &task : project.tasks)
     {
         if (selected && (selected->kind != "task" || selected->targetId != task.id))
@@ -150,23 +151,25 @@ SearchReplaceCommands::preview(const QString &input, const QString &replacement,
         }
         else
         {
-            if (!record(QStringLiteral("任务名称"), task.title, *title))
-                return tooLarge;
-            plan.m_tasks.insert(task.id, std::move(*title));
+            taskMatches.insert(task.id, std::move(*title));
         }
     }
-    // 照顾旧工程里同一主题关联多个任务的情况。
+    // 旧工程可能有多个关联任务。统一标题后，每个任务只预览一次最终结果。
     for (const auto &task : project.tasks)
-        if (task.source)
+    {
+        QString title = taskMatches.value(task.id, task.title);
+        const auto change =
+            task.source ? plan.m_nodes.constFind(task.source->nodeId) : plan.m_nodes.cend();
+        if (change != plan.m_nodes.cend() && change->title)
+            title = *change->title;
+        if (title != task.title)
         {
-            const auto change = plan.m_nodes.constFind(task.source->nodeId);
-            if (change != plan.m_nodes.cend() && change->title && task.title != *change->title)
-            {
-                if (!record(QStringLiteral("关联任务"), task.title, *change->title))
-                    return tooLarge;
-                plan.m_tasks.insert(task.id, *change->title);
-            }
+            if (!record(task.source ? QStringLiteral("关联任务") : QStringLiteral("任务名称"),
+                        task.title, title))
+                return tooLarge;
+            plan.m_tasks.insert(task.id, std::move(title));
         }
+    }
     return plan;
 }
 

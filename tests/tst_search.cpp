@@ -175,6 +175,25 @@ void TstSearch::selectedTaskSynchronizesLegacyTitles()
     QCOMPARE(document.project().tasks.first().title, QStringLiteral("旧记录"));
     QCOMPARE(std::get<TreeSheet>(document.project().sheets.first()).nodes.value(tree.rootId).title,
              QStringLiteral("旧记录"));
+
+    // 旧格式读端允许多个任务关联同一主题，全部替换应只预览最终将写入的值。
+    auto legacy = project;
+    std::get<TreeSheet>(legacy.sheets.first()).nodes[tree.rootId].title = QStringLiteral("旧方案");
+    task.id = QStringLiteral("另一项关联任务");
+    task.title = QStringLiteral("另一份计划");
+    legacy.tasks.append(task);
+    document.replaceProject(std::move(legacy));
+    service.clearHistory();
+    const auto batch = std::get<SearchReplaceCommands::Plan>(
+        command.preview(QStringLiteral("计划"), QStringLiteral("方案")));
+    QCOMPARE(batch.topics(), 1);
+    QCOMPARE(batch.tasks(), 2);
+    QCOMPARE(batch.examples().size(), 3);
+    for (const auto &example : batch.examples())
+        QVERIFY(example.endsWith(QStringLiteral("另一份方案")));
+    QVERIFY(std::holds_alternative<bool>(command.apply(batch)));
+    QCOMPARE(document.project().tasks[0].title, QStringLiteral("另一份方案"));
+    QCOMPARE(document.project().tasks[1].title, QStringLiteral("另一份方案"));
 }
 QTEST_GUILESS_MAIN(TstSearch)
 #include "tst_search.moc"
