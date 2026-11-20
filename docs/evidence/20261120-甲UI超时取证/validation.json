@@ -1,0 +1,52 @@
+{
+  "full": [
+    {
+      "configuration": "debug",
+      "sourceCommit": "6279a5a0076fc7ae53bd4d64c15b9af749375073",
+      "suites": 29,
+      "passed": 595,
+      "failed": 0,
+      "skipped": 0,
+      "ui": 122
+    },
+    {
+      "configuration": "release",
+      "sourceCommit": "6279a5a0076fc7ae53bd4d64c15b9af749375073",
+      "suites": 29,
+      "passed": 595,
+      "failed": 0,
+      "skipped": 0,
+      "ui": 122
+    }
+  ],
+  "repeatReleaseUi": [
+    {
+      "run": 1,
+      "elapsedSeconds": 14.97,
+      "passed": 122,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "run": 2,
+      "elapsedSeconds": 13.84,
+      "passed": 122,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "run": 3,
+      "elapsedSeconds": 13.88,
+      "passed": 122,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "run": 4,
+      "elapsedSeconds": 12.6,
+      "passed": 122,
+      "failed": 0,
+      "skipped": 0
+    }
+  ]
+}

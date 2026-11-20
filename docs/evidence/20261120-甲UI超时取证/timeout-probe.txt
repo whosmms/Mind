@@ -1,0 +1,7 @@
+QtTest 看门狗故意超时
+INFO   : WatchdogProbe::simulatedStall() entering
+QFATAL : WatchdogProbe::simulatedStall() Test function timed out
+
+CTest 故意超时终止
+INFO   : WatchdogProbe::simulatedStall() entering
+	  2 - ctest_kill (Timeout)
