@@ -22,6 +22,7 @@
 #include "commands/SheetCommands.h"
 #include "commands/TaskCommands.h"
 #include "document/ProjectDocument.h"
+#include "domain/Limits.h"
 #include "domain/ProjectFactory.h"
 #include "domain/ProjectValidator.h"
 #include "features/PresentationController.h"
@@ -173,6 +174,7 @@ private slots:
     void exportCanvasWritesWithoutSelectionState();
     void aiMapApplyOnceAndUndo();
     void aiStaleProposalKeepsCurrentContent();
+    void aiRejectedDraftKeepsPriorPreviewRevision();
     void aiDraftEditApplyAndManage();
     void preferencesKeepDocumentAndDefaultShortcuts();
     void searchLocatesAcrossSheetsWithoutContentHistory();
@@ -5776,6 +5778,43 @@ void TstUi::aiStaleProposalKeepsCurrentContent()
         });
     window.findChild<QAction *>("showAiWorkspace")->trigger();
     QCOMPARE(window.currentRootTitle(), QStringLiteral("生成后修改"));
+    doc->setClean();
+}
+
+void TstUi::aiRejectedDraftKeepsPriorPreviewRevision()
+{
+    FakeAiProvider provider;
+    SessionSecretStore store;
+    store.setApiKey("test-only", false);
+    AiService service(&provider, &store);
+    MainWindow window;
+    window.setAiServiceForTest(&service);
+    window.show();
+    loadEditorFixture(window, canvasProject(1, Limits::kAiDraftMaxNodes));
+    auto *doc = window.findChild<ProjectDocument *>();
+    QTimer::singleShot(0, &window,
+                       [&]
+                       {
+                           auto *dialog = window.findChild<QDialog *>("aiWorkspace");
+                           QVERIFY(dialog);
+                           const auto close = qScopeGuard([dialog] { dialog->reject(); });
+                           dialog->findChild<QPushButton *>("aiGenerateMap")->click();
+                           auto *apply = dialog->findChild<QPushButton *>("aiApply");
+                           QTRY_VERIFY_WITH_TIMEOUT(apply->isEnabled(), 3000);
+                           QVERIFY(window.renameRootTo(QStringLiteral("生成后修改")));
+
+                           dialog->findChild<QTabWidget *>("aiWorkflowTabs")->setCurrentIndex(1);
+                           dialog->findChild<QComboBox *>("aiSourceScope")->setCurrentIndex(1);
+                           dialog->findChild<QPushButton *>("aiGenerateDraft")->click();
+                           auto *status = dialog->findChild<QLabel *>("aiStatus");
+                           QVERIFY(status->text().contains(QStringLiteral("来源最多100个主题")));
+                           QVERIFY(apply->isEnabled());
+                           const auto current = ProjectJson::toJson(doc->project());
+                           apply->click();
+                           QVERIFY(status->text().contains(QStringLiteral("修改")));
+                           QCOMPARE(ProjectJson::toJson(doc->project()), current);
+                       });
+    window.findChild<QAction *>("showAiWorkspace")->trigger();
     doc->setClean();
 }
 
