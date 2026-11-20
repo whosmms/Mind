@@ -483,3 +483,15 @@ FlowEdge.bendPoint为可选曲线中点：自动时沿用避障折线；手动�
 ## D-REVIEW-20261120-001 练习模式和复习间隔
 
 管理与练习使用独立页签，离开练习页保留当前题和进度。自评按钮预告下一次间隔，重试只回到本轮队尾。首次正向自评后间隔为 1 天，之后按自评等级在 1、3、7、15、30 天档位递增。时间、状态和间隔同一命令提交，刷新来源保留三者。旧卡依据既有记录计算原到期日，下一次自评再写入可选字段。含该字段的工程需要 H058 或更新读端。
+
+## D-IO-20261120-001 导入新工程与矢量导出
+
+XMind 优先读取 ZIP 内的 content.json，旧工作簿读取 content.xml。仅按名称读取结构和受支持的图片，检查压缩范围、解压尺寸与 CRC，不将条目解包到磁盘。OPML 的 body/outline 和 FreeMind 的 map/node 统一转换为既有树图字段。解析完成后走现有未保存保护并创建独立工程，首次保存选择 .lingya 路径。跨格式以层级和常用内容为主，专有样式、附件和加密工作簿有兼容边界。 [XMind 官方 Viewer](https://github.com/xmindltd/xmind-viewer/blob/master/src/xmindLoader.ts) · [XMind SDK 样例](https://github.com/xmindltd/xmind-sdk-js/blob/master/test/functional/index.test.ts) · [OPML 2.0](https://opml.org/spec2.opml) · [FreeMind 格式](https://freemind.sourceforge.io/wiki/index.php/Freemind.xsd)
+
+SVG 使用冻结 Qt 6.8.3 的 QSvgGenerator 绘制同一份只读画布快照。在矢量形状和文字之外，嵌入图片继续作为位图随文件保存。输出使用 QSaveFile，失败不覆盖既有文件。候选部署同版 Qt6Svg.dll，压缩读入链接冻结 MinGW 自带的静态 zlib。 [Qt SVG 生成器](https://doc.qt.io/qt-6.8/qsvggenerator.html) · [组件来源](third-party.md)
+
+## D-EDITOR-20261120-002 全工程查找替换与双屏讲解
+
+查找保持大小写无关的文字匹配。替换所选或确认整批时，主题标题、备注及任务名沿用现有长度限制。关联主题与任务标题同事务同步，隐藏分支也参与查找。预览基于文档的内容修订，切表可以继续，内容发生变化则重新预览。一次提交形成一条撤销记录，外部格式兼容和文件存储沿用已有工程定义。
+
+双屏在路线窗口所在的显示器放置演讲者视图，观众屏从其他扩展屏中选。两窗共用一次播放状态，观众画面来自去除编辑控件的绘制快照。演讲者窗口显示私有备注、计时和下一步。显示器中途移动或断开使两窗无法继续分离时结束播放。两种模式都恢复原有编辑视口和选择。自动化用 Qt 虚拟屏复核两窗与同步，物理显示器和断开重连进入最终统一验收。 [Qt 6.8.3 虚拟屏配置实现](https://github.com/qt/qtbase/blob/v6.8.3/src/plugins/platforms/offscreen/qoffscreenintegration.cpp)

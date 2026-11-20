@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "c2cd4220717284bf0fe7ebf779f36f604cab96e0",
+  "runtimeFiles": 19,
+  "candidate": "D:\\mind\\候选版本\\导图互通与双屏讲解_20261120_c2cd422",
+  "programSha256": "6878D76870D69ABAC55E6B97D2E02230FA8F689A619A5133B2ADC1CF8D5293C0",
+  "qtSvgSha256": "593ED06864D4B1C31394AEB429B2B799C1671C77E1646C6FB56E12E3F767D290",
+  "staticZlib": true,
+  "nativeStartup": {
+    "sourceCommit": "c2cd4220717284bf0fe7ebf779f36f604cab96e0",
+    "aliveMilliseconds": 8000,
+    "packageModules": [
+      "imageformats/qgif.dll",
+      "imageformats/qico.dll",
+      "imageformats/qjpeg.dll",
+      "libgcc_s_seh-1.dll",
+      "libstdc++-6.dll",
+      "libwinpthread-1.dll",
+      "lingya.exe",
+      "platforms/qwindows.dll",
+      "Qt6Core.dll",
+      "Qt6Gui.dll",
+      "Qt6Network.dll",
+      "Qt6Svg.dll",
+      "Qt6Widgets.dll",
+      "styles/qmodernwindowsstyle.dll"
+    ],
+    "stderrBytes": 0,
+    "stoppedOnlyOwnProcess": true
+  }
+}

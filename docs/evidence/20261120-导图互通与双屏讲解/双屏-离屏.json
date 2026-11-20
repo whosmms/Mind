@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "c2cd4220717284bf0fe7ebf779f36f604cab96e0",
+  "mode": "dual-offscreen",
+  "exitCode": 0,
+  "passed": 3,
+  "failed": 0,
+  "skipped": 0,
+  "virtualDisplayBounds": [
+    "1440x900 at 0,0",
+    "1280x800 at -1280,0"
+  ]
+}
