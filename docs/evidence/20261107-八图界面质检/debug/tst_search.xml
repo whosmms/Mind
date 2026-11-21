@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstSearch">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0495"/>
+  </TestFunction>
+  <TestFunction name="findsCollapsedNotesAndTasks">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1915"/>
+  </TestFunction>
+  <TestFunction name="reportsLimitAndCaseFolding">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0623"/>
+  </TestFunction>
+  <TestFunction name="emptyIsReadOnly">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3211"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0085"/>
+  </TestFunction>
+  <Duration msecs="2.2017"/>
+</TestCase>

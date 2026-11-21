@@ -1,0 +1,11 @@
+Preset CMake variables:
+
+  BUILD_TESTING="ON"
+  CMAKE_BUILD_TYPE="Debug"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  CMAKE_PREFIX_PATH="D:\mind\.tools\Qt\6.8.3\mingw_64"
+
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR)
+-- Configuring done (0.5s)
+-- Generating done (0.8s)
+-- Build files have been written to: D:/mind/.worktrees/gantt-review/build/debug

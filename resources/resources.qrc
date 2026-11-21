@@ -8,5 +8,10 @@
     <file>icons/star.png</file>
     <file>icons/check.png</file>
     <file>icons/app.png</file>
+    <file>icons/controls/close.png</file>
+    <file>icons/controls/float.png</file>
+    <file>icons/controls/up.png</file>
+    <file>icons/controls/down.png</file>
+    <file>icons/controls/check.png</file>
   </qresource>
 </RCC>

@@ -82,7 +82,7 @@ ReviewPage::ReviewPage(QWidget *parent) : QWidget(parent)
     m_revealButton = new QPushButton(QStringLiteral("翻面"), this);
     m_revealButton->setObjectName(QStringLiteral("reviewReveal"));
 
-    m_againButton = new QPushButton(QStringLiteral("重来"), this);
+    m_againButton = new QPushButton(QStringLiteral("重试"), this);
     m_againButton->setObjectName(QStringLiteral("reviewAgain"));
     m_reviewedButton = new QPushButton(QStringLiteral("已复习"), this);
     m_reviewedButton->setObjectName(QStringLiteral("reviewReviewed"));

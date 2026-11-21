@@ -12,6 +12,7 @@
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QToolBar>
+#include <QToolButton>
 
 namespace lingya
 {
@@ -46,6 +47,17 @@ void MainWindow::buildHomePage()
     rail->addAction(findChild<QAction *>("showReviewCards"));
     rail->addAction(findChild<QAction *>("checkProject"));
     rail->addAction(findChild<QAction *>("showAiWorkspace"));
+    const QStringList labels{QStringLiteral("首页"), QStringLiteral("大纲"), QStringLiteral("复习"),
+                             QStringLiteral("检查"), QStringLiteral("AI创作")};
+    for (int index = 0; index < rail->actions().size(); ++index)
+    {
+        auto *action = rail->actions().at(index);
+        auto *button = qobject_cast<QToolButton *>(rail->widgetForAction(action));
+        const QString label = labels.at(index);
+        button->setText(label);
+        button->setAccessibleName(label);
+        connect(action, &QAction::changed, button, [button, label] { button->setText(label); });
+    }
     addToolBar(Qt::LeftToolBarArea, rail);
     connect(m_homePage, &HomePage::continueRequested, this, &MainWindow::returnFromHome);
     connect(m_homePage, &HomePage::preferencesRequested, this, &MainWindow::showPreferences);

@@ -1,0 +1,155 @@
+[New Thread 7208.0x6e20]
+[New Thread 7208.0xacc]
+[New Thread 7208.0xf10]
+[New Thread 7208.0x1f0c]
+[New Thread 7208.0xb77c]
+
+Thread 1 received signal SIGSEGV, Segmentation fault.
+0x00007fffded32d2b in amdxn64!MmTelemetryParser () from C:\Windows\System32\DriverStore\FileRepository\u0407082.inf_amd64_5e872c9a82fd665c\B406401\amdxn64.dll
+
+Thread 6 (Thread 7208.0xb77c):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 5 (Thread 7208.0x1f0c):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 4 (Thread 7208.0xf10):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 3 (Thread 7208.0xacc):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 2 (Thread 7208.0x6e20):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 1 (Thread 7208.0xbec4):
+#0  0x00007fffded32d2b in amdxn64!MmTelemetryParser () from C:\Windows\System32\DriverStore\FileRepository\u0407082.inf_amd64_5e872c9a82fd665c\B406401\amdxn64.dll
+#1  0x00007fffdea73d05 in ?? () from C:\Windows\System32\DriverStore\FileRepository\u0407082.inf_amd64_5e872c9a82fd665c\B406401\amdxn64.dll
+#2  0x00007fffdea91512 in amdxn64!OpenAdapter () from C:\Windows\System32\DriverStore\FileRepository\u0407082.inf_amd64_5e872c9a82fd665c\B406401\amdxn64.dll
+#3  0x00007ff8f88ed1fd in d3d9!D3DPERF_EndEvent () from C:\Windows\SYSTEM32\d3d9.dll
+#4  0x00007ff8f88ecc4d in d3d9!D3DPERF_EndEvent () from C:\Windows\SYSTEM32\d3d9.dll
+#5  0x00007ff8f8887b6a in ?? () from C:\Windows\SYSTEM32\d3d9.dll
+#6  0x00007ff8f8885a1e in ?? () from C:\Windows\SYSTEM32\d3d9.dll
+#7  0x00007ff8f88850ef in ?? () from C:\Windows\SYSTEM32\d3d9.dll
+#8  0x00007ff8f890d56b in d3d9!Direct3DCreate9Ex () from C:\Windows\SYSTEM32\d3d9.dll
+#9  0x00007ff8f890d3fe in d3d9!Direct3DCreate9 () from C:\Windows\SYSTEM32\d3d9.dll
+#10 0x00007ff8b73e84bd in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#11 0x00007ff8b7409b1a in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#12 0x00007ff8b746b608 in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#13 0x00007ff8b740f23c in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#14 0x00007ff8b73ca423 in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#15 0x00007ff85b2cf256 in QWindowPrivate::create(bool) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Gui.dll
+#16 0x00007ff85ab77b81 in QWidgetPrivate::create() () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Widgets.dll
+#17 0x00007ff85ab78088 in QWidget::create(unsigned long long, bool, bool) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Widgets.dll
+#18 0x00007ff85ab8693e in QWidgetPrivate::setVisible(bool) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Widgets.dll
+#19 0x00007ff7079e1e13 in TstUi::visualControlsStayInsideBounds (this=0x9e515ff790) at D:/mind/.worktrees/gantt-review/tests/tst_ui.cpp:6014
+#20 0x00007ff7079e462c in TstUi::qt_static_metacall (_o=0x9e515ff790, _c=QMetaObject::InvokeMetaMethod, _id=20, _a=0x9e515feed0) at D:/mind/.worktrees/gantt-review/build/debug/tests/tst_ui_autogen/include/tst_ui.moc:764
+#21 0x00007ff85bd27ebf in QMetaMethodInvoker::invokeImpl(QMetaMethod, void*, Qt::ConnectionType, long long, void const* const*, char const* const*, QtPrivate::QMetaTypeInterface const* const*) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Core.dll
+#22 0x00007ff85bd29387 in QMetaMethod::invokeImpl(QMetaMethod, void*, Qt::ConnectionType, long long, void const* const*, char const* const*, QtPrivate::QMetaTypeInterface const* const*) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Core.dll
+#23 0x00007ff8b99de274 in QTestPrivate::parseBlackList() () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Test.dll
+#24 0x00007ff8b99e61d5 in QTest::qInit(QObject*, int, char**) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Test.dll
+
+Thread 1 received signal SIGSEGV, Segmentation fault.
+0x00007fffded32d2b in amdxn64!MmTelemetryParser () from C:\Windows\System32\DriverStore\FileRepository\u0407082.inf_amd64_5e872c9a82fd665c\B406401\amdxn64.dll
+
+Thread 6 (Thread 7208.0xb77c):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 5 (Thread 7208.0x1f0c):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 4 (Thread 7208.0xf10):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 3 (Thread 7208.0xacc):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 2 (Thread 7208.0x6e20):
+#0  0x00007ff941845a24 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ff941704d0e in ntdll!TpCallbackMayRunLong () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ff9404fdda7 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ff94175ee4c in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+Thread 1 (Thread 7208.0xbec4):
+#0  0x00007fffded32d2b in amdxn64!MmTelemetryParser () from C:\Windows\System32\DriverStore\FileRepository\u0407082.inf_amd64_5e872c9a82fd665c\B406401\amdxn64.dll
+#1  0x00007fffdea73d05 in ?? () from C:\Windows\System32\DriverStore\FileRepository\u0407082.inf_amd64_5e872c9a82fd665c\B406401\amdxn64.dll
+#2  0x00007fffdea91512 in amdxn64!OpenAdapter () from C:\Windows\System32\DriverStore\FileRepository\u0407082.inf_amd64_5e872c9a82fd665c\B406401\amdxn64.dll
+#3  0x00007ff8f88ed1fd in d3d9!D3DPERF_EndEvent () from C:\Windows\SYSTEM32\d3d9.dll
+#4  0x00007ff8f88ecc4d in d3d9!D3DPERF_EndEvent () from C:\Windows\SYSTEM32\d3d9.dll
+#5  0x00007ff8f8887b6a in ?? () from C:\Windows\SYSTEM32\d3d9.dll
+#6  0x00007ff8f8885a1e in ?? () from C:\Windows\SYSTEM32\d3d9.dll
+#7  0x00007ff8f88850ef in ?? () from C:\Windows\SYSTEM32\d3d9.dll
+#8  0x00007ff8f890d56b in d3d9!Direct3DCreate9Ex () from C:\Windows\SYSTEM32\d3d9.dll
+#9  0x00007ff8f890d3fe in d3d9!Direct3DCreate9 () from C:\Windows\SYSTEM32\d3d9.dll
+#10 0x00007ff8b73e84bd in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#11 0x00007ff8b7409b1a in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#12 0x00007ff8b746b608 in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#13 0x00007ff8b740f23c in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#14 0x00007ff8b73ca423 in qwindows!qt_plugin_instance () from D:\mind\.worktrees\gantt-review\build\debug\platforms\qwindows.dll
+#15 0x00007ff85b2cf256 in QWindowPrivate::create(bool) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Gui.dll
+#16 0x00007ff85ab77b81 in QWidgetPrivate::create() () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Widgets.dll
+#17 0x00007ff85ab78088 in QWidget::create(unsigned long long, bool, bool) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Widgets.dll
+#18 0x00007ff85ab8693e in QWidgetPrivate::setVisible(bool) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Widgets.dll
+#19 0x00007ff7079e1e13 in TstUi::visualControlsStayInsideBounds (this=0x9e515ff790) at D:/mind/.worktrees/gantt-review/tests/tst_ui.cpp:6014
+#20 0x00007ff7079e462c in TstUi::qt_static_metacall (_o=0x9e515ff790, _c=QMetaObject::InvokeMetaMethod, _id=20, _a=0x9e515feed0) at D:/mind/.worktrees/gantt-review/build/debug/tests/tst_ui_autogen/include/tst_ui.moc:764
+#21 0x00007ff85bd27ebf in QMetaMethodInvoker::invokeImpl(QMetaMethod, void*, Qt::ConnectionType, long long, void const* const*, char const* const*, QtPrivate::QMetaTypeInterface const* const*) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Core.dll
+#22 0x00007ff85bd29387 in QMetaMethod::invokeImpl(QMetaMethod, void*, Qt::ConnectionType, long long, void const* const*, char const* const*, QtPrivate::QMetaTypeInterface const* const*) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Core.dll
+#23 0x00007ff8b99de274 in QTestPrivate::parseBlackList() () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Test.dll
+#24 0x00007ff8b99e61d5 in QTest::qInit(QObject*, int, char**) () from D:\mind\.tools\Qt\6.8.3\mingw_64\bin\Qt6Test.dll
+[Thread 7208.0x1f0c exited with code 3221225477]
+[Thread 7208.0xacc exited with code 3221225477]
+[Thread 7208.0xbec4 exited with code 3221225477]
+[Thread 7208.0x6e20 exited with code 3221225477]
+[Thread 7208.0xf10 exited with code 3221225477]
+
+Program terminated with signal SIGSEGV, Segmentation fault.
+The program no longer exists.
+build/h046-debugger.commands:8: Error in sourced command file:
+The program is not being run.

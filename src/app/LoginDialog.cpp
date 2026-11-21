@@ -18,7 +18,7 @@ LoginDialog::LoginDialog(const QString &sessionRoot, QWidget *parent)
 {
     setWindowTitle(QStringLiteral("登录 灵芽思维"));
     setModal(true);
-    resize(380, 180);
+    resize(460, 300);
 
     auto *intro =
         new QLabel(QStringLiteral("本地账号：账号信息只保存在本机，不联网。登录后保存只需命名，"
@@ -31,6 +31,9 @@ LoginDialog::LoginDialog(const QString &sessionRoot, QWidget *parent)
     m_passwordEdit = new QLineEdit(this);
     m_passwordEdit->setEchoMode(QLineEdit::Password);
     m_passwordEdit->setPlaceholderText(QStringLiteral("至少6个字符"));
+    // 换肤和显示错误提示时仍给输入文字保留足够的上下留白。
+    m_nameEdit->setMinimumHeight(m_nameEdit->fontMetrics().height() + 16);
+    m_passwordEdit->setMinimumHeight(m_passwordEdit->fontMetrics().height() + 16);
 
     auto *form = new QFormLayout();
     form->addRow(QStringLiteral("用户名："), m_nameEdit);

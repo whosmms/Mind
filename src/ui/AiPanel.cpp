@@ -107,9 +107,11 @@ AiPanel::AiPanel(AiService* service, QWidget* parent) : QWidget(parent), m_servi
     m_modeCombo->addItem(QStringLiteral("允许补充（需核实）"), QStringLiteral("supplement"));
 
     m_maxNodesSpin = new QSpinBox(this);
+    m_maxNodesSpin->setObjectName("aiMaxNodes");
     m_maxNodesSpin->setRange(1, Limits::kAiMapMaxNodes);
     m_maxNodesSpin->setValue(50);
     m_maxDepthSpin = new QSpinBox(this);
+    m_maxDepthSpin->setObjectName("aiMaxDepth");
     m_maxDepthSpin->setRange(1, Limits::kAiMapMaxDepth);
     m_maxDepthSpin->setValue(4);
 

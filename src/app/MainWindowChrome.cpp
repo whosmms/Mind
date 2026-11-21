@@ -20,6 +20,7 @@
 #include <QSlider>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QToolBar>
 #include <QToolButton>
@@ -136,15 +137,16 @@ QIcon chromeIcon(Glyph glyph)
                     break;
                 case Glyph::Undo:
                 case Glyph::Redo:
-                    if (glyph == Glyph::Redo)
-                    {
-                        p.translate(24, 0);
-                        p.scale(-1, 1);
-                    }
+                {
                     line(8, 4, 3, 9);
                     line(3, 9, 8, 14);
-                    p.drawArc(QRectF(4, 8, 16, 12), -70 * 16, 245 * 16);
+                    QPainterPath curve;
+                    curve.moveTo(3, 9);
+                    curve.lineTo(12, 9);
+                    curve.cubicTo(23, 9, 23, 20, 12, 20);
+                    p.drawPath(curve);
                     break;
+                }
                 case Glyph::Copy:
                     p.drawRoundedRect(QRectF(3, 3, 13, 14), 2, 2);
                     p.drawRoundedRect(QRectF(8, 8, 13, 14), 2, 2);
@@ -162,9 +164,10 @@ QIcon chromeIcon(Glyph glyph)
                     line(9, 17, 15, 17);
                     break;
                 case Glyph::Link:
+                    p.translate(12, 12);
                     p.rotate(-35);
-                    p.drawRoundedRect(QRectF(-4, 9, 13, 7), 3, 3);
-                    p.drawRoundedRect(QRectF(5, 9, 13, 7), 3, 3);
+                    p.drawRoundedRect(QRectF(-10, -3.5, 12, 7), 3.5, 3.5);
+                    p.drawRoundedRect(QRectF(-2, -3.5, 12, 7), 3.5, 3.5);
                     break;
                 case Glyph::Frame:
                     p.setPen(QPen(p.pen().color(), 1.7, Qt::DashLine));
@@ -240,6 +243,8 @@ QIcon chromeIcon(Glyph glyph)
                     break;
             }
             p.end();
+            if (glyph == Glyph::Redo)
+                pixmap = QPixmap::fromImage(pixmap.toImage().mirrored(true, false));
             icon.addPixmap(pixmap, disabled ? QIcon::Disabled : QIcon::Normal);
         }
     return icon;
@@ -251,19 +256,27 @@ QToolButton *actionButton(QAction *action, const QString &label, Glyph glyph, QW
     if (!action)
         return nullptr;
     action->setIcon(chromeIcon(glyph));
-    action->setIconText(label);
     QString hint = action->text();
     hint.remove(QLatin1Char('&'));
+    if (action->objectName() == "undoEdit")
+        hint = QStringLiteral("后退：撤回上一步编辑");
+    else if (action->objectName() == "redoEdit")
+        hint = QStringLiteral("前进：恢复刚撤回的编辑");
     if (!action->shortcut().isEmpty())
         hint += QStringLiteral(" · ") + action->shortcut().toString(QKeySequence::NativeText);
     action->setToolTip(hint);
     auto *button = new QToolButton(parent);
     button->setObjectName(QStringLiteral("chrome_") + action->objectName());
     button->setDefaultAction(action);
+    // 同一动作可出现在多个入口；短标签属于按钮，不回写共享QAction。
+    button->setText(label);
+    QObject::connect(action, &QAction::changed, button,
+                     [button, label] { button->setText(label); });
     button->setAccessibleName(label);
     button->setToolButtonStyle(compact ? Qt::ToolButtonTextBesideIcon
                                        : Qt::ToolButtonTextUnderIcon);
     button->setIconSize(QSize(compact ? 18 : 24, compact ? 18 : 24));
+    button->setProperty("compact", compact);
     button->setAutoRaise(true);
     return button;
 }
@@ -274,6 +287,48 @@ struct ToolSpec
     QString label;
     Glyph icon;
 };
+
+void installDockTitle(QDockWidget *dock)
+{
+    auto *title = new QWidget(dock);
+    title->setObjectName("dockTitleControls");
+    auto *row = new QHBoxLayout(title);
+    row->setContentsMargins(10, 4, 6, 4);
+    row->setSpacing(4);
+    auto *caption = new QLabel(dock->windowTitle(), title);
+    caption->setTextFormat(Qt::PlainText);
+    row->addWidget(caption, 1);
+    auto *floating = new QToolButton(title);
+    floating->setObjectName("dockFloat");
+    floating->setIcon(QIcon(":/lingya/icons/controls/float.png"));
+    auto *close = new QToolButton(title);
+    close->setObjectName("dockClose");
+    close->setIcon(QIcon(":/lingya/icons/controls/close.png"));
+    for (auto *button : {floating, close})
+    {
+        button->setIconSize(QSize(18, 18));
+        button->setFixedSize(28, 28);
+        row->addWidget(button);
+    }
+    close->setToolTip(QStringLiteral("关闭面板"));
+    close->setAccessibleName(close->toolTip());
+    const auto update = [dock, floating, close]
+    {
+        floating->setToolTip(dock->isFloating() ? QStringLiteral("停靠面板")
+                                                : QStringLiteral("浮动面板"));
+        floating->setAccessibleName(floating->toolTip());
+        floating->setVisible(dock->features().testFlag(QDockWidget::DockWidgetFloatable));
+        close->setVisible(dock->features().testFlag(QDockWidget::DockWidgetClosable));
+    };
+    QObject::connect(floating, &QToolButton::clicked, dock,
+                     [dock] { dock->setFloating(!dock->isFloating()); });
+    QObject::connect(close, &QToolButton::clicked, dock, &QDockWidget::close);
+    QObject::connect(dock, &QDockWidget::topLevelChanged, title, update);
+    QObject::connect(dock, &QDockWidget::featuresChanged, title, update);
+    QObject::connect(dock, &QDockWidget::windowTitleChanged, caption, &QLabel::setText);
+    dock->setTitleBarWidget(title);
+    update();
+}
 } // namespace
 
 void MainWindow::buildEditorChrome()
@@ -359,8 +414,8 @@ void MainWindow::buildEditorChrome()
            {"cutTopic", QStringLiteral("剪切"), Glyph::Cut},
            {"pasteTopic", QStringLiteral("粘贴"), Glyph::Paste}});
     group(start, QStringLiteral("历史"),
-          {{"undoEdit", QStringLiteral("撤销"), Glyph::Undo},
-           {"redoEdit", QStringLiteral("重做"), Glyph::Redo}});
+          {{"undoEdit", QStringLiteral("后退"), Glyph::Undo},
+           {"redoEdit", QStringLiteral("前进"), Glyph::Redo}});
     group(start, QStringLiteral("查找"), {{"showSearch", QStringLiteral("搜索"), Glyph::Locate}});
     auto *insert = page(QStringLiteral("插入"));
     group(insert, QStringLiteral("主题信息"),
@@ -380,6 +435,7 @@ void MainWindow::buildEditorChrome()
     propertyDock->setMinimumWidth(256);
     propertyDock->setMaximumWidth(340);
     auto *property = new QWidget(propertyDock);
+    property->setObjectName("propertyContent");
     auto *propertyLayout = new QVBoxLayout(property);
     propertyLayout->setContentsMargins(12, 12, 12, 12);
     auto *selection = new QLabel(property);
@@ -516,6 +572,7 @@ void MainWindow::buildEditorChrome()
     slider->setObjectName("canvasZoomSlider");
     slider->setAccessibleName(QStringLiteral("画布缩放"));
     slider->setFixedWidth(108);
+    slider->setMinimumHeight(28);
     zoomLayout->addWidget(slider);
     auto *scale = new QLabel(zoom);
     scale->setObjectName("canvasZoomValue");
@@ -535,6 +592,17 @@ void MainWindow::buildEditorChrome()
                     setCanvasZoom(value / 100.0);
             });
     resizeDocks({outlineDock, propertyDock}, {220, 284}, Qt::Horizontal);
+    for (auto *dock : findChildren<QDockWidget *>())
+        installDockTitle(dock);
+    // 按实际字体与分组内容留足高度，包含窄窗口横向滚动条，避免固定高度截断。
+    int pageHeight = 0;
+    for (int index = 0; index < tabs->count(); ++index)
+        if (auto *scroll = qobject_cast<QScrollArea *>(tabs->widget(index)))
+        {
+            scroll->widget()->ensurePolished();
+            pageHeight = qMax(pageHeight, scroll->widget()->sizeHint().height());
+        }
+    tabs->setMinimumHeight(pageHeight + tabs->tabBar()->sizeHint().height() + 20);
     resizeEditorChrome();
 }
 
