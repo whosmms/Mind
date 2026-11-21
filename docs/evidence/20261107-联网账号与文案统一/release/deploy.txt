@@ -1,0 +1,3 @@
+已在当前终端启用灵芽思维冻结环境；关闭终端即恢复原来的环境。
+Qt 6.8.3 / MinGW 13.1.0 / CMake 3.30.5 / Ninja 1.12.1
+release运行依赖已准备（Qt release），可直接打开D:\mind\.worktrees\gantt-review\build\release\lingya.exe。请保留整个构建目录中的DLL与插件。

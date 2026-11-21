@@ -1,0 +1,230 @@
+{
+  "baseMain": "faeac4b4e3f8c37235081ff50cef8737e4bd8ae6",
+  "configuration": "Release",
+  "fixtureHashes": [
+    {
+      "sha256": "5E7696388A42D55D619D7C0E7AB52F395B6FB2BDFFED85F09356742E9B8C345C",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "01-basic.lingya"
+    },
+    {
+      "sha256": "0F91F81BDF6CCF35C8D08FB12A9A9DD19CA8F20EB70065A1046E22CA0672F699",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "02-delete-impact.lingya"
+    },
+    {
+      "sha256": "6F28CBE63606C111B2024E0A4AE33684CA0A6F4FBC60F1DD0A97FA429BC31F59",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "03-hundred-nodes.lingya"
+    },
+    {
+      "sha256": "D02B03E0F7288B14EC1297D0C2EB84D64F6E73D3913FCCB4A032452A91EC12D5",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "04-collapsed.lingya"
+    },
+    {
+      "sha256": "364BB15A941E08838378500D07127439C57545BD088886A06544495301A9996D",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "05-flow.lingya"
+    },
+    {
+      "sha256": "1A59F15931D49EA0A4CF15C8E89515F8DE34D952610EA72C654389E460317DF8",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "06-offline.lingya"
+    },
+    {
+      "sha256": "632E3C5ABAAC97BABF0BE57FC2ED1089E2FF46A2C54E3A806329F33FC076F7AF",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "07-gantt-filter.lingya"
+    },
+    {
+      "sha256": "679DAB082ED2005B8BD3E054E2D2035C5810A4A863E517E39C0F783BCAFCB245",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "08-跨表保留学习记录_导图.lingya"
+    },
+    {
+      "sha256": "D635C11AA708317327A17525A6BAFA442028F1B92AECE2778571428CC91CA711",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "09-跨表保留学习记录_鱼骨.lingya"
+    },
+    {
+      "sha256": "7C1940BAC1181BA74D962642A46302438E4CC323E9CAC2A1D4EA5A7E0E8DA4FF",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "10-讲解路线阻断.lingya"
+    },
+    {
+      "sha256": "54EDB8460E079A87C48F268B42C5C7D0C4D66E338E18FB4E0ACED405891E0A0C",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "11-文稿引用阻断.lingya"
+    },
+    {
+      "sha256": "0F5C30F89D1107C2C280CDDA02F4566CA1C15E4645A9ED782AB9563A8423F6D5",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "12-AI导图_假响应.lingya"
+    },
+    {
+      "sha256": "D8BAD54E60F9683CE17BCB342BB8CE9989A0DE0AAEEC10DC7B96F24A4E5CD5CF",
+      "origin": "H044固定样例副本，非本轮重新构造",
+      "path": "13-AI文稿_假响应.lingya"
+    }
+  ],
+  "sourceCommit": "a6e144074237e87f544a4ccc405a56aa128b918b",
+  "validation": "H047：Debug/Release各30套件639通过，0失败0跳过；原生账号窗口三档缩放及TLS专项单列。账号服务和SMTP未配置，真实邮件及公网认证未验，不代签最终真人/跨机/API。",
+  "nativeStartup": {
+    "aliveMilliseconds": 8000,
+    "stoppedOnlyOwnProcess": true,
+    "processModules": [
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/lingya.exe",
+      "C:/Windows/SYSTEM32/ntdll.dll",
+      "C:/Windows/System32/KERNEL32.DLL",
+      "C:/Windows/System32/KERNELBASE.dll",
+      "C:/Windows/SYSTEM32/apphelp.dll",
+      "C:/Windows/System32/ADVAPI32.dll",
+      "C:/Windows/System32/msvcrt.dll",
+      "C:/Windows/System32/sechost.dll",
+      "C:/Windows/System32/RPCRT4.dll",
+      "C:/Windows/System32/SHELL32.dll",
+      "C:/Windows/System32/msvcp_win.dll",
+      "C:/Windows/System32/ucrtbase.dll",
+      "C:/Windows/System32/USER32.dll",
+      "C:/Windows/System32/win32u.dll",
+      "C:/Windows/System32/GDI32.dll",
+      "C:/Windows/System32/gdi32full.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/Qt6Network.dll",
+      "C:/Windows/System32/ole32.dll",
+      "C:/Windows/System32/combase.dll",
+      "C:/Windows/System32/WS2_32.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/libgcc_s_seh-1.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/libstdc++-6.dll",
+      "C:/Windows/SYSTEM32/DNSAPI.dll",
+      "C:/Windows/SYSTEM32/IPHLPAPI.DLL",
+      "C:/Windows/SYSTEM32/Secur32.dll",
+      "C:/Windows/SYSTEM32/WINHTTP.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/Qt6Core.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/libwinpthread-1.dll",
+      "C:/Windows/SYSTEM32/DSPARSE.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/Qt6Widgets.dll",
+      "C:/Windows/SYSTEM32/AUTHZ.dll",
+      "C:/Windows/SYSTEM32/NETAPI32.dll",
+      "C:/Windows/SYSTEM32/MPR.dll",
+      "C:/Windows/SYSTEM32/USERENV.dll",
+      "C:/Windows/SYSTEM32/VERSION.dll",
+      "C:/Windows/SYSTEM32/WINMM.dll",
+      "C:/Windows/SYSTEM32/SSPICLI.DLL",
+      "C:/Windows/SYSTEM32/UxTheme.dll",
+      "C:/Windows/SYSTEM32/dwmapi.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/Qt6Gui.dll",
+      "C:/Windows/SYSTEM32/CRYPTBASE.DLL",
+      "C:/Windows/SYSTEM32/d3d11.dll",
+      "C:/Windows/SYSTEM32/DWrite.dll",
+      "C:/Windows/SYSTEM32/dxgi.dll",
+      "C:/Windows/SYSTEM32/NETUTILS.DLL",
+      "C:/Windows/SYSTEM32/powrprof.dll",
+      "C:/Windows/SYSTEM32/SRVCLI.DLL",
+      "C:/Windows/System32/IMM32.DLL",
+      "C:/Windows/System32/bcryptPrimitives.dll",
+      "C:/Windows/SYSTEM32/UMPDC.dll",
+      "C:/Windows/System32/NSI.dll",
+      "C:/Windows/SYSTEM32/windows.storage.dll",
+      "C:/Windows/System32/SHCORE.dll",
+      "C:/Windows/System32/shlwapi.dll",
+      "C:/Windows/SYSTEM32/profapi.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/platforms/qwindows.dll",
+      "C:/Windows/System32/comdlg32.dll",
+      "C:/Windows/System32/OLEAUT32.dll",
+      "C:/Windows/System32/SETUPAPI.dll",
+      "C:/Windows/WinSxS/amd64_microsoft.windows.common-controls_6595b64144ccf1df_5.82.26100.8328_none_87eede957a2ccddd/COMCTL32.dll",
+      "C:/Windows/SYSTEM32/WTSAPI32.dll",
+      "C:/Windows/SYSTEM32/d3d9.dll",
+      "C:/Windows/System32/CRYPT32.dll",
+      "C:/Windows/SYSTEM32/dxcore.dll",
+      "C:/Windows/SYSTEM32/kernel.appcore.dll",
+      "C:/Windows/SYSTEM32/DEVOBJ.dll",
+      "C:/Windows/SYSTEM32/cfgmgr32.dll",
+      "C:/Windows/System32/WINTRUST.dll",
+      "C:/Windows/SYSTEM32/MSASN1.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/styles/qmodernwindowsstyle.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/imageformats/qgif.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/imageformats/qico.dll",
+      "D:/mind/候选版本/联网登录版_20261107_a6e1440/program/imageformats/qjpeg.dll",
+      "C:/Windows/SYSTEM32/BCrypt.dll",
+      "C:/Windows/SYSTEM32/directxdatabasehelper.dll",
+      "C:/Windows/system32/dataexchange.dll",
+      "C:/Windows/system32/twinapi.appcore.dll"
+    ]
+  },
+  "files": [
+    {
+      "path": "libgcc_s_seh-1.dll",
+      "sha256": "5E27589147CAA6D7A30F4CC058A14C455DC62233901FFFF9A1797EDE425E9F86"
+    },
+    {
+      "path": "libstdc++-6.dll",
+      "sha256": "8013488C5528BAD7966CA07F3EA2E7A9B743CACB258FE76B46A326F821CC83B0"
+    },
+    {
+      "path": "libwinpthread-1.dll",
+      "sha256": "C7C7DCED65FFF71C7BB61F80C771C562F533D26D72722D9D6091129A3B03D5CE"
+    },
+    {
+      "path": "lingya.exe",
+      "sha256": "13374AA4C75822CC96BC1D97EE32C6BADDAE8D5E8BDBEFD6AB2B05F20111F0B8"
+    },
+    {
+      "path": "Qt6Core.dll",
+      "sha256": "06D84A2E85BDA1A651C65F7D159B63BEE2458A8B50274DA52B70C9E3E9188E97"
+    },
+    {
+      "path": "Qt6Gui.dll",
+      "sha256": "EF458A379A4B588FD6042A3BCC7D0B9631352745600AE933A7FAEC4C851B16BB"
+    },
+    {
+      "path": "Qt6Network.dll",
+      "sha256": "3158E8979CE542C84A61257CFE03983144241AB4D11D8099C08DB7ECF5CF8B83"
+    },
+    {
+      "path": "Qt6Widgets.dll",
+      "sha256": "9076B021A060DC8C0AE5A50F3DBF9C23018D7729FE102F7A75ADBDF863FA2D0D"
+    },
+    {
+      "path": "generic\\qtuiotouchplugin.dll",
+      "sha256": "8CEBBF5DE9D64C86D8D5DA1F50A2026523C2C8934F37ED24314F9058FC9927DE"
+    },
+    {
+      "path": "imageformats\\qgif.dll",
+      "sha256": "3FEB73BF829B33F64D7D7DEF5433913C0C81370E41ADB8ADC788A91E62CD2AEC"
+    },
+    {
+      "path": "imageformats\\qico.dll",
+      "sha256": "4EBCD838E56F9B398F4DFDA58E53B16ECC5F290A87871C0BA433FB805D93DC21"
+    },
+    {
+      "path": "imageformats\\qjpeg.dll",
+      "sha256": "5B24F1FD458BB66564C7D691D234C497472AB8CD9D9658EBD12AF808A14CD51D"
+    },
+    {
+      "path": "networkinformation\\qnetworklistmanager.dll",
+      "sha256": "E57A13F285D4D952B5F136F3A55EA79C0CA10C1F96BB7CACF3A8D49AB55B874E"
+    },
+    {
+      "path": "platforms\\qwindows.dll",
+      "sha256": "FEF3FEBE3CF9FF206076DAB95F54164C67EFCFAB318E8018FA0888B61DFB6888"
+    },
+    {
+      "path": "styles\\qmodernwindowsstyle.dll",
+      "sha256": "C6C8B32622ED43FEBFFCD3A61FC1EBE7ED443676EDEC6948D06C29B9B8139186"
+    },
+    {
+      "path": "tls\\qcertonlybackend.dll",
+      "sha256": "2B65FC60DBE119C73804824F9A2B6093CF495AEA588654810B4707FD3C40EC89"
+    },
+    {
+      "path": "tls\\qschannelbackend.dll",
+      "sha256": "C7386DCCA3C4277547D878CFA71C07B957A108E3538BE07900BF9BE18EEC89B8"
+    },
+    {
+      "path": "qt.conf",
+      "sha256": "E6047C864B52BC6648ECD2C44629751A10C148B05F743D425F97FB6305CC9640"
+    }
+  ]
+}

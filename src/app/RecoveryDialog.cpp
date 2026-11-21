@@ -170,7 +170,7 @@ QString RecoveryDialog::buildPreviewText(const Project &project,
     return QStringLiteral(
                "工程标题：%1\n根主题：%2\n工作表：%3（节点%4个）\n任务：%5个\n修订：%6\n"
                "快照时间：%7\n\n"
-               "采用后将作为一条可撤销历史写入当前工程；快照不是正式保存，首次保存请使用“另存为”。")
+               "采用后将作为一条可撤回的编辑记录写入当前工程；快照不是正式保存，首次保存请使用“另存为”。")
         .arg(project.title, rootTitle.isEmpty() ? QStringLiteral("（无）") : rootTitle,
              sheets.isEmpty() ? QStringLiteral("无") : sheets,
              QString::number(treeNodes + flowNodes), QString::number(project.tasks.size()),

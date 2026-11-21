@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstOnlineAuth">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0442"/>
+  </TestFunction>
+  <TestFunction name="configRejectsUnsafe">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[http]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[other-host]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[credentials]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[path]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[query]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[port]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[fragment]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[secret-key]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[jwt-key]]></DataTag>
+    </Incident>
+    <Duration msecs="0.4028"/>
+  </TestFunction>
+  <TestFunction name="configRoundTripHasNoAccountSecrets">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="5.0919"/>
+  </TestFunction>
+  <TestFunction name="loginRememberRotateLogout">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.3363"/>
+  </TestFunction>
+  <TestFunction name="registrationAndConfirmation">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.0114"/>
+  </TestFunction>
+  <TestFunction name="recoveryChangesPasswordThenRevokes">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="66.6135"/>
+  </TestFunction>
+  <TestFunction name="failuresAreRedacted">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[bad-password]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[rate-limit]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[redirect]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[server]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[not-json]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[huge]]></DataTag>
+    </Incident>
+    <Duration msecs="5.4228"/>
+  </TestFunction>
+  <TestFunction name="invalidSessionNeverAuthenticates">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[access_token]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[refresh_token]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[token_type]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[expires_in]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[user]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[wrong-email]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[unconfirmed]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[header-injection]]></DataTag>
+    </Incident>
+    <Duration msecs="6.3476"/>
+  </TestFunction>
+  <TestFunction name="cancellationAndBusyDoNotCreateSession">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="116.92"/>
+  </TestFunction>
+  <TestFunction name="refreshFailureForgetsRejectedToken">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.5482"/>
+  </TestFunction>
+  <TestFunction name="refreshCannotChangeIdentity">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.0525"/>
+  </TestFunction>
+  <TestFunction name="rememberFailureDoesNotKeepOldCredential">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.1896"/>
+  </TestFunction>
+  <TestFunction name="localFileNamespacesStaySeparate">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="6.98"/>
+  </TestFunction>
+  <TestFunction name="dialogValidationAndCancel">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="118.457"/>
+  </TestFunction>
+  <TestFunction name="timeoutAndTlsFailure">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="66.7037"/>
+  </TestFunction>
+  <TestFunction name="recoveryRejectsInvalidIdentity">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.9806"/>
+  </TestFunction>
+  <TestFunction name="unrememberedLoginClearsPreviousCredential">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.2369"/>
+  </TestFunction>
+  <TestFunction name="persistedRefreshRestoresIdentity">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1.0475"/>
+  </TestFunction>
+  <TestFunction name="frozenRuntimeSupportsTls">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="15.7207"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0081"/>
+  </TestFunction>
+  <Duration msecs="419.784"/>
+</TestCase>

@@ -32,6 +32,7 @@ class NodeItem;
 class ProjectDocument;
 class RecoveryDialog;
 class LoginDialog;
+class OnlineAuthService;
 class UserFilesDialog;
 class TaskTableModel;
 class IssuePanel;
@@ -47,7 +48,8 @@ class AiService;
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
+    // 可注入认证服务用于隔离协议测试；注入后生命周期归窗口管理。
+    explicit MainWindow(QWidget* parent = nullptr, OnlineAuthService* authService = nullptr);
     // 首页仅切换会话视图；选择模板/文件时才复用未保存保护与加载流程。
     void showHomePage();
     // 自动测试可注入隔离服务；生产按凭据存储与既有工厂装配，不自动联网。
@@ -202,6 +204,8 @@ private:
     void onDocumentChanged();
     void updateStatusLine();        // 状态栏统一拼装：文档状态+恢复快照备注
     void showLoginDialog();
+    void showOnlineAccount();
+    QString activeSessionRoot() const;
     void showOwnedFilesDialog();
     void updateSessionActions();    // 登录/退出登录/我的文件菜单项的可用性
     const TreeSheet* activeTreeSheet() const;
@@ -269,6 +273,9 @@ private:
     QString m_recoveryNote;                // 状态栏恢复快照备注（最近写入时间/失败）
     RecoveryDialog* m_recoveryDialog = nullptr;   // 启动预览对话框（同一时刻至多一个）
     QString m_sessionRoot;                  // 会话根目录（账号库+users/；测试可注入）
+    OnlineAuthService *m_onlineAuth = nullptr;
+    bool m_onlineSession = false;
+    QAction *m_onlineAccountAction = nullptr;
     QString m_sessionUser;                  // 当前登录用户名；空=未登录（行为维持现状）
     QAction* m_loginAction = nullptr;
     QAction* m_logoutAction = nullptr;

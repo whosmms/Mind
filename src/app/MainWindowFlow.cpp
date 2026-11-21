@@ -205,7 +205,7 @@ void MainWindow::buildFlowActions(QMenu *editMenu)
     add(QStringLiteral("新增流程节点…"), "addFlowNode", [this] { editFlowNode(true); });
     add(QStringLiteral("编辑流程节点…"), "editFlowNode", [this] { editFlowNode(false); });
     add(QStringLiteral("有向连线…"), "editFlowEdges", [this] { editFlowEdge(); });
-    add(QStringLiteral("自动布局（可撤销）"), "layoutFlow", [this] { layoutFlow(); });
+    add(QStringLiteral("自动布局（可撤回）"), "layoutFlow", [this] { layoutFlow(); });
     auto *snap = add(QStringLiteral("移动吸附到20像素网格"), "flowSnap", [] {});
     snap->setCheckable(true);
 }
@@ -610,8 +610,8 @@ void MainWindow::deleteFlowSelection()
         QMessageBox::Warning, QStringLiteral("删除流程内容"),
         edgeId.isEmpty()
             ? QStringLiteral(
-                  "删除所选节点及其连线、批注；现有卡片快照保留，来源缺失时不可跳转。可撤销。")
-            : QStringLiteral("删除所选有向连线，可撤销。"),
+                  "删除所选节点及其连线、批注；现有卡片快照保留，来源缺失时不可跳转。可撤回。")
+            : QStringLiteral("删除所选有向连线，可撤回。"),
         QMessageBox::NoButton, this);
     box.addButton(QStringLiteral("删除"), QMessageBox::AcceptRole);
     auto *cancel = box.addButton(QStringLiteral("取消"), QMessageBox::RejectRole);

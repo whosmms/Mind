@@ -121,7 +121,7 @@ void MainWindow::showPreferences()
         "提示，不自动重写。\n\n"
         "## "
         "复习、检查与恢复\n\n视图页可打开复习与规则检查；任务共享同一工程记录。自动恢复副本与正式保"
-        "存分开，恢复采用可撤销。重要编辑仍应主动保存。\n\n"
+        "存分开，恢复采用可撤回。重要编辑仍应主动保存。\n\n"
         "这是课程开发候选，最终统一验收另行记录。"));
     tabs->addTab(help, QStringLiteral("使用帮助"));
     auto *info = new QLabel(&dialog);

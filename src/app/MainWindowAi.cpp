@@ -166,7 +166,7 @@ void MainWindow::showAiWorkspace()
                     return;
                 }
                 panel->reportApplyResult({});
-                statusBar()->showMessage(QStringLiteral("AI导图已采用；仍可编辑与撤销"), 8000);
+                statusBar()->showMessage(QStringLiteral("AI导图已采用；仍可编辑与撤回"), 8000);
             });
     connect(panel, &AiPanel::applyDraftRequested, &dialog,
             [&](const DraftProposal &proposal)
@@ -364,7 +364,7 @@ void MainWindow::manageDrafts()
             draftChoice->setItemText(draftChoice->currentIndex(), title->text());
             editing.title = title->text();
             editRevision = m_doc->sessionRevision();
-            info->setText(QStringLiteral("文字稿修改已保存到工程，可撤销；来源记录保持原样"));
+            info->setText(QStringLiteral("文字稿修改已保存到工程，可撤回；来源记录保持原样"));
         });
     connect(copy, &QPushButton::clicked, &dialog,
             [&]
