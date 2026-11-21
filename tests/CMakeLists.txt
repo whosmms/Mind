@@ -105,7 +105,9 @@ target_link_libraries(tst_ui PRIVATE lingya_appcore Qt6::Test Qt6::Widgets)
 if(MSVC)
     target_compile_options(tst_ui PRIVATE /utf-8)
 endif()
-add_test(NAME tst_ui COMMAND tst_ui)
+# 界面用例进入时立即写入文件，进程被 CTest 终止后仍能查看最后进入的用例。
+add_test(NAME tst_ui COMMAND tst_ui -v1 -o -,txt
+    -o "${CMAKE_CURRENT_BINARY_DIR}/tst_ui-ctest.txt,txt")
 
 # 复习页是 QWidget：单独链接 Widgets 与 ui 源文件
 add_executable(tst_reviewpage tst_reviewpage.cpp
@@ -189,3 +191,6 @@ if(tst_registered)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_PLUGIN_PATH=${CMAKE_BINARY_DIR}"
         TIMEOUT 300)
 endif()
+
+# QtTest 单用例超时按毫秒计，留出时间在 CTest 的 300 秒套件时限前记录异常。
+set_property(TEST tst_ui APPEND PROPERTY ENVIRONMENT "QTEST_FUNCTION_TIMEOUT=180000")
