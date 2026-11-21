@@ -1,0 +1,27 @@
+{
+  "sourceCommit": "d84596188348bdc7933ae5db6bfb2beb9cbdb7cf",
+  "runtimeFiles": 18,
+  "candidate": "D:/mind/候选版本/节点边框与中文配色_20261110_d845961",
+  "programSha256": "91A49534B877003557279C8786EB69B41CEB6AA8E22E668FD29B5C7FF8BAE52A",
+  "nativeStartup": {
+    "sourceCommit": "d84596188348bdc7933ae5db6bfb2beb9cbdb7cf",
+    "aliveMilliseconds": 8000,
+    "packageModules": [
+      "imageformats/qgif.dll",
+      "imageformats/qico.dll",
+      "imageformats/qjpeg.dll",
+      "libgcc_s_seh-1.dll",
+      "libstdc++-6.dll",
+      "libwinpthread-1.dll",
+      "lingya.exe",
+      "platforms/qwindows.dll",
+      "Qt6Core.dll",
+      "Qt6Gui.dll",
+      "Qt6Network.dll",
+      "Qt6Widgets.dll",
+      "styles/qmodernwindowsstyle.dll"
+    ],
+    "stderrBytes": 0,
+    "stoppedOnlyOwnProcess": true
+  }
+}

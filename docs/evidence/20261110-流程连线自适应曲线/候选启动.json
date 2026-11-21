@@ -1,0 +1,27 @@
+{
+  "sourceCommit": "be115179253ebc8804d2e6183da548d1a99224b6",
+  "runtimeFiles": 18,
+  "candidate": "D:/mind/候选版本/流程连线自适应曲线_20261110_be11517",
+  "programSha256": "0647E61D85017E5AC7594D9802212293FE3BEE7FB772B923625471274958D4EC",
+  "nativeStartup": {
+    "sourceCommit": "be115179253ebc8804d2e6183da548d1a99224b6",
+    "aliveMilliseconds": 8000,
+    "packageModules": [
+      "imageformats/qgif.dll",
+      "imageformats/qico.dll",
+      "imageformats/qjpeg.dll",
+      "libgcc_s_seh-1.dll",
+      "libstdc++-6.dll",
+      "libwinpthread-1.dll",
+      "lingya.exe",
+      "platforms/qwindows.dll",
+      "Qt6Core.dll",
+      "Qt6Gui.dll",
+      "Qt6Network.dll",
+      "Qt6Widgets.dll",
+      "styles/qmodernwindowsstyle.dll"
+    ],
+    "stderrBytes": 0,
+    "stoppedOnlyOwnProcess": true
+  }
+}

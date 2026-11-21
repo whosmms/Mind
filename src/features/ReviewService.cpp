@@ -1,11 +1,48 @@
 #include "features/ReviewService.h"
+#include "domain/Limits.h"
+#include "features/ReviewSession.h"
 
 #include <QCryptographicHash>
 #include <QPair>
 #include <QUuid>
 #include <algorithm>
+#include <array>
 
 namespace lingya {
+
+namespace
+{
+
+int intervalDays(const ReviewCard &card)
+{
+    if (card.status == "new" || !card.lastReviewedAt || !card.lastReviewedAt->isValid())
+        return 0;
+    return card.reviewIntervalDays.value_or(card.status == "mastered" ? 7 : 1);
+}
+
+} // namespace
+
+bool ReviewService::isDue(const ReviewCard &card, const QDate &today)
+{
+    const int interval = intervalDays(card);
+    return interval == 0 || card.lastReviewedAt->toLocalTime().date().addDays(interval) <= today;
+}
+
+int ReviewService::nextIntervalDays(const ReviewCard &card, ReviewMark mark)
+{
+    const int current = intervalDays(card);
+    if (mark == ReviewMark::Again)
+        return current;
+    if (current == 0)
+        return 1;
+    constexpr std::array<int, 5> intervals{1, 3, 7, 15, Limits::kReviewMaxIntervalDays};
+    auto next = std::upper_bound(intervals.begin(), intervals.end(), current);
+    if (next == intervals.end())
+        return intervals.back();
+    if (mark == ReviewMark::Mastered && next + 1 != intervals.end())
+        ++next;
+    return *next;
+}
 
 namespace {
 
@@ -98,6 +135,7 @@ std::optional<ReviewCard> ReviewService::refreshCard(const ReviewCard& card, con
     updated.status = card.status;   // 保留学习状态
     // 保留最近复习时间：刷新正反面不应让“最近复习”倒退回空（BUG-017）
     updated.lastReviewedAt = card.lastReviewedAt;
+    updated.reviewIntervalDays = card.reviewIntervalDays;
     return updated;
 }
 

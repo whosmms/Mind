@@ -8,6 +8,63 @@
 #include <functional>
 namespace lingya::AiMaterial
 {
+const TreeSheet *sourceTree(const Project &project, const ID &sheetId)
+{
+    for (const auto &sheet : project.sheets)
+        if (const auto *tree = std::get_if<TreeSheet>(&sheet); tree && tree->id == sheetId)
+            return tree;
+    return nullptr;
+}
+
+DraftSourceSnapshot draftSourceSnapshot(const TreeSheet &sheet, const QStringList &nodeIds)
+{
+    DraftSourceSnapshot snapshot;
+    for (const auto &id : nodeIds)
+        if (auto it = sheet.nodes.constFind(id); it != sheet.nodes.cend())
+            snapshot.insert(id, {it->title, it->note});
+    return snapshot;
+}
+
+qint64 draftSourceSnapshotCharacters(const DraftSourceSnapshot &snapshot)
+{
+    qint64 count = 0;
+    for (auto it = snapshot.cbegin(); it != snapshot.cend(); ++it)
+        count += it.key().size() + it->title.size() + it->note.size();
+    return count;
+}
+
+bool restoreLegacyDraftSources(Project &project)
+{
+    const auto needsSnapshot = [](const DraftSection &section)
+    { return !section.sourceSnapshot && !section.sourceNodeIds.isEmpty(); };
+    auto candidates = project.drafts;
+    qint64 addedCharacters = 0;
+    bool restored = false;
+    for (qsizetype i = 0; i < project.drafts.size(); ++i)
+    {
+        const auto &draft = project.drafts.at(i);
+        if (!draft.sourceHash ||
+            std::none_of(draft.sections.cbegin(), draft.sections.cend(), needsSnapshot))
+            continue;
+        const auto *tree = sourceTree(project, draft.sourceSheetId);
+        if (!tree || treeHash(*tree) != *draft.sourceHash)
+            continue;
+        for (auto &section : candidates[i].sections)
+            if (needsSnapshot(section))
+            {
+                section.sourceSnapshot = draftSourceSnapshot(*tree, section.sourceNodeIds);
+                addedCharacters += draftSourceSnapshotCharacters(*section.sourceSnapshot);
+                // 重复引用长备注时先做体积下界预检，再由调用方检查实际 JSON 大小。
+                if (addedCharacters > Limits::kMaxFileBytes)
+                    return false;
+                restored = true;
+            }
+    }
+    if (restored)
+        project.drafts = std::move(candidates);
+    return restored;
+}
+
 QString treeHash(const TreeSheet &sheet)
 {
     GenerateDraftRequest request;
@@ -96,10 +153,7 @@ std::optional<AppError> validateDraftInput(const GenerateDraftRequest &request)
 std::variant<GenerateDraftRequest, AppError> fromTree(const Project &project, const ID &sheetId,
                                                       const ID &rootId)
 {
-    const TreeSheet *tree = nullptr;
-    for (const auto &sheet : project.sheets)
-        if (const auto *t = std::get_if<TreeSheet>(&sheet); t && t->id == sheetId)
-            tree = t;
+    const auto *tree = sourceTree(project, sheetId);
     if (!tree)
         return AppError{"INVALID_ARGUMENT", QStringLiteral("文稿来源只支持导图或鱼骨图")};
     const ID root = rootId.isEmpty() ? tree->rootId : rootId;

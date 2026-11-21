@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstUi">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.4797"/>
+  </TestFunction>
+  <TestFunction name="freeTreeMouseAndPlus">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="287.918"/>
+  </TestFunction>
+  <TestFunction name="flowCurveMouseReconnect">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="213.013"/>
+  </TestFunction>
+  <TestFunction name="instantStyleWheelAndBrand">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[setGeometry: Unable to set geometry 3074x1575+11+45 (frame: 3096x1631+0+0) on QWidgetWindow/"lingya::MainWindowClassWindow" on "NE160QDM-NYJ". Resulting geometry: 2564x1570+11+45 (frame: 2586x1626+0+0) margins: 11, 45, 11, 11 minimum size: 492x574 MINMAXINFO(maxSize=POINT(x=0, y=0), maxpos=POINT(x=0, y=0), maxtrack=POINT(x=0, y=0), mintrack=POINT(x=1129, y=1348)))]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="119.343"/>
+  </TestFunction>
+  <TestFunction name="embeddedImagesAcrossViews">
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[mindmap]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[fishbone]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[flowchart]]></DataTag>
+    </Incident>
+    <Incident type="pass" file="" line="0">
+      <DataTag><![CDATA[gantt]]></DataTag>
+    </Incident>
+    <Duration msecs="787.753"/>
+  </TestFunction>
+  <TestFunction name="templateGalleryAndAiTutorial">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="174.481"/>
+  </TestFunction>
+  <TestFunction name="quickMouseRelationsGroupsAndImagePicker">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="569.347"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0082"/>
+  </TestFunction>
+  <Duration msecs="2154.02"/>
+</TestCase>

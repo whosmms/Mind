@@ -14,7 +14,8 @@
 | 组件 | 版本 | 来源 | 授权 | 用途 | 随包义务 |
 |---|---|---|---|---|---|
 | Qt 6 | **6.8.3**（win64_mingw，2026-10-24三机复现后冻结） | Qt官方安装器/官方存档 | **LGPL-3.0-only**（动态链接；Qt 同时提供 GPL-2.0/GPL-3.0 与商业许可，本项目选 LGPL-3.0-only） | 全部界面、数据与网络基础 | 随包提供LGPL-3.0许可全文、来源说明与源码获取方式；保留动态链接，不静态编译Qt |
-| Qt模块：Core / Gui / Widgets / Network / Test（**实际使用**）；Svg / Concurrent 未使用 | 随Qt 6.8.3 | 同上 | 同上 | `CMakeLists.txt:17` 已 `find_package(Qt6 6.8 REQUIRED COMPONENTS Core Widgets Network Test)`；`lingya_appcore` 链接 `Qt6::Network`（M5 的 DeepSeekClient/AiService 合入后启用），`tst_deepseekclient` 亦链接。**2026-11-03 更正**：原文「Network 随M5接真实请求时加入find_package与链接」已过期，实际早已在链 | 同上；新增模块先登记（统一规范§5.1） |
+| Qt 模块：Core / Gui / Widgets / Network / Svg / Test | 随 Qt 6.8.3 | 同上 | 同上 | `lingya_appcore` 动态链接 Network 与 Svg，Test 供自动测试使用。Svg 由 H059 的 `QSvgGenerator` 写文件，随包部署 Qt6Svg.dll | 同上，另附 QtSvg 的 XSVG 原始归属 |
+| zlib | 1.2.13（MinGW 13.1.0 自带静态库） | Qt 配套 MinGW 的目标目录 | zlib License | 解压 XMind 的 DEFLATE 条目并核对 CRC | 附原始 zlib 许可文本 |
 | MinGW 64位（Qt官方配套） | **13.1.0**（`D:\Qt\Tools\mingw1310_64`） | Qt官方安装器 | GPL+运行时例外 | 编译与调试工具链 | 开发工具，不随应用分发；部署运行库经windeployqt收集 |
 | **MinGW运行时** `libgcc_s_seh-1.dll`、`libstdc++-6.dll` | 随MinGW 13.1.0 | 同上 | GPL-3.0-or-later **WITH GCC Runtime Library Exception 3.1** | 应用运行必需 | **随包分发**；运行时例外已覆盖二进制分发义务，文本见 `D:\Qt\Tools\mingw1310_64\licenses\gcc\COPYING.RUNTIME` |
 | **MinGW运行时** `libwinpthread-1.dll` | 1.0.0.0 | 同上 | **MIT** | 线程运行库 | **随包分发**；文本见 `D:\Qt\Tools\mingw1310_64\licenses\winpthreads\COPYING` |
@@ -34,6 +35,11 @@
   甲乙丙三机同版本、同提交各自构建与测试通过，登记见 `docs/environment.md` 三段环境记录；
   此后不再接受“随Qt 6.8”这类浮动表述，替换版本须走全队一次性迁移（统一规范§5.1）。
 - Qt补丁号来自实际安装与`qmake --version`核对，不按文档推测。
+
+## H059 导图互通的新增运行依赖（2026-11-20）
+
+- QtSvg 使用冻结 Kit 中的 6.8.3 动态库。`Qt6Svg.dll` 的 SHA256 为 `593ed06864d4b1c31394aeb429b2b799c1671c77e1646c6fb56e12e3f767d290`。同版本源码归档的 SHA256 为 `35eb516460f00f264eb504baa253432384351cf23fb9980a5857190e8deeef438`，原始 LGPL/GPL 文本和 XSVG 归属在 `packaging/third-party/qtsvg`。 [QtSvg 6.8.3 源码](https://download.qt.io/archive/qt/6.8/6.8.3/submodules/qtsvg-everywhere-src-6.8.3.tar.xz)
+- zlib 1.2.13 取冻结 MinGW 13.1.0 中目标目录的 `libz.a`，SHA256 为 `a0d1c8616a1f826ac2392cc200523d69e35fc8e95a4a4934c78bd02071a670e8`。候选附 `zlib-1.2.13-LICENSE.txt`，原始文本 SHA256 为 `845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243`。 [zlib 1.2.13 源码和许可](https://github.com/madler/zlib/tree/v1.2.13)
 
 
 ## 甲本机开发工具安装补充（2026-10-24，H-002）

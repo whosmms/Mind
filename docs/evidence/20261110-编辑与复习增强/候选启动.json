@@ -1,0 +1,27 @@
+{
+  "sourceCommit": "a8a9d358afa1d83ab8fc1596c1d0ef5d51c639db",
+  "runtimeFiles": 18,
+  "candidate": "D:/mind/候选版本/编辑与复习增强_20261110_a8a9d35",
+  "programSha256": "ACB68291DDBA281AF2C76BB5676A4EF34A8667D34E2D4F0E7CFDBD031CDDE6E3",
+  "nativeStartup": {
+    "sourceCommit": "a8a9d358afa1d83ab8fc1596c1d0ef5d51c639db",
+    "aliveMilliseconds": 8000,
+    "packageModules": [
+      "imageformats/qgif.dll",
+      "imageformats/qico.dll",
+      "imageformats/qjpeg.dll",
+      "libgcc_s_seh-1.dll",
+      "libstdc++-6.dll",
+      "libwinpthread-1.dll",
+      "lingya.exe",
+      "platforms/qwindows.dll",
+      "Qt6Core.dll",
+      "Qt6Gui.dll",
+      "Qt6Network.dll",
+      "Qt6Widgets.dll",
+      "styles/qmodernwindowsstyle.dll"
+    ],
+    "stderrBytes": 0,
+    "stoppedOnlyOwnProcess": true
+  }
+}

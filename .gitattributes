@@ -16,6 +16,11 @@ CMakeLists.txt text eol=lf
 *.pdf binary
 *.docx binary
 *.zip binary
+*.xmind binary
 # 随包原始许可和翻译按来源字节保存，避免自动CRLF破坏来源SHA256。
 packaging/third-party/** -text
 packaging/Languages/*.isl -text
+
+# 证据目录保存原始命令输出与构建日志，尾随空白/末尾空行来自工具原样输出，不做空白校验。
+docs/evidence/**/*.log whitespace=-trailing-space,-blank-at-eof
+docs/evidence/**/*.ps1 whitespace=-blank-at-eof

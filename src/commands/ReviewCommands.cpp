@@ -4,6 +4,8 @@
 #include "features/ReviewService.h"
 
 #include <QDateTime>
+#include <QPair>
+#include <QSet>
 
 namespace lingya {
 
@@ -18,15 +20,6 @@ const ReviewCard* findCard(const Project& project, const ID& cardId) {
     return nullptr;
 }
 
-bool hasCardForNode(const Project& project, const ID& sheetId, const ID& nodeId) {
-    for (const ReviewCard& card : project.cards) {
-        if (card.sheetId == sheetId && card.nodeId == nodeId) {
-            return true;
-        }
-    }
-    return false;
-}
-
 AppError notFound(const ID& cardId) {
     return AppError{"NOT_FOUND", QStringLiteral("复习卡片不存在：%1").arg(cardId)};
 }
@@ -38,7 +31,9 @@ ReviewCommands::ReviewCommands(CommandService* commands, const ProjectDocument* 
 }
 
 std::variant<bool, AppError> ReviewCommands::gradeCard(const ID& cardId, ReviewMark mark) {
-    if (findCard(m_document->project(), cardId) == nullptr) {
+    const auto *existing = findCard(m_document->project(), cardId);
+    if (!existing)
+    {
         return notFound(cardId);
     }
     // Again：只回到队尾，不写status也不写时间；不入历史，避免自评撤销栈被空操作塞满
@@ -47,35 +42,72 @@ std::variant<bool, AppError> ReviewCommands::gradeCard(const ID& cardId, ReviewM
         return true;
     }
     const QDateTime reviewedAt = QDateTime::currentDateTimeUtc();
-    return m_commands->applyEdit(QStringLiteral("复习自评"), [cardId, status, reviewedAt](Project& project) {
-        for (ReviewCard& card : project.cards) {
-            if (card.id == cardId) {
-                card.status = status;
-                card.lastReviewedAt = reviewedAt;
-                return;
-            }
-        }
-    });
+    const int interval = ReviewService::nextIntervalDays(*existing, mark);
+    return m_commands->applyEdit(QStringLiteral("复习自评"),
+                                 [cardId, status, reviewedAt, interval](Project &project)
+                                 {
+                                     for (ReviewCard &card : project.cards)
+                                     {
+                                         if (card.id == cardId)
+                                         {
+                                             card.status = status;
+                                             card.lastReviewedAt = reviewedAt;
+                                             card.reviewIntervalDays = interval;
+                                             return;
+                                         }
+                                     }
+                                 });
 }
 
 std::variant<ID, AppError> ReviewCommands::addCard(const ID& sheetId, const ID& nodeId) {
+    const auto result = addCards({{sheetId, nodeId}});
+    if (const auto *error = std::get_if<AppError>(&result))
+    {
+        return *error;
+    }
+    return std::get<QVector<ID>>(result).first();
+}
+
+std::variant<QVector<ID>, AppError> ReviewCommands::addCards(const QVector<Source> &sources)
+{
+    if (sources.isEmpty())
+    {
+        return QVector<ID>{};
+    }
     const Project& project = m_document->project();
-    if (hasCardForNode(project, sheetId, nodeId)) {
-        return AppError{"CARD_EXISTS", QStringLiteral("该节点已有复习卡片：%1").arg(nodeId)};
+    QSet<QPair<ID, ID>> occupied;
+    for (const auto &card : project.cards)
+    {
+        occupied.insert({card.sheetId, card.nodeId});
     }
-    const auto created = ReviewService::createCard(project, sheetId, nodeId);
-    if (!created.has_value()) {
-        return AppError{"NO_CONTENT", QStringLiteral("节点没有可提取的复习内容：%1").arg(nodeId)};
+    QVector<ReviewCard> cards;
+    QVector<ID> ids;
+    for (const auto &source : sources)
+    {
+        const QPair<ID, ID> key{source.sheetId, source.nodeId};
+        if (occupied.contains(key))
+        {
+            return AppError{"CARD_EXISTS",
+                            QStringLiteral("该节点已有复习卡片：%1").arg(source.nodeId)};
+        }
+        const auto created = ReviewService::createCard(project, source.sheetId, source.nodeId);
+        if (!created)
+        {
+            return AppError{"NO_CONTENT",
+                            QStringLiteral("节点没有可提取的复习内容：%1").arg(source.nodeId)};
+        }
+        occupied.insert(key);
+        cards.append(*created);
+        ids.append(created->id);
     }
-    const ID cardId = created->id;
-    const auto result = m_commands->applyEdit(QStringLiteral("新增复习卡片"),
-                                              [card = *created](Project& target) {
-                                                  target.cards.push_back(card);
-                                              });
+    const QString label =
+        cards.size() == 1 ? QStringLiteral("新增复习卡片") : QStringLiteral("批量加入复习");
+    const auto result =
+        m_commands->applyEdit(label, [cards](Project &target) { target.cards.append(cards); });
     if (const auto* error = std::get_if<AppError>(&result)) {
         return *error;
     }
-    return cardId;
+    return ids;
 }
 
 std::variant<bool, AppError> ReviewCommands::removeCard(const ID& cardId) {

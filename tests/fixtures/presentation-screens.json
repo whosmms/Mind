@@ -1,0 +1,8 @@
+{
+  "synchronousWindowSystemEvents": true,
+  "windowFrameMargins": false,
+  "screens": [
+    { "name": "演讲者测试屏", "x": 0, "y": 0, "width": 1440, "height": 900, "logicalDpi": 96, "logicalBaseDpi": 96, "dpr": 1 },
+    { "name": "观众测试屏", "x": -1280, "y": 0, "width": 1280, "height": 800, "logicalDpi": 96, "logicalBaseDpi": 96, "dpr": 1 }
+  ]
+}

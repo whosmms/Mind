@@ -5,6 +5,8 @@
 #include <QFile>
 #include <QImage>
 #include <QPainter>
+#include <QPainterPath>
+#include <QSvgRenderer>
 #include <QTemporaryDir>
 #include <QtTest>
 #include <limits>
@@ -16,6 +18,7 @@ class TstExport : public QObject
     void sizeLimits();
     void pngPixelsAndFileProtection();
     void pdfPagination();
+    void svgPreservesVectorAndEmbeddedImage();
     void outlineIncludesCollapsedAndNotes();
     void nodeSnapshotIgnoresSelection();
 };
@@ -96,6 +99,53 @@ void TstExport::outlineIncludesCollapsedAndNotes()
     QCOMPARE(file.readAll(), std::get<QString>(text).toUtf8());
     QCOMPARE(ProjectJson::toJson(project), json);
     QVERIFY(std::holds_alternative<AppError>(ExportService::outline(project, "absent")));
+}
+
+void TstExport::svgPreservesVectorAndEmbeddedImage()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    ExportService::Snapshot snapshot;
+    snapshot.bounds = {-60, -40, 120, 90};
+    QImage icon(8, 8, QImage::Format_ARGB32_Premultiplied);
+    icon.fill(QColor("#247A62"));
+    QPainter painter(&snapshot.picture);
+    QPainterPath curve(QPointF(-50, 25));
+    curve.cubicTo(-20, -5, 20, 48, 50, 21);
+    painter.setPen(QPen(Qt::black, 2));
+    painter.drawPath(curve);
+    painter.drawText(QPoint(-42, -14), QStringLiteral("中文矢量主题"));
+    painter.drawImage(QRectF(-10, -8, 20, 16), icon);
+    painter.end();
+
+    const QString path = dir.filePath(QStringLiteral("矢量 工作表.svg"));
+    const auto written = ExportService::writeSvg(snapshot, path, 2.);
+    if (const auto *error = std::get_if<AppError>(&written))
+        QFAIL(qPrintable(error->message));
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const auto bytes = file.readAll();
+    file.close();
+    QVERIFY(bytes.contains("<svg"));
+    QVERIFY(bytes.contains("<path"));
+    QVERIFY(bytes.contains(QStringLiteral("中文矢量主题").toUtf8()));
+    QVERIFY(bytes.contains("data:image/png;base64,"));
+    QSvgRenderer renderer(bytes);
+    QVERIFY(renderer.isValid());
+    QCOMPARE(renderer.viewBox(), QRect(0, 0, 240, 180));
+    QImage rendered(240, 180, QImage::Format_ARGB32_Premultiplied);
+    rendered.fill(Qt::transparent);
+    QPainter actual(&rendered);
+    renderer.render(&actual);
+    actual.end();
+    QCOMPARE(rendered.pixelColor(120, 80), QColor("#247A62"));
+    QCOMPARE(rendered.pixelColor(0, 0), QColor(Qt::white));
+    QVERIFY(std::holds_alternative<AppError>(ExportService::writeSvg(snapshot, path, 0)));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.readAll(), bytes);
+    QVERIFY(std::holds_alternative<AppError>(
+        ExportService::writeSvg(snapshot, dir.filePath(QStringLiteral("工程.lingya")))));
+    QVERIFY(!QFile::exists(dir.filePath(QStringLiteral("工程.lingya"))));
 }
 void TstExport::nodeSnapshotIgnoresSelection()
 {

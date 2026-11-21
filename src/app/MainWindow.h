@@ -1,11 +1,12 @@
 #pragma once
 #include "domain/Domain.h"
+#include "services/ExportService.h"
 #include "services/FileService.h"
 #include "services/RecoveryService.h"
-#include "services/ExportService.h"
 #include <QMainWindow>
 #include <QPointer>
 #include <QSet>
+#include <QTransform>
 #include <optional>
 
 // Qt类前向声明必须位于全局作用域，不能进入lingya命名空间
@@ -21,7 +22,10 @@ class QTimer;
 class QTreeWidget;
 class QComboBox;
 class QTableView;
+class QPlainTextEdit;
+class QRubberBand;
 class QResizeEvent;
+class QScreen;
 class QVBoxLayout;
 
 namespace lingya {
@@ -50,6 +54,7 @@ class MainWindow : public QMainWindow {
 public:
     // 可注入认证服务用于隔离协议测试；注入后生命周期归窗口管理。
     explicit MainWindow(QWidget* parent = nullptr, OnlineAuthService* authService = nullptr);
+    ~MainWindow() override;
     // 首页仅切换会话视图；选择模板/文件时才复用未保存保护与加载流程。
     void showHomePage();
     // 自动测试可注入隔离服务；生产按凭据存储与既有工厂装配，不自动联网。
@@ -120,8 +125,10 @@ private:
     void showPreferences();
     void applyUserShortcuts();
     void manageDrafts();
+    void openDraftManager(const ID &draftId);
+    void createDraftFromBranch(const ID &rootId);
     void managePresentation();
-    void playPresentation(const PresentationRoute &route);
+    void playPresentation(const PresentationRoute &route, QScreen *audienceScreen);
     void exportCurrentSheet();
     ExportService::Snapshot captureCanvas() const;
     void buildMenus();
@@ -135,16 +142,39 @@ private:
     void buildInlineStyle(QVBoxLayout *layout);
     void buildInlineIcons(QVBoxLayout *layout);
     void buildInlineNotes(QVBoxLayout *layout);
+    const BaseNode *selectedCanvasNode() const;
+    const Task *selectedPropertyTask() const;
+    bool hasCurrentInlineProperties() const;
     void updateInlineProperties();
     void applyInlineStyle(bool reset = false);
     void applyInlineIcon(const QString &id);
     void applyInlineNotes();
+    void rememberInlineNotes();
+    void queueInlineNotes();
+    bool commitInlineNotes(const QPair<ID, ID> &target);
+    bool commitAllInlineNotes();
     void rebuildRecentMenu();       // 重建“最近文件”子菜单（R04，数据来自SettingsService）
     void openRecentFile(const QString& path);
     void newProject();
     void openProject();
+    void importMindMap();
+    bool importMindMapFile(const QString &path);
     bool saveProject(bool saveAs);
     void renameSelectedNode();
+    enum class TitleEditKind
+    {
+        Rename,
+        Child,
+        Sibling,
+        FlowSuccessor
+    };
+    void beginCanvasTitle(TitleEditKind kind, const ID &nodeId,
+                          const std::optional<QPointF> &position = std::nullopt);
+    bool finishCanvasTitle(bool accept, bool focusCanvas = false);
+    bool handleCanvasTitleEvent(QObject *watched, QEvent *event);
+    void placeCanvasTitleEditor();
+    bool navigateCanvas(int key);
+    bool handleCanvasGesture(QObject *watched, QEvent *event);
     void editSelectedNodeProperties();
     void editSelectedNodeTags();
     void editSelectedNodeStyle();
@@ -154,6 +184,7 @@ private:
     const FlowSheet *activeFlowSheet() const;
     void rebuildFlowCanvas(const FlowSheet &sheet);
     void drawFlowEdges(const FlowSheet &sheet);
+    void cancelFlowGesture();
     void editFlowNode(bool create);
     void editFlowEdge(const ID &edgeId = ID{}, const ID &sourceId = ID{},
                       const QString &sourcePort = QString(), const ID &targetId = ID{},
@@ -161,12 +192,43 @@ private:
     void deleteFlowSelection();
     void layoutFlow();
     bool handleFlowEvent(QObject *watched, QEvent *event);
+    bool handleTreeCanvasEvent(QObject *watched, QEvent *event);
+    bool handleCanvasContextMenu(QObject *watched, QEvent *event);
+    void cancelTreeDrag();
+    QPointF alignTreeDrag(const QPointF &delta, bool preview);
+    void drawTreeLinks(const TreeSheet &display);
+    void focusBranch();
+    static QSet<ID> branchIds(const TreeSheet &sheet, const ID &rootId);
+    void addBranchLearningActions(QMenu &menu, const ID &rootId);
+    void exitBranchFocus();
+    QRectF focusedBranchBounds() const;
+    void applyBranchFocus(const TreeSheet &sheet);
+    void resetTreeLayout();
+    void quickAddNode(const ID &nodeId);
+    void showTemplates(bool insertSheet);
+    void showVersionHistory();
+    void recordSavedVersion(const QString &path);
+    void chooseNodeImage(const ID &nodeId);
+    void insertCanvasImage(const QPointF &position);
+    QVector<CanvasImage> activeImages() const;
+    void drawCanvasImages();
+    bool handleImageEvent(QObject *watched, QEvent *event);
+    void applyImportedImage(const std::variant<QString, AppError> &imported, const ID &nodeId,
+                            const QPointF &position);
     void buildOfflineActions(QMenu *viewMenu);
     void refreshOfflineViews();
     void addTaskBadges();
     void selectTask(ID taskId, bool locateSource = false);
     void editTask(ID taskId);
-    void manageReviewCards(ID cardId = ID{});
+    struct ReviewScope
+    {
+        ID sheetId;
+        QSet<ID> topics;
+        QString label;
+    };
+    void manageReviewCards(ID cardId = {}, std::optional<ReviewScope> scope = std::nullopt);
+    std::variant<QVector<ID>, AppError> addReviewTopics(QWidget *parent,
+                                                        const std::optional<ReviewScope> &scope);
     void locateIssue(ID sheetId, ID targetId);
     void rebuildSheets();
     void createSheet();
@@ -174,6 +236,7 @@ private:
     void deleteSheet();
     void copySelection(bool cut);
     void pasteSelection();
+    void pasteOutlineAsChildren();
     void moveSelection(const ID &nodeId, const ID &parentId, const ID &beforeId = ID{});
     void editRelations();
     void editAnnotations();
@@ -192,19 +255,19 @@ private:
     const GanttSheet *ganttTaskFilter(bool includeLocationOverride = true) const;
     bool isTaskVisibleInGantt(const ID &taskId, bool includeLocationOverride = true) const;
     bool hasVisibleGanttTasks() const;
-    void setCanvasZoom(qreal zoom);
+    void setCanvasZoom(qreal zoom, const std::optional<QPoint> &anchor = std::nullopt);
     void fitCanvas();
     void selectNode(const ID &nodeId);
     void syncCanvasSelection();
     void focusSelectedNode();
     bool confirmDiscard();          // 换工程/关闭时提供保存、放弃、取消（原设计§8）
-    void loadNewDocument(Project project);
+    void loadNewDocument(Project project, bool needsSave = false);
     void rebuildCanvas();
     void addFishboneEdges(const TreeSheet &display);
     void onDocumentChanged();
     void updateStatusLine();        // 状态栏统一拼装：文档状态+恢复快照备注
     void showLoginDialog();
-    void showOnlineAccount();
+    void showOnlineAccount(bool serviceSettings = false);
     QString activeSessionRoot() const;
     void showOwnedFilesDialog();
     void updateSessionActions();    // 登录/退出登录/我的文件菜单项的可用性
@@ -222,9 +285,24 @@ private:
     QSet<ID> m_unfilteredCollapsed;
     bool m_filterWasActive = false;
     ID m_dragNodeId;
+    QMap<ID, QPointF> m_treeDragOrigins;
+    QPointF m_treePressScene;
+    bool m_treeStructuralDrag = false;
+    bool m_keepCanvasView = false;
+    QSet<ID> m_multiSelection;
+    ID m_pendingRelation;
+    ID m_selectedImageId, m_dragImageId;
+    QPointF m_imageDragOrigin, m_imagePress;
+    QSizeF m_imageSizeOrigin;
+    bool m_imageResize = false, m_imageMoved = false;
     ID m_flowDragNodeId, m_flowPortNodeId, m_selectedFlowEdge;
     QString m_flowPort;
     QPointF m_flowDragOrigin;
+    ID m_flowPendingNodeId, m_flowDragEdgeId;
+    QString m_flowPendingPort, m_flowDragHandle;
+    QPointF m_flowPointer;
+    bool m_flowDragMoved = false;
+    qint64 m_flowGestureRevision = -1;
     QTableView *m_taskTable = nullptr;
     TaskTableModel *m_taskModel = nullptr;
     IssuePanel *m_issuePanel = nullptr;
@@ -235,6 +313,7 @@ private:
     bool m_chromeUpdating = false;
     bool m_compactChrome = false;
     bool m_restorePropertyDock = false;
+    bool m_restoreOutlineAfterGantt = false;
     HomePage *m_homePage = nullptr;
     QPointer<AiService> m_aiService;
     bool m_homeVisible = false;
@@ -243,8 +322,30 @@ private:
     QList<QPair<QPointer<QAction>, bool>> m_homeActionStates;
     ID m_propertySheetId, m_propertyNodeId;
     qint64 m_propertyRevision = -1;
+    bool m_updatingInline = false;
     BaseNode m_propertyInitial;
     NodeStyleOverride m_propertyStyle;
+    struct InlineNotesDraft
+    {
+        std::optional<QString> note, link;
+        QString error;
+    };
+    QMap<QPair<ID, ID>, InlineNotesDraft> m_inlineNotesDrafts;
+    QMetaObject::Connection m_notesFocusConnection;
+    struct CanvasTitleEdit
+    {
+        TitleEditKind kind;
+        ID projectId, sheetId, nodeId;
+        QString initial;
+        std::optional<QPointF> position;
+    };
+    std::optional<CanvasTitleEdit> m_canvasTitleEdit;
+    QPointer<QPlainTextEdit> m_canvasTitleEditor;
+    bool m_canvasTitlePreedit = false;
+    bool m_spaceHeld = false, m_spacePanned = false, m_boxSelecting = false;
+    Qt::MouseButton m_panButton = Qt::NoButton;
+    QPoint m_gestureStart, m_scrollStart;
+    QRubberBand *m_selectionBand = nullptr;
     QPoint m_dragStart;
     ID m_cutNodeId, m_cutSheetId, m_cutProjectId;
     qint64 m_cutRevision = -1;
@@ -252,11 +353,22 @@ private:
     QString m_editorNote;
     QMap<ID, QStringList> m_annotationMembers;
     ID m_selectedNodeId;                       // 临时选择状态，不持久化、不进入撤销历史
+    struct BranchFocus
+    {
+        ID sheetId, nodeId, originalSelection;
+        QTransform transform;
+        QPointF center;
+        QRectF sceneRect;
+        QPoint scrollBars;
+    };
+    std::optional<BranchFocus> m_branchFocus;
+    static constexpr int kTreeEdgeParentRole = 0x21C8;
     QMap<ID, NodeItem *> m_nodeItems;          // 非拥有指针；图元由m_scene销毁
     QString m_canvasError;
     QStackedWidget* m_centralStack = nullptr;  // 页0思维导图画布 / 页1甘特图（M3）
     QWidget* m_ganttPage = nullptr;            // 甘特页当前内容（占位或丙的视图）
     QString m_filePath;             // 磁盘路径只存在本机会话（原设计§8）
+    bool m_historyCopy = false;     // 历史副本第一次保存需要新路径
     // 已加载文件的外部状态戳（§11.3外部修改检测）；新建未命名或另存新路径时为空
     std::optional<FileService::FileStamp> m_fileStamp;
     QMenu* m_recentMenu = nullptr;  // 文件菜单内“最近文件”子菜单（R04）

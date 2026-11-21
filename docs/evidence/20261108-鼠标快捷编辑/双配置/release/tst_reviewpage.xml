@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="TstReviewPage">
+  <Environment>
+    <QtVersion>6.8.3</QtVersion>
+    <QtBuild>Qt 6.8.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 13.1.0)</QtBuild>
+    <QTestVersion>6.8.3</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1154"/>
+  </TestFunction>
+  <TestFunction name="startsWithFrontAndHiddenBack">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[QFontDatabase: Cannot find font directory D:/mind/.tools/Qt/6.8.3/mingw_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.5746"/>
+  </TestFunction>
+  <TestFunction name="revealShowsBackAndEnablesGrades">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.3115"/>
+  </TestFunction>
+  <TestFunction name="gradingEmitsCardIdAndMark">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.2024"/>
+  </TestFunction>
+  <TestFunction name="finishesAfterAllGraded">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.1269"/>
+  </TestFunction>
+  <TestFunction name="longChineseCardsRemainScrollable">
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+  <Message type="qwarn" file="" line="0">
+    <Description><![CDATA[This plugin does not support propagateSizeHints()]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="19.0016"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.0313"/>
+  </TestFunction>
+  <Duration msecs="23.9513"/>
+</TestCase>

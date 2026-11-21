@@ -1,4 +1,5 @@
 #include "charts/GanttView.h"
+#include "graphics/CanvasImageItem.h"
 
 #include <QBrush>
 #include <QColor>
@@ -182,12 +183,20 @@ void GanttView::rebuild() {
         const qreal monthLineTopY = monthLineTop(monthFont);
 
         const int totalDays = result.totalWidth / m_pixelsPerDay;
+        const auto today = result.rangeStart.daysTo(QDate::currentDate());
         // 月界标签避让：短区间跨月时两个 yyyy-MM 只隔一天，会压在一起（OBS-A-20261031-001）。
         // 记录上一个已画标签的右边界，与它会重叠时只画竖线不画字。
         qreal lastMonthLabelRight = -1.0e9;
         for (int i = 0; i < totalDays; ++i) {
             const QDate day = result.rangeStart.addDays(i);
             const qreal x = i * m_pixelsPerDay;
+            if (day.dayOfWeek() >= Qt::Saturday)
+            {
+                auto *weekend = target->addRect(x, kAxisHeight, m_pixelsPerDay, rows * kRowHeight,
+                                                Qt::NoPen, QBrush(mintAccent()));
+                weekend->setOpacity(0.45);
+                weekend->setZValue(-2);
+            }
             const bool monthLabel = i == 0 || day.day() == 1;
             if (monthLabel)
             {
@@ -203,18 +212,43 @@ void GanttView::rebuild() {
                     lastMonthLabelRight = x + 3 + width;
                 }
             }
-            if (day.day() != 1 && m_pixelsPerDay >= 16)
+            if (m_pixelsPerDay >= 16 && (day.day() != 1 || i == today))
             {
                 if (!monthLabel)
                     target->addLine(x, kAxisHeight - 4, x, sceneHeight, QPen(borderColor(), 0.6));
-                auto* label = target->addText(QString::number(day.day()), dayFont);
-                label->setDefaultTextColor(secondaryTextColor());
+                auto *label = target->addText(
+                    i == today ? QStringLiteral("今") : QString::number(day.day()), dayFont);
+                label->setDefaultTextColor(i == today ? primaryColor() : secondaryTextColor());
                 label->setPos(x + 2, kAxisHeight - 16);
+                if (i == today)
+                    label->setToolTip(QStringLiteral("今天"));
             }
+        }
+        if (today >= 0 && today < totalDays)
+        {
+            const qreal x = (today + 0.5) * m_pixelsPerDay;
+            auto *line = target->addLine(x, kAxisHeight, x, kAxisHeight + rows * kRowHeight,
+                                         QPen(primaryColor(), 1.5));
+            line->setToolTip(QStringLiteral("今天"));
+            line->setZValue(-1);
         }
     }
 
     const QPen stroke(primaryColor());
+    QFont taskFont;
+    taskFont.setPointSize(9);
+    const QFontMetricsF taskMetrics(taskFont);
+    const auto addLabel = [&](QGraphicsItem *barItem, const Task *task, qreal right, int row)
+    {
+        if (!task)
+            return;
+        auto *label = new QGraphicsSimpleTextItem(
+            taskMetrics.elidedText(task->title, Qt::ElideRight, 200), barItem);
+        label->setFont(taskFont);
+        label->setBrush(textColor());
+        label->setToolTip(task->title);
+        label->setPos(right + 8, rowCenter(row) - label->boundingRect().height() / 2);
+    };
 
     // 任务条 + 进度填充 + 里程碑
     for (const GanttBar& bar : result.bars) {
@@ -236,6 +270,7 @@ void GanttView::rebuild() {
                     << QPointF(cx, cy + kMilestoneRadius) << QPointF(cx - kMilestoneRadius, cy);
             auto* item = target->addPolygon(diamond, stroke, QBrush(primaryColor()));
             item->setData(kBarDataRole, bar.taskId);
+            addLabel(item, task, cx + kMilestoneRadius, bar.row);
             continue;
         }
 
@@ -255,6 +290,7 @@ void GanttView::rebuild() {
             fill->setParentItem(item);
             fill->setPos(0.0, 0.0);
         }
+        addLabel(item, task, barRect.right(), bar.row);
     }
 
     // FS 依赖连线：前置结束 → 后继开始
@@ -285,10 +321,34 @@ void GanttView::rebuild() {
     QRectF visibleBounds(0, 0, sceneWidth, sceneHeight);
     for (QGraphicsItem *item : target->items())
     {
-        if (item->type() == QGraphicsTextItem::Type)
+        if (item->type() == QGraphicsTextItem::Type ||
+            item->type() == QGraphicsSimpleTextItem::Type)
             visibleBounds = visibleBounds.united(item->sceneBoundingRect());
     }
     target->setSceneRect(visibleBounds);
+    drawImages();
+}
+
+void GanttView::setImages(const QVector<CanvasImage> &images)
+{
+    m_images = images;
+    drawImages();
+}
+void GanttView::drawImages()
+{
+    QList<QGraphicsItem *> old;
+    for (auto *item : scene()->items())
+        if (!item->parentItem() && item->data(0x21C6).isValid())
+            old.append(item);
+    qDeleteAll(old);
+    auto bounds = scene()->sceneRect();
+    for (const auto &image : m_images)
+    {
+        auto *item = new CanvasImageItem(image);
+        scene()->addItem(item);
+        bounds = bounds.united(item->sceneBoundingRect().adjusted(-20, -20, 20, 20));
+    }
+    scene()->setSceneRect(bounds);
 }
 
 void GanttView::mousePressEvent(QMouseEvent* event) {

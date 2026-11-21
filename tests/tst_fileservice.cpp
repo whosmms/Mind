@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QLockFile>
 #include <QSettings>
 #include <QTemporaryDir>
 
@@ -34,6 +35,9 @@ class TstFileService : public QObject
     void saveDetectsExternalModification();
     void saveDetectsExternalDeletion();
     void saveSucceedsWithMatchingStamp();
+    void versionHistoryReadsLegacyAndIsolatesProjects();
+    void versionHistoryRotatesOnlyItsArchives();
+    void versionHistoryFailureKeepsSavedFile();
 
     void recentFilesMostRecentFirstAndDedup();
     void recentFilesTruncateToLimit();
@@ -154,6 +158,99 @@ void TstFileService::backupFailureKeepsOriginalFile()
     QCOMPARE(std::get<AppError>(saved).code, QStringLiteral("BACKUP_FAILED"));
     // 备份失败时原件保持不变（规范§11.3：不移动或删除唯一原件）
     QCOMPARE(readAllBytes(path), originalBytes);
+}
+
+void TstFileService::versionHistoryReadsLegacyAndIsolatesProjects()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const auto path = dir.filePath(QStringLiteral("兼容旧备份.lingya"));
+    auto project = makeProject(QStringLiteral("旧版本"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+    project.title = QStringLiteral("当前版本");
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+
+    const auto listed = FileService::listVersions(path, project.id);
+    QVERIFY(std::holds_alternative<QVector<FileService::SavedVersion>>(listed));
+    const auto versions = std::get<QVector<FileService::SavedVersion>>(listed);
+    QCOMPARE(versions.size(), 1);
+    QVERIFY(versions.front().legacyBackup);
+    const auto opened = FileService::loadVersion(path, project.id, versions.front().id);
+    QVERIFY(std::holds_alternative<Project>(opened));
+    QCOMPARE(std::get<Project>(opened).title, QStringLiteral("旧版本"));
+    QVERIFY(std::holds_alternative<AppError>(
+        FileService::loadVersion(path, "other-project", versions.front().id)));
+    QVERIFY(std::holds_alternative<AppError>(
+        FileService::loadVersion(path, project.id, "../兼容旧备份.lingya")));
+    QCOMPARE(std::get<Project>(FileService::load(path)).title, project.title);
+}
+
+void TstFileService::versionHistoryRotatesOnlyItsArchives()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const auto path = dir.filePath(QStringLiteral("轮转测试.lingya"));
+    const auto backupDir = dir.filePath(QStringLiteral("灵芽备份"));
+    auto project = makeProject(QStringLiteral("版本 0"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+    const auto recorded = FileService::recordVersion(path, project);
+    QVERIFY(std::holds_alternative<bool>(recorded) && std::get<bool>(recorded));
+    const auto historyDirs = QDir(backupDir).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    QCOMPARE(historyDirs.size(), 1);
+    const QDir history(QDir(backupDir).filePath(historyDirs.front()));
+    const auto sentinel = history.filePath(QStringLiteral("保留.lingya"));
+    {
+        QFile unrelated(sentinel);
+        QVERIFY(unrelated.open(QIODevice::WriteOnly));
+        QCOMPARE(unrelated.write("保留"), QByteArray("保留").size());
+    }
+    for (int version = 1; version <= 12; ++version)
+    {
+        project.title = QStringLiteral("版本 %1").arg(version);
+        QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+        const auto recorded = FileService::recordVersion(path, project);
+        QVERIFY(std::holds_alternative<bool>(recorded) && std::get<bool>(recorded));
+    }
+    const auto duplicate = FileService::recordVersion(path, project);
+    QVERIFY(std::holds_alternative<bool>(duplicate) && !std::get<bool>(duplicate));
+    const auto versions =
+        std::get<QVector<FileService::SavedVersion>>(FileService::listVersions(path, project.id));
+    QCOMPARE(versions.size(), 10);
+    QCOMPARE(versions.size(), history.entryList({"saved-*.lingya"}, QDir::Files).size());
+    QVERIFY(versions.front().savedAt > versions.back().savedAt);
+    QCOMPARE(
+        std::get<Project>(FileService::loadVersion(path, project.id, versions.front().id)).title,
+        QStringLiteral("版本 12"));
+    QCOMPARE(
+        std::get<Project>(FileService::loadVersion(path, project.id, versions.back().id)).title,
+        QStringLiteral("版本 3"));
+    QCOMPARE(readAllBytes(sentinel), QByteArray("保留"));
+    QCOMPARE(std::get<Project>(FileService::load(path)).title, project.title);
+}
+
+void TstFileService::versionHistoryFailureKeepsSavedFile()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const auto path = dir.filePath(QStringLiteral("写入冲突.lingya"));
+    auto project = makeProject(QStringLiteral("已保存"));
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+    QVERIFY(std::holds_alternative<bool>(FileService::recordVersion(path, project)));
+    const QDir backups(dir.filePath(QStringLiteral("灵芽备份")));
+    const auto entries = backups.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    QCOMPARE(entries.size(), 1);
+    const QDir history(backups.filePath(entries.front()));
+    QLockFile lock(history.filePath(QStringLiteral("版本记录.lock")));
+    QVERIFY(lock.tryLock());
+
+    project.title = QStringLiteral("正式文件继续保存");
+    QVERIFY(std::holds_alternative<qint64>(FileService::save(path, project)));
+    const auto record = FileService::recordVersion(path, project);
+    QVERIFY(std::holds_alternative<AppError>(record));
+    QCOMPARE(std::get<AppError>(record).code, QStringLiteral("HISTORY_BUSY"));
+    QCOMPARE(std::get<Project>(FileService::load(path)).title, project.title);
+    lock.unlock();
+    QVERIFY(std::holds_alternative<bool>(FileService::recordVersion(path, project)));
 }
 
 void TstFileService::saveRejectsUnwritablePath()

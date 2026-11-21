@@ -1129,7 +1129,7 @@ void TstNodeCommands::setStyleRejectsInvalidValues() {
     QVERIFY(std::holds_alternative<AppError>(nodes.setStyle(tree.id, tree.rootId, badColor)));
 
     NodeStyleOverride badShape;
-    badShape.shape = QStringLiteral("hexagon");
+    badShape.shape = QStringLiteral("invalid-shape");
     QVERIFY(std::holds_alternative<AppError>(nodes.setStyle(tree.id, tree.rootId, badShape)));
 
     NodeStyleOverride badSize;
@@ -1275,7 +1275,7 @@ void TstNodeCommands::setSheetStyleAppliesAndShortCircuits() {
              QStringLiteral("INVALID_ARGUMENT"));
 
     NodeStyle badShape = style;
-    badShape.shape = QStringLiteral("hexagon");
+    badShape.shape = QStringLiteral("invalid-shape");
     QCOMPARE(std::get<AppError>(nodes.setSheetStyle(fixture.sheetId, badShape, edge)).code,
              QStringLiteral("INVALID_ARGUMENT"));
 

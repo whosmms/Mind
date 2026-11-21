@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "4f39ab460420cc8fc2495adb3a88f27a4566fdb6",
+  "failed": 3,
+  "failures": [
+    {
+      "test": "flowInlinePropertiesEditAndRoundTrip",
+      "detail": "'fill && fill->isEnabled()' returned FALSE. ()"
+    },
+    {
+      "test": "flowPropertyActionsAndEdgeSelection",
+      "detail": "'tagAction->isEnabled() && commentAction->isEnabled() && defaultStyle->isEnabled()' returned FALSE. ()"
+    },
+    {
+      "test": "propertyTabsFollowNodeAndTaskSelection",
+      "detail": "'!summary->text().contains(task.title)' returned FALSE. ()"
+    }
+  ]
+}

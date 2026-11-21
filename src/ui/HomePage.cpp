@@ -1,14 +1,17 @@
 #include "ui/HomePage.h"
+#include <QDateTime>
 #include <QFileInfo>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
+#include <QMenu>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QScrollArea>
+#include <QTimer>
 #include <QVBoxLayout>
 
 namespace lingya
@@ -125,18 +128,11 @@ HomePage::HomePage(QWidget *parent) : QWidget(parent)
     title->setObjectName("homeTitle");
     title->setWordWrap(true);
     heroLayout->addWidget(title);
-    auto *subtitle = new QLabel(QStringLiteral("让思考更清晰，让想法自然生长。"), hero);
-    subtitle->setWordWrap(true);
-    heroLayout->addWidget(subtitle);
     auto *actions = new QHBoxLayout;
-    auto *create = new QPushButton(QStringLiteral("＋ 新建导图"), hero);
-    create->setObjectName("homeNewMindmap");
-    create->setProperty("primary", true);
-    connect(create, &QPushButton::clicked, this, [this] { emit templateRequested("mindmap"); });
     auto *open = new QPushButton(QStringLiteral("打开工程"), hero);
     open->setObjectName("homeOpenProject");
+    open->setProperty("primary", true);
     connect(open, &QPushButton::clicked, this, &HomePage::openRequested);
-    actions->addWidget(create);
     actions->addWidget(open);
     actions->addStretch();
     heroLayout->addLayout(actions);
@@ -144,6 +140,10 @@ HomePage::HomePage(QWidget *parent) : QWidget(parent)
     auto *heading = new QLabel(QStringLiteral("从模板开始"), main);
     heading->setProperty("sectionTitle", true);
     content->addWidget(heading);
+    auto *gallery = new QPushButton(QStringLiteral("浏览24种结构与场景模板…"), main);
+    gallery->setObjectName("homeTemplateLibrary");
+    content->addWidget(gallery, 0, Qt::AlignLeft);
+    connect(gallery, &QPushButton::clicked, this, &HomePage::templateGalleryRequested);
     auto *cards = new QWidget(main);
     m_cardLayout = new QGridLayout(cards);
     m_cardLayout->setContentsMargins(0, 0, 0, 0);
@@ -182,39 +182,31 @@ HomePage::HomePage(QWidget *parent) : QWidget(parent)
     m_recents = new QListWidget(main);
     m_recents->setObjectName("homeRecentFiles");
     m_recents->setMinimumHeight(150);
-    m_recents->setTextElideMode(Qt::ElideMiddle);
+    m_recents->setTextElideMode(Qt::ElideRight);
+    m_recents->setIconSize(QSize(118, 55));
+    m_recents->setContextMenuPolicy(Qt::CustomContextMenu);
     content->addWidget(m_recents, 1);
-    auto *recentActions = new QHBoxLayout;
-    auto *openRecent = new QPushButton(QStringLiteral("打开所选"), main);
-    openRecent->setObjectName("homeOpenRecent");
-    auto *remove = new QPushButton(QStringLiteral("移除记录"), main);
-    remove->setObjectName("homeRemoveRecent");
-    remove->setToolTip(QStringLiteral("只移除最近列表中的记录，工程文件保留。"));
-    recentActions->addWidget(openRecent);
-    recentActions->addWidget(remove);
-    recentActions->addStretch();
-    content->addLayout(recentActions);
     content->addStretch(1);
-    const auto selection = [this, openRecent, remove]
-    {
-        const bool selected = m_recents->currentItem();
-        openRecent->setEnabled(selected);
-        remove->setEnabled(selected);
-    };
-    connect(m_recents, &QListWidget::currentRowChanged, this, selection);
-    connect(openRecent, &QPushButton::clicked, this,
-            [this]
-            {
-                if (auto *item = m_recents->currentItem())
-                    emit recentRequested(item->data(Qt::UserRole).toString());
-            });
     connect(m_recents, &QListWidget::itemActivated, this, [this](QListWidgetItem *item)
             { emit recentRequested(item->data(Qt::UserRole).toString()); });
-    connect(remove, &QPushButton::clicked, this,
-            [this]
+    connect(m_recents, &QListWidget::customContextMenuRequested, this,
+            [this](const QPoint &point)
             {
-                if (auto *item = m_recents->currentItem())
-                    emit removeRecentRequested(item->data(Qt::UserRole).toString());
+                auto *item = m_recents->itemAt(point);
+                if (!item)
+                    return;
+                const auto path = item->data(Qt::UserRole).toString();
+                const bool pinned = item->data(Qt::UserRole + 1).toBool();
+                QMenu menu(m_recents);
+                menu.addAction(QStringLiteral("打开工程"),
+                               [this, path] { emit recentRequested(path); });
+                menu.addAction(pinned ? QStringLiteral("取消置顶") : QStringLiteral("置顶"),
+                               [this, path, pinned] { emit recentPinRequested(path, !pinned); })
+                    ->setObjectName("pinRecentFile");
+                menu.addAction(QStringLiteral("移除记录"),
+                               [this, path] { emit removeRecentRequested(path); })
+                    ->setObjectName("removeRecentFile");
+                menu.exec(m_recents->viewport()->mapToGlobal(point));
             });
     connect(recentNav, &QPushButton::clicked, this,
             [this, scroll]
@@ -222,24 +214,51 @@ HomePage::HomePage(QWidget *parent) : QWidget(parent)
                 scroll->ensureWidgetVisible(m_recents);
                 m_recents->setFocus();
             });
-    selection();
     scroll->setWidget(main);
     root->addWidget(scroll, 1);
 }
 
-void HomePage::setRecentFiles(const QVector<QString> &paths)
+void HomePage::setRecentFiles(const QVector<QString> &paths, const QStringList &pinned,
+                              const std::function<QIcon(const QString &)> &thumbnail)
 {
+    const auto generation = ++m_recentGeneration;
     m_recents->clear();
+    const QIcon placeholder = preview("mindmap");
     for (const QString &path : paths)
     {
         const QFileInfo info(path);
+        const bool isPinned = pinned.contains(path, Qt::CaseInsensitive);
         auto *item = new QListWidgetItem(
-            info.completeBaseName() + QStringLiteral("\n") +
-                (info.exists() ? info.absolutePath() : QStringLiteral("文件已移动或删除")),
+            placeholder,
+            (isPinned ? QStringLiteral("置顶 · ") : QString()) + info.completeBaseName() +
+                QStringLiteral("\n") +
+                (info.isFile() ? QStringLiteral("修改于 %1")
+                                     .arg(info.lastModified().toString("yyyy-MM-dd HH:mm"))
+                               : QStringLiteral("文件已移动或删除")),
             m_recents);
         item->setData(Qt::UserRole, path);
+        item->setData(Qt::UserRole + 1, isPinned);
         item->setToolTip(path);
-        item->setSizeHint(QSize(0, 60));
+        item->setSizeHint(QSize(0, 70));
+        // 大工程保留通用缩略图。小工程逐项加载，首页打开后再刷新预览。
+        if (info.isFile() && info.size() <= 512 * 1024)
+        {
+            QTimer::singleShot(m_recents->count() * 12, this,
+                               [this, generation, path, thumbnail]
+                               {
+                                   if (generation != m_recentGeneration || !isVisible())
+                                       return;
+                                   const QIcon icon = thumbnail(path);
+                                   if (icon.isNull())
+                                       return;
+                                   for (int i = 0; i < m_recents->count(); ++i)
+                                   {
+                                       auto *row = m_recents->item(i);
+                                       if (row->data(Qt::UserRole).toString() == path)
+                                           row->setIcon(icon);
+                                   }
+                               });
+        }
     }
     m_empty->setVisible(paths.isEmpty());
     m_recents->setVisible(!paths.isEmpty());

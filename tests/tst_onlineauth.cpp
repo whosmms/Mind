@@ -51,6 +51,7 @@ class TstOnlineAuth : public QObject
     void refreshCannotChangeIdentity();
     void rememberFailureDoesNotKeepOldCredential();
     void localFileNamespacesStaySeparate();
+    void dialogPreviewAndSettingsAreSeparate();
     void dialogValidationAndCancel();
     void timeoutAndTlsFailure();
     void recoveryRejectsInvalidIdentity();
@@ -322,15 +323,60 @@ void TstOnlineAuth::localFileNamespacesStaySeparate()
         QVERIFY(!call.body.contains("sheets"));
     }
 }
+void TstOnlineAuth::dialogPreviewAndSettingsAreSeparate()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    Network network;
+    OnlineAuthService service(root.path(), nullptr, &network, memory());
+    OnlineAccountDialog preview(&service);
+    const auto *tabs = preview.findChild<QTabWidget *>("onlineAuthTabs");
+    QVERIFY(tabs);
+    QCOMPARE(tabs->count(), 3);
+    QCOMPARE(tabs->currentIndex(), 0);
+    QVERIFY(
+        preview.findChild<QLabel *>("onlineAuthStatus")->text().contains(QStringLiteral("待接入")));
+    QVERIFY(!preview.findChild<QLineEdit *>("onlineProjectUrl"));
+    for (const auto *field : tabs->findChildren<QLineEdit *>())
+        QVERIFY(field->isReadOnly());
+    for (const auto *name : {"onlineLogin", "onlineSignUp", "onlineConfirm", "onlineResend",
+                             "onlineResetSend", "onlineReset"})
+    {
+        auto *submit = preview.findChild<QPushButton *>(name);
+        QVERIFY(submit && !submit->isEnabled());
+        submit->click();
+    }
+    QCOMPARE(network.sent.size(), 0);
+    QVERIFY(!service.loggedIn());
+    QVERIFY(QDir(root.path()).entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot).isEmpty());
+
+    OnlineAccountDialog settings(&service, nullptr, OnlineAccountDialog::Entry::ServiceSettings);
+    QVERIFY(!settings.findChild<QTabWidget *>("onlineAuthTabs"));
+    auto *url = settings.findChild<QLineEdit *>("onlineProjectUrl");
+    auto *key = settings.findChild<QLineEdit *>("onlinePublishableKey");
+    QVERIFY(url && key);
+    QCOMPARE(key->echoMode(), QLineEdit::Password);
+    url->setText(config().projectUrl);
+    key->setText(config().publishableKey);
+    settings.findChild<QPushButton *>("onlineSaveConfig")->click();
+    QCOMPARE(settings.result(), int(QDialog::Accepted));
+    QVERIFY(service.configured());
+
+    OnlineAccountDialog localSession(&service, nullptr, OnlineAccountDialog::Entry::Account, true);
+    QVERIFY(localSession.findChild<QLabel *>("onlineAuthStatus")
+                ->text()
+                .contains(QStringLiteral("旧本机账号")));
+    QVERIFY(localSession.findChild<QLineEdit *>("onlineLoginEmail")->isReadOnly());
+    QVERIFY(!localSession.findChild<QPushButton *>("onlineLogin")->isEnabled());
+    QCOMPARE(network.sent.size(), 0);
+    QVERIFY(!service.loggedIn());
+}
+
 void TstOnlineAuth::dialogValidationAndCancel()
 {
     QTemporaryDir root;
     Network network;
     OnlineAuthService service(root.path(), nullptr, &network, memory());
-    OnlineAccountDialog unconfigured(&service);
-    QCOMPARE(unconfigured.findChild<QTabWidget *>("onlineAuthTabs")->currentIndex(), 3);
-    QVERIFY(!unconfigured.findChild<QPushButton *>("onlineLogin")->isEnabled());
-    QCOMPARE(network.sent.size(), 0);
     QVERIFY(service.configure(config(), false));
     OnlineAccountDialog dialog(&service);
     QFile style(QFINDTESTDATA("../resources/styles/light.qss"));
@@ -365,12 +411,18 @@ void TstOnlineAuth::dialogValidationAndCancel()
         preview.setStyleSheet(dialog.styleSheet());
         preview.show();
         auto *previewTabs = preview.findChild<QTabWidget *>("onlineAuthTabs");
-        for (int index = 0; index < 4; ++index)
+        for (int index = 0; index < previewTabs->count(); ++index)
         {
             previewTabs->setCurrentIndex(index);
             QCoreApplication::processEvents();
             QVERIFY(preview.grab().save(captures + QString("/账号-%1.png").arg(index)));
         }
+        OnlineAccountDialog settings(&service, nullptr,
+                                     OnlineAccountDialog::Entry::ServiceSettings);
+        settings.setStyleSheet(dialog.styleSheet());
+        settings.show();
+        QCoreApplication::processEvents();
+        QVERIFY(settings.grab().save(captures + QStringLiteral("/账号-3.png")));
     }
 }
 void TstOnlineAuth::timeoutAndTlsFailure()

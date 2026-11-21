@@ -1,4 +1,7 @@
 #include "document/ProjectDocument.h"
+#include "ai/AiMaterial.h"
+#include "domain/Limits.h"
+#include "services/ProjectJson.h"
 
 #include <algorithm>
 #include <variant>
@@ -26,6 +29,13 @@ bool ProjectDocument::isModified() const {
 
 void ProjectDocument::replaceProject(Project next) {
     // 打开新工程建立新会话；撤销历史由CommandService::clearHistory清空（§5.1）
+    if (!next.drafts.isEmpty())
+    {
+        Project withSnapshots = next;
+        if (AiMaterial::restoreLegacyDraftSources(withSnapshots) &&
+            ProjectJson::toBytes(withSnapshots).size() <= Limits::kMaxFileBytes)
+            next = std::move(withSnapshots);
+    }
     applySnapshot(std::move(next));
 }
 

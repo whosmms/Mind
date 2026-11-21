@@ -1,6 +1,8 @@
 #pragma once
+#include <QIcon>
 #include <QVector>
 #include <QWidget>
+#include <functional>
 class QGridLayout;
 class QListWidget;
 class QLabel;
@@ -15,13 +17,16 @@ class HomePage final : public QWidget
     Q_OBJECT
   public:
     explicit HomePage(QWidget *parent = nullptr);
-    void setRecentFiles(const QVector<QString> &paths);
+    void setRecentFiles(const QVector<QString> &paths, const QStringList &pinned,
+                        const std::function<QIcon(const QString &)> &thumbnail);
     void setCurrentTitle(const QString &title);
   signals:
     void templateRequested(QString kind);
+    void templateGalleryRequested();
     void openRequested();
     void recentRequested(QString path);
     void removeRecentRequested(QString path);
+    void recentPinRequested(QString path, bool pinned);
     void continueRequested();
     void preferencesRequested();
 
@@ -35,6 +40,7 @@ class HomePage final : public QWidget
     QListWidget *m_recents = nullptr;
     QLabel *m_empty = nullptr;
     QLabel *m_current = nullptr;
+    qsizetype m_recentGeneration = 0;
     int m_columns = 0;
 };
 } // namespace lingya

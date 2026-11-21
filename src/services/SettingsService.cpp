@@ -4,6 +4,7 @@
 #include <QFileInfo>
 #include <QSettings>
 #include <QStringList>
+#include <algorithm>
 
 namespace lingya
 {
@@ -11,6 +12,7 @@ namespace lingya
 namespace
 {
 constexpr auto kRecentKey = "recentFiles";
+constexpr auto kPinnedKey = "pinnedRecentFiles";
 
 QStringList readRaw(const QSettings &settings)
 {
@@ -26,6 +28,11 @@ void writeRaw(QSettings &settings, const QStringList &items)
 bool samePath(const QString &a, const QString &b)
 {
     return QString::compare(a, b, Qt::CaseInsensitive) == 0;
+}
+
+bool includesPath(const QStringList &items, const QString &path)
+{
+    return items.contains(path, Qt::CaseInsensitive);
 }
 
 // 规范化并过滤空项；不要求文件存在（记录可以先于文件存在性判断）
@@ -52,9 +59,29 @@ QVector<QString> recentFiles(const QSettings &settings)
         if (!duplicate)
             result.append(path);
     }
+    const auto pins = pinnedRecentFiles(settings);
+    std::stable_partition(result.begin(), result.end(),
+                          [&pins](const QString &path) { return includesPath(pins, path); });
     while (result.size() > Limits::kMaxRecentFiles)
         result.removeLast();
     return result;
+}
+
+QStringList pinnedRecentFiles(const QSettings &settings)
+{
+    return settings.value(QLatin1String(kPinnedKey)).toStringList();
+}
+
+void setRecentFilePinned(QSettings &settings, const QString &path, bool pinned)
+{
+    if (path.trimmed().isEmpty())
+        return;
+    const auto normalized = normalize(path);
+    auto pins = pinnedRecentFiles(settings);
+    pins.removeIf([&](const QString &item) { return samePath(item, normalized); });
+    if (pinned && includesPath(readRaw(settings), normalized))
+        pins.append(normalized);
+    settings.setValue(QLatin1String(kPinnedKey), pins);
 }
 
 void addRecentFile(QSettings &settings, const QString &path)
@@ -71,8 +98,15 @@ void addRecentFile(QSettings &settings, const QString &path)
         if (!samePath(candidate, normalized))
             items.append(candidate);
     }
+    const auto pins = pinnedRecentFiles(settings);
     while (items.size() > Limits::kMaxRecentFiles)
-        items.removeLast();
+    {
+        auto victim = std::find_if(items.crbegin(), items.crend(), [&pins](const QString &item)
+                                   { return !includesPath(pins, item); });
+        if (victim == items.crend())
+            break;
+        items.removeAt(qsizetype(items.crend() - victim - 1));
+    }
     writeRaw(settings, items);
 }
 
@@ -88,12 +122,25 @@ void removeRecentFile(QSettings &settings, const QString &path)
             items.append(item);
     }
     writeRaw(settings, items);
+    setRecentFilePinned(settings, path, false);
 }
 
 QVector<QString> recentFiles()
 {
     QSettings settings;
     return recentFiles(settings);
+}
+
+QStringList pinnedRecentFiles()
+{
+    QSettings settings;
+    return pinnedRecentFiles(settings);
+}
+
+void setRecentFilePinned(const QString &path, bool pinned)
+{
+    QSettings settings;
+    setRecentFilePinned(settings, path, pinned);
 }
 
 void addRecentFile(const QString &path)

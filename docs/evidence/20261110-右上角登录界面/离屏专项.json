@@ -1,0 +1,25 @@
+{
+  "sourceCommit": "17ecb6574be859ef50421146ff03d1f18c722630",
+  "mode": "offscreen-1",
+  "exitCode": 0,
+  "passed": 10.0,
+  "failed": 0.0,
+  "skipped": 0.0,
+  "screenshots": 5,
+  "tests": [
+    {
+      "name": "ui",
+      "exitCode": 0,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "onlineauth",
+      "exitCode": 0,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    }
+  ]
+}

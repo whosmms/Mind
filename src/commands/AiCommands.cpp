@@ -5,6 +5,7 @@
 #include "domain/Limits.h"
 #include "domain/ProjectFactory.h"
 #include "domain/TitleRules.h"
+#include "services/ProjectJson.h"
 
 #include <QDateTime>
 #include <QSet>
@@ -280,6 +281,7 @@ std::variant<ID, AppError> AiCommands::saveDraft(const DraftProposal& proposal,
         sourceNodes.insert(it.key());
 
     QVector<DraftSection> sections;
+    qint64 snapshotCharacters = 0;
     for (const DraftSection& raw : proposal.sections) {
         const QString heading = raw.heading.trimmed();
         const QString text = raw.text.trimmed();
@@ -314,6 +316,15 @@ std::variant<ID, AppError> AiCommands::saveDraft(const DraftProposal& proposal,
         section.text = text;
         section.sourceNodeIds = raw.sourceNodeIds;
         section.origin = raw.origin;
+        if (!section.sourceNodeIds.isEmpty())
+        {
+            section.sourceSnapshot = AiMaterial::draftSourceSnapshot(*tree, section.sourceNodeIds);
+            snapshotCharacters +=
+                AiMaterial::draftSourceSnapshotCharacters(*section.sourceSnapshot);
+            if (snapshotCharacters > Limits::kMaxFileBytes)
+                return AppError{"LIMIT_EXCEEDED",
+                                QStringLiteral("文字稿和来源快照超出工程文件大小上限")};
+        }
         sections.append(section);
     }
 
@@ -327,11 +338,14 @@ std::variant<ID, AppError> AiCommands::saveDraft(const DraftProposal& proposal,
     draft.sections = sections;
     draft.createdAt = QDateTime::currentDateTimeUtc();
 
+    Project candidate = project;
+    candidate.drafts.append(draft);
+    if (ProjectJson::toBytes(candidate).size() > Limits::kMaxFileBytes)
+        return AppError{"LIMIT_EXCEEDED", QStringLiteral("文字稿和来源快照超出工程文件大小上限")};
+
     const ID draftId = draft.id;
-    const auto result = m_commands->applyEdit(QStringLiteral("保存AI文字稿"),
-                                              [draft](Project& target) {
-                                                  target.drafts.push_back(draft);
-                                              });
+    const auto result = m_commands->applyEdit(QStringLiteral("保存文字稿"), [draft](Project &target)
+                                              { target.drafts.push_back(draft); });
     if (const auto* error = std::get_if<AppError>(&result)) return *error;
     return draftId;
 }

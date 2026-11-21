@@ -80,4 +80,11 @@ PresentationStep PresentationController::current() const
 {
     return m_steps.isEmpty() ? PresentationStep{} : m_steps.at(m_index);
 }
+
+std::optional<PresentationStep> PresentationController::following() const
+{
+    if (m_index + 1 >= m_steps.size())
+        return std::nullopt;
+    return m_steps.at(m_index + 1);
+}
 } // namespace lingya

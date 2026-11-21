@@ -34,7 +34,25 @@ private slots:
     void completedCountNeverExceedsTotal();
     void markMapsToCardStatus();
     void gradeOutcomeMatchesCurrentCard();
+    void dueDatesUseLocalCalendar();
 };
+
+void TstReview::dueDatesUseLocalCalendar()
+{
+    const QDate day(2026, 11, 10);
+    ReviewCard card;
+    card.status = "new";
+    card.lastReviewedAt = QDateTime(day, QTime(0, 15)).toUTC();
+    QVERIFY(ReviewService::isDue(card, day));
+    card.status = "review";
+    QVERIFY(!ReviewService::isDue(card, day));
+    QVERIFY(ReviewService::isDue(card, day.addDays(1)));
+    card.status = "mastered";
+    QVERIFY(!ReviewService::isDue(card, day.addDays(6)));
+    QVERIFY(ReviewService::isDue(card, day.addDays(7)));
+    card.lastReviewedAt.reset();
+    QVERIFY(ReviewService::isDue(card, day));
+}
 
 namespace {
 

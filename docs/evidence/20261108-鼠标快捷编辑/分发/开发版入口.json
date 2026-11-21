@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "6d95db47eec25f2f82081119754aacfa8be542e9",
+  "candidatePath": "D:/mind/候选版本/鼠标交互版_20261108_6d95db4",
+  "manifestSha256": "2A160A0421FD5295745776F620D2CECCC573EEFF62BF075B2ED55211FEC74516",
+  "branch": "feature/a/free-layout-flow-connect",
+  "pullRequest": "https://github.com/whosmms/Mind/pull/54",
+  "kind": "鼠标编辑、自由布局、图片与24模板候选；PR54待审，未合入main"
+}

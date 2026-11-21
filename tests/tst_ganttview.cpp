@@ -35,6 +35,7 @@ private slots:
   void progressFillsBar();
   void dependencyDrawsArrow();
   void timeAxisDrawsTicks();
+  void showsTaskTitlesTodayAndWeekends();
   void rowForTaskMatchesTableOrder();
   void unscheduledListShowsTasks();
   void dragFilledBarMovesWholeBar();
@@ -194,9 +195,9 @@ void TstGanttView::sceneRectTracksRowsAndRange() {
     view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 1, 1), QDate(2026, 1, 3)),
                    makeTask(QStringLiteral("B"), QDate(2026, 1, 10), QDate(2026, 1, 12))});
 
-    // 日期范围 1/1..1/12 = 12 天 × 10px = 120；高度 = 时间轴 34 + 2 行 × 28 = 90
+    // 日期占 120px，末尾任务名也必须在可滚动范围内；行高不随标题改变。
     const QRectF rect = view.scene()->sceneRect();
-    QCOMPARE(rect.width(), 120.0);
+    QVERIFY(rect.width() > 120.0);
     QCOMPARE(rect.height(), 90.0);
     QCOMPARE(barItemCount(view), 2);
 }
@@ -217,15 +218,13 @@ void TstGanttView::setPixelsPerDayFallsBackToDefault() {
 
 void TstGanttView::progressFillsBar() {
     GanttView view;
-    view.setTasks(
-        {makeTask(QStringLiteral("A"), QDate(2026, 1, 1), QDate(2026, 1, 3), false, 50)});
+    view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 1, 1), QDate(2026, 1, 2), false, 50)});
     // 任务条本体 + 进度填充 = 2 个矩形（刻度是线与文字，不计）
     QCOMPARE(barItemCount(view), 1);
     QCOMPARE(typeCount(view, QGraphicsRectItem::Type), 2);
 
     GanttView zero;
-    zero.setTasks(
-        {makeTask(QStringLiteral("A"), QDate(2026, 1, 1), QDate(2026, 1, 3), false, 0)});
+    zero.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 1, 1), QDate(2026, 1, 2), false, 0)});
     QCOMPARE(typeCount(zero, QGraphicsRectItem::Type), 1);   // 进度为 0 不画填充
 }
 
@@ -245,6 +244,33 @@ void TstGanttView::timeAxisDrawsTicks() {
     view.setTasks({makeTask(QStringLiteral("A"), QDate(2026, 1, 1), QDate(2026, 1, 3))});
     // 除任务条外，刻度会额外产生文字（月份/日号）
     QVERIFY(typeCount(view, QGraphicsTextItem::Type) > 0);
+}
+
+void TstGanttView::showsTaskTitlesTodayAndWeekends()
+{
+    GanttView view;
+    const auto today = QDate::currentDate();
+    const auto title = QStringLiteral("检查任务名称");
+    view.setTasks({makeTask(title, today.addDays(-4), today.addDays(4))});
+    const auto items = view.scene()->items();
+    const auto label = std::find_if(
+        items.cbegin(), items.cend(),
+        [&](QGraphicsItem *item)
+        {
+            const auto *text = qgraphicsitem_cast<QGraphicsSimpleTextItem *>(item);
+            return text && text->text() == title && text->parentItem() == barItemFor(view, title);
+        });
+    QVERIFY(label != items.cend());
+    QVERIFY(view.sceneRect().contains((*label)->sceneBoundingRect()));
+    QVERIFY(std::any_of(items.cbegin(), items.cend(),
+                        [](QGraphicsItem *item)
+                        {
+                            return item->type() == QGraphicsLineItem::Type &&
+                                   item->toolTip() == QStringLiteral("今天");
+                        }));
+    QVERIFY(
+        std::any_of(items.cbegin(), items.cend(), [](QGraphicsItem *item)
+                    { return item->type() == QGraphicsRectItem::Type && item->zValue() == -2; }));
 }
 
 void TstGanttView::rowForTaskMatchesTableOrder() {

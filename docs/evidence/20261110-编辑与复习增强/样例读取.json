@@ -1,0 +1,114 @@
+{
+    "checked": 13,
+    "projects": [
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/01-basic.lingya",
+            "sheets": 1
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+                {
+                    "draftId": "265348ce-d55d-58b2-bd32-db9a1b7af4d9",
+                    "hasSourceHash": false
+                }
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/02-delete-impact.lingya",
+            "sheets": 1
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/03-hundred-nodes.lingya",
+            "sheets": 1
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/04-collapsed.lingya",
+            "sheets": 1
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/05-flow.lingya",
+            "sheets": 1
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/06-offline.lingya",
+            "sheets": 1
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+                {
+                    "draftId": "265348ce-d55d-58b2-bd32-db9a1b7af4d9",
+                    "hasSourceHash": false
+                }
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/07-gantt-filter.lingya",
+            "sheets": 4
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/08-跨表保留学习记录_导图.lingya",
+            "sheets": 2
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/09-跨表保留学习记录_鱼骨.lingya",
+            "sheets": 2
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/10-讲解路线阻断.lingya",
+            "sheets": 2
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+                {
+                    "draftId": "1cf3b162-9a2a-4c7e-a71f-81ab38c598c0",
+                    "hasSourceHash": false
+                }
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/11-文稿引用阻断.lingya",
+            "sheets": 2
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/12-AI导图_假响应.lingya",
+            "sheets": 1
+        },
+        {
+            "accepted": true,
+            "draftSources": [
+                {
+                    "draftId": "cb810131-cdc4-4f37-a80a-4d1803966029",
+                    "hasSourceHash": true,
+                    "sourceMatches": true
+                }
+            ],
+            "path": "D:/mind/候选版本/右上角登录_20261110_17ecb65/样例/13-AI文稿_假响应.lingya",
+            "sheets": 1
+        }
+    ],
+    "success": true
+}
