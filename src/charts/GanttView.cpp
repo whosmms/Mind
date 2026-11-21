@@ -14,15 +14,13 @@
 #include <QPen>
 #include <QPolygonF>
 #include <QStringList>
+#include <QTextDocument>
 
 namespace lingya {
 
 namespace {
 
 constexpr int kAxisHeight = 34;    // 时间轴高度（容纳月份+日号两行）
-// 月界竖线起点：压在月份标签下沿（标签高约 16px），既保证轴带内仍看得到月份分界，
-// 又不会穿过标签文字；从 kAxisHeight 起画会让轴带内完全看不到分界（P3 52.2）
-constexpr int kMonthLineTop = 22;
 constexpr int kRowHeight = 28;
 constexpr int kBarMargin = 4;
 constexpr int kMilestoneRadius = 8;
@@ -132,6 +130,17 @@ int GanttView::rowForTask(const ID& taskId) const {
     return -1;
 }
 
+qreal GanttView::monthLineTop(const QFont& monthFont) {
+    // 月份标签是 QGraphicsTextItem（内部一个 QTextDocument，默认页边距 4px）。
+    // 用同款文档量一次单行 "0000-00" 的高度，就是标签框的下沿；再留 1px 保证不压字。
+    // 写死像素时字号一调大就穿字（乙 §54 反证：22 在 12pt 下直接穿），故按字体推导。
+    constexpr qreal kLabelGap = 1.0;
+    QTextDocument probe;
+    probe.setDefaultFont(monthFont);
+    probe.setPlainText(QStringLiteral("0000-00"));
+    return probe.size().height() + kLabelGap;
+}
+
 void GanttView::rebuild() {
     QGraphicsScene* target = scene();
     // 重建会销毁全部图元：拖拽期间若数据被外部刷新（setTasks/撤销/另存），
@@ -169,6 +178,8 @@ void GanttView::rebuild() {
         QFont monthFont;
         monthFont.setPointSize(8);
         monthFont.setBold(true);
+        // 竖线起点跟着字体走：字号调大时自动下移，不会穿字（原先写死 22，乙 §54 反证 12pt 即穿）
+        const qreal monthLineTopY = monthLineTop(monthFont);
 
         const int totalDays = result.totalWidth / m_pixelsPerDay;
         // 月界标签避让：短区间跨月时两个 yyyy-MM 只隔一天，会压在一起（OBS-A-20261031-001）。
@@ -183,7 +194,7 @@ void GanttView::rebuild() {
                 const QString monthText = day.toString(QStringLiteral("yyyy-MM"));
                 const qreal width = QFontMetricsF(monthFont).horizontalAdvance(monthText);
                 // 月界网格从标题下沿起画：不穿字，且轴带内仍保留月份分界（P3 52.2）
-                target->addLine(x, kMonthLineTop, x, sceneHeight, QPen(primaryColor(), 1.0));
+                target->addLine(x, monthLineTopY, x, sceneHeight, QPen(primaryColor(), 1.0));
                 if (x + 3 >= lastMonthLabelRight + 6)
                 {
                     auto *label = target->addText(monthText, monthFont);
