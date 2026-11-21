@@ -27,10 +27,11 @@ class AiPanel : public QWidget {
 public:
     explicit AiPanel(AiService* service, QWidget* parent = nullptr);
 
+    // 非敏感模型名由面板写入、主窗口启动时读取，凭据由 SecretStore 管理。
+    static constexpr char kModelSettingsKey[] = "ai/model";
+
     // 把当前选中节点内容作为材料预填
-    void setSourceText(const QString& text);
-    // 文稿/导图的目标工作表（空的导图请求不填）
-    void setTargetSheet(const ID& sheetId);
+    void setSourceText(const QString &text);
     void setDraftContext(const GenerateDraftRequest &request, const QString &error = {});
     void setDraftSupported(bool supported);
     void reportApplyResult(const QString &error);
@@ -43,6 +44,7 @@ public:
     }
 
   signals:
+    // draft 为 true 时，宿主须在同一 GUI 线程内同步调用 setDraftContext 回填本次来源。
     void contextRequested(bool draft);
     void applyMapRequested(const MapProposal& proposal);
     void applyDraftRequested(const DraftProposal& proposal);
@@ -64,8 +66,7 @@ private:
     void setBusy(bool busy);
     void clearProposal();
 
-    AiService* m_service = nullptr;
-    ID m_targetSheet;
+    AiService *m_service = nullptr;
 
     QLineEdit* m_keyEdit = nullptr;
     QLineEdit *m_modelEdit = nullptr;

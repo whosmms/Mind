@@ -40,7 +40,8 @@ class AiRuntime : public QObject
     {
         service = new AiService(nullptr, secret.get(), this);
         QSettings settings;
-        service->setModel(settings.value("ai/model", service->status().model).toString());
+        service->setModel(
+            settings.value(AiPanel::kModelSettingsKey, service->status().model).toString());
         SecretStore *store = secret.get();
         service->setProviderFactory([store] { return createAiProvider(store); });
     }
@@ -128,27 +129,32 @@ void MainWindow::showAiWorkspace()
     updateScope();
     ID sourceSheet, sourceNode;
     qint64 sourceRevision = -1;
-    connect(panel, &AiPanel::contextRequested, &dialog,
-            [&](bool draft)
+    connect(
+        panel, &AiPanel::contextRequested, &dialog,
+        [&](bool draft)
+        {
+            const auto currentSheet = m_doc->project().activeSheetId;
+            const auto currentNode = m_selectedNodeId;
+            const auto currentRevision = m_doc->sessionRevision();
+            if (draft)
             {
-                sourceSheet = m_doc->project().activeSheetId;
-                sourceNode = m_selectedNodeId;
-                sourceRevision = m_doc->sessionRevision();
-                if (draft)
+                const auto context =
+                    AiMaterial::fromTree(m_doc->project(), currentSheet,
+                                         scope->currentIndex() == 0 ? currentNode : ID{});
+                if (const auto *error = std::get_if<AppError>(&context))
                 {
-                    const auto context =
-                        AiMaterial::fromTree(m_doc->project(), sourceSheet,
-                                             scope->currentIndex() == 0 ? sourceNode : ID{});
-                    if (const auto *error = std::get_if<AppError>(&context))
-                        panel->setDraftContext({}, error->message);
-                    else
-                    {
-                        auto request = std::get<GenerateDraftRequest>(context);
-                        request.projectRevision = sourceRevision;
-                        panel->setDraftContext(request);
-                    }
+                    panel->setDraftContext({}, error->message);
+                    return;
                 }
-            });
+                auto request = std::get<GenerateDraftRequest>(context);
+                request.projectRevision = currentRevision;
+                panel->setDraftContext(request);
+            }
+            sourceSheet = currentSheet;
+            sourceNode = currentNode;
+            sourceRevision = currentRevision;
+        },
+        Qt::DirectConnection);
     connect(panel, &AiPanel::applyMapRequested, &dialog,
             [&](const MapProposal &proposal)
             {

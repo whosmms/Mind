@@ -222,7 +222,7 @@ AiPanel::AiPanel(AiService* service, QWidget* parent) : QWidget(parent), m_servi
                     return;
                 }
                 QSettings settings;
-                settings.setValue("ai/model", m_service->status().model);
+                settings.setValue(kModelSettingsKey, m_service->status().model);
                 settings.sync();
                 m_statusLabel->setText(
                     settings.status() == QSettings::NoError
@@ -341,10 +341,6 @@ void AiPanel::setSourceText(const QString& text) {
     m_sourceEdit->setPlainText(text);
 }
 
-void AiPanel::setTargetSheet(const ID& sheetId) {
-    m_targetSheet = sheetId;
-}
-
 void AiPanel::onSaveKey() {
     if (m_service == nullptr) {
         return;
@@ -397,18 +393,24 @@ void AiPanel::onGenerateDraft() {
     if (m_service == nullptr) {
         return;
     }
-    clearProposal();
-    m_workflows->setCurrentIndex(1);
-    emit contextRequested(true);
-    if (!m_draftSupported || !m_contextError.isEmpty())
+    if (!m_draftSupported)
     {
-        m_statusLabel->setText(m_contextError.isEmpty() ? QStringLiteral("当前类型不支持文字稿")
-                                                        : m_contextError);
+        m_statusLabel->setText(QStringLiteral("当前类型不支持文字稿"));
         return;
     }
+    const auto missingContext = QStringLiteral("未取得文字稿来源，请重新选择后再试");
+    m_draftContext = {};
+    m_contextError = missingContext;
+    emit contextRequested(true);
+    if (!m_contextError.isEmpty() || m_draftContext.sheetId.isEmpty())
+    {
+        m_statusLabel->setText(m_contextError.isEmpty() ? missingContext : m_contextError);
+        return;
+    }
+    clearProposal();
+    m_workflows->setCurrentIndex(1);
     GenerateDraftRequest request = m_draftContext;
     request.requestId = newRequestId();
-    request.sheetId = m_targetSheet;
     request.mode = m_modeCombo->currentData().toString();
     request.requirements = m_requirements->text();
     request.purpose = m_purpose->currentData().toString();
@@ -551,7 +553,6 @@ void AiPanel::setDraftContext(const GenerateDraftRequest &request, const QString
 {
     m_draftContext = request;
     m_contextError = error;
-    m_targetSheet = request.sheetId;
 }
 void AiPanel::setDraftSupported(bool supported)
 {

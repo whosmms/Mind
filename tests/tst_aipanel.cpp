@@ -9,6 +9,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSignalSpy>
+#include <QTabWidget>
 #include <QTextBrowser>
 
 using namespace lingya;
@@ -20,6 +21,8 @@ class TstAiPanel : public QObject {
 private slots:
     void idleDisablesApply();
     void mapGenerationShowsPreviewAndApplies();
+    void draftContextFailureKeepsPriorProposal();
+    void draftGenerationRequiresFreshContext();
     void failureShowsErrorCode();
     void cancelShowsCanceled();
     void testConnectionShowsModel();
@@ -64,6 +67,77 @@ void TstAiPanel::mapGenerationShowsPreviewAndApplies() {
 
     applyButton->click();
     QCOMPARE(applySpy.count(), 1);
+}
+
+void TstAiPanel::draftContextFailureKeepsPriorProposal()
+{
+    FakeAiProvider provider;
+    SessionSecretStore store;
+    AiService service(&provider, &store);
+    AiPanel panel(&service);
+    QVERIFY(service.setKey(QStringLiteral("本地测试占位"), false));
+    panel.setSourceText(QStringLiteral("受控测试材料"));
+    auto *tabs = panel.findChild<QTabWidget *>("aiWorkflowTabs");
+    auto *mapButton = panel.findChild<QPushButton *>("aiGenerateMap");
+    auto *draftButton = panel.findChild<QPushButton *>("aiGenerateDraft");
+    auto *apply = panel.findChild<QPushButton *>("aiApply");
+    auto *status = panel.findChild<QLabel *>("aiStatus");
+    QVERIFY(tabs && mapButton && draftButton && apply && status);
+    const auto sourceError = QStringLiteral("模拟来源超出范围");
+    int sourceRequests = 0;
+    connect(&panel, &AiPanel::contextRequested, &panel,
+            [&](bool draft)
+            {
+                if (draft)
+                {
+                    ++sourceRequests;
+                    panel.setDraftContext({}, sourceError);
+                }
+            });
+    mapButton->click();
+    QTRY_VERIFY_WITH_TIMEOUT(apply->isEnabled(), 3000);
+    const auto previousId = panel.currentRequestId();
+    QVERIFY(!previousId.isEmpty());
+
+    panel.setDraftSupported(false);
+    QVERIFY(!draftButton->isEnabled());
+    draftButton->click();
+    QCOMPARE(sourceRequests, 0);
+    QCOMPARE(tabs->currentIndex(), 0);
+    QVERIFY(apply->isEnabled());
+
+    panel.setDraftSupported(true);
+    tabs->setCurrentIndex(1);
+    draftButton->click();
+    QCOMPARE(sourceRequests, 1);
+    QCOMPARE(status->text(), sourceError);
+    QCOMPARE(tabs->currentIndex(), 1);
+    QVERIFY(!service.status().busy);
+    QVERIFY(apply->isEnabled());
+    QCOMPARE(panel.currentRequestId(), previousId);
+    QSignalSpy applySpy(&panel, &AiPanel::applyMapRequested);
+    apply->click();
+    QCOMPARE(applySpy.count(), 1);
+}
+
+void TstAiPanel::draftGenerationRequiresFreshContext()
+{
+    FakeAiProvider provider;
+    SessionSecretStore store;
+    AiService service(&provider, &store);
+    AiPanel panel(&service);
+    auto *tabs = panel.findChild<QTabWidget *>("aiWorkflowTabs");
+    auto *draftButton = panel.findChild<QPushButton *>("aiGenerateDraft");
+    auto *status = panel.findChild<QLabel *>("aiStatus");
+    QVERIFY(tabs && draftButton && status);
+    tabs->setCurrentIndex(1);
+
+    GenerateDraftRequest stale;
+    stale.sheetId = "stale-sheet";
+    panel.setDraftContext(stale, QStringLiteral("上一次来源错误"));
+    draftButton->click();
+    QCOMPARE(status->text(), QStringLiteral("未取得文字稿来源，请重新选择后再试"));
+    QVERIFY(!service.status().busy);
 }
 
 void TstAiPanel::failureShowsErrorCode() {
